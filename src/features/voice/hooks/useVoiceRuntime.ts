@@ -1,11 +1,13 @@
 import { useEffect } from 'react';
 import { useAppContext } from '@/app/state/AppContext';
 import { getVoiceRuntime, initVoiceRuntime } from '@/features/voice/lib/voiceRuntime';
+import { isVoiceEnabled } from '@/shared/config/featureFlags';
 
-export function useVoiceRuntime() {
+export function useVoiceRuntime({ enabled = isVoiceEnabled() }: { enabled?: boolean } = {}) {
   const { state, dispatch, stateRef } = useAppContext();
 
   useEffect(() => {
+    if (!enabled) return;
     const runtime = initVoiceRuntime({
       getState: () => stateRef.current,
       onPatchBlock: (contentId, signature, patch) => {
@@ -74,9 +76,10 @@ export function useVoiceRuntime() {
       window.removeEventListener('agent:voice-reset', resetHandler);
       runtime.resetVoiceRuntime();
     };
-  }, [dispatch, stateRef]);
+  }, [dispatch, enabled, stateRef]);
 
   useEffect(() => {
+    if (!enabled) return;
     getVoiceRuntime()?.setMuted(state.audioMuted);
-  }, [state.audioMuted]);
+  }, [enabled, state.audioMuted]);
 }

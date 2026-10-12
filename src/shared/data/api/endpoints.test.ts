@@ -187,9 +187,10 @@ it('includes uploaded references in the steer control payload', () => {
 
 it("normalizes library pointers at the query root and snapshots them", () => {
  const libraries = [" lib-a ", "lib-b", "lib-a"];
- const payload = buildQueryPayload({requestId:"request",message:"hello",owner:{kind:"agent",agentKey:"general"},references:libraries.map(id=>({type:"kbase",id}))});
+ const options = {requestId:"request",message:"hello",owner:{kind:"agent" as const,agentKey:"general"},references:libraries.map(id=>({type:"kbase",id})),unexpectedOption:["resource"]};
+ const payload = buildQueryPayload(options);
  libraries.push("later");
  expect(payload.references).toEqual([{type:"kbase",id:"lib-a"},{type:"kbase",id:"lib-b"}]);
- expect(payload).not.toHaveProperty("mustUseKbases"); expect(payload).not.toHaveProperty("params");
+ expect(payload).not.toHaveProperty("unexpectedOption"); expect(payload).not.toHaveProperty("params");
  expect(buildQueryPayload({requestId:"request",message:"hello",owner:{kind:"agent",agentKey:"general"},references:[]})).toHaveProperty("references", []);
 });

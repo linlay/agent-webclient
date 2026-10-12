@@ -21,7 +21,12 @@ export function interactionDefaults(mode: string): InteractionConfig {
     model: !kbase && !["PROXY", "CHANNEL"].includes(normalized),
     accessLevel: !kbase,
     connectors: !kbase,
-    attachment: { localFiles: true, chatRecords: !kbase && normalized !== "CODER", skills: true, kbases: !["KBASE", "PROXY", "CHANNEL"].includes(normalized) },
+    attachment: {
+      localFiles: true,
+      chatRecords: !kbase && !["CODER", "PROXY", "CHANNEL"].includes(normalized),
+      skills: !["PROXY", "CHANNEL"].includes(normalized),
+      kbases: !["KBASE", "PROXY", "CHANNEL"].includes(normalized),
+    },
     showPlanningMode: ["", "GENERAL", "REACT", "CODER", "KBASE", "TEAM"].includes(normalized),
     showEditingMode: kbase,
     showTerminal: normalized === "CODER",

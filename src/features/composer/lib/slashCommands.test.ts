@@ -1,4 +1,9 @@
 import type { TimelineNode } from "@/features/timeline/lib/timelineState";
+import { isVoiceEnabled } from "@/shared/config/featureFlags";
+jest.mock("@/shared/config/featureFlags", () => ({
+  ...jest.requireActual("@/shared/config/featureFlags"),
+  isVoiceEnabled: jest.fn(),
+}));
 import {
   SLASH_COMMANDS,
   getFilteredSlashCommands,
@@ -21,6 +26,7 @@ const globalWithFeatureFlags = globalThis as typeof globalThis & {
 
 describe('slashCommands', () => {
   beforeEach(() => {
+    jest.mocked(isVoiceEnabled).mockReturnValue(true);
     globalWithFeatureFlags.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
       VOICE_ENABLED: 'true',
       MEMORY_ENABLED: 'true',
@@ -172,6 +178,7 @@ describe('slashCommands', () => {
   });
 
   it('filters the voice command by the voice runtime flag', () => {
+    jest.mocked(isVoiceEnabled).mockReturnValue(false);
     globalWithFeatureFlags.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
       VOICE_ENABLED: 'false',
     };

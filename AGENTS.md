@@ -228,3 +228,5 @@ Composer 模型、思考强度与 service tier 按 Chat 隔离，旧 Chat 从最
 TEAM 与普通 Agent 共用 agentKey 身份、目录、管理和运行控制。成员配置来自 teamConfig；不维护独立 Team 列表。
 
 Agent 管理表单支持 `interactionConfig.showPlanningMode/showEditingMode/showTerminal` 三个入口开关，只保存显式覆盖（包括 false）；未配置字段与恢复默认值仍交由 Platform 解析。
+
+当前语音统一开关 isVoiceEnabled() 固定关闭；宿主 VOICE_ENABLED 不改变入口，useVoiceRuntime 跳过初始化和事件监听。保留语音实现，测试通过显式输入或模块注入验证启用路径。

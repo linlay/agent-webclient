@@ -3,7 +3,7 @@ it("snapshots all typed references and never reconstructs legacy selections", ()
  const refs = [{type:"skill",id:"docs"},{type:"kbase",id:"docs"},{type:"chat",id:"source"}];
  const copy = queryResendSnapshot({references:refs}); refs[0].id="changed";
  expect(copy.references).toEqual([{type:"skill",id:"docs"},{type:"kbase",id:"docs"},{type:"chat",id:"source"}]);
- expect(queryResendSnapshot({mustUseKbases:["old"]} as never).references).toEqual([]);
+ expect(queryResendSnapshot({unexpectedOption:["old"]} as never).references).toEqual([]);
 });
 
 it("keeps file pointers bound to their source Chat when resending to a new Chat", () => {

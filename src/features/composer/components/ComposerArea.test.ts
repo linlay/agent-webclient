@@ -243,15 +243,19 @@ jest.mock("@/features/composer/hooks/useComposerMention", () => ({
   }),
 }));
 
+const mockComposerSendInputs: Array<Record<string, unknown>> = [];
 jest.mock("@/features/composer/hooks/useComposerSend", () => ({
-  useComposerSend: () => ({
+  useComposerSend: (input: Record<string, unknown>) => {
+    mockComposerSendInputs.push(input);
+    return {
     applyComposerDraft: jest.fn(),
     executeSlashCommand: jest.fn(),
     handleCancelSteer: jest.fn(),
     handleSend: jest.fn(),
     handleSteer: jest.fn(),
     interruptCurrentRun: jest.fn(),
-  }),
+    };
+  },
 }));
 jest.mock("@/features/composer/hooks/useDesktopSelectionActions", () => ({
   useDesktopSelectionActions: () => ({ handleAction: jest.fn() }),
@@ -333,6 +337,7 @@ describe("ComposerArea", () => {
     };
     mockComposerInputProps.length = 0;
     mockComposerActionsProps.length = 0;
+    mockComposerSendInputs.length = 0;
     mockComposerPopoverProps.length = 0;
     mockComposerAttachmentsState.sendAttachmentMeta = [];
     mockComposerAttachmentsState.sendReferences = [];
@@ -590,14 +595,16 @@ describe("ComposerArea", () => {
     );
   });
 
-  it("shows the skills-center name for a selected skill ID", () => {
+  it.each([true, false])("keeps host skill references when manual selection is enabled=%s", (skillsEnabled) => {
     const state = createInitialState();
     mockResolveCurrentWorkerSummary.mockReturnValue({
       type: "agent",
       sourceId: "cutej",
       displayName: "小君",
       relatedChats: [],
-      raw: { mode: "REACT", interactionConfig: interactionDefaults("REACT") },
+      raw: { mode: "REACT", engine: skillsEnabled ? "native" : "acp", interactionConfig: {
+        ...interactionDefaults("REACT"), attachment: { ...interactionDefaults("REACT").attachment, skills: skillsEnabled },
+      } },
     });
     mockHostRequiredSkills.agentKey = "cutej";
     mockHostRequiredSkills.skills = ["skill-creator"];
@@ -620,6 +627,9 @@ describe("ComposerArea", () => {
     const html = renderToStaticMarkup(React.createElement(ComposerArea));
 
     expect(html).toContain("技能创建");
+    expect(mockComposerSendInputs.at(-1)?.sendReferences).toEqual([
+      { type: "skill", id: "skill-creator", name: "技能创建" },
+    ]);
     expect(mockUseAgentSkillsQuery).toHaveBeenCalledWith("cutej", {
       enabled: true,
     });

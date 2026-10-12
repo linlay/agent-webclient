@@ -284,15 +284,16 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     return next.map(skill => ({type:"skill" as const,id:skill.id,name:skill.label,meta:skill.selectedViaPackageId ? {selectedViaPackageId:skill.selectedViaPackageId}:undefined}));
   }), [setContextReferences]);
   const forcedSkills = useMemo<ComposerRequiredSkill[]>(() => {
-    if (!interactionConfig.attachment.skills || hostRequiredSkills.agentKey !== currentAgentKey) return [];
+    if (hostRequiredSkills.agentKey !== currentAgentKey) return [];
     return hostRequiredSkills.skills.map((id) => ({ id, label: id }));
-  }, [currentAgentKey, hostRequiredSkills, interactionConfig.attachment.skills]);
+  }, [currentAgentKey, hostRequiredSkills]);
   const effectiveSkills = useMemo(() => {
-    if (!interactionConfig.attachment.skills) return [];
+    // Host references are part of the fixed Copilot contract. A closed manual
+    // entry must not silently remove them; the backend validates the request.
     const identities = new Set(forcedSkills.map((skill) => skill.id.toLowerCase()));
     return [
       ...forcedSkills,
-      ...skillSelection.filter((skill) => {
+      ...(interactionConfig.attachment.skills ? skillSelection : []).filter((skill) => {
         const identity = skill.id.trim().toLowerCase();
         if (!identity || identities.has(identity)) return false;
         identities.add(identity);

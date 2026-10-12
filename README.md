@@ -129,7 +129,7 @@ make dev
 开发模式下，Webpack Dev Server 会代理：
 
 - 普通 `/api/*` 到 `BASE_URL`
-- 设置 `VOICE_BASE_URL` 时，语音 HTTP 与 `/api/voice/ws` 代理到该独立上游；未设置时语音功能关闭
+- 设置 `VOICE_BASE_URL` 时保留语音 HTTP 与 `/api/voice/ws` 的上游代理配置；WebClient 的统一语音开关当前固定关闭，入口不展示，也不初始化语音运行时
 - `/ws` 到 `BASE_URL`
 - `/auth/*` 到 `BASE_URL`，供 Gateway OIDC/SSO 使用
 
@@ -175,7 +175,7 @@ Program Bundle 包含 `manifest.json`、`.env.example`、`frontend/dist/` 和 De
 | --- | --- | --- |
 | `PORT` | 否 | 本地开发端口；Program Bundle 运行时由 Desktop 宿主注入 |
 | `BASE_URL` | 是 | AGW / AGENT 后端 HTTP API 与主 `/ws` 基地址 |
-| `VOICE_BASE_URL` | 否 | 独立语音服务地址；未设置时关闭语音代理路由与 UI 入口 |
+| `VOICE_BASE_URL` | 否 | 独立语音服务地址；未设置时关闭语音代理路由；UI 入口当前统一关闭 |
 | `BACKEND_MODE` | 否 | `platform`（默认）保留 Token 认证；`gateway` 使用 Session Cookie、CSRF 与登录回跳 |
 | `DEBUG_PANEL_ENABLED` | 否 | 是否显示调试面板入口 |
 | `SETTINGS_MENU_ENABLED` | 否 | 是否显示设置入口 |

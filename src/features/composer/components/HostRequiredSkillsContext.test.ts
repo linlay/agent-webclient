@@ -14,7 +14,7 @@ describe("readHostRequiredSkills", () => {
 
   it("ignores host skills without a scoped Copilot agent", () => {
     expect(
-      readHostRequiredSkills("", new URLSearchParams("mustUseSkill=poster-studio")),
+      readHostRequiredSkills("", new URLSearchParams("unexpectedOption=poster-studio")),
     ).toEqual({ agentKey: "", skills: [] });
   });
 });

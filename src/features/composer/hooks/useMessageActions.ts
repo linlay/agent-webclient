@@ -812,7 +812,7 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
             if (display.code === "interaction_disabled") {
               window.dispatchEvent(new CustomEvent("agent:availability-refresh", { detail: { agentKey: selectedAgentKey } }));
             }
-            if (display.code === "must_use_skill_unavailable") {
+            if (display.code === "skill_reference_unavailable") {
               requestSkillsRefresh(selectedAgentKey);
               dispatch({ type: "SET_SKILL_REJECTION", rejection: { agentKey: selectedAgentKey, message: display.message,
                 ...(display.error.skillId ? { skillId: display.error.skillId } : {}) } });

@@ -46,7 +46,7 @@ function Preview() {
      <textarea aria-label="消息" value={message} onChange={event => setMessage(event.target.value)} placeholder="输入消息，＋菜单选择一个或多个知识库…" style={{display: "block", width: "100%", minHeight: 100, border: 0, background: "transparent", color: "inherit", resize: "vertical", padding: 8}} />
      <div style={{display: "flex", alignItems: "center", justifyContent: "space-between", paddingTop: 6}}>
       <AddMenuTrigger disabled={false} loading={false} currentChatId={chat} currentAgentKey="general" interactionConfig={interactionDefaults("GENERAL")} planningMode={false} editingMode={false} canUsePlanningMode={false} canUseEditingMode={false} isMainChatRunning={false} canCaptureDesktopScreenshot={false} isCapturingDesktopScreenshot={false} selectedSkillIds={[]} onOpenFilePicker={() => {}} onCaptureScreenshot={() => {}} onAddReference={() => {}} onTogglePlanningMode={() => {}} onEditingModeChange={() => {}} onSelectSkill={() => {}} kbaseCatalog={catalog} selectedKbases={selected} onSelectKbases={items => setSelectedByChat(current => ({...current,[chat]: items}))} />
-      <button onClick={() => {setPayload(buildQueryPayload({requestId: "fixture", message, owner: {kind: "agent", agentKey: "general"}, mustUseKbases: selected.map(item => item.id)})); setMessage("");}}>发送快照</button>
+      <button onClick={() => {setPayload(buildQueryPayload({requestId: "fixture", message, owner: {kind: "agent", agentKey: "general"}, references: selected.map(item => ({type: "kbase", id: item.id}))})); setMessage("");}}>发送快照</button>
      </div>
     </div>
    </div>

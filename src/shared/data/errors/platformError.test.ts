@@ -254,5 +254,5 @@ describe("platformError", () => {
  });
 
 it("preserves a structured skillId without parsing the error message", () => {
-  expect(normalizePlatformError({ data: { error: { code: "must_use_skill_unavailable", message: "Unavailable", skillId: "office/pdf" } } }).skillId).toBe("office/pdf");
+  expect(normalizePlatformError({ data: { error: { code: "skill_reference_unavailable", message: "Unavailable", skillId: "office/pdf" } } }).skillId).toBe("office/pdf");
 });

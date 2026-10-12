@@ -138,13 +138,13 @@ describe("featureFlags", () => {
     expect(isMemoryEnabled()).toBe(true);
   });
 
-  it("reads the voice flag from runtime config", () => {
+  it("keeps voice disabled even when the host enables its runtime flag", () => {
     expect(isVoiceEnabled()).toBe(false);
 
     globalWithFeatureFlags.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
       VOICE_ENABLED: "true",
     };
-    expect(isVoiceEnabled()).toBe(true);
+    expect(isVoiceEnabled()).toBe(false);
 
     globalWithFeatureFlags.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
       VOICE_ENABLED: "false",
