@@ -2,6 +2,10 @@ import type {
  I18nMessages } from "@/shared/i18n/types";
 
 export const enUSMessages = {
+  "nativeShare.receiving": "Receiving shared files…",
+  "nativeShare.failed": "Receiving failed. The source files and draft were kept. Retry, then send.",
+  "nativeShare.attachmentRejected": "This composer cannot add files right now. Return to text input and retry.",
+  "nativeShare.retry": "Retry",
   "kbase.idsPlaceholder": "[\"library-id\"]",
   "kbase.title": "Knowledge libraries",
   "kbase.selectionLimit": "Select at most {count} libraries per query",

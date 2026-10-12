@@ -447,6 +447,32 @@ export function useComposerAttachments(input: UseComposerAttachmentsInput) {
     [localFilesAllowed, chatRecordsAllowed, isFrontendActive, isVoiceMode, mainChatRunning],
   );
 
+  const stageFiles = useCallback((files: File[]) => {
+    if (!localFilesAllowed || !files.length || mainChatRunning || isFrontendActive || isVoiceMode) return false;
+    // Native shares append to the current draft. A same-named existing file must
+    // remain available, so assign the incoming copy a unique display/upload name.
+    const occupied = new Set([...latestAttachmentIdByNameRef.current.keys()].map((name) => name.trim().toLowerCase()));
+    const incoming = files.map((file) => {
+      let name = file.name;
+      const dot = name.lastIndexOf(".");
+      const stem = dot > 0 ? name.slice(0, dot) : name;
+      const extension = dot > 0 ? name.slice(dot) : "";
+      let counter = 2;
+      while (occupied.has(name.trim().toLowerCase())) name = `${stem} (${counter++})${extension}`;
+      occupied.add(name.trim().toLowerCase());
+      return name === file.name ? file : new File([file], name, { type: file.type, lastModified: file.lastModified });
+    });
+    const staged = createPendingComposerAttachments(incoming).map((attachment) => ({ ...attachment, status: "staged" as const }));
+    if (staged.length !== incoming.length) return false;
+    staged.forEach((attachment, index) => {
+      latestAttachmentIdByNameRef.current.set(getComposerAttachmentNameKey(attachment), attachment.id);
+      stagedFilesByAttachmentIdRef.current.set(attachment.id, incoming[index]);
+    });
+    dispatch({ type: "TOUCH_COMPOSER" });
+    setAttachments((current) => [...current, ...staged]);
+    return true;
+  }, [dispatch, localFilesAllowed, mainChatRunning, isFrontendActive, isVoiceMode]);
+
   const uploadStagedAttachments = useCallback(async () => {
     const staged = attachmentsRef.current.filter(
       (attachment) => attachment.status === "staged",
@@ -648,6 +674,7 @@ export function useComposerAttachments(input: UseComposerAttachmentsInput) {
     openFilePicker,
     readyAttachments,
     stageReviewAttachment,
+    stageFiles,
     scrollComposerAttachments,
     sendAttachmentMeta,
     sendReferences,

@@ -2,6 +2,10 @@ import type {
  I18nMessages } from "@/shared/i18n/types";
 
 export const zhCNMessages = {
+  "nativeShare.receiving": "正在接收分享的文件…",
+  "nativeShare.failed": "接收失败，原文件和草稿已保留。请重试后发送。",
+  "nativeShare.attachmentRejected": "当前输入区暂时不能添加文件，请恢复文字输入后重试。",
+  "nativeShare.retry": "重试",
   "kbase.idsPlaceholder": "[\"知识库ID\"]",
   "kbase.title": "知识库",
   "kbase.selectionLimit": "每轮最多选择 {count} 个知识库",
