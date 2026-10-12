@@ -14,8 +14,8 @@ import type { AppState } from "@/app/state/AppContext";
 import type { RightSidebarTabKey } from "@/features/viewers/lib/viewerState";
 import {
   resolveCurrentWorkerSummary,
-  isCoderAgent,
-  isDedicatedKbaseWorker,
+  workerShowsTerminal,
+  workerHasWorkspace,
 } from "@/features/workers/lib/currentWorker";
 import {
   isDebugPanelEnabled,
@@ -188,16 +188,14 @@ export const TopNav: React.FC<{ surface?: "root" | "agent" }> = ({
   );
   const currentWorker = resolveCurrentWorkerSummary(state);
   const desktopMode = isDesktopAppMode();
-  const showTerminalButton = !desktopMode && isCoderAgent(currentWorker);
+  const showTerminalButton = !desktopMode && workerShowsTerminal(currentWorker);
   const terminalAgentStatuses = useTerminalAgentStatuses(showTerminalButton);
   const voiceEnabled = isVoiceEnabled();
   const voiceModeAvailable = voiceEnabled && currentWorker?.type === "agent";
   const showMuteControl = voiceEnabled && (voiceModeAvailable || ui.audioMuted);
   const debugPanelEnabled = isDebugPanelEnabled();
   const hideDesktopAgentActions = desktopMode && surface === "agent";
-  const showProjectButton =
-    !desktopMode &&
-    (isCoderAgent(currentWorker) || isDedicatedKbaseWorker(currentWorker));
+  const showProjectButton = !desktopMode && workerHasWorkspace(currentWorker);
   const currentWorkerTerminalStatus = showTerminalButton
     ? terminalAgentStatuses.get(currentWorker?.sourceId || "")
     : undefined;

@@ -191,35 +191,25 @@ describe("QuerySettingsControls", () => {
     expect(toAgentConfigKey(" agent:coder ")).toBe("coder");
   });
 
-  it("shows the model selector only for CODER agents", () => {
+  it("shows the model selector only when the Platform enables it", () => {
     resolveCurrentWorkerSummary.mockReturnValue({
       type: "agent",
-      raw: { mode: "CODER" },
+      raw: { mode: "KBASE" },
     });
-
-    const coderHtml = renderToStaticMarkup(
+    const render = (model: boolean | undefined) => renderToStaticMarkup(
       React.createElement(QuerySettingsControls, {
         accessLevel: "default",
         modelOverride: {},
         onAccessLevelChange: jest.fn(),
         onModelOverrideChange: jest.fn(),
+        ...(model === undefined ? {} : { interactionConfig: { ...interactionDefaults("CODER"), model } }),
       }),
     );
-    expect(coderHtml).toContain("正在加载模型");
-
-    resolveCurrentWorkerSummary.mockReturnValue({
-      type: "agent",
-      raw: { mode: "REACT" },
-    });
-    const nonCoderHtml = renderToStaticMarkup(
-      React.createElement(QuerySettingsControls, {
-        accessLevel: "default",
-        modelOverride: {},
-        onAccessLevelChange: jest.fn(),
-        onModelOverrideChange: jest.fn(),
-      }),
-    );
-    expect(nonCoderHtml).not.toContain("正在加载模型");
+    expect(render(true)).toContain("正在加载模型");
+    expect(render(false)).not.toContain("正在加载模型");
+    // The mode is never a fallback: without a resolved config it stays hidden.
+    resolveCurrentWorkerSummary.mockReturnValue({ type: "agent", raw: { mode: "CODER" } });
+    expect(render(undefined)).not.toContain("正在加载模型");
   });
 
   it("shows a lightning icon for FAST service tier in the model button", () => {
@@ -230,6 +220,7 @@ describe("QuerySettingsControls", () => {
 
     const html = renderToStaticMarkup(
       React.createElement(QuerySettingsControls, {
+        interactionConfig: interactionDefaults("CODER"),
         accessLevel: "default",
         modelOverride: {
           key: "gpt-5.4",
@@ -275,6 +266,7 @@ describe("QuerySettingsControls", () => {
 
     const html = renderToStaticMarkup(
       React.createElement(QuerySettingsControls, {
+        interactionConfig: interactionDefaults("CODER"),
         accessLevel: "default",
         disabled: true,
         modelOverride: {},
@@ -675,6 +667,7 @@ describe("QuerySettingsControls", () => {
 
     const html = renderToStaticMarkup(
       React.createElement(QuerySettingsControls, {
+        interactionConfig: interactionDefaults("CODER"),
         accessLevel: "default",
         modelOverride: { key: "coder-model", reasoningEffort: "NONE" },
         onAccessLevelChange: jest.fn(),
@@ -885,7 +878,7 @@ describe("QuerySettingsControls", () => {
     expect(
       shouldRetryModelOptionsOnOpen({
         open: true,
-        isCoderAgent: true,
+        modelControlsVisible: true,
         agentKey: "agent:coder",
         modelsLoading: false,
         status: "failed",
@@ -897,7 +890,7 @@ describe("QuerySettingsControls", () => {
     expect(
       shouldRetryModelOptionsOnOpen({
         open: true,
-        isCoderAgent: true,
+        modelControlsVisible: true,
         agentKey: "agent:coder",
         modelsLoading: false,
         status: "loaded",
@@ -920,7 +913,7 @@ describe("QuerySettingsControls", () => {
     expect(
       shouldRetryModelOptionsOnOpen({
         open: true,
-        isCoderAgent: true,
+        modelControlsVisible: true,
         agentKey: "agent:coder",
         modelsLoading: false,
         status: "empty",

@@ -50,7 +50,7 @@ describe("Composer model refresh click", () => {
   const button = () => document.querySelector<HTMLButtonElement>('[aria-label="composer.query.model.refresh"]')!;
   async function openMenu() {
     await act(async () => root.render(React.createElement(QuerySettingsControls, {
-      accessLevel: "default", modelOverride: { key: "embedded" },
+      accessLevel: "default", modelOverride: { key: "embedded" }, interactionConfig: interactionDefaults("CODER"),
       onAccessLevelChange: jest.fn(), onModelOverrideChange: jest.fn(),
     })));
     await act(async () => container.querySelector<HTMLButtonElement>('[title="composer.query.model.title"]')!.click());

@@ -619,7 +619,6 @@ describe("useMessageActions temporary pin", () => {
     expect(startQuery).toHaveBeenCalledTimes(1);
     expect(startQuery).toHaveBeenCalledWith(
       expect.objectContaining({
-        agentMode: "KBASE",
         editingMode: true,
       }),
     );

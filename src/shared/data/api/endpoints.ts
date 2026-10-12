@@ -107,8 +107,9 @@ export function buildQueryPayload(options: QueryStreamParams): Record<string, un
     message: options.message,
   };
 
-  if (String(options.agentMode || "").trim().toUpperCase() === "CODER") {
-    body.planningMode = options.planningMode === true;
+  // Omitted means false on the Platform; the entry decides whether it is set.
+  if (options.planningMode === true) {
+    body.planningMode = true;
   }
   if (typeof options.editingMode === "boolean") {
     body.editingMode = options.editingMode;

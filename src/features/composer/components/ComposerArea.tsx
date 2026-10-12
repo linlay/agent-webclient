@@ -91,6 +91,7 @@ import { isDesktopAppMode } from "@/shared/utils/routing";
 import { useSelectedTextFragments } from "@/features/selection/hooks/useSelectedTextFragments";
 import { useComposerSkillMenuQuery } from "../hooks/useComposerSkillMenuQuery";
 import { useAgentInteraction } from "@/features/composer/hooks/useAgentInteraction";
+import { isInteractionPending } from "@/shared/contracts/interaction";
 import { resolveSkillDisplayName } from "@/features/skills/lib/skillDisplayName";
 import { selectedTextFragmentFromAttachment } from "@/features/selection/lib/selectedTextReference";
 
@@ -314,18 +315,20 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
   const conversationBlocking = presentation?.blocked ?? areConversationInteractionsBlocked(state);
   const chatTransitionBlocking = agentExecutionBlocked || conversationBlocking;
   useDesktopAwaitingDigit({ state, stateRef, blocked: chatTransitionBlocking || isAnyOverlayOpen });
+  // Both entries come from the Platform. The editing toggle always starts off;
+  // while it is shown its value is sent explicitly, and while it is hidden the
+  // parameter is omitted so the Platform applies the Agent's own default.
   const planningModeAvailable =
-    currentWorker?.type === "agent" &&
-    String(currentWorker.raw?.mode || "")
-      .trim()
-      .toUpperCase() === "CODER";
-  const definition = currentWorker?.raw?.definition as Record<string, unknown> | undefined;
-  const editingModeAvailable = currentWorker?.type === "agent" &&
-    String(currentWorker.raw?.engine || definition?.engine || "native").toLowerCase() === "native";
-  const editingMode = state.editingMode ??
-    (String(currentWorker?.raw?.mode || "").trim().toUpperCase() !== "KBASE");
+    currentWorker?.type === "agent" && interactionConfig.showPlanningMode === true;
+  const editingModeAvailable =
+    currentWorker?.type === "agent" && interactionConfig.showEditingMode === true;
+  const editingMode = state.editingMode === true;
+  // Until the Agent detail arrives nothing is known, so choices are kept.
+  const interactionPending = isInteractionPending(interactionConfig);
+  const currentWorkerMode = String(currentWorker?.raw?.mode || "").trim().toUpperCase();
 
   useEffect(() => {
+    if (interactionPending) return;
     if (state.planningMode && !planningModeAvailable) {
       dispatch({
         type: "SET_PLANNING_MODE",
@@ -334,12 +337,34 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
         persist: false,
       });
     }
-  }, [dispatch, planningModeAvailable, state.planningMode, state.chatId]);
+  }, [dispatch, interactionPending, planningModeAvailable, state.planningMode, state.chatId]);
+  // A Run that is already running in this Chat (after a reload or reconnect)
+  // carries the choice it was started with; adopt it once per Run so later
+  // toggles for the next Run are not overwritten.
+  const activeRunForChat =
+    state.currentChatActiveRun?.chatId === state.chatId ? state.currentChatActiveRun : null;
+  const activeRunEditingMode =
+    typeof activeRunForChat?.editingMode === "boolean" ? activeRunForChat.editingMode : undefined;
+  const activeRunEditingKey = activeRunForChat?.runId || "";
+  const adoptedEditingRunRef = useRef("");
   useEffect(() => {
-    if (state.editingMode !== undefined && !editingModeAvailable) {
-      dispatch({ type: "SET_EDITING_MODE", enabled: undefined });
+    if (interactionPending) return;
+    if (!editingModeAvailable) {
+      if (state.editingMode !== undefined) dispatch({ type: "SET_EDITING_MODE", enabled: undefined });
+      return;
     }
-  }, [dispatch, editingModeAvailable, state.editingMode]);
+    if (activeRunEditingKey && activeRunEditingMode !== undefined &&
+      adoptedEditingRunRef.current !== activeRunEditingKey) {
+      adoptedEditingRunRef.current = activeRunEditingKey;
+      if (state.editingMode !== activeRunEditingMode) {
+        dispatch({ type: "SET_EDITING_MODE", enabled: activeRunEditingMode });
+      }
+      return;
+    }
+    if (state.editingMode === undefined) {
+      dispatch({ type: "SET_EDITING_MODE", enabled: false });
+    }
+  }, [dispatch, interactionPending, editingModeAvailable, state.editingMode, activeRunEditingKey, activeRunEditingMode]);
   const timelineEntries = useMemo(() => {
     return state.timelineOrder
       .map((id) => state.timelineNodes.get(id))
@@ -1028,8 +1053,8 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
                   workerRows={state.workerRows}
                   currentAgentKey={currentAgentKey}
                   currentWorkerName={currentWorker?.displayName}
-                  isCoder={planningModeAvailable}
-                  isKbase={editingModeAvailable}
+                  isCoder={currentWorkerMode === "CODER"}
+                  isKbase={currentWorkerMode === "KBASE"}
                   disabled={chatTransitionBlocking || isVoiceMode}
                   onSelectAgent={(agentKey) => {
                     window.dispatchEvent(new CustomEvent("agent:select-worker", {

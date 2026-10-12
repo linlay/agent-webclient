@@ -78,13 +78,21 @@ export interface CurrentWorkerSummary {
   relatedChats: WorkerConversationRow[];
 }
 
-export function isDedicatedKbaseWorker(
+// Entries follow what the Platform resolved for the Agent, never its mode.
+export function workerShowsTerminal(
   worker: CurrentWorkerSummary | null | undefined,
 ): boolean {
-  return (
-    worker?.type === "agent" &&
-    toText(worker.raw?.mode).toUpperCase() === "KBASE"
-  );
+  if (worker?.type !== "agent") return false;
+  const interaction = worker.raw?.interactionConfig as
+    | { showTerminal?: boolean }
+    | undefined;
+  return interaction?.showTerminal === true;
+}
+
+export function workerHasWorkspace(
+  worker: CurrentWorkerSummary | null | undefined,
+): boolean {
+  return worker?.type === "agent" && Boolean(toText(worker.raw?.workspaceDir));
 }
 
 export function supportsActiveRunContextCompact(
@@ -157,9 +165,4 @@ export function buildWorkerSwitchRows(
     if (!normalizedSearch) return true;
     return toText(row.searchText).includes(normalizedSearch);
   });
-}
-
-export function isCoderAgent(summary: CurrentWorkerSummary | null): boolean {
-  if (!summary || summary.type !== 'agent') return false;
-  return String((summary.raw as Record<string, unknown> | null)?.['mode'] || '').toUpperCase() === 'CODER';
 }

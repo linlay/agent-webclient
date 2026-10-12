@@ -92,6 +92,7 @@ Native `wait` 使用 `tool.wait/tool.wait.update` 投影同 Run 等待，时间�
 - `GET /api/view`：builtin/connector 统一视图；HTTP/WS 共享契约，source 必填
 - `GET /api/data`
 - `GET /api/file`
+- 入口显示只读 Platform 解析后的字段：规划、Workspace 编辑、终端分别按 `/api/agent` 的 `interactionConfig.showPlanningMode/showEditingMode/showTerminal === true` 展示，编辑开关初始始终为关闭，显示时显式发送其值（含 false）、隐藏时省略参数由 Platform 取 Agent 自身默认，刷新后按 `activeRun.planningMode/editingMode` 还原运行中 Run 的选择，项目入口按有效 `workspaceDir`，模型入口按 `interactionConfig.model`；字段缺失或未加载时隐藏，不得按 mode 或 engine 推断。Query 只在规划开启时发送 `planningMode:true`
 - `GET /api/project/git`：按实际 Workspace 独立读取 Git 快照，不按 mode 筛选，不进入 Agent 列表/详情；只在主界面 New Chat 上框按有效 workspaceDir 异步消费，Platform 走 WS、Gateway 保留 HTTP；实际 HEAD 缓存 30 秒、非仓库 5 分钟、临时失败退避 10 秒
 - `GET/POST /api/project/git/branches`：按需加载本地分支、校验 revision 后切换或新建并切换；Platform 同路径支持 WS 读写，保持 Git 本地改动保护，不修改 `expectedBranch` 配置；列表和写入响应直接更新快照缓存
 - `GET /api/project/tree`

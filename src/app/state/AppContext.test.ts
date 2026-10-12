@@ -288,7 +288,7 @@ describe('appReducer conversation reset behavior', () => {
     expect(loaded.workerIndexByKey.get(row.key)).toBe(row);
     expect(loaded.workerSelectionKey).toBe(row.key);
     expect(appReducer(loaded, { type: 'SET_WORKER_SELECTION_KEY', workerKey: row.key }).editingMode).toBe(true);
-    expect(appReducer(loaded, { type: 'SET_WORKER_SELECTION_KEY', workerKey: 'agent:two' }).editingMode).toBe(false);
+    expect(appReducer(loaded, { type: 'SET_WORKER_SELECTION_KEY', workerKey: 'agent:two' }).editingMode).toBeUndefined();
     const removed = appReducer(loaded, { type: 'SET_WORKER_ROWS', rows: [] });
     expect(removed.workerIndexByKey.size).toBe(0);
     expect(removed.workerSelectionKey).toBe('');

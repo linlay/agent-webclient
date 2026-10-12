@@ -88,7 +88,6 @@ jest.mock("@/features/search/components/GlobalSearchOverlayProvider", () => ({
 }));
 
 jest.mock("@/features/workers/lib/currentWorker", () => ({
-  isCoderAgent: jest.fn(() => false),
 }));
 
 jest.mock("@/features/tools/components/buildin/confirm-dialog/state", () => ({

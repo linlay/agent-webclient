@@ -3,7 +3,8 @@ import type { WorkerRow } from "@/features/workers/lib/workerState";
 import { createInitialState } from '@/app/state/AppContext';
 import {
   buildWorkerSwitchRows,
-  isDedicatedKbaseWorker,
+  workerShowsTerminal,
+  workerHasWorkspace,
   resolveCurrentWorkerSummary,
   supportsActiveRunContextCompact,
 } from '@/features/workers/lib/currentWorker';
@@ -96,7 +97,7 @@ describe('currentWorker helpers', () => {
     expect(buildWorkerSwitchRows(rows, 'all', 'ops')[0]?.key).toBe('team:ops');
   });
 
-  it('enables editing only for a dedicated KBASE Agent', () => {
+  it('derives entries from Platform fields, not from the mode', () => {
     const row = createWorkerRow({
       key: 'agent:knowledge',
       type: 'agent',
@@ -126,9 +127,11 @@ describe('currentWorker helpers', () => {
       }),
     );
 
-    expect(isDedicatedKbaseWorker(kbase)).toBe(true);
-    expect(isDedicatedKbaseWorker(coderWithCapability)).toBe(false);
-    expect(isDedicatedKbaseWorker(null)).toBe(false);
+    // Neither mode enables an entry; only resolved Platform fields do.
+    expect(workerShowsTerminal(kbase)).toBe(false);
+    expect(workerShowsTerminal(coderWithCapability)).toBe(false);
+    expect(workerHasWorkspace(kbase)).toBe(false);
+    expect(workerShowsTerminal(null)).toBe(false);
   });
 
   it('allows active compact only for native root workers', () => {

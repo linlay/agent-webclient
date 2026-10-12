@@ -18,7 +18,7 @@ import { useAppRuntimes } from "@/app/layout/hooks/useAppRuntimes";
 import { useDeriveChatAction } from "@/features/conversation/hooks/useDeriveChatAction";
 import { useRunFeedbackAction } from "@/features/conversation/hooks/useRunFeedbackAction";
 import { TerminalDock, resolveTerminalDockWorkspaceKey } from "./TerminalDock";
-import { resolveCurrentWorkerSummary, isCoderAgent } from "@/features/workers/lib/currentWorker";
+import { resolveCurrentWorkerSummary, workerShowsTerminal } from "@/features/workers/lib/currentWorker";
 import { GlobalShortcutLayer } from "@/features/shortcuts/components/GlobalShortcutLayer";
 const presentationClasses = bindCssModuleClasses({ ...appPresentation });
 
@@ -58,7 +58,7 @@ const AppShellContent: React.FC = () => {
     () => resolveCurrentWorkerSummary(state),
     [state],
   );
-  const effectiveTerminalDockOpen = state.terminalDockOpen && isCoderAgent(currentWorker);
+  const effectiveTerminalDockOpen = state.terminalDockOpen && workerShowsTerminal(currentWorker);
   const desktopRightSidebarVisible = state.rightSidebarOpen;
 
   const emptyLayoutClass = !state.chatId ? "timeline-empty-layout" : "";

@@ -447,7 +447,6 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
       const selectedAgent = stateRef.current.agents.find(
         (agent) => toText(agent?.key) === selectedAgentKey,
       );
-      const selectedAgentMode = String(selectedAgent?.mode || "").trim();
       const interaction = selectedAgent?.interactionConfig as import("@/shared/contracts/interaction").InteractionConfig | undefined;
       if (interaction?.model === false) model = undefined;
       if (interaction?.accessLevel === false) accessLevel = "default";
@@ -797,7 +796,6 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
             normalizedMustUseSkills.length > 0
               ? normalizedMustUseSkills
               : undefined,
-          agentMode: selectedAgentMode || undefined,
           signal: abortController.signal,
           onEvent: sessionHandleEvent,
         });

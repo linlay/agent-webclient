@@ -109,7 +109,6 @@ jest.mock("@/features/composer/components/ComposerAttachments", () => ({
 const mockComposerInputProps: Array<Record<string, any>> = [];
 const mockComposerActionsProps: Array<Record<string, any>> = [];
 const mockResolveCurrentWorkerSummary = jest.fn(() => null);
-const mockIsDedicatedKbaseWorker = jest.fn(() => false);
 const mockUseAgentSkillsQuery = jest.fn(() => ({
   data: null,
   status: "idle",
@@ -149,7 +148,6 @@ jest.mock("@/features/composer/components/ComposerWonders", () => ({
 
 jest.mock("@/features/workers/lib/currentWorker", () => ({
   resolveCurrentWorkerSummary: () => mockResolveCurrentWorkerSummary(),
-  isDedicatedKbaseWorker: () => mockIsDedicatedKbaseWorker(),
   supportsActiveRunContextCompact: () => true,
 }));
 
@@ -342,8 +340,6 @@ describe("ComposerArea", () => {
     mockUseRuntimeAccessLevel.mockClear();
     mockResolveCurrentWorkerSummary.mockReset();
     mockResolveCurrentWorkerSummary.mockReturnValue(null);
-    mockIsDedicatedKbaseWorker.mockReset();
-    mockIsDedicatedKbaseWorker.mockReturnValue(false);
     mockUseAgentSkillsQuery.mockReset();
     mockUseAgentSkillsQuery.mockReturnValue({ data: null, status: "idle" });
     mockHostRequiredSkills.agentKey = "";
@@ -566,27 +562,30 @@ describe("ComposerArea", () => {
     expect(mockComposerActionsProps[0].sendDisabled).toBe(true);
   });
 
-  it.each(["GENERAL", "CODER", "KBASE", "TEAM"])("enables Workspace editing with the %s template default", (mode) => {
+  it.each([
+    ["GENERAL", true], ["KBASE", true], ["KBASE", false], ["CODER", false],
+  ])("takes the %s editing entry (%p) from the Platform and starts it off", (mode, showEditingMode) => {
     mockResolveCurrentWorkerSummary.mockReturnValue({
       type: "agent",
       sourceId: "knowledge",
       displayName: "Knowledge",
       relatedChats: [],
-      raw: { mode, interactionConfig: interactionDefaults(mode) },
+      raw: { mode, interactionConfig: { ...interactionDefaults(mode), showEditingMode, showPlanningMode: !showEditingMode } },
     });
-    mockIsDedicatedKbaseWorker.mockReturnValue(true);
 
     renderToStaticMarkup(React.createElement(ComposerArea));
 
+    // The mode decides nothing here: the same mode follows whatever is resolved.
     expect(mockComposerActionsProps[0]).toEqual(
       expect.objectContaining({
-        canUseEditingMode: true,
-        editingMode: mode !== "KBASE",
+        canUseEditingMode: showEditingMode,
+        canUsePlanningMode: !showEditingMode,
+        editingMode: false,
       }),
     );
     expect(mockUseComposerSlash).toHaveBeenCalledWith(
       expect.objectContaining({
-        canUseEditingMode: true,
+        canUseEditingMode: showEditingMode,
       }),
     );
   });

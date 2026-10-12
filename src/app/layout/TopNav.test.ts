@@ -204,9 +204,9 @@ describe("TopNav", () => {
 		expect(html).not.toContain("Open usage stats");
 	});
 
-	it.each(["CODER", "KBASE"])("renders the project browser action for %s agents", (mode) => {
+	it.each(["GENERAL", "CODER", "KBASE", "TEAM"])("renders the project browser action for a %s agent with a Workspace", (mode) => {
 		const state = createInitialState();
-		state.agents = [{ key: "project-agent", name: "Project Agent", mode }];
+		state.agents = [{ key: "project-agent", name: "Project Agent", mode, workspaceDir: "/work/project" }];
 		state.workerSelectionKey = "agent:project-agent";
 		useAppState.mockReturnValue(state);
 
@@ -224,16 +224,22 @@ describe("TopNav", () => {
 
 		expect(mockUseTerminalAgentStatuses).toHaveBeenLastCalledWith(false);
 
+		// The mode alone never enables the terminal; the Platform's flag does.
 		state.agents = [{ key: "coder", name: "Coder", mode: "CODER" }];
 		state.workerSelectionKey = "agent:coder";
+		renderToStaticMarkup(React.createElement(TopNav));
+
+		expect(mockUseTerminalAgentStatuses).toHaveBeenLastCalledWith(false);
+
+		state.agents = [{ key: "coder", name: "Coder", mode: "GENERAL", interactionConfig: { showTerminal: true } }];
 		renderToStaticMarkup(React.createElement(TopNav));
 
 		expect(mockUseTerminalAgentStatuses).toHaveBeenLastCalledWith(true);
 	});
 
-	it("does not render the project browser action for unsupported agents", () => {
+	it("does not render the project browser action without a Workspace", () => {
 		const state = createInitialState();
-		state.agents = [{ key: "react-agent", name: "React Agent", mode: "REACT" }];
+		state.agents = [{ key: "react-agent", name: "React Agent", mode: "CODER" }];
 		state.workerSelectionKey = "agent:react-agent";
 		useAppState.mockReturnValue(state);
 

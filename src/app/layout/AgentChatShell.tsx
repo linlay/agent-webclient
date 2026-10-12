@@ -267,10 +267,9 @@ function hasOwn(input: object, key: string): boolean {
 
 function needsRouteAgentModelSelectionHydration(agent: Agent | undefined): boolean {
   if (!agent) return false;
-  const mode = String(agent.mode || "").toUpperCase();
-  // GENERAL is the current spelling; REACT is what older Platforms return.
-  return (mode === "GENERAL" || mode === "REACT" || mode === "CODER") &&
-    (!hasOwn(agent, "modelKey") || !hasOwn(agent, "reasoningEffort"));
+  // Model selection comes from the Agent detail for every mode; an Agent that
+  // has none is settled by the fetched-detail marker, not by its mode.
+  return !hasOwn(agent, "modelKey") || !hasOwn(agent, "reasoningEffort");
 }
 
 const AgentRouteLoadingPage: React.FC<{ title: string; overlay?: boolean }> = ({ title, overlay = false }) => {

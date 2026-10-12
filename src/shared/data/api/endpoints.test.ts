@@ -67,52 +67,19 @@ describe("endpoint payload builders", () => {
     });
   });
 
-  it("retains the existing planning flag contract", () => {
-    expect(buildQueryPayload({
-      requestId: "req_coder",
-      message: "plan",
-      owner: { kind: "agent", agentKey: "coder" },
-      agentMode: "CODER",
-    planningMode: false
-    })).toEqual({
-      requestId: "req_coder",
-      message: "plan",
-      agentKey: "coder",
-    planningMode: false
-    });
-    expect(buildQueryPayload({
-      requestId: "req_kbase",
-      message: "edit",
-      owner: { kind: "agent", agentKey: "knowledge" },
-      agentMode: "KBASE",
-      planningMode: true,
-    editingMode: true
-    })).toEqual({
-      requestId: "req_kbase",
-      message: "edit",
-      agentKey: "knowledge",
-    editingMode: true
-    });
-    expect(buildQueryPayload({
-      requestId: "req_react",
-      message: "run",
-      owner: { kind: "agent", agentKey: "react" },
-      agentMode: "REACT",
-      planningMode: true,
-    editingMode: true
-    })).toEqual({
-      requestId: "req_react",
-      message: "run",
-    agentKey: "react",
-    editingMode: true
-    });
+  it("sends planningMode only when it is on, for every agent", () => {
+    const base = { requestId: "req", message: "plan", owner: { kind: "agent" as const, agentKey: "demo" } };
+    expect(buildQueryPayload({ ...base, planningMode: true })).toMatchObject({ planningMode: true });
+    expect(buildQueryPayload({ ...base, planningMode: false })).not.toHaveProperty("planningMode");
+    expect(buildQueryPayload(base)).not.toHaveProperty("planningMode");
   });
 
-  it.each(["GENERAL", "CODER", "KBASE", "TEAM"])("preserves both Workspace editing choices for %s", (agentMode) => {
+  it("preserves both Workspace editing choices and omits an unset one", () => {
+    const base = { requestId: "req", message: "run", owner: { kind: "agent" as const, agentKey: "demo" } };
     for (const editingMode of [true, false]) {
-      expect(buildQueryPayload({ requestId: "req", message: "run", owner: {kind: "agent", agentKey: "demo"}, agentMode, editingMode })).toMatchObject({ editingMode });
+      expect(buildQueryPayload({ ...base, editingMode })).toMatchObject({ editingMode });
     }
-    expect(buildQueryPayload({ requestId: "req", message: "run", owner: {kind: "agent", agentKey: "demo"}, agentMode })).not.toHaveProperty("editingMode");
+    expect(buildQueryPayload(base)).not.toHaveProperty("editingMode");
   });
 
   it("normalizes query model overrides and preserves BTW MAX effort", () => {

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useAppContext } from "@/app/state/AppContext";
 import { getAgent } from "@/shared/data";
-import { interactionDefaults, pendingInteraction, type InteractionConfig } from "@/shared/contracts/interaction";
+import { pendingInteraction, type InteractionConfig } from "@/shared/contracts/interaction";
 import type { CurrentWorkerSummary } from "@/features/workers/lib/currentWorker";
 
 export function useAgentInteraction(worker: CurrentWorkerSummary | null): InteractionConfig {
@@ -14,7 +14,9 @@ export function useAgentInteraction(worker: CurrentWorkerSummary | null): Intera
     let canceled = false;
     void getAgent(key).then(({data}) => {
       if (!canceled) {
-        const config = data.interactionConfig || {...interactionDefaults(data.mode), mustUseKbases: false};
+        // The Platform resolves mode defaults. A detail without the config is a
+        // settled answer (everything off), distinct from still loading.
+        const config = data.interactionConfig || {...pendingInteraction};
         setLoaded({key, config});
         dispatch({type: "SET_AGENTS", agents: stateRef.current.agents.map(agent =>
           agent.key === key ? {

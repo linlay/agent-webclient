@@ -121,14 +121,6 @@ const pendingCoderModelOptionsPromises = new Map<
   Promise<LoadedCoderModelOptions>
 >();
 
-function isCoderMode(value: unknown): boolean {
-  return (
-    String(value || "")
-      .trim()
-      .toUpperCase() === "CODER"
-  );
-}
-
 function toText(value: unknown): string {
   return String(value || "").trim();
 }
@@ -259,7 +251,7 @@ export function shouldApplyCoderDefaultModelOverride({
 
 export function shouldRetryModelOptionsOnOpen({
   open,
-  isCoderAgent,
+  modelControlsVisible,
   agentKey,
   modelsLoading,
   status,
@@ -267,7 +259,7 @@ export function shouldRetryModelOptionsOnOpen({
   reasoningEfforts,
 }: {
   open: boolean;
-  isCoderAgent: boolean;
+  modelControlsVisible: boolean;
   agentKey: string;
   modelsLoading: boolean;
   status: ModelOptionsStatus;
@@ -276,7 +268,7 @@ export function shouldRetryModelOptionsOnOpen({
 }): boolean {
   return Boolean(
     open &&
-    isCoderAgent &&
+    modelControlsVisible &&
     agentKey &&
     !modelsLoading &&
     status !== "empty" &&
@@ -503,11 +495,7 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
   const { t } = useI18n();
   const messageApi = useAppMessage();
   const currentWorker = resolveCurrentWorkerSummary(state);
-  const isCoderAgent =
-    currentWorker?.type === "agent" &&
-    (isCoderMode(currentWorker.raw?.mode) ||
-      currentWorker.row?.agentType === "coder");
-  const modelAllowed = interactionConfig?.model ?? isCoderAgent;
+  const modelAllowed = interactionConfig?.model === true;
   const shouldShowModelControls = showModelSelector && modelAllowed;
   const agentKey =
     currentWorker?.type === "agent"
@@ -916,7 +904,7 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
     if (
       !shouldRetryModelOptionsOnOpen({
         open,
-        isCoderAgent: shouldShowModelControls,
+        modelControlsVisible: shouldShowModelControls,
         agentKey,
         modelsLoading,
         status: modelOptionsStatus,
