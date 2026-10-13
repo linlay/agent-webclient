@@ -33,7 +33,7 @@ import { SelectedTextFragmentsPill } from "@/features/selection/components/Selec
 import { selectedTextFragmentFromAttachment } from "@/features/selection/lib/selectedTextReference";
 import { useTimelineInteraction } from "./TimelineInteractionContext";
 import type { AgentSkill } from "@/shared/data/api/dto/agents";
-import { resolveSkillDisplayName } from "@/features/skills/lib/skillDisplayName";
+import { resolveSkillDisplayName, resolveSkillIconUrl } from "@/features/skills/lib/skillDisplayName";
 import { SteerIcon } from "@/features/runs/components/SteerIcon";
 const presentationClasses = bindCssModuleClasses({ ...timelinePresentation });
 
@@ -341,6 +341,7 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
                     reference={attachment}
                     variant="timeline"
                     density={hasMultipleAttachments ? "compact" : "default"}
+                    skillIcon={attachment.type === "skill" ? resolveSkillIconUrl(activeAgentSkills, String(attachment.id || attachment.name || "")) : undefined}
                   />
                 ) : (
                   <React.Fragment key={`${attachment.name}_${index}`}>

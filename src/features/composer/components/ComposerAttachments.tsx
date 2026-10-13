@@ -4,12 +4,16 @@ import { ReferenceCard } from "@/features/artifacts/components/ReferenceCard";
 import type { ComposerAttachment } from "@/features/composer/lib/composerAttachments";
 import { getComposerAttachmentSubtitle } from "@/features/composer/lib/composerAttachments";
 import { normalizeTimelineAttachments } from "@/features/events/lib/timelineAttachments";
+import { resolveSkillIconUrl } from "@/features/skills/lib/skillDisplayName";
+import type { AgentSkill } from "@/shared/data/api/dto/agents";
 import { useI18n } from "@/shared/i18n";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 
 interface ComposerAttachmentsProps {
   attachmentChatId?: string;
   attachments: ComposerAttachment[];
+  /** 当前 Agent 的技能目录，用于解析 skill 引用的自有头像。 */
+  skills?: readonly AgentSkill[];
   attachmentViewportRef: React.RefObject<HTMLDivElement>;
   useUnifiedComposerAttachmentRow: boolean;
   hasComposerAttachmentOverflow: boolean;
@@ -41,6 +45,7 @@ const COMPOSER_ATTACHMENTS_NAV_SIDE_CLASS = {
 export const ComposerAttachments: React.FC<ComposerAttachmentsProps> = ({
   attachmentChatId,
   attachments,
+  skills,
   attachmentViewportRef,
   useUnifiedComposerAttachmentRow,
   hasComposerAttachmentOverflow,
@@ -49,6 +54,7 @@ export const ComposerAttachments: React.FC<ComposerAttachmentsProps> = ({
   onScroll,
 }) => {
   const { t } = useI18n();
+  const activeSkills = skills ?? [];
 
   return (
     <>
@@ -70,6 +76,7 @@ export const ComposerAttachments: React.FC<ComposerAttachmentsProps> = ({
                 }}
                 variant="composer"
                 density={useUnifiedComposerAttachmentRow ? "compact" : "default"}
+                skillIcon={attachment.type === "skill" ? resolveSkillIconUrl(activeSkills, String((attachment.references[0] as { id?: string } | undefined)?.id || attachment.id.split(":").slice(1).join(":"))) : undefined}
                 onRemove={attachment.id.startsWith("forced:") ? undefined : () => onRemoveAttachment(attachment.id)}
               />
             ) : (

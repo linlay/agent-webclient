@@ -18,3 +18,18 @@ export function resolveSkillDisplayName(
     String(fallbackLabel || "").trim()
   );
 }
+
+export function resolveSkillIconUrl(
+  skills: readonly AgentSkill[],
+  id: string,
+): string {
+  const normalizedId = String(id || "").trim().toLowerCase();
+  if (!normalizedId) return "";
+  const skill = skills
+    .find(
+      (skill) =>
+        String(skill.id || "").trim().toLowerCase() === normalizedId,
+    );
+
+  return String(skill?.icon || "").trim();
+}

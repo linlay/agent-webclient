@@ -2,6 +2,7 @@ import React from "react";
 import type { TimelineAttachment } from "@/features/timeline/lib/timelineState";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import type { MaterialIconName } from "@/shared/ui/MaterialIcon";
+import { SkillIcon } from "@/features/skills/components/SkillIcon";
 import { useI18n } from "@/shared/i18n";
 import styles from "./ReferenceCard.module.css";
 
@@ -9,11 +10,13 @@ interface ReferenceCardProps {
   reference: TimelineAttachment;
   variant: "composer" | "timeline";
   density?: "default" | "compact";
+  /** Skill 引用的自有头像地址；仅在 type 为 skill 时生效，缺省回退通用技能图标。 */
+  skillIcon?: string;
   onRemove?: () => void;
 }
 
 function referenceIcon(type: string): MaterialIconName {
-  return type === "chat" ? "question_answer" : type === "skill" ? "skills" : type === "kbase" ? "book_2" : "open_in_new";
+  return type === "chat" ? "question_answer" : type === "kbase" ? "book_2" : "open_in_new";
 }
 
 function withModuleClasses(...classNames: string[]): string {
@@ -27,6 +30,7 @@ export const ReferenceCard: React.FC<ReferenceCardProps> = ({
   reference,
   variant,
   density = "default",
+  skillIcon,
   onRemove,
 }) => {
   const { t } = useI18n();
@@ -35,18 +39,23 @@ export const ReferenceCard: React.FC<ReferenceCardProps> = ({
     type === "chat"
       ? t("composer.reference.kind.chat")
       : type === "skill" ? t("agents.interaction.skills") : type === "kbase" ? t("kbase.title") : t("composer.reference.kind.site");
+  const avatarIcon = String(skillIcon || "").trim();
   const semanticClasses = [
     "context-reference-card",
     `context-reference-card-${variant}`,
     `context-reference-card-${density}`,
-    `is-${type}`,
+    "is-" + type,
   ];
   const classes = withModuleClasses(...semanticClasses);
 
   return (
     <div className={classes} data-reference-type={type} title={type === "chat" ? t("composer.reference.chatPointer") : undefined}>
       <span className={withModuleClasses("context-reference-card-icon")} aria-hidden="true">
-        <MaterialIcon name={referenceIcon(type)} />
+        {type === "skill" ? (
+          <SkillIcon icon={avatarIcon} size={34} glyphSize={19} fallback="build" />
+        ) : (
+          <MaterialIcon name={referenceIcon(type)} />
+        )}
       </span>
       <span className={withModuleClasses("context-reference-card-copy")}>
         <span className={withModuleClasses("context-reference-card-title")} title={reference.name}>

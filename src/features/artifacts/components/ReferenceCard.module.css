@@ -35,6 +35,19 @@
     font-size: 19px;
 }
 
+/* 技能引用的图标位与技能中心一致：无背景底，默认 build 图标；自有头像填满图标位。 */
+.context-reference-card.is-skill .context-reference-card-icon {
+    overflow: hidden;
+    background: none;
+}
+
+.context-reference-card.is-skill .context-reference-card-icon :global(img) {
+    width: 100%;
+    height: 100%;
+    border-radius: 10px;
+    object-fit: cover;
+}
+
 .context-reference-card-copy {
     display: flex;
     min-width: 0;

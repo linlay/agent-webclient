@@ -3,7 +3,7 @@ import { fetchSkillIcon } from "@/shared/data";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import styles from "./SkillIcon.module.css";
 
-export function SkillIcon({ icon, size = 18, fallback = "build" }: { icon?: string; size?: number; fallback?: "skills" | "build" | "folder" }) {
+export function SkillIcon({ icon, size = 18, glyphSize, fallback = "build" }: { icon?: string; size?: number; glyphSize?: number; fallback?: "skills" | "build" | "folder" }) {
   const url = icon?.trim() || "";
   const [loaded, setLoaded] = useState<{ url: string; src: string } | null>(null);
   useEffect(() => {
@@ -23,6 +23,6 @@ export function SkillIcon({ icon, size = 18, fallback = "build" }: { icon?: stri
   const src = loaded?.url === url ? loaded.src : "";
   return <span className={styles.icon} style={{ width: size, height: size }} aria-hidden="true">
     {src ? <img src={src} alt="" onError={() => setLoaded(previous => previous?.src === src ? null : previous)} />
-      : <MaterialIcon name={fallback} style={{ fontSize: size }} />}
+      : <MaterialIcon name={fallback} style={{ fontSize: glyphSize ?? size }} />}
   </span>;
 }

@@ -1100,6 +1100,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
                 <ComposerAttachments
                   attachments={[...displayedForcedSkills.map(skill => ({id:`forced:${skill.id}`,name:skill.label,type:"skill",size:0,status:"ready" as const,error:"",references:[{type:"skill",id:skill.id}]})),...visibleAttachments]}
                   attachmentChatId={state.chatId || attachmentChatId}
+                  skills={activeAgentSkills}
                   attachmentViewportRef={attachmentViewportRef}
                   useUnifiedComposerAttachmentRow={
                     visibleAttachments.length > 1
