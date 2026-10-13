@@ -1,4 +1,7 @@
 jest.mock("@/features/composer/hooks/useDesktopAwaitingDigit", () => ({useDesktopAwaitingDigit: jest.fn()}));
+jest.mock("@/features/composer/hooks/useDesktopNativeShare", () => ({
+  useDesktopNativeShare: () => ({ pending: false, busy: false, blocked: false, error: "", retry: jest.fn(), complete: async () => true }),
+}));
 const mockAgentAvailability = { status: "available", retry: jest.fn() };
 jest.mock("@/features/composer/hooks/useAgentAvailability", () => ({
   useAgentAvailability: () => mockAgentAvailability,

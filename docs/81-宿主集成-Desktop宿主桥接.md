@@ -36,6 +36,8 @@ Desktop 原生 Market 的创建技能和连接器聊天入口复用普通新 Cha
 
 WebClient 仅在无 `chatId`、有有效 `newChat` 且预填参数唯一时消费；草稿不超过 2048 字符，仅空白文本无效，明确空字符串只在未提供技能时允许。显式提供 `composerSkill` 时必须是合法且非空的 Skill ID，并具备非空草稿，否则忽略整份预填。消费后立即从 URL 删除 `composerDraft` 和 `composerSkill`，同一新对话入口只消费一次，后续渲染不覆盖用户编辑。宿主不能借这些参数自动提交消息或绕过 Composer 确认，执行仍等待用户发送。
 
+macOS 原生共享复用正式 Agent 新对话路由，以宿主批次 ID、Agent key 与一次性 new Chat 身份限定读取。WebClient 通过显式 Service WebView 消息取得文件描述和有界字节片段，仅构造本地 `File` 并追加为可编辑 Composer 的 staged 附件，不自动填指令、上传或提交。Desktop 主进程按真实主窗口、active Main Chat guest 与对应路由再次校验；批次不授予任意路径或其他 Surface 文件访问能力。导入和确认失败均保留原文件与草稿，用户可在原页面重试。所有文件上传成功并由用户确认发送后才确认批次、消费分享参数；路由变化或页面卸载取消旧导入，迟到结果不能附加到新对话。
+
 Desktop 原生 History dialog 不加载 WebClient、不登记 guest surface，也不使用 WebClient 宿主消息。`/history` 只保留 Standalone 基础筛选和页面 Router 导航；Desktop 通过自身受限 Assistant bridge 读取和操作 Chat，因此 WebClient surface 不能借 History 入口取得外层导航权或 live Run lease。
 
 Frame Port 是完全不兼容升级。缺失 port、错误 transport version 或旧 Program manifest 都必须稳定阻断，不安装旧 adapter、不回退 Standalone，也不重新提交 query。vendored contract hash、WebClient bundle 与 Desktop 内置资源必须同批生成、发布和回滚；Desktop 按钮与 WebClient 顶栏入口归属变更也必须原子交付，不能发布重复入口或无入口的混合版本。

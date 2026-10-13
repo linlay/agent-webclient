@@ -57,6 +57,7 @@ import {
 import { useSpeechInput } from "@/features/composer/hooks/useSpeechInput";
 import { useActiveRunIdentity } from "@/features/composer/hooks/useActiveRunIdentity";
 import { useComposerAttachments } from "@/features/composer/hooks/useComposerAttachments";
+import { useDesktopNativeShare } from "@/features/composer/hooks/useDesktopNativeShare";
 import { useDesktopAwaitingDigit } from "@/features/composer/hooks/useDesktopAwaitingDigit";
 import { useComposerAwaiting } from "@/features/composer/hooks/useComposerAwaiting";
 import { useComposerKeyboard } from "@/features/composer/hooks/useComposerKeyboard";
@@ -143,6 +144,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
   const isComposingRef = useRef(false);
   const deferredSendRequestedRef = useRef(false);
   const deferredDirectSteerRef = useRef(false);
+  const [deferredSendReady, setDeferredSendReady] = useState(false);
   const [inputValue, setInputValue] = useState("");
   const [controlParams, setControlParams] = useState<Record<string, unknown>>(
     {},
@@ -225,6 +227,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     openFilePicker,
     scrollComposerAttachments,
     stageReviewAttachment,
+    stageFiles,
     sendAttachmentMeta,
     sendReferences,
     uploadStagedAttachments,
@@ -238,6 +241,12 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
       void message.error(text || t("composer.actions.screenshotFailed"));
     },
     state,
+  });
+  const nativeShare = useDesktopNativeShare({
+    enabled: enableNewChatContext,
+    chatId: state.chatId,
+    pendingAgentKey: state.pendingNewChatAgentKey,
+    stageFiles,
   });
   // These menu selections are projections of the shared reference collection.
   const kbaseSelection = useMemo(
@@ -772,9 +781,9 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
   });
 
   const handleSend = useCallback((directSteer = false) => {
-    if (chatTransitionBlocking) return;
+    if (chatTransitionBlocking || nativeShare.busy || nativeShare.blocked) return;
     if (hasInvalidSelectedSkills) { void message.error(t("packageComposer.invalidSelection")); return; }
-    if (!hasStagedAttachments) {
+    if (!hasStagedAttachments && !nativeShare.pending) {
       if (directSteer) handleSubmitQueuedSteer();
       else handleSendImmediately();
       return;
@@ -782,22 +791,30 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     if (deferredSendRequestedRef.current) return;
     deferredDirectSteerRef.current = directSteer;
     deferredSendRequestedRef.current = true;
-    void uploadStagedAttachments().then((succeeded) => {
-      if (!succeeded) deferredSendRequestedRef.current = false;
-    });
-  }, [chatTransitionBlocking, handleSendImmediately, handleSubmitQueuedSteer, hasStagedAttachments, uploadStagedAttachments, hasInvalidSelectedSkills, message, t]);
+    setDeferredSendReady(false);
+    void (async () => {
+      const uploaded = !hasStagedAttachments || await uploadStagedAttachments();
+      // Confirm native import only after Platform has persisted every file.
+      // Until then the share URL and source remain available for refresh/retry.
+      const confirmed = uploaded && await nativeShare.complete();
+      if (confirmed) setDeferredSendReady(true);
+      else deferredSendRequestedRef.current = false;
+    })();
+  }, [chatTransitionBlocking, handleSendImmediately, handleSubmitQueuedSteer, hasStagedAttachments, uploadStagedAttachments, hasInvalidSelectedSkills, message, t, nativeShare]);
 
   useEffect(() => {
     if (
       !deferredSendRequestedRef.current ||
+      !deferredSendReady ||
       hasStagedAttachments ||
       hasUploadingAttachments
     ) return;
     deferredSendRequestedRef.current = false;
+    setDeferredSendReady(false);
     if (chatTransitionBlocking || hasInvalidSelectedSkills) return;
     if (deferredDirectSteerRef.current) handleSubmitQueuedSteer();
     else handleSendImmediately();
-  }, [chatTransitionBlocking, handleSendImmediately, handleSubmitQueuedSteer, hasStagedAttachments, hasUploadingAttachments, hasInvalidSelectedSkills]);
+  }, [chatTransitionBlocking, handleSendImmediately, handleSubmitQueuedSteer, hasStagedAttachments, hasUploadingAttachments, hasInvalidSelectedSkills, deferredSendReady]);
 
   const handleSelectSlashItem = useCallback(
     (item: SlashPaletteItem) => {
@@ -849,6 +866,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
       speechState === "error" ||
       speechState === "unsupported");
   const sendDisabled =
+    nativeShare.busy || nativeShare.blocked ||
     hasInvalidSelectedSkills ||
     chatTransitionBlocking ||
     isFrontendActive ||
@@ -1089,6 +1107,13 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
                   onRemoveAttachment={id => { if (!id.startsWith("forced:")) handleRemoveAttachment(id); }}
                   onScroll={scrollComposerAttachments}
                 />
+                {nativeShare.busy ? <div role="status" aria-live="polite" className="tw:px-2 tw:text-xs tw:text-ink-muted">
+                  {t("nativeShare.receiving")}
+                </div> : null}
+                {nativeShare.error ? <div role="alert" className="tw:px-2 tw:text-xs tw:text-ink-muted">
+                  {t("nativeShare.failed")}
+                  <UiButton variant="ghost" size="sm" onClick={nativeShare.retry}>{t("nativeShare.retry")}</UiButton>
+                </div> : null}
                 <SelectedTextFragmentsPill
                   fragments={selectedFragments}
                   variant="annotations"
