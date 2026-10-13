@@ -57,6 +57,44 @@
     outline: none;
 }
 
+:global(.left-sidebar-resize-handle) {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    right: -5px;
+    z-index: 200;
+    width: 10px;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    cursor: col-resize;
+    touch-action: none;
+}
+
+:global(.left-sidebar-resize-handle)::after {
+    content: "";
+    position: absolute;
+    top: 10px;
+    bottom: 10px;
+    right: 4px;
+    width: 0;
+    border-radius: 999px;
+    background: transparent;
+    transition: outline 0.15s ease;
+    outline: 4px solid transparent;
+}
+
+:global(.left-sidebar-resize-handle):hover::after,
+:global(.left-sidebar-resize-handle):focus-visible::after,
+:global(.panel-resizing-horizontal) :global(.left-sidebar-resize-handle)::after {
+    outline-color: color-mix(in srgb, var(--accent) 40%, transparent);
+}
+
+:global(.left-sidebar-resize-handle):focus-visible {
+    outline: none;
+}
+
 :global(.sidebar):global(.is-open) {
     transform: translateX(0);
 }

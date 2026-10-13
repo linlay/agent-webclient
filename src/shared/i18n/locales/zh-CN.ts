@@ -1742,6 +1742,8 @@ export const zhCNMessages = {
   "leftSidebar.configDirectoryUnavailable": "当前环境无法访问智能体配置目录",
   "leftSidebar.openSettingsMenu": "打开设置菜单",
   "leftSidebar.projectFolderSelectionCanceled": "已取消选择项目文件夹",
+  "leftSidebar.resize.ariaLabel": "调整左侧栏宽度",
+  "leftSidebar.resize.title": "拖拽调整左侧栏宽度",
   "leftSidebar.settings": "设置",
   "leftSidebar.showMore": "查看更多（共 {count} 条{unreadSuffix}）",
   "leftSidebar.showMoreUnreadSuffix": "，未读 {count} 条",

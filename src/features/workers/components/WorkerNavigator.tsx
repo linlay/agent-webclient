@@ -22,6 +22,7 @@ import { useAppContext } from "@/app/state/AppContext";
 import { useAppMessage } from "@/shared/ui/useAppMessage";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
+import { usePanelResize } from "@/shared/ui/usePanelResize";
 import { CopyInfoModal } from "@/shared/ui/CopyInfoModal";
 import {
   isQuickActionsEnabled,
@@ -91,6 +92,73 @@ const WORKER_COLLAPSED_NAME_BADGE_CLASS =
 
 const WORKER_COLLAPSED_NAME_CLASS =
   "worker-collapsed-name tw:inline-block tw:max-w-full tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:text-left tw:align-top tw:text-[10px] tw:leading-[1.2]";
+
+const LEFT_SIDEBAR_WIDTH_STORAGE_KEY = "agent-webclient:left-sidebar-width";
+const LEFT_SIDEBAR_DEFAULT_WIDTH = 260;
+const LEFT_SIDEBAR_MIN_WIDTH = 260;
+const LEFT_SIDEBAR_MAIN_MIN_WIDTH = 420;
+const LEFT_SIDEBAR_RIGHT_DEFAULT_WIDTH = 450;
+const LEFT_SIDEBAR_SSR_VIEWPORT_WIDTH = 1280;
+
+function getLeftSidebarMaxWidth(): number {
+  const viewportWidth =
+    typeof window === "undefined"
+      ? LEFT_SIDEBAR_SSR_VIEWPORT_WIDTH
+      : window.innerWidth;
+  let rightSidebarWidth = LEFT_SIDEBAR_RIGHT_DEFAULT_WIDTH;
+  if (typeof window !== "undefined") {
+    const raw = getComputedStyle(document.documentElement)
+      .getPropertyValue("--right-sidebar-width")
+      .trim();
+    const parsed = raw ? Number.parseFloat(raw) : NaN;
+    if (Number.isFinite(parsed) && parsed > 0) {
+      rightSidebarWidth = parsed;
+    }
+  }
+  return Math.max(
+    LEFT_SIDEBAR_MIN_WIDTH,
+    viewportWidth - LEFT_SIDEBAR_MAIN_MIN_WIDTH - rightSidebarWidth,
+  );
+}
+
+function clampLeftSidebarWidth(
+  width: number,
+  maxWidth = getLeftSidebarMaxWidth(),
+): number {
+  return Math.min(Math.max(width, LEFT_SIDEBAR_MIN_WIDTH), maxWidth);
+}
+
+function readStoredLeftSidebarWidth(): number {
+  if (typeof window === "undefined") {
+    return LEFT_SIDEBAR_DEFAULT_WIDTH;
+  }
+
+  try {
+    const stored = window.localStorage?.getItem(
+      LEFT_SIDEBAR_WIDTH_STORAGE_KEY,
+    );
+    const parsed = stored ? Number.parseInt(stored, 10) : NaN;
+    return clampLeftSidebarWidth(
+      Number.isFinite(parsed) ? parsed : LEFT_SIDEBAR_DEFAULT_WIDTH,
+    );
+  } catch {
+    return clampLeftSidebarWidth(LEFT_SIDEBAR_DEFAULT_WIDTH);
+  }
+}
+
+function persistLeftSidebarWidth(width: number): void {
+  if (typeof window === "undefined") return;
+
+  try {
+    window.localStorage?.setItem(
+      LEFT_SIDEBAR_WIDTH_STORAGE_KEY,
+      String(width),
+    );
+  } catch {
+    // Width persistence is a convenience; resizing should still work.
+  }
+}
+
 interface WorkerNavigatorProps {
   onOpenProject: (agentKey: string) => void;
   onOpenCommand: (type: "automation" | "agents" | "kbases") => void;
@@ -129,6 +197,72 @@ export const WorkerNavigator: React.FC<WorkerNavigatorProps> = ({
   useEffect(() => () => {
     agentCopyRequestRef.current += 1;
   }, []);
+
+  const [sidebarWidth, setSidebarWidth] = useState(readStoredLeftSidebarWidth);
+  const [sidebarMaxWidth, setSidebarMaxWidth] = useState(getLeftSidebarMaxWidth);
+
+  useEffect(() => {
+    document.documentElement.style.setProperty(
+      "--left-sidebar-width",
+      `${sidebarWidth}px`,
+    );
+  }, [sidebarWidth]);
+
+  useEffect(() => {
+    const handleWindowResize = () => {
+      const nextMaxWidth = getLeftSidebarMaxWidth();
+      setSidebarMaxWidth(nextMaxWidth);
+      setSidebarWidth((width) => clampLeftSidebarWidth(width, nextMaxWidth));
+    };
+
+    window.addEventListener("resize", handleWindowResize);
+    return () => window.removeEventListener("resize", handleWindowResize);
+  }, []);
+
+  const updateSidebarWidth = useCallback((width: number) => {
+    const nextMaxWidth = getLeftSidebarMaxWidth();
+    const nextWidth = clampLeftSidebarWidth(width, nextMaxWidth);
+    setSidebarMaxWidth(nextMaxWidth);
+    setSidebarWidth(nextWidth);
+    return nextWidth;
+  }, []);
+
+  const resizeStartWidthRef = useRef(sidebarWidth);
+  const { handlePointerDown: handleResizePointerDown } = usePanelResize({
+    axis: "horizontal",
+    onResizeStart: () => {
+      resizeStartWidthRef.current = sidebarWidth;
+    },
+    onResize: (delta) =>
+      updateSidebarWidth(resizeStartWidthRef.current + delta),
+    onResizeEnd: (delta) => {
+      persistLeftSidebarWidth(
+        updateSidebarWidth(resizeStartWidthRef.current + delta),
+      );
+    },
+  });
+
+  const handleResizeKeyDown = useCallback(
+    (event: React.KeyboardEvent<HTMLButtonElement>) => {
+      let nextWidth: number | null = null;
+
+      if (event.key === "ArrowRight") {
+        nextWidth = sidebarWidth + 16;
+      } else if (event.key === "ArrowLeft") {
+        nextWidth = sidebarWidth - 16;
+      } else if (event.key === "Home") {
+        nextWidth = LEFT_SIDEBAR_MIN_WIDTH;
+      } else if (event.key === "End") {
+        nextWidth = sidebarMaxWidth;
+      }
+
+      if (nextWidth === null) return;
+      event.preventDefault();
+      persistLeftSidebarWidth(updateSidebarWidth(nextWidth));
+    },
+    [sidebarMaxWidth, sidebarWidth, updateSidebarWidth],
+  );
+
   const {
     filteredWorkerRows,
     workerIconsByKey,
@@ -473,6 +607,22 @@ export const WorkerNavigator: React.FC<WorkerNavigatorProps> = ({
         }`}
         id="left-sidebar"
       >
+        {state.leftDrawerOpen && (
+          <button
+            type="button"
+            className="left-sidebar-resize-handle"
+            aria-label={t("leftSidebar.resize.ariaLabel")}
+            aria-orientation="vertical"
+            aria-valuemin={LEFT_SIDEBAR_MIN_WIDTH}
+            aria-valuemax={sidebarMaxWidth}
+            aria-valuenow={sidebarWidth}
+            role="separator"
+            tabIndex={0}
+            title={t("leftSidebar.resize.title")}
+            onPointerDown={handleResizePointerDown}
+            onKeyDown={handleResizeKeyDown}
+          />
+        )}
         {state.leftDrawerOpen && (
           <>
             <Flex

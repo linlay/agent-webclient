@@ -1639,6 +1639,8 @@ export const enUSMessages = {
   "leftSidebar.configDirectoryUnavailable": "Config directory is unavailable in this environment",
   "leftSidebar.openSettingsMenu": "Open settings menu",
   "leftSidebar.projectFolderSelectionCanceled": "Project folder selection canceled",
+  "leftSidebar.resize.ariaLabel": "Resize left sidebar",
+  "leftSidebar.resize.title": "Drag to resize the left sidebar",
   "leftSidebar.settings": "Settings",
   "leftSidebar.showMore": "View more ({count} total{unreadSuffix})",
   "leftSidebar.showMoreUnreadSuffix": ", {count} unread",
