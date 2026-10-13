@@ -85,6 +85,8 @@ const QUERY_SETTINGS_CONTROLS_CLASS =
 const QUERY_SETTINGS_BUTTON_CLASS =
   "query-settings-btn tw:!min-h-8 tw:!rounded-lg tw:!px-2 tw:!text-[13px] tw:text-text-muted tw:[&_.material-icon]:flex-none tw:[&_.material-icon]:text-sm tw:[&_.ui-btn-label]:inline-flex tw:[&_.ui-btn-label]:min-w-0 tw:[&_.ui-btn-label]:items-center tw:[&_.ui-btn-label]:gap-1 tw:[&_.ui-btn-label>span:not(.material-icon)]:min-w-0 tw:[&_.ui-btn-label>span:not(.material-icon)]:overflow-hidden tw:[&_.ui-btn-label>span:not(.material-icon)]:text-ellipsis tw:[&_.ui-btn-label>span:not(.material-icon)]:whitespace-nowrap";
 const QUERY_MODEL_BUTTON_CLASS = "query-model-btn tw:overflow-hidden";
+const QUERY_SETTINGS_ICON_BUTTON_CLASS =
+  "query-settings-btn tw:!h-8 tw:!min-h-8 tw:!w-8 tw:!min-w-8 tw:flex-none tw:!rounded-lg tw:!p-0 tw:text-text-muted tw:[&_.material-icon]:text-xl";
 const QUERY_MODEL_BUTTON_STATE_CLASS = {
   idle: "",
   loading: "is-loading tw:pointer-events-auto",
@@ -615,6 +617,9 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
   }, [agentKey, embeddedModelOptions, shouldShowModelControls, loadAttempt]);
 
   const accessLabel = t(`composer.query.access.${accessLevel}`);
+  const accessButtonTitle = compact
+    ? `${t("composer.query.access.title")} · ${accessLabel}`
+    : t("composer.query.access.title");
   const accessItems = useMemo<MenuProps["items"]>(
     () =>
       ACCESS_LEVELS.map((value) => ({
@@ -729,6 +734,15 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
   const modelErrorText =
     (modelRefreshFailed ? t("composer.query.model.refreshFailed") : "") ||
     (modelUnavailable ? t("composer.query.model.unavailable") : "");
+  const modelButtonTitle = compact
+    ? [
+        t("composer.query.model.title"),
+        selectedModelLabel,
+        modelConfigSaving ? t("composer.query.model.saving") : selectedReasoningLabel,
+        showFastBadge ? t("composer.query.serviceTier.FAST") : "",
+        modelErrorText,
+      ].filter(Boolean).join(" · ")
+    : modelErrorText || t("composer.query.model.title");
 
   const handleRefreshModels = useCallback(() => {
     if (!agentKey || modelsLoading || disabled) return;
@@ -931,19 +945,23 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
         trigger={["click"]}
       >
         <UiButton
-          className={`${QUERY_SETTINGS_BUTTON_CLASS} ui-icon-hover-24 ${ACCESS_LEVEL_BUTTON_CLASS[accessLevel]}`.trim()}
+          className={`${compact ? QUERY_SETTINGS_ICON_BUTTON_CLASS : `${QUERY_SETTINGS_BUTTON_CLASS} ui-icon-hover-24`} ${ACCESS_LEVEL_BUTTON_CLASS[accessLevel]}`.trim()}
           variant="ghost"
           size="sm"
+          iconOnly={compact}
           color="var(--accent)"
-          title={t("composer.query.access.title")}
+          title={accessButtonTitle}
+          aria-label={compact ? accessButtonTitle : undefined}
           onClick={(event) => event.preventDefault()}
         >
           <MaterialIcon
             name={ACCESS_LEVEL_ICON[accessLevel]}
-            className="ui-icon-hover-24-target"
+            className={compact ? undefined : "ui-icon-hover-24-target"}
           />
-          {!compact && <span>{accessLabel}</span>}
-          <MaterialIcon name="expand_more" />
+          {!compact && <>
+            <span>{accessLabel}</span>
+            <MaterialIcon name="expand_more" />
+          </>}
         </UiButton>
       </Dropdown>}
       {shouldShowModelControls ? (
@@ -958,23 +976,31 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
           trigger={["click"]}
         >
           <UiButton
-            className={`${QUERY_SETTINGS_BUTTON_CLASS} ${QUERY_MODEL_BUTTON_CLASS} ${queryModelButtonStateClass}`.trim()}
+            className={`${compact ? QUERY_SETTINGS_ICON_BUTTON_CLASS : QUERY_SETTINGS_BUTTON_CLASS} ${QUERY_MODEL_BUTTON_CLASS} ${queryModelButtonStateClass}`.trim()}
             variant="ghost"
             size="sm"
+            iconOnly={compact}
             disabled={disabled || modelConfigSaving}
-            title={modelErrorText || t("composer.query.model.title")}
+            title={modelButtonTitle}
+            aria-label={modelButtonTitle}
             onClick={(event) => event.preventDefault()}
           >
-            {showFastBadge ? <MaterialIcon name="bolt" /> : null}
-            <span className={QUERY_MODEL_LABEL_CLASS}>
-              {selectedModelLabel}
-            </span>
-            <span>
-              {modelConfigSaving
-                ? t("composer.query.model.saving")
-                : selectedReasoningLabel}
-            </span>
-            <MaterialIcon name="expand_more" />
+            {compact ? (
+              <MaterialIcon name="brain" />
+            ) : (
+              <>
+                {showFastBadge ? <MaterialIcon name="bolt" /> : null}
+                <span className={QUERY_MODEL_LABEL_CLASS}>
+                  {selectedModelLabel}
+                </span>
+                <span>
+                  {modelConfigSaving
+                    ? t("composer.query.model.saving")
+                    : selectedReasoningLabel}
+                </span>
+                <MaterialIcon name="expand_more" />
+              </>
+            )}
           </UiButton>
         </Dropdown>
       ) : null}
