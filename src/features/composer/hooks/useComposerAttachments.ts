@@ -72,6 +72,7 @@ export function useComposerAttachments(input: UseComposerAttachmentsInput) {
   const latestAttachmentIdByNameRef = useRef(new Map<string, string>());
   const stagedFilesByAttachmentIdRef = useRef(new Map<string, File>());
   const [localAttachments, setAttachments] = useState<ComposerAttachment[]>([]);
+  const [attachmentResetVersion, setAttachmentResetVersion] = useState(0);
   const attachmentScopeRef = useRef(state.chatId);
   const sameAttachmentScope = attachmentScopeRef.current === state.chatId;
   const restoredReferences = state.restoredSteerReferencesByChatId?.[state.chatId];
@@ -129,6 +130,7 @@ export function useComposerAttachments(input: UseComposerAttachmentsInput) {
     latestAttachmentIdByNameRef.current.clear();
     stagedFilesByAttachmentIdRef.current.clear();
     setAttachments([]);
+    setAttachmentResetVersion(version => version + 1);
   }, [state.chatId, localAttachments]);
   const sendAttachmentMeta = useMemo(
     () =>
@@ -219,6 +221,7 @@ export function useComposerAttachments(input: UseComposerAttachmentsInput) {
     latestAttachmentIdByNameRef.current.clear();
     stagedFilesByAttachmentIdRef.current.clear();
     setAttachments([]);
+    setAttachmentResetVersion(version => version + 1);
     setAttachmentChatId("");
     setAttachmentScrollState({
       canScrollLeft: false,
@@ -654,6 +657,7 @@ export function useComposerAttachments(input: UseComposerAttachmentsInput) {
     addContextReference,
     setContextReferences,
     attachmentChatId,
+    attachmentResetVersion,
     attachmentScrollState,
     attachmentViewportRef,
     attachments,

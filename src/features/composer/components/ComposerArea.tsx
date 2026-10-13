@@ -207,6 +207,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     addContextReference,
     setContextReferences,
     attachmentChatId,
+    attachmentResetVersion,
     attachmentScrollState,
     attachmentViewportRef,
     attachments,
@@ -246,6 +247,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     enabled: enableNewChatContext,
     chatId: state.chatId,
     pendingAgentKey: state.pendingNewChatAgentKey,
+    attachmentResetVersion,
     stageFiles,
   });
   // These menu selections are projections of the shared reference collection.

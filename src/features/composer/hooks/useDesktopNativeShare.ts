@@ -14,6 +14,7 @@ export function useDesktopNativeShare(input: {
   enabled: boolean;
   chatId: string;
   pendingAgentKey: string;
+  attachmentResetVersion?: number;
   stageFiles: (files: File[]) => boolean;
 }) {
   const location = useLocation();
@@ -21,7 +22,8 @@ export function useDesktopNativeShare(input: {
   const target = input.enabled && hasDesktopHostBridge()
     ? parseDesktopNativeShareTarget(location.pathname, location.search)
     : null;
-  const key = target ? `${target.agentKey}\u0000${target.newChat}\u0000${target.batchId}` : "";
+  // Import deduplication lasts only while the corresponding attachment draft exists.
+  const key = target ? `${target.agentKey}\u0000${target.newChat}\u0000${target.batchId}\u0000${input.attachmentResetVersion ?? 0}` : "";
   const ready = Boolean(target && !input.chatId && target.agentKey === input.pendingAgentKey);
   const [importState, setImportState] = useState<ImportState>(null);
   const [retryVersion, setRetryVersion] = useState(0);

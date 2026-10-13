@@ -47,6 +47,8 @@ Frame Port 是完全不兼容升级。缺失 port、错误 transport version 或
 Desktop active 信号可能早于当前 Chat 的 React 状态提交。恢复钩子应保留当前 Router 目标的单次恢复意图，等待该 Chat 的加载、应用与滚动恢复事务结束，并让 inactive 观察者的完成通知落定后检查本地订阅。目标 Chat/Run 已有有效 query 或 attach 时直接保留；否则强制读取 `/api/chat` 并从服务端 `activeRun.lastSeq` 新建观察。不得把恢复合并进仍在进行的加载，否则 inactive 期间提前结束的 attach 不会重建。再次 inactive、目标路由变化、卸载或加载失败时取消该意图；不恢复旧 Chat，不轮询，不重发 query。
 
 ## 边界与非目标
+
+- 所有宿主业务接口与协议的名称、消息类型、字段和命名空间必须品牌无关；品牌只参与应用展示、宿主身份和存储隔离。原生共享必须保持来源无关，使微信、飞书、企业微信、QQ 的后续适配共用相同文件交付与 Composer 草稿协议。
 - APPLIED 仅表示 Router 提交，不代表历史数据 ready。页面拒绝更旧 revision 或同 revision 的冲突目标；会话阶段日志以对应目标的 route revision 与 transaction seq 关联。surface 激活恢复只消费 Router 提供的目标，不使用物理 URL 推断应恢复哪个 Chat。准备超时由 WebClient 展示错误，不触发 Desktop 再次 reload。
 - Standalone 浏览器独立运行；Desktop 标记一旦启用就不得降级为 Standalone。
 - Standalone 根路由与 Desktop WorkPanel 都只使用正式 `desktop.workpanel.*` 语义，不维护平行 sidebar Action 映射。
