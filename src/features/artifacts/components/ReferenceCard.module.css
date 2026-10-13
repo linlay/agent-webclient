@@ -74,6 +74,22 @@
     font-size: 10px;
 }
 
+/* 技能引用可点击打开侧边栏详情：复用附件卡的交互观感。 */
+.context-reference-card.is-openable {
+    cursor: pointer;
+    transition: border-color 0.16s ease, background-color 0.16s ease;
+}
+
+.context-reference-card.is-openable:hover,
+.context-reference-card.is-openable:focus-visible {
+    border-color: color-mix(in srgb, var(--accent-electric) 45%, transparent);
+    background: color-mix(in srgb, var(--bg-elev-2) 88%, var(--accent-soft));
+}
+
+.context-reference-card.is-openable:focus-visible {
+    outline: none;
+}
+
 .context-reference-card-remove {
     display: grid;
     flex: 0 0 auto;

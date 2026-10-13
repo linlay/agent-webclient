@@ -1134,6 +1134,7 @@ export const zhCNMessages = {
   "composer.referencesPlaceholder": "[{\"type\":\"kbase\",\"id\":\"library-id\"}]",
   "composer.reference.kind.site": "Site 引用",
   "composer.reference.remove": "移除引用 {name}",
+  "composer.reference.skillDetail": "查看技能详情",
   "composer.actions.voiceInput": "语音输入",
   "composer.actions.voiceInputDisabled.frontendActive":
     "前端工具处理中，暂时不能语音输入。",

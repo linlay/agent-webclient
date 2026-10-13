@@ -1059,6 +1059,7 @@ export const enUSMessages = {
   "composer.referencesPlaceholder": "[{\"type\":\"kbase\",\"id\":\"library-id\"}]",
   "composer.reference.kind.site": "Site reference",
   "composer.reference.remove": "Remove reference {name}",
+  "composer.reference.skillDetail": "View skill details",
   "composer.actions.voiceInput": "Voice input",
   "composer.actions.voiceInputDisabled.frontendActive": "A frontend tool is active. Voice input is temporarily unavailable.",
   "composer.actions.voiceUnavailable": "Voice input unavailable",

@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { ReferenceCard } from "./ReferenceCard";
 
 jest.mock("@/shared/data", () => ({ fetchSkillIcon: jest.fn() }));
+jest.mock("@/features/surfaces/hooks/useOpenTarget", () => ({ useOpenTarget: () => jest.fn() }));
 
 const skillReference = {
   id: "skill-creator",

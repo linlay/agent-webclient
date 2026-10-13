@@ -4,6 +4,7 @@ import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import type { MaterialIconName } from "@/shared/ui/MaterialIcon";
 import { SkillIcon } from "@/features/skills/components/SkillIcon";
 import { useI18n } from "@/shared/i18n";
+import { useOpenTarget } from "@/features/surfaces/hooks/useOpenTarget";
 import styles from "./ReferenceCard.module.css";
 
 interface ReferenceCardProps {
@@ -34,22 +35,53 @@ export const ReferenceCard: React.FC<ReferenceCardProps> = ({
   onRemove,
 }) => {
   const { t } = useI18n();
+  const openTarget = useOpenTarget();
   const type = reference.type || "site";
   const subtitle =
     type === "chat"
       ? t("composer.reference.kind.chat")
       : type === "skill" ? t("agents.interaction.skills") : type === "kbase" ? t("kbase.title") : t("composer.reference.kind.site");
   const avatarIcon = String(skillIcon || "").trim();
+  const skillId = type === "skill" ? String(reference.id || "").trim() : "";
+  const canOpenSkill = Boolean(skillId);
   const semanticClasses = [
     "context-reference-card",
     `context-reference-card-${variant}`,
     `context-reference-card-${density}`,
     "is-" + type,
+    ...(canOpenSkill ? ["is-openable"] : []),
   ];
   const classes = withModuleClasses(...semanticClasses);
 
+  const handleOpenSkill = () => {
+    if (!canOpenSkill) return;
+    openTarget({
+      version: 1,
+      kind: "skill",
+      id: skillId,
+      label: reference.name,
+    });
+  };
+
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (!canOpenSkill || event.target !== event.currentTarget) return;
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      handleOpenSkill();
+    }
+  };
+
   return (
-    <div className={classes} data-reference-type={type} title={type === "chat" ? t("composer.reference.chatPointer") : undefined}>
+    <div
+      className={classes}
+      data-reference-type={type}
+      title={type === "chat" ? t("composer.reference.chatPointer") : canOpenSkill ? t("composer.reference.skillDetail") : undefined}
+      role={canOpenSkill ? "button" : undefined}
+      tabIndex={canOpenSkill ? 0 : undefined}
+      aria-label={canOpenSkill ? `${t("composer.reference.skillDetail")} ${reference.name}` : undefined}
+      onClick={canOpenSkill ? handleOpenSkill : undefined}
+      onKeyDown={canOpenSkill ? handleKeyDown : undefined}
+    >
       <span className={withModuleClasses("context-reference-card-icon")} aria-hidden="true">
         {type === "skill" ? (
           <SkillIcon icon={avatarIcon} size={34} glyphSize={19} fallback="build" />
@@ -67,7 +99,10 @@ export const ReferenceCard: React.FC<ReferenceCardProps> = ({
         <button
           type="button"
           className={withModuleClasses("context-reference-card-remove")}
-          onClick={onRemove}
+          onClick={(event) => {
+            event.stopPropagation();
+            onRemove();
+          }}
           aria-label={t("composer.reference.remove", {
             name: reference.name,
           })}
