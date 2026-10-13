@@ -5,6 +5,13 @@
   --markdown-mermaid-viewport-min-height: 160px;
 }
 
+/* x-markdown 默认样式只复位 p/ul/ol/pre/table 首元素的 margin-top，
+   标题仍带浏览器默认上边距，这里补齐，避免内容以标题开头时顶部出现空隙。 */
+.root > :is(h1, h2, h3, h4, h5, h6):first-child {
+  margin-top: 0;
+  line-height: 1;
+}
+
 .root :global(.katex-display) {
   overflow-x: auto;
   overflow-y: hidden;

@@ -509,7 +509,7 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
         data-node-id={anchorNodeId}
         data-task-id={taskID || undefined}
       >
-        <div className={TIMELINE_MARKER_CLASS_NAME}>
+        <div className={`${TIMELINE_MARKER_CLASS_NAME} tw:pt-[2px]`}>
           <NodeIcon kind="content" />
         </div>
         <div
