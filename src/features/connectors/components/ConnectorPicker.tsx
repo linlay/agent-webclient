@@ -48,6 +48,7 @@ export function ConnectorPicker({ agentKey, search, onSearchChange, selectedIds,
     reportedError.current = selectionError || null;
   }, [selectionError, selectionErrorText, messageApi]);
   const changeSelection: ConnectorPickerProps["onSelectionChange"] = (item, selected) => {
+    if (disabled || selectionDisabled || savingId) return;
     const nextConflict = selected ? findConnectorSelectionConflict(item, selectedIds, catalog.items) : null;
     if (nextConflict) {
       const text = t("composer.addMenu.connectors.selectionConflict", connectorSelectionConflictNames(nextConflict, catalog.items));
@@ -82,29 +83,39 @@ export function ConnectorPicker({ agentKey, search, onSearchChange, selectedIds,
       </div>}
       {!catalog.loading && !catalog.error && !items.length && <div className={styles.status} role="status">{t(catalog.items.length ? "composer.addMenu.empty" : "composer.addMenu.connectors.empty")}</div>}
       {items.map(item => <ConnectorPickerRow key={item.id} item={item}
-        selected={selectedIds.includes(item.id) && (!availableIds || availableIds.includes(item.id))} saving={savingId === item.id} disabled={disabled || !!catalog.error} selectionDisabled={selectionDisabled} onSelectionChange={changeSelection} />)}
+        selected={selectedIds.includes(item.id) && (!availableIds || availableIds.includes(item.id))} saving={savingId === item.id} disabled={disabled || !!catalog.error} selectionDisabled={selectionDisabled} selectionBlocked={!!savingId} onSelectionChange={changeSelection} />)}
     </div>
     {catalog.reloadPending && <div className={styles.notice} role="status">{t("composer.addMenu.connectors.reloadPending")}</div>}
   </section>;
 }
 
-function ConnectorPickerRow({ item, selected, saving, disabled, selectionDisabled, onSelectionChange }: {
+function ConnectorPickerRow({ item, selected, saving, disabled, selectionDisabled, selectionBlocked, onSelectionChange }: {
   item: ConnectorOption;
   selected: boolean;
   saving: boolean;
   disabled: boolean;
   selectionDisabled: boolean;
+  selectionBlocked: boolean;
   onSelectionChange: ConnectorPickerProps["onSelectionChange"];
 }) {
   const { t } = useI18n();
   const status = connectorOptionStatus(item);
-  return <div className={styles.row}>
+  // Keep unrelated switches visually stable while serializing pointer/keyboard changes.
+  return <div className={styles.row}
+    onClickCapture={event => { if (selectionBlocked) event.stopPropagation(); }}
+    onKeyDownCapture={event => {
+      if (selectionBlocked && ["ArrowLeft", "ArrowRight", "Enter", " "].includes(event.key)) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+    }}>
     <ConnectorIcon item={item} size={18} className={styles.icon} />
     <div className={styles.details}>
       <span className={`${styles.name} ${pickerTypography.name}`} title={item.name || item.id}>{item.name || item.id}</span>
       {status && <span className={`${styles.availability} ${pickerTypography.description}`} title={t(`composer.addMenu.connectors.status.${status}`)}>{t(`composer.addMenu.connectors.status.${status}`)}</span>}
     </div>
     <Switch size="small" className={styles.toggle} checked={selected} loading={saving} disabled={disabled || selectionDisabled}
+      aria-disabled={disabled || selectionDisabled || selectionBlocked}
       aria-label={t("composer.addMenu.connectors.select", { name: item.name || item.id })}
       onChange={checked => onSelectionChange(item, checked)} />
   </div>;

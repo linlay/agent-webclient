@@ -56,13 +56,21 @@ it("reuses Agent associations on opening and publishes one saved switch to share
   expect(runtime.data?.connectorIds).toEqual(["docs", "meeting"]);
   const pending = deferred<ReturnType<typeof saved>>();
   jest.mocked(setAgentConnector).mockReturnValueOnce(pending.promise);
-  await act(async () => { void runtime.setSelected("docs", false); void runtime.setSelected("docs", false); });
+  await act(async () => {
+    void runtime.setSelected("docs", false);
+    void runtime.setSelected("docs", false);
+    void runtime.setSelected("meeting", false);
+    void runtime.setSelected("mail", true);
+  });
   expect(setAgentConnector).toHaveBeenCalledTimes(1);
   expect(setAgentConnector).toHaveBeenCalledWith({ agentKey: "zenmi", connectorId: "docs", enabled: false });
+  expect(getConnectorConnection).not.toHaveBeenCalled();
+  expect(runtime.savingId).toBe("docs");
   expect(runtime.data?.connectorIds).toContain("docs");
   await act(async () => pending.resolve(saved("zenmi", ["meeting"])));
   expect(runtime.data?.connectorIds).toEqual(["meeting"]);
   expect(mockStateRef.current.agents[0].connectors).toEqual(["meeting"]);
+  expect(runtime.savingId).toBe("");
   expect(runtime.catalogRevision).toBe(1);
   expect(getAgent).not.toHaveBeenCalled();
 });
