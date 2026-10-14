@@ -2224,8 +2224,6 @@ export const zhCNMessages = {
   "slash.command.remember.description":
     "记录长期偏好、事实或约束，并提交到记忆接口",
   "slash.command.remember.label": "记录记忆",
-  "slash.command.automation.description": "管理自动化任务与执行记录",
-  "slash.command.automation.label": "自动化",
   "slash.command.settings.description": "打开设置窗口",
   "slash.command.settings.label": "设置",
   "slash.command.voice.description": "在文字输入与一问一答语聊模式之间切换",

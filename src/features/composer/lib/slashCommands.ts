@@ -15,7 +15,6 @@ export type SlashCommandId =
   | 'settings'
   | 'plan'
   | 'editing'
-  | 'automation'
   | 'usage';
 
 export interface SlashCommandDefinition {
@@ -108,14 +107,6 @@ export const SLASH_COMMANDS: SlashCommandDefinition[] = [
     labelKey: 'slash.command.compact.label',
     descriptionKey: 'slash.command.compact.description',
     keywords: ['compact', 'context', 'summary', 'compress'],
-  },
-  {
-    id: 'automation',
-    icon: 'schedule',
-    command: '/automation',
-    labelKey: 'slash.command.automation.label',
-    descriptionKey: 'slash.command.automation.description',
-    keywords: ['automation', 'task', 'cron'],
   },
   {
     id: 'debug',
@@ -302,9 +293,6 @@ export function isSlashCommandDisabled(
   }
   if (commandId === 'editing') {
     return availability.streaming || availability.canUseEditingMode !== true;
-  }
-  if (commandId === 'automation') {
-    return !availability.hasCurrentWorker || availability.commandOverlayOpen;
   }
   if (commandId === 'usage') {
     return !availability.canShowUsage;

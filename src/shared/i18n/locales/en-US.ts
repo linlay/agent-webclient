@@ -2084,8 +2084,6 @@ export const enUSMessages = {
 
   "slash.command.remember.description": "Store long-term preferences, facts, or constraints through the memory endpoint",
   "slash.command.remember.label": "Save memory",
-  "slash.command.automation.description": "Manage automations and execution history",
-  "slash.command.automation.label": "Automation",
   "slash.command.settings.description": "Open the settings dialog",
   "slash.command.settings.label": "Settings",
   "slash.command.voice.description": "Switch between text input and turn-based voice chat",

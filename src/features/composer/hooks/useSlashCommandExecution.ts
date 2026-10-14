@@ -8,7 +8,6 @@ import {
 	isSlashCommandFeatureEnabled,
 } from "@/features/composer/lib/slashCommands";
 import { useSettingsOverlayActions } from "@/features/settings/components/SettingsOverlayProvider";
-import { useCommandOverlayActions } from "@/features/command-center/components/CommandOverlayProvider";
 import { useOpenTarget } from "@/features/surfaces/hooks/useOpenTarget";
 import type { CompactLevel } from "@/shared/data";
 
@@ -44,7 +43,6 @@ export function useSlashCommandExecution(input: {
 		state,
 	} = input;
 	const { openOverlay } = useSettingsOverlayActions();
-	const { openCommandOverlay } = useCommandOverlayActions();
 	const openTarget = useOpenTarget();
 
 	return useCallback(
@@ -66,9 +64,6 @@ export function useSlashCommandExecution(input: {
 					return;
 				case "compact":
 					await submitCompactCommand();
-					return;
-				case "automation":
-					openCommandOverlay({ type: "automation" });
 					return;
 				case "new":
 					resetForNewConversation();
@@ -122,7 +117,6 @@ export function useSlashCommandExecution(input: {
 			state,
 			submitCompactCommand,
 			toggleVoiceMode,
-			openCommandOverlay,
 			openOverlay,
 			openBTW,
 			openTarget,

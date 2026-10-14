@@ -46,7 +46,7 @@ describe('slashCommands', () => {
   });
 
   it('filters the command list by slash query', () => {
-    expect(getFilteredSlashCommands('').length).toBeGreaterThanOrEqual(6);
+    expect(getFilteredSlashCommands('').length).toBeGreaterThanOrEqual(5);
     expect(getFilteredSlashCommands('vo').map((item) => item.id)).toEqual(['voice']);
     expect(getFilteredSlashCommands('his').map((item) => item.id)).toEqual([]);
     expect(getFilteredSlashCommands('agents')).toEqual([]);
