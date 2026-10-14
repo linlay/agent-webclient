@@ -2076,8 +2076,6 @@ export const enUSMessages = {
   "slash.command.debug.label": "Debug panel",
   "slash.command.editing.description": "Toggle workspace editing",
   "slash.command.editing.label": "Editing mode",
-  "slash.command.history.description": "View all recent conversations",
-  "slash.command.history.label": "Conversation history",
   "slash.command.learn.description": "Extract reusable lessons, rules, and practices from the current conversation and submit them to the learning endpoint",
   "slash.command.learn.label": "Learn from chat",
   "slash.command.compact.description": "Compact older context for this conversation while keeping recent turns and audit history",

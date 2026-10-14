@@ -70,9 +70,6 @@ export function useSlashCommandExecution(input: {
 				case "automation":
 					openCommandOverlay({ type: "automation" });
 					return;
-				case "history":
-					openCommandOverlay({ type: "history" });
-					return;
 				case "new":
 					resetForNewConversation();
 					return;

@@ -2,7 +2,7 @@ import { skillDisplayName, skillPackageDisplayName } from "@/shared/utils/skillD
 import type { TimelineNode } from "@/features/timeline/lib/timelineState";
 import type { AgentSkill, AgentSkillPackage } from '@/shared/data';
 import { packageMembers, skillIdentity } from './skillPackages';
-import { isDebugPanelEnabled, isMemoryEnabled, isSettingsMenuEnabled, isVoiceEnabled } from '@/shared/config/featureFlags';
+import { isDebugPanelEnabled, isSettingsMenuEnabled, isVoiceEnabled } from '@/shared/config/featureFlags';
 import { t } from '@/shared/i18n';
 import type { MaterialIconName } from '@/shared/ui/MaterialIcon';
 
@@ -16,7 +16,6 @@ export type SlashCommandId =
   | 'plan'
   | 'editing'
   | 'automation'
-  | 'history'
   | 'usage';
 
 export interface SlashCommandDefinition {
@@ -74,7 +73,6 @@ export interface SlashCommandAvailability {
   canUseVoiceMode: boolean;
   hasActiveChat: boolean;
   hasCurrentWorker: boolean;
-  workerHistoryCount: number;
   commandOverlayOpen: boolean;
   canShowUsage: boolean;
   canCompactActiveRun?: boolean;
@@ -102,14 +100,6 @@ export const SLASH_COMMANDS: SlashCommandDefinition[] = [
     labelKey: 'slash.command.new.label',
     descriptionKey: 'slash.command.new.description',
     keywords: ['new', 'chat', 'reset', 'clear'],
-  },
-  {
-    id: 'history',
-    icon: 'history',
-    command: '/history',
-    labelKey: 'slash.command.history.label',
-    descriptionKey: 'slash.command.history.description',
-    keywords: ['history', 'chat', 'conversation', 'recent'],
   },
   {
     id: 'compact',
@@ -314,9 +304,6 @@ export function isSlashCommandDisabled(
     return availability.streaming || availability.canUseEditingMode !== true;
   }
   if (commandId === 'automation') {
-    return !availability.hasCurrentWorker || availability.commandOverlayOpen;
-  }
-  if (commandId === 'history') {
     return !availability.hasCurrentWorker || availability.commandOverlayOpen;
   }
   if (commandId === 'usage') {

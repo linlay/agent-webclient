@@ -42,7 +42,6 @@ describe("useSlashCommandExecution", () => {
           canUseVoiceMode: false,
           hasActiveChat: false,
           hasCurrentWorker: true,
-          workerHistoryCount: 0,
           commandOverlayOpen: false,
           canShowUsage: false,
         },
@@ -80,7 +79,7 @@ describe("useSlashCommandExecution", () => {
     expect(closeMention).toHaveBeenCalled();
   });
 
-  it("opens current worker history in the command overlay from /history", async () => {
+  it("opens the automation command overlay from /automation", async () => {
     let executeSlashCommand:
       | ((commandId: SlashCommandId) => Promise<void>)
       | undefined;
@@ -96,7 +95,6 @@ describe("useSlashCommandExecution", () => {
           canUseVoiceMode: false,
           hasActiveChat: true,
           hasCurrentWorker: true,
-          workerHistoryCount: 2,
           commandOverlayOpen: false,
           canShowUsage: false,
         },
@@ -123,9 +121,9 @@ describe("useSlashCommandExecution", () => {
     };
 
     renderToStaticMarkup(React.createElement(Harness));
-    await executeSlashCommand?.("history");
+    await executeSlashCommand?.("automation");
 
-    expect(mockOpenCommandOverlay).toHaveBeenCalledWith({ type: "history" });
+    expect(mockOpenCommandOverlay).toHaveBeenCalledWith({ type: "automation" });
     expect(mockOpenTarget).not.toHaveBeenCalled();
   });
 });

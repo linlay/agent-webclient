@@ -46,9 +46,9 @@ describe('slashCommands', () => {
   });
 
   it('filters the command list by slash query', () => {
-    expect(getFilteredSlashCommands('').length).toBeGreaterThanOrEqual(7);
+    expect(getFilteredSlashCommands('').length).toBeGreaterThanOrEqual(6);
     expect(getFilteredSlashCommands('vo').map((item) => item.id)).toEqual(['voice']);
-    expect(getFilteredSlashCommands('his').map((item) => item.id)).toEqual(['history']);
+    expect(getFilteredSlashCommands('his').map((item) => item.id)).toEqual([]);
     expect(getFilteredSlashCommands('agents')).toEqual([]);
     expect(getFilteredSlashCommands('rem').map((item) => item.id)).toEqual([]);
     expect(getFilteredSlashCommands('remote')).toEqual([]);
@@ -223,7 +223,6 @@ describe('slashCommands', () => {
       canUseVoiceMode: false,
       hasActiveChat: false,
       hasCurrentWorker: false,
-      workerHistoryCount: 0,
       commandOverlayOpen: false,
       canShowUsage: false,
     };
@@ -251,7 +250,6 @@ describe('slashCommands', () => {
       canUseVoiceMode: true,
       hasActiveChat: true,
       hasCurrentWorker: true,
-      workerHistoryCount: 0,
       commandOverlayOpen: false,
       canShowUsage: true,
     };
@@ -272,7 +270,6 @@ describe('slashCommands', () => {
       canUseVoiceMode: true,
       hasActiveChat: true,
       hasCurrentWorker: true,
-      workerHistoryCount: 1,
       commandOverlayOpen: false,
       canShowUsage: true,
       canCompactActiveRun: true,
@@ -299,7 +296,6 @@ describe('slashCommands', () => {
       canUseVoiceMode: false,
       hasActiveChat: false,
       hasCurrentWorker: true,
-      workerHistoryCount: 0,
       commandOverlayOpen: false,
       canShowUsage: false,
     };
