@@ -26,6 +26,6 @@ export function AgentConnectorPicker({ agentKey, search, onSearchChange, disable
       catalogRevision={selection.catalogRevision}
       onSelectionChange={(item, selected) => void selection.setSelected(item.id, selected)}
       selectionError={selection.saveError}
-      disabled={disabled} selectionDisabled={selection.loading || !!selection.loadError || !!selection.savingId} />}
+      disabled={disabled} selectionDisabled={selection.loading || !!selection.loadError} />}
   </div>;
 }

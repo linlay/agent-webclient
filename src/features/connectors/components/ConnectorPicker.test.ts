@@ -4,6 +4,8 @@ import { createRoot, type Root } from "react-dom/client";
 import { fetchConnectorIcon, getConnectors, getConnectorAuthStatus, startConnectorAuth, logoutConnectorAuth } from "@/shared/data";
 import type { ConnectorSummary } from "@/shared/data";
 import { ConnectorPicker } from "./ConnectorPicker";
+import { AgentConnectorPicker } from "./AgentConnectorPicker";
+import { useAgentConnectors } from "../hooks/useAgentConnectors";
 import { ConnectorChatError } from "../lib/connectorChat";
 import { decodePlatformApiError } from "@/features/transport/lib/platformFrameCodec";
 
@@ -14,6 +16,7 @@ jest.mock("@/shared/data", () => ({
 }));
 const push = { subscribe: jest.fn(() => jest.fn()) };
 jest.mock("@/features/transport/hooks/useRealtimeTransport", () => ({ usePushTransport: () => push }));
+jest.mock("../hooks/useAgentConnectors", () => ({ useAgentConnectors: jest.fn() }));
 jest.mock("@/shared/i18n", () => ({ t: (key: string) => key, useI18n: () => ({ t: (key: string, params?: Record<string, string>) => params && key === "composer.addMenu.connectors.selectionConflict" ? `${key}: ${params.name}: ${params.conflicts}` : key }) }));
 jest.mock("@/shared/ui/MaterialIcon", () => ({ MaterialIcon: () => null }));
 jest.mock("@/shared/ui/UiButton", () => ({ UiButton: ({ children, variant: _variant, size: _size, ...props }: any) => React.createElement("button", props, children) }));
@@ -23,7 +26,13 @@ jest.mock("antd", () => ({
   message: { useMessage: () => [mockMessageApi, null] },
   Input: React.forwardRef(({ prefix: _prefix, variant: _variant, ...props }: any, ref: any) => React.createElement("input", { ...props, ref })),
   Spin: () => React.createElement("span", null, "loading"),
-  Switch: ({ checked, disabled, onChange, "aria-label": label }: any) => React.createElement("button", { role: "switch", "aria-checked": checked, "aria-label": label, disabled, onClick: () => onChange(!checked) }),
+  Switch: ({ checked, disabled, loading, onChange, "aria-label": label, "aria-disabled": ariaDisabled }: any) => React.createElement("button", {
+    role: "switch", "aria-checked": checked, "aria-label": label, "aria-disabled": ariaDisabled,
+    disabled: disabled || loading, "data-loading": loading, onClick: () => onChange(!checked),
+    onKeyDown: (event: React.KeyboardEvent) => {
+      if (!disabled && !loading && ["ArrowLeft", "ArrowRight"].includes(event.key)) onChange(event.key === "ArrowRight");
+    },
+  }),
 }));
 
 const connector = (id: string, name: string, mode: ConnectorSummary["auth_mode"] = "none"): ConnectorSummary => ({ id, name, version: "1", type: "cli", auth_mode: mode, hasCli: true, hasMcp: false, hasBin: false, skills: [] });
@@ -146,6 +155,56 @@ it("disables switches when Agent configuration selection is disabled without ext
   expect(container.querySelector<HTMLButtonElement>('[role="switch"]')?.disabled).toBe(true);
   expect(container.querySelectorAll("button")).toHaveLength(2);
   expect(getConnectorAuthStatus).not.toHaveBeenCalled();
+});
+
+it("keeps unrelated Agent switches stable and blocks pointer and keyboard edits throughout a save", async () => {
+  jest.mocked(getConnectors).mockResolvedValue({ code: 0, msg: "", data: { connectors: [
+    connector("docs", "文档"), connector("login", "会议", "oauth"), connector("mail", "邮件"),
+  ] } });
+  const selection = {
+    data: { agentKey: "zenmi", connectorIds: ["docs", "login"] }, availableIds: ["docs", "login", "mail"],
+    loading: false, savingId: "", loadError: null, saveError: null, catalogRevision: 0,
+    refresh: jest.fn(async () => undefined), setSelected: jest.fn(async (_id: string, _enabled: boolean) => undefined),
+  };
+  const renderPicker = async () => {
+    jest.mocked(useAgentConnectors).mockReturnValue(selection);
+    await act(async () => root.render(React.createElement(AgentConnectorPicker, {
+      agentKey: "zenmi", search: "", onSearchChange: jest.fn(),
+    })));
+  };
+  await renderPicker();
+  const switches = [...container.querySelectorAll<HTMLButtonElement>('[role="switch"]')];
+  const names = switches.map(toggle => toggle.parentElement?.textContent);
+  switches[1].focus();
+  selection.savingId = "docs";
+  await renderPicker();
+  expect([...container.querySelectorAll('[role="switch"]')]).toEqual(switches);
+  expect(switches.map(toggle => toggle.parentElement?.textContent)).toEqual(names);
+  expect(switches.map(toggle => toggle.disabled)).toEqual([true, false, false]);
+  expect(switches.map(toggle => toggle.getAttribute("data-loading"))).toEqual(["true", "false", "false"]);
+  expect(switches.map(toggle => toggle.getAttribute("aria-disabled"))).toEqual(["true", "true", "true"]);
+  expect(switches.map(toggle => toggle.getAttribute("aria-checked"))).toEqual(["true", "true", "false"]);
+  expect(document.activeElement).toBe(switches[1]);
+  await act(async () => {
+    switches[0].click();
+    switches[1].click();
+    switches[2].click();
+    for (const key of ["ArrowLeft", "ArrowRight", "Enter", " "]) {
+      expect(switches[1].dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true }))).toBe(false);
+    }
+  });
+  expect(selection.setSelected).not.toHaveBeenCalled();
+  expect(mockMessageError).not.toHaveBeenCalled();
+  expect(switches.map(toggle => toggle.getAttribute("aria-checked"))).toEqual(["true", "true", "false"]);
+  selection.savingId = "";
+  selection.data.connectorIds = ["login"];
+  await renderPicker();
+  expect([...container.querySelectorAll('[role="switch"]')]).toEqual(switches);
+  expect(switches.map(toggle => toggle.parentElement?.textContent)).toEqual(names);
+  expect(switches.map(toggle => toggle.disabled)).toEqual([false, false, false]);
+  expect(switches.map(toggle => toggle.getAttribute("aria-checked"))).toEqual(["false", "true", "false"]);
+  await act(async () => switches[2].click());
+  expect(selection.setSelected).toHaveBeenCalledWith("mail", true);
 });
 
 it("renders saved mounting state when no connection snapshot is supplied", async () => {
