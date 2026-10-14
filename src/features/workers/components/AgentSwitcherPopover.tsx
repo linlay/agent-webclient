@@ -4,7 +4,11 @@ import type { InputRef } from "antd";
 import { AgentIcon } from "@/shared/icons/agent";
 import { useI18n } from "@/shared/i18n";
 import type { CurrentWorkerSummary } from "../lib/currentWorker";
-import { filterTimelineAgentOptions, dispatchTimelineAgentSwitch, type TimelineAgentOption } from "../lib/agentSelection";
+import {
+  filterTimelineAgentOptions,
+  dispatchTimelineAgentSwitch,
+  type TimelineAgentOption,
+} from "../lib/agentSelection";
 import "./AgentSwitcherPopover.module.css";
 const TIMELINE_EMPTY_AGENT_SWITCHER_CLASS_NAME =
   "timeline-empty-agent-switcher tw:relative tw:inline-flex tw:align-baseline";
@@ -33,7 +37,10 @@ const TIMELINE_AGENT_SWITCHER_OPTION_NAME_CLASS_NAME =
 const TIMELINE_AGENT_SWITCHER_OPTION_ROLE_CLASS_NAME =
   "tw:min-w-0 tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:text-xs tw:font-medium tw:text-ink-muted";
 export const AgentSwitcherPopover: React.FC<{
-  currentWorker: Pick<CurrentWorkerSummary, "type" | "sourceId" | "displayName"> | null;
+  currentWorker: Pick<
+    CurrentWorkerSummary,
+    "type" | "sourceId" | "displayName"
+  > | null;
   options: TimelineAgentOption[];
   disabled?: boolean;
   containerClassName?: string;
@@ -94,10 +101,14 @@ export const AgentSwitcherPopover: React.FC<{
   };
 
   return (
-    <span className={containerClassName || TIMELINE_EMPTY_AGENT_SWITCHER_CLASS_NAME}>
+    <span
+      className={containerClassName || TIMELINE_EMPTY_AGENT_SWITCHER_CLASS_NAME}
+    >
       <Popover
         open={open && !disabled}
-        onOpenChange={(next) => { if (!disabled) setOpen(next); }}
+        onOpenChange={(next) => {
+          if (!disabled) setOpen(next);
+        }}
         trigger={["click"]}
         placement="topLeft"
         arrow={false}
@@ -175,13 +186,13 @@ export const AgentSwitcherPopover: React.FC<{
                         >
                           {option.name}
                         </strong>
-                        {!option.hideRole && (
+                        {!option.hideRole && option.role && (
                           <span
                             className={
                               TIMELINE_AGENT_SWITCHER_OPTION_ROLE_CLASS_NAME
                             }
                           >
-                            {option.role || "--"}
+                            {option.role}
                           </span>
                         )}
                       </span>
@@ -193,20 +204,24 @@ export const AgentSwitcherPopover: React.FC<{
           </div>
         }
       >
-        {renderTrigger ? renderTrigger(open && !disabled) : <button
-          disabled={disabled}
-          className={TIMELINE_AGENT_SWITCHER_TRIGGER_CLASS_NAME}
-          type="button"
-          aria-haspopup="listbox"
-          aria-expanded={open}
-          aria-label={t("timeline.agentSwitcher.ariaLabel", {
-            name: displayName,
-          })}
-        >
-          <span className={TIMELINE_AGENT_SWITCHER_TRIGGER_NAME_CLASS_NAME}>
-            {displayName}
-          </span>
-        </button>}
+        {renderTrigger ? (
+          renderTrigger(open && !disabled)
+        ) : (
+          <button
+            disabled={disabled}
+            className={TIMELINE_AGENT_SWITCHER_TRIGGER_CLASS_NAME}
+            type="button"
+            aria-haspopup="listbox"
+            aria-expanded={open}
+            aria-label={t("timeline.agentSwitcher.ariaLabel", {
+              name: displayName,
+            })}
+          >
+            <span className={TIMELINE_AGENT_SWITCHER_TRIGGER_NAME_CLASS_NAME}>
+              {displayName}
+            </span>
+          </button>
+        )}
       </Popover>
     </span>
   );
