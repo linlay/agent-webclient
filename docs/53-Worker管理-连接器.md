@@ -43,7 +43,7 @@ MCP 支持每个组件的完整 HTTP URL、stdio 命令与参数、毫秒超时�
 
 WS `/api/agent` 返回 tools/skills/connectors ID 数组；WS `/api/connectors` 使用可选 `{agentKey}` 读取目录和状态；WS `/api/agents/connectors` 使用 `{agentKey,connectorId,enabled}` 更新单项。Platform 保留旧挂载 GET/WS 读取兼容，WebClient 不再调用。只要出现 connectorId 或 enabled 就按写请求校验，包括 `enabled:false`、null 和不完整写入；响应仍为原有精简 DTO。
 
-“+ → 连接器”使用 `GET /api/connectors?agentKey=<key>` 读取精简候选目录，返回 id/name、非空 description/iconUrl/mutuallyExclusiveWith、本地 readiness 与可选 mcp[]（agentKey/serverKey/status/toolCount，只含该 Agent 当前发布版本，每个组件最多一条；旧 Run 保留的版本只出现在管理目录）；搜索仅匹配 id、名称和说明。默认预置由 Platform 的全局与 mode 配置决定，不出现在候选和挂载 ID 中。非预置 builtin 仍可选择，包只读不限制普通挂载开关。
+“+ → 连接器”使用 `GET /api/connectors?agentKey=<key>` 读取精简候选目录，返回 id/name、非空 description/iconUrl/mutuallyExclusiveWith、本地 readiness 与可选 mcp[]（agentKey/serverKey/status/toolCount，只含该 Agent 当前发布版本中启用的组件，每个组件最多一条；禁用组件与旧 Run 保留的版本只出现在管理目录）；搜索仅匹配 id、名称和说明。默认预置由 Platform 的全局与 mode 配置决定，不出现在候选和挂载 ID 中。非预置 builtin 仍可选择，包只读不限制普通挂载开关。
 
 开关读取 `/api/agent.connectors` 的已保存非预置 ID；`PUT /api/agents/connectors` 仅提交 `{agentKey,connectorId,enabled}`，响应仍为 `{agentKey,connectorIds,reloadPending}`。目录在指定 Agent 时返回 agentKey 和 reloadPending，表示完整配置与运行时仍不一致；全局目录省略这两个字段。账号授权与挂载独立，关闭开关不注销部署共享账号。Composer 不请求 admin 目录或挂载接口；候选目录不接收版本、认证详情、组件清单、技能或 activeConnectorIds。
 
