@@ -1217,6 +1217,7 @@ export const zhCNMessages = {
   "composer.query.reasoning.default": "默认思考",
   "composer.query.reasoning.empty": "暂无可选思考深度",
   "composer.query.reasoning.group": "智能",
+  "composer.query.reasoning.tooltipLabel": "思考强度",
   "composer.query.serviceTier.FAST": "快速",
   "composer.query.serviceTier.FLEX": "灵活",
   "composer.query.serviceTier.STANDARD": "标准",

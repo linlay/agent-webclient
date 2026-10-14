@@ -1136,6 +1136,7 @@ export const enUSMessages = {
   "composer.query.reasoning.default": "Default reasoning",
   "composer.query.reasoning.empty": "No reasoning efforts available",
   "composer.query.reasoning.group": "Reasoning effort",
+  "composer.query.reasoning.tooltipLabel": "Reasoning effort",
   "composer.query.serviceTier.FAST": "Fast",
   "composer.query.serviceTier.FLEX": "Flex",
   "composer.query.serviceTier.STANDARD": "Standard",

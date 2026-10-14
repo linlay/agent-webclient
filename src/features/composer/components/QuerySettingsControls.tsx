@@ -2,7 +2,7 @@ import { bindCssModuleClasses } from "@/shared/utils/cssModuleClasses";
 import modelPresentation from "@/features/model-config/components/ModelMenu.module.css";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { MenuProps } from "antd";
-import { Dropdown } from "antd";
+import { Dropdown, Tooltip } from "antd";
 import { useAppContext } from "@/app/state/AppContext";
 import type { Agent } from "@/features/agents/lib/agentState";
 import {
@@ -739,10 +739,16 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
         t("composer.query.model.title"),
         selectedModelLabel,
         modelConfigSaving ? t("composer.query.model.saving") : selectedReasoningLabel,
-        showFastBadge ? t("composer.query.serviceTier.FAST") : "",
         modelErrorText,
       ].filter(Boolean).join(" · ")
     : modelErrorText || t("composer.query.model.title");
+  const modelButtonDisabled = disabled || modelConfigSaving;
+  const modelTooltip = compact ? (
+    <div>
+      <div>{t("composer.query.model.group")}: {selectedModelLabel}</div>
+      <div>{t("composer.query.reasoning.tooltipLabel")}: {selectedReasoningLabel}</div>
+    </div>
+  ) : undefined;
 
   const handleRefreshModels = useCallback(() => {
     if (!agentKey || modelsLoading || disabled) return;
@@ -965,44 +971,54 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
         </UiButton>
       </Dropdown>}
       {shouldShowModelControls ? (
-        <Dropdown
-          menu={{
-            className: presentationClasses("query-settings-menu"),
-            items: modelItems,
-            onClick: onModelMenuClick,
-          }}
-          onOpenChange={onModelMenuOpenChange}
-          placement="topRight"
-          trigger={["click"]}
-        >
-          <UiButton
-            className={`${compact ? QUERY_SETTINGS_ICON_BUTTON_CLASS : QUERY_SETTINGS_BUTTON_CLASS} ${QUERY_MODEL_BUTTON_CLASS} ${queryModelButtonStateClass}`.trim()}
-            variant="ghost"
-            size="sm"
-            iconOnly={compact}
-            disabled={disabled || modelConfigSaving}
-            title={modelButtonTitle}
-            aria-label={modelButtonTitle}
-            onClick={(event) => event.preventDefault()}
+        <Tooltip title={modelTooltip} placement="top" trigger={["hover", "focus"]}>
+          <span
+            className="tw:inline-flex tw:flex-none"
+            tabIndex={compact && modelButtonDisabled ? 0 : undefined}
+            aria-label={compact && modelButtonDisabled ? modelButtonTitle : undefined}
           >
-            {compact ? (
-              <MaterialIcon name="brain" />
-            ) : (
-              <>
-                {showFastBadge ? <MaterialIcon name="bolt" /> : null}
-                <span className={QUERY_MODEL_LABEL_CLASS}>
-                  {selectedModelLabel}
-                </span>
-                <span>
-                  {modelConfigSaving
-                    ? t("composer.query.model.saving")
-                    : selectedReasoningLabel}
-                </span>
-                <MaterialIcon name="expand_more" />
-              </>
-            )}
-          </UiButton>
-        </Dropdown>
+            <Dropdown
+              disabled={modelButtonDisabled}
+              menu={{
+                className: presentationClasses("query-settings-menu"),
+                items: modelItems,
+                onClick: onModelMenuClick,
+              }}
+              onOpenChange={onModelMenuOpenChange}
+              placement="topRight"
+              trigger={["click"]}
+            >
+              <UiButton
+                className={`${compact ? QUERY_SETTINGS_ICON_BUTTON_CLASS : QUERY_SETTINGS_BUTTON_CLASS} ${QUERY_MODEL_BUTTON_CLASS} ${queryModelButtonStateClass}`.trim()}
+                variant="ghost"
+                size="sm"
+                iconOnly={compact}
+                disabled={modelButtonDisabled}
+                style={compact && modelButtonDisabled ? { pointerEvents: "none" } : undefined}
+                title={compact ? undefined : modelButtonTitle}
+                aria-label={modelButtonTitle}
+                onClick={(event) => event.preventDefault()}
+              >
+                {compact ? (
+                  <MaterialIcon name="brain" />
+                ) : (
+                  <>
+                    {showFastBadge ? <MaterialIcon name="bolt" /> : null}
+                    <span className={QUERY_MODEL_LABEL_CLASS}>
+                      {selectedModelLabel}
+                    </span>
+                    <span>
+                      {modelConfigSaving
+                        ? t("composer.query.model.saving")
+                        : selectedReasoningLabel}
+                    </span>
+                    <MaterialIcon name="expand_more" />
+                  </>
+                )}
+              </UiButton>
+            </Dropdown>
+          </span>
+        </Tooltip>
       ) : null}
       {shouldShowModelControls && modelErrorText ? (
         <span className={QUERY_MODEL_ERROR_CLASS}>{modelErrorText}</span>
