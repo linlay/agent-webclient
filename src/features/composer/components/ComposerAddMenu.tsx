@@ -9,11 +9,6 @@ import type { InputRef } from "antd";
 import type { Chat } from "@/features/chats/lib/chatState";
 import type { ComposerContextReferenceInput } from "@/features/composer/lib/composerAttachments";
 import { getChats, type AgentSkill } from "@/shared/data";
-import {
-  canUseDesktopWebsBridge,
-  listDesktopWebEntries,
-  type DesktopWebEntry,
-} from "@/shared/data/desktop/desktopWebs";
 import { useComposerSkillMenuQuery } from "@/features/composer/hooks/useComposerSkillMenuQuery";
 import { useI18n } from "@/shared/i18n";
 import { MaterialIcon, type MaterialIconName } from "@/shared/ui/MaterialIcon";
@@ -32,7 +27,7 @@ import { KBasePicker } from "@/features/kbases/components/KBasePicker";
 import type { KBaseCatalog } from "@/features/kbases/hooks/useKBaseOptions";
 import type { SelectedKBase } from "@/features/kbases/lib/kbasesState";
 
-type Section = "kbases" | "files" | "skills" | "connectors" | "chat" | "site";
+type Section = "kbases" | "files" | "skills" | "connectors" | "chat";
 export interface AddMenuTriggerProps {
   interactionConfig?: import("@/shared/contracts/interaction").InteractionConfig;
   disabled: boolean;
@@ -86,11 +81,6 @@ const sectionMeta: Record<
     key: "composer.addMenu.section.chat",
     detailWidth: 320,
   },
-  site: {
-    icon: "open_in_new",
-    key: "composer.addMenu.section.site",
-    detailWidth: 320,
-  },
 };
 // 一级面板导航条目："divider" 为分割线，可自由插入任意位置
 type NavEntry = Section | "screenshot" | "planning" | "editing" | "divider";
@@ -104,7 +94,6 @@ const sectionNav: NavEntry[] = [
   "connectors",
   "kbases",
   "chat",
-  "site",
 ];
 const DEFAULT_DETAIL_WIDTH = 200;
 const text = (value: unknown) =>
@@ -119,7 +108,6 @@ const normalizeChats = (value: unknown): Chat[] =>
 const searchPlaceholderKey: Partial<Record<Section, string>> = {
   skills: "composer.addMenu.search.skills",
   chat: "composer.addMenu.chat.search",
-  site: "composer.addMenu.site.search",
 };
 
 const AddMenuSectionDetail: React.FC<
@@ -139,7 +127,6 @@ const AddMenuSectionDetail: React.FC<
   const selectedSkillIds = new Set(props.selectedSkillIds.map(skillIdentity));
   const searchRef = useRef<InputRef>(null);
   const [chats, setChats] = useState<Chat[]>([]);
-  const [sites, setSites] = useState<DesktopWebEntry[]>([]);
   const [loadingContext, setLoadingContext] = useState(true);
   const searchable = Boolean(searchPlaceholderKey[section]);
   const keyword = search.trim().toLowerCase();
@@ -175,10 +162,6 @@ const AddMenuSectionDetail: React.FC<
   const filteredChats = chats.filter((chat) =>
     matchKeyword(text(chat.chatName) || chat.chatId, chat.chatId),
   );
-  const filteredSites = sites.filter((site) =>
-    matchKeyword(site.label, site.url || "", site.entryKey),
-  );
-  const siteAvailable = canUseDesktopWebsBridge();
   useEffect(() => {
     if (!searchable) return;
     // 等待 Popover 动画后再聚焦，避免 autoFocus 在挂载时机下失效
@@ -188,28 +171,19 @@ const AddMenuSectionDetail: React.FC<
     return () => window.clearTimeout(timer);
   }, [searchable]);
   useEffect(() => {
-    if (section !== "chat" && section !== "site") return;
+    if (section !== "chat") return;
     setLoadingContext(true);
-    if (section === "chat") {
-      void getChats({ agentKey: props.currentAgentKey })
-        .then((chatResult) => {
-          setChats(
-            normalizeChats(chatResult.data).filter(
-              (chat) => text(chat.chatId) !== text(props.currentChatId),
-            ),
-          );
-        })
-        .catch(() => undefined)
-        .finally(() => setLoadingContext(false));
-    } else {
-      void (siteAvailable ? listDesktopWebEntries() : Promise.resolve([]))
-        .then((nextSites) => {
-          setSites(nextSites);
-        })
-        .catch(() => undefined)
-        .finally(() => setLoadingContext(false));
-    }
-  }, [props.currentAgentKey, props.currentChatId, section, siteAvailable]);
+    void getChats({ agentKey: props.currentAgentKey })
+      .then((chatResult) => {
+        setChats(
+          normalizeChats(chatResult.data).filter(
+            (chat) => text(chat.chatId) !== text(props.currentChatId),
+          ),
+        );
+      })
+      .catch(() => undefined)
+      .finally(() => setLoadingContext(false));
+  }, [props.currentAgentKey, props.currentChatId, section]);
   const execute = (action: () => void) => {
     action();
     props.onClose();
@@ -458,40 +432,6 @@ const AddMenuSectionDetail: React.FC<
           )}
         </div>
       )}
-      {section === "site" && (
-        <div className={presentationClasses("composer-add-menu-scroll")}>
-          {loadingContext && (
-            <div className={presentationClasses("composer-add-menu-status")}>
-              {t("composer.addMenu.loading")}
-            </div>
-          )}
-          {!loadingContext && !sites.length && (
-            <div className={presentationClasses("composer-add-menu-status")}>
-              {t("composer.addMenu.site.empty")}
-            </div>
-          )}
-          {!loadingContext && !!sites.length && !filteredSites.length && (
-            <div className={presentationClasses("composer-add-menu-status")}>
-              {t("composer.addMenu.empty")}
-            </div>
-          )}
-          {filteredSites.map((site) =>
-            item(
-              <>
-                <MaterialIcon name="open_in_new" />
-                <span>{site.label}</span>
-              </>,
-              () =>
-                props.onAddReference({
-                  type: "site",
-                  id: site.entryKey,
-                  name: site.label,
-                  ...(site.url ? { url: site.url } : {}),
-                }),
-            ),
-          )}
-        </div>
-      )}
     </div>
   );
 };
@@ -516,7 +456,7 @@ const AddMenuPanel: React.FC<AddMenuTriggerProps & { onClose: () => void }> = (
     setSearch("");
     skillPickerInteracting.current = false;
   }, [section]);
-  // mode / site 在不可用时跳过，分割线条目保持原位
+  // mode 在不可用时跳过，分割线条目保持原位
   const navEntries = sectionNav.filter((entry) => {
     if (
       entry === "files" &&
@@ -544,7 +484,6 @@ const AddMenuPanel: React.FC<AddMenuTriggerProps & { onClose: () => void }> = (
       return props.canCaptureDesktopScreenshot &&
         props.interactionConfig?.attachment.localFiles !== false;
     if (entry === "divider") return true;
-    if (entry === "site") return canUseDesktopWebsBridge();
     if (entry === "planning") return props.canUsePlanningMode;
     if (entry === "editing") return props.canUseEditingMode;
     return true;
