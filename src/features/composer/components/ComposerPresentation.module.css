@@ -46,7 +46,7 @@
     display: flex;
     align-items: center;
     width: 100%;
-    gap: 9px;
+    gap: 6px;
     min-width: 0;
 }
 
@@ -107,6 +107,49 @@
 
 .composer-add-menu-item-copy small {
     color: var(--ink-muted);
+}
+
+.composer-add-menu-chat-title {
+    position: relative;
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+.composer-add-menu-chat-title[data-overflow="true"] {
+    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 24px), transparent 100%);
+    mask-image: linear-gradient(to right, #000 calc(100% - 24px), transparent 100%);
+}
+
+.composer-add-menu-chat-title-text {
+    display: block;
+    width: max-content;
+}
+
+.composer-add-menu-chat-time {
+    flex: none;
+    color: var(--ink-muted);
+    font-size: 11px;
+    line-height: 16px;
+    white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .composer-add-menu-chat-title[data-overflow="true"]:hover,
+    .composer-add-menu-chat-title[data-overflow="true"]:focus-visible {
+        -webkit-mask-image: none;
+        mask-image: none;
+    }
+    .composer-add-menu-chat-title[data-overflow="true"]:hover .composer-add-menu-chat-title-text,
+    .composer-add-menu-chat-title[data-overflow="true"]:focus-visible .composer-add-menu-chat-title-text {
+        animation: composerChatTitleScroll var(--chat-title-duration) linear 0.5s 1 forwards;
+    }
+}
+
+@keyframes composerChatTitleScroll {
+    from { transform: translateX(0); }
+    to { transform: translateX(var(--chat-title-offset)); }
 }
 .composer-add-menu-skill-row {
     display: flex;

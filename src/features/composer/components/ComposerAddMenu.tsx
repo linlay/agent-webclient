@@ -3,11 +3,13 @@ import { bindCssModuleClasses } from "@/shared/utils/cssModuleClasses";
 import composerPresentation from "@/features/composer/components/ComposerPresentation.module.css";
 import { skillDisplayName, skillPackageDisplayName } from "@/shared/utils/skillDisplayName";
 import { SkinVisual } from "@/shared/ui/SkinVisual";
-import React, { useEffect, useRef, useState } from "react";
-import { Input, Popover, Typography } from "antd";
+import React, { useEffect, useRef, useState, type CSSProperties } from "react";
+import { Input, Popover } from "antd";
 import type { InputRef } from "antd";
 import { useChatReferenceCandidates } from "@/features/chats/hooks/useChatReferenceCandidates";
 import { CHAT_REFERENCE_LIMIT } from "@/features/chats/lib/chatReferenceCandidates";
+import { formatChatTimeLabel } from "@/features/chats/lib/chatListFormatter";
+import { readEpochMillis } from "@/shared/utils/platformTime";
 import type { ComposerContextReferenceInput } from "@/features/composer/lib/composerAttachments";
 import type { AgentSkill } from "@/shared/data";
 import { useComposerSkillMenuQuery } from "@/features/composer/hooks/useComposerSkillMenuQuery";
@@ -102,6 +104,52 @@ const text = (value: unknown) =>
 const searchPlaceholderKey: Partial<Record<Section, string>> = {
   skills: "composer.addMenu.search.skills",
   chat: "composer.addMenu.chat.search",
+};
+
+const CHAT_TITLE_SCROLL_PIXELS_PER_SECOND = 35;
+
+// 对话标题：溢出时不显示省略号，右侧由日期遮盖；hover 时滚动展示完整内容。
+const ChatTitle: React.FC<{ title: string }> = ({ title }) => {
+  const containerRef = useRef<HTMLSpanElement>(null);
+  const textRef = useRef<HTMLSpanElement>(null);
+  const [overflow, setOverflow] = useState(0);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    const content = textRef.current;
+    if (!container || !content) return;
+    const measure = () => setOverflow(
+      container.clientWidth > 0
+        ? Math.max(0, content.scrollWidth - container.clientWidth)
+        : 0,
+    );
+    measure();
+    if (typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(measure);
+    observer.observe(container);
+    observer.observe(content);
+    return () => observer.disconnect();
+  }, [title]);
+
+  return (
+    <span
+      ref={containerRef}
+      className={presentationClasses("composer-add-menu-chat-title")}
+      data-overflow={overflow > 0 ? "true" : undefined}
+      title={title}
+      style={{
+        "--chat-title-offset": `${-overflow}px`,
+        "--chat-title-duration": `${overflow / CHAT_TITLE_SCROLL_PIXELS_PER_SECOND}s`,
+      } as CSSProperties}
+    >
+      <span
+        ref={textRef}
+        className={`${presentationClasses("composer-add-menu-chat-title-text")} ${pickerTypography.name}`}
+      >
+        {title}
+      </span>
+    </span>
+  );
 };
 
 const AddMenuSectionDetail: React.FC<
@@ -406,23 +454,25 @@ const AddMenuSectionDetail: React.FC<
               {t(chatCandidates.searching ? "composer.addMenu.empty" : "composer.addMenu.chat.empty")}
             </div>
           )}
-          {chatCandidates.chats.map((chat) =>
-            item(
+          {chatCandidates.chats.map((chat) => {
+            const title = text(chat.chatName) || chat.chatId;
+            return item(
               <>
                 <MaterialIcon name="question_answer" />
-                <Typography.Text ellipsis className={pickerTypography.name}>
-                  {text(chat.chatName) || chat.chatId}
-                </Typography.Text>
+                <ChatTitle title={title} />
+                <small className={presentationClasses("composer-add-menu-chat-time")}>
+                  {formatChatTimeLabel(readEpochMillis(chat.updatedAt))}
+                </small>
               </>,
               () =>
                 props.onAddReference({
                   type: "chat",
                   id: chat.chatId,
-                  name: text(chat.chatName) || chat.chatId,
+                  name: title,
                 }),
               { key: chat.chatId },
-            ),
-          )}
+            );
+          })}
           {!chatCandidates.loading && chatCandidates.chats.length === CHAT_REFERENCE_LIMIT && (
             <div className={presentationClasses("composer-add-menu-status")}>
               {t(chatCandidates.searching ? "composer.addMenu.chat.searchHint" : "composer.addMenu.chat.previewHint")}
