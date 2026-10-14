@@ -1,13 +1,15 @@
 import { bindCssModuleClasses } from "@/shared/utils/cssModuleClasses";
 import sharedPresentation from "@/shared/ui/Presentation.module.css";
-import React, { useCallback, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Flex, Tooltip } from "antd";
-import type { TimelineErrorDetail, TimelineNode } from "@/features/timeline/lib/timelineState";
+import type {
+  TimelineErrorDetail,
+  TimelineNode,
+} from "@/features/timeline/lib/timelineState";
 import { useI18n } from "@/shared/i18n";
 import { copyText } from "@/shared/utils/copy";
 import { UiButton } from "@/shared/ui/UiButton";
 const presentationClasses = bindCssModuleClasses({ ...sharedPresentation });
-
 
 function hasTechnicalDetail(errorDetail?: TimelineErrorDetail): boolean {
   return Boolean(
@@ -79,8 +81,10 @@ export const SystemAlert: React.FC<{
   const { t } = useI18n();
   const showDetails = hasTechnicalDetail(errorDetail);
   const diagnostics = errorDetail?.diagnostics;
-  const upstream = diagnostics != null && typeof diagnostics === "object"
-    ? diagnostics as Record<string, unknown> : {};
+  const upstream =
+    diagnostics != null && typeof diagnostics === "object"
+      ? (diagnostics as Record<string, unknown>)
+      : {};
   const rows = [
     ["code", errorDetail?.code],
     ["reason", upstream.reason],
@@ -99,6 +103,18 @@ export const SystemAlert: React.FC<{
 
   const [copyState, setCopyState] = useState<CopyState>("idle");
   const copyTimerRef = useRef<number | null>(null);
+  const alertRef = useRef<HTMLDivElement | null>(null);
+  const [alertWidth, setAlertWidth] = useState<number | undefined>(undefined);
+
+  useEffect(() => {
+    const el = alertRef.current;
+    if (!el) return;
+    const updateWidth = () => setAlertWidth(el.offsetWidth);
+    updateWidth();
+    const observer = new ResizeObserver(updateWidth);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   const handleCopy = useCallback(async () => {
     const payload = buildCopyPayload(text, errorDetail);
@@ -132,14 +148,28 @@ export const SystemAlert: React.FC<{
         : t("timeline.systemAlert.copy.tooltip");
 
   return (
-    <div className={presentationClasses("system-alert")} data-level={level}>
+    <div
+      ref={alertRef}
+      className={presentationClasses("system-alert")}
+      data-level={level}
+    >
       <Flex justify="space-between" align="center" gap={6}>
         {tooltip ? (
-          <Tooltip title={tooltip}>
-            <div className={presentationClasses("system-alert-message")}>{text}</div>
+          <Tooltip
+            title={tooltip}
+            styles={{
+              root: { width: alertWidth, maxWidth: alertWidth },
+              body: { width: "100%", maxWidth: "none" },
+            }}
+          >
+            <div className={presentationClasses("system-alert-message")}>
+              {text}
+            </div>
           </Tooltip>
         ) : (
-          <div className={presentationClasses("system-alert-message")}>{text}</div>
+          <div className={presentationClasses("system-alert-message")}>
+            {text}
+          </div>
         )}
         <Tooltip title={copyTooltip}>
           <UiButton
