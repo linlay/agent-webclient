@@ -6,9 +6,10 @@ import { SkinVisual } from "@/shared/ui/SkinVisual";
 import React, { useEffect, useRef, useState } from "react";
 import { Input, Popover, Typography } from "antd";
 import type { InputRef } from "antd";
-import type { Chat } from "@/features/chats/lib/chatState";
+import { useChatReferenceCandidates } from "@/features/chats/hooks/useChatReferenceCandidates";
+import { CHAT_REFERENCE_LIMIT } from "@/features/chats/lib/chatReferenceCandidates";
 import type { ComposerContextReferenceInput } from "@/features/composer/lib/composerAttachments";
-import { getChats, type AgentSkill } from "@/shared/data";
+import type { AgentSkill } from "@/shared/data";
 import { useComposerSkillMenuQuery } from "@/features/composer/hooks/useComposerSkillMenuQuery";
 import { useI18n } from "@/shared/i18n";
 import { MaterialIcon, type MaterialIconName } from "@/shared/ui/MaterialIcon";
@@ -98,13 +99,6 @@ const sectionNav: NavEntry[] = [
 const DEFAULT_DETAIL_WIDTH = 200;
 const text = (value: unknown) =>
   typeof value === "string" ? value.trim() : "";
-const normalizeChats = (value: unknown): Chat[] =>
-  Array.isArray(value)
-    ? value.filter((chat): chat is Chat =>
-        Boolean(chat && text((chat as Chat).chatId)),
-      )
-    : [];
-
 const searchPlaceholderKey: Partial<Record<Section, string>> = {
   skills: "composer.addMenu.search.skills",
   chat: "composer.addMenu.chat.search",
@@ -126,8 +120,14 @@ const AddMenuSectionDetail: React.FC<
   const [selectedSkillIdsAtOpen] = useState(() => new Set(props.selectedSkillIds.map(skillIdentity)));
   const selectedSkillIds = new Set(props.selectedSkillIds.map(skillIdentity));
   const searchRef = useRef<InputRef>(null);
-  const [chats, setChats] = useState<Chat[]>([]);
-  const [loadingContext, setLoadingContext] = useState(true);
+  const [searchComposing, setSearchComposing] = useState(false);
+  const chatCandidates = useChatReferenceCandidates({
+    enabled: section === "chat",
+    agentKey: props.currentAgentKey,
+    currentChatId: props.currentChatId,
+    query: search,
+    composing: searchComposing,
+  });
   const searchable = Boolean(searchPlaceholderKey[section]);
   const keyword = search.trim().toLowerCase();
   const matchKeyword = (...values: string[]) =>
@@ -159,9 +159,6 @@ const AddMenuSectionDetail: React.FC<
   ], pinnedSkillIds, locale)
     .sort((a, b) => Number(b.selectedAtOpen) - Number(a.selectedAtOpen))
     .filter(item => !kindFilter || item.kind === kindFilter);
-  const filteredChats = chats.filter((chat) =>
-    matchKeyword(text(chat.chatName) || chat.chatId, chat.chatId),
-  );
   useEffect(() => {
     if (!searchable) return;
     // 等待 Popover 动画后再聚焦，避免 autoFocus 在挂载时机下失效
@@ -170,20 +167,6 @@ const AddMenuSectionDetail: React.FC<
     }, 50);
     return () => window.clearTimeout(timer);
   }, [searchable]);
-  useEffect(() => {
-    if (section !== "chat") return;
-    setLoadingContext(true);
-    void getChats({ agentKey: props.currentAgentKey })
-      .then((chatResult) => {
-        setChats(
-          normalizeChats(chatResult.data).filter(
-            (chat) => text(chat.chatId) !== text(props.currentChatId),
-          ),
-        );
-      })
-      .catch(() => undefined)
-      .finally(() => setLoadingContext(false));
-  }, [props.currentAgentKey, props.currentChatId, section]);
   const execute = (action: () => void) => {
     action();
     props.onClose();
@@ -191,9 +174,10 @@ const AddMenuSectionDetail: React.FC<
   const item = (
     content: React.ReactNode,
     action: () => void,
-    options: { disabled?: boolean; loading?: boolean; title?: string } = {},
+    options: { key?: React.Key; disabled?: boolean; loading?: boolean; title?: string } = {},
   ) => (
     <UiButton
+      key={options.key}
       variant="ghost"
       size="sm"
       className={presentationClasses("composer-add-menu-detail-item")}
@@ -305,6 +289,11 @@ const AddMenuSectionDetail: React.FC<
           value={search}
           placeholder={t(searchPlaceholderKey[section] || "")}
           onChange={(event) => onSearchChange(event.target.value)}
+          onCompositionStart={() => setSearchComposing(true)}
+          onCompositionEnd={(event) => {
+            setSearchComposing(false);
+            onSearchChange(event.currentTarget.value);
+          }}
           suffix={section === "skills" ? <SkillKindFilters value={kindFilter} onChange={setKindFilter}
             packageCount={filteredPackages.length} standaloneCount={filteredSkills.length} /> : undefined}
           style={{ marginBottom: 10 }}
@@ -399,22 +388,25 @@ const AddMenuSectionDetail: React.FC<
       {section === "kbases" && props.kbaseCatalog && props.onSelectKbases && <KBasePicker disabled={props.referenceSelectionDisabled} catalog={props.kbaseCatalog} selected={props.selectedKbases || []} onChange={items => { if (!props.referenceSelectionDisabled) execute(() => { props.onInteract?.(); props.onSelectKbases?.(items); }); }} />}
       {section === "chat" && (
         <div className={presentationClasses("composer-add-menu-scroll")}>
-          {loadingContext && (
+          {chatCandidates.loading && (
             <div className={presentationClasses("composer-add-menu-status")}>
-              {t("composer.addMenu.loading")}
+              {t(chatCandidates.searching ? "composer.addMenu.chat.searching" : "composer.addMenu.loading")}
             </div>
           )}
-          {!loadingContext && !chats.length && (
-            <div className={presentationClasses("composer-add-menu-status")}>
-              {t("composer.addMenu.chat.empty")}
+          {chatCandidates.error && (
+            <div role="alert" className={presentationClasses("composer-add-menu-status")}>
+              {t("composer.addMenu.chat.loadFailed")}
+              <UiButton variant="ghost" size="mini" onClick={chatCandidates.retry}>
+                {t("composer.addMenu.chat.retry")}
+              </UiButton>
             </div>
           )}
-          {!loadingContext && !!chats.length && !filteredChats.length && (
+          {!chatCandidates.loading && !chatCandidates.error && !chatCandidates.chats.length && (
             <div className={presentationClasses("composer-add-menu-status")}>
-              {t("composer.addMenu.empty")}
+              {t(chatCandidates.searching ? "composer.addMenu.empty" : "composer.addMenu.chat.empty")}
             </div>
           )}
-          {filteredChats.map((chat) =>
+          {chatCandidates.chats.map((chat) =>
             item(
               <>
                 <MaterialIcon name="question_answer" />
@@ -428,7 +420,13 @@ const AddMenuSectionDetail: React.FC<
                   id: chat.chatId,
                   name: text(chat.chatName) || chat.chatId,
                 }),
+              { key: chat.chatId },
             ),
+          )}
+          {!chatCandidates.loading && chatCandidates.chats.length === CHAT_REFERENCE_LIMIT && (
+            <div className={presentationClasses("composer-add-menu-status")}>
+              {t(chatCandidates.searching ? "composer.addMenu.chat.searchHint" : "composer.addMenu.chat.previewHint")}
+            </div>
           )}
         </div>
       )}

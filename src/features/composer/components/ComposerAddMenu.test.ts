@@ -3,6 +3,7 @@
 import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { Simulate } from "react-dom/test-utils";
+import { getChats, searchGlobal } from "@/shared/data";
 import {
   AddMenuTrigger,
   type AddMenuTriggerProps,
@@ -10,6 +11,12 @@ import {
 
 jest.mock("@/shared/i18n", () => ({
   useI18n: () => ({ t: (key: string) => key, locale: "en-US" }),
+}));
+
+jest.mock("@/shared/data", () => ({
+  ...jest.requireActual("@/shared/data"),
+  getChats: jest.fn(),
+  searchGlobal: jest.fn(),
 }));
 
 let mockSkillData: any = { skills: [] };
@@ -59,6 +66,14 @@ describe("AddMenuTrigger", () => {
   });
 
   beforeEach(() => {
+    jest.mocked(getChats).mockReset().mockResolvedValue({
+      status: 200, code: 0, msg: "", data: [{ chatId: "recent", chatName: "Recent chat" }],
+    });
+    jest.mocked(searchGlobal).mockReset().mockResolvedValue({
+      status: 200, code: 0, msg: "", data: { query: "needle", count: 1, results: [{
+        chatId: "older", chatName: "Body match with unrelated title", kind: "message", timestamp: 1, snippet: "needle", score: 1,
+      }] },
+    });
     mockSkillData = { skills: [] };
     mockPinnedSkillIds = [];
     container = document.createElement("div");
@@ -89,6 +104,7 @@ describe("AddMenuTrigger", () => {
   afterEach(() => {
     act(() => root.unmount());
     container.remove();
+    jest.useRealTimers();
   });
 
   const render = () => act(() => root.render(React.createElement(AddMenuTrigger, props)));
@@ -101,6 +117,12 @@ describe("AddMenuTrigger", () => {
     act(() => section.click());
   };
   const openMenu = () => click('[aria-label="composer.addMenu.open"]');
+  const openChats = () => {
+    openMenu();
+    const section = [...container.querySelectorAll<HTMLButtonElement>('[role="menuitem"]')]
+      .find(button => button.textContent?.includes("composer.addMenu.section.chat"))!;
+    act(() => section.click());
+  };
   const openSkills = () => {
     openMenu();
     const section = [...container.querySelectorAll<HTMLButtonElement>('[role="menuitem"]')]
@@ -119,6 +141,65 @@ describe("AddMenuTrigger", () => {
     const trigger = container.querySelector('[aria-label="composer.addMenu.open"]')!;
     expect(trigger).not.toBeNull();
     expect(trigger.querySelector('[data-material-icon="add"]')).not.toBeNull();
+  });
+
+  it("switches from bounded preview to server search and adds a body-matched Chat reference", async () => {
+    jest.useFakeTimers();
+    render();
+    openChats();
+    await act(async () => {});
+    expect(getChats).toHaveBeenCalledWith({ agentKey: "agent-a", limit: 25 });
+    expect(searchGlobal).not.toHaveBeenCalled();
+    expect(container.textContent).toContain("Recent chat");
+    const input = container.querySelector<HTMLInputElement>('input[placeholder="composer.addMenu.chat.search"]')!;
+    await act(async () => {
+      Simulate.change(input, { target: { value: "needle" } } as any);
+    });
+    await act(async () => jest.advanceTimersByTime(250));
+    expect(searchGlobal).toHaveBeenCalledWith({ query: "needle", agentKey: "agent-a", limit: 75 });
+    const row = [...container.querySelectorAll<HTMLButtonElement>(".composer-add-menu-detail-item")]
+      .find(button => button.textContent?.includes("Body match with unrelated title"))!;
+    expect(row).toBeDefined();
+    await act(async () => row.click());
+    expect(props.onAddReference).toHaveBeenCalledWith({
+      type: "chat", id: "older", name: "Body match with unrelated title",
+    });
+    expect(container.querySelector('[role="menu"]')).toBeNull();
+  });
+
+  it("pauses chat search during composition and restores the preview when cleared", async () => {
+    jest.useFakeTimers();
+    render();
+    openChats();
+    await act(async () => {});
+    const input = container.querySelector<HTMLInputElement>('input[placeholder="composer.addMenu.chat.search"]')!;
+    await act(async () => {
+      Simulate.compositionStart(input);
+      Simulate.change(input, { target: { value: "你好" } } as any);
+    });
+    await act(async () => jest.advanceTimersByTime(1000));
+    expect(searchGlobal).not.toHaveBeenCalled();
+    await act(async () => Simulate.compositionEnd(input));
+    await act(async () => jest.advanceTimersByTime(250));
+    expect(searchGlobal).toHaveBeenCalledWith({ query: "你好", agentKey: "agent-a", limit: 75 });
+    await act(async () => Simulate.change(input, { target: { value: "" } } as any));
+    expect(container.textContent).toContain("Recent chat");
+    expect(container.textContent).not.toContain("Body match with unrelated title");
+    expect(getChats).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows request failures with a working retry instead of an empty Chat list", async () => {
+    jest.mocked(getChats).mockRejectedValueOnce(new Error("offline"));
+    render();
+    openChats();
+    await act(async () => {});
+    expect(container.querySelector('[role="alert"]')?.textContent).toContain("composer.addMenu.chat.loadFailed");
+    expect(container.textContent).not.toContain("composer.addMenu.chat.empty");
+    const retry = [...container.querySelectorAll<HTMLButtonElement>("button")]
+      .find(button => button.textContent === "composer.addMenu.chat.retry")!;
+    await act(async () => retry.click());
+    expect(container.querySelector('[role="alert"]')).toBeNull();
+    expect(container.textContent).toContain("Recent chat");
   });
 
   it("shows screenshot directly in the add menu and keeps file picking in the files section", () => {

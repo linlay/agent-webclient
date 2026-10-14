@@ -43,6 +43,12 @@ BTW Composer 在 idle 时于发送位显示 Send；running 时始终在同一位
 
 置顶由 agent-platform 保存到 `runtime/skills-center/order.json`，只按登录用户区分，同一用户的所有 Agent 共用一份有序置顶列表。前端通过 `GET /api/skills?agentKey=...` 读取，通过 `PUT /api/skills` 提交单个 `{id,pinned}`；平台 WebSocket 使用同一路径，空 payload 读取，`{id,pinned}` 更新。响应中的 `pinned` 只包含已置顶 id，与 `skills` 同级；技能目录全局共享，`agentKey` 仅计算 `configured` 标记，已配置技能显示“智能体已配置”，不自动加入 skill 引用。技能中心改用 HTTP `GET /api/admin/skills` 读取管理目录和置顶，HTTP `PUT /api/admin/skills/pin` 写入；与使用侧共用存储，但不调用 `/api/skills`。前端只保留内存查询缓存，打开菜单、显示 slash 候选及窗口重新聚焦时重新读取，保存成功后才更新排序，失败时保留原状态并提示重试。旧 localStorage 置顶不再读取或写入。
 
+## 对话引用候选
+
+加号菜单的“对话”列表由 `features/chats/hooks/useChatReferenceCandidates` 管理加载与搜索。无搜索词时通过现有 `/api/chats` 请求当前 Agent 的前 25 条摘要，排除当前对话后最多显示 24 条，保留后端排序；不加载完整目录或逐条读取 `/api/chat`。有搜索词时停顿 250ms 后调用现有 `/api/chats/search`，请求最多 75 条命中，按 `chatId` 去重、排除当前对话后最多显示 24 条。搜索结果直接采纳后端命中，不再按标题进行二次过滤，以保留正文匹配；搜索覆盖范围由后端决定，前端不补取全量目录。
+
+默认列表在同一次菜单打开期间保留，清空搜索立即恢复；中文输入法组词期间暂停搜索，确认后才发起请求。关键词、Agent、当前 Chat 或菜单生命周期变化后，旧响应不得覆盖当前列表；失败显示独立错误与重试入口，不伪装为无匹配。点击仍创建原有 `type:"chat"` 引用。
+
 ## 连接器
 目录、挂载读取与开关保存均通过统一请求路由：Platform 复用主 WS，Desktop 复用 Frame Port/Broker；Gateway 当前保留 HTTP。WS 失败直接上报，不回退 HTTP 或自动重放写入。目录保持无缓存，关联读取复用共享 Agent 详情缓存和请求合并，管理目录与认证仍走独立 HTTP 接口。
 
