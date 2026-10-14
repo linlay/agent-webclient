@@ -113,8 +113,7 @@ export function setProjectCreationGroups(
 
 /**
  * The model that will be used: the hand-picked one, else the type default when
- * Agent Platform reports it as available. An unavailable default is never
- * replaced by an arbitrary model; the user must choose.
+ * Agent Platform reports it as available, else the first model in the list.
  */
 export function resolveProjectCreationModel(
   options: AgentCreationOptionsResponse,
@@ -125,7 +124,8 @@ export function resolveProjectCreationModel(
   if (selection.modelKey && options.models.some((model) => model.key === selection.modelKey)) {
     return selection.modelKey;
   }
-  return type.defaultModelAvailable && type.defaultModelKey ? type.defaultModelKey : "";
+  if (type.defaultModelAvailable && type.defaultModelKey) return type.defaultModelKey;
+  return options.models[0]?.key ?? "";
 }
 
 export function projectCreationProblem(

@@ -203,9 +203,6 @@ export const AgentProjectCreateDialog: React.FC<{
                   placeholder={t("leftSidebar.createProject.modelPlaceholder")}
                   onChange={runtime.setModelKey}
                 />
-                {!type.defaultModelAvailable && !selection.modelKey ? (
-                  <div style={hintStyle}>{t("leftSidebar.createProject.modelDefaultMissing")}</div>
-                ) : null}
               </div>
             ) : null}
 

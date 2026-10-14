@@ -103,15 +103,23 @@ describe("projectCreation", () => {
     expect(changeProjectCreationType(options, empty, "general").groups).toEqual([]);
   });
 
-  it("requires an explicit model when the type default is unusable", () => {
+  it("falls back to the first model when the type default is unusable", () => {
     const options = creationOptions();
     let selection = changeProjectCreationType(
       options,
       initialProjectCreationSelection(options),
       "kbase",
     );
-    expect(resolveProjectCreationModel(options, selection)).toBe("");
-    expect(projectCreationProblem(options, selection, "/project")).toBe("modelRequired");
+    expect(resolveProjectCreationModel(options, selection)).toBe("default-model");
+    expect(projectCreationProblem(options, selection, "/project")).toBeNull();
+    expect(buildProjectCreateRequest(options, selection, "/project")).toEqual({
+      isProject: true,
+      definition: {
+        mode: "KBASE",
+        runtimeConfig: { workspaceRoot: "/project" },
+        modelConfig: { modelKey: "default-model" },
+      },
+    });
 
     selection = { ...selection, modelKey: "other-model" };
     expect(projectCreationProblem(options, selection, "/project")).toBeNull();
@@ -124,7 +132,9 @@ describe("projectCreation", () => {
         modelConfig: { modelKey: "other-model" },
       },
     });
-    expect(resolveProjectCreationModel(options, { ...selection, modelKey: "ghost" })).toBe("");
+    expect(resolveProjectCreationModel(options, { ...selection, modelKey: "ghost" })).toBe(
+      "default-model",
+    );
   });
 
   it("sends concrete definitions for native types and only the bridge for the external engine", () => {
