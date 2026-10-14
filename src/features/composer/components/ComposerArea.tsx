@@ -247,6 +247,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     enabled: enableNewChatContext,
     chatId: state.chatId,
     pendingAgentKey: state.pendingNewChatAgentKey,
+    interactionPending: isInteractionPending(interactionConfig),
     attachmentResetVersion,
     stageFiles,
   });

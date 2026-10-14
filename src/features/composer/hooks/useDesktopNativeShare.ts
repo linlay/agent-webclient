@@ -14,6 +14,7 @@ export function useDesktopNativeShare(input: {
   enabled: boolean;
   chatId: string;
   pendingAgentKey: string;
+  interactionPending?: boolean;
   attachmentResetVersion?: number;
   stageFiles: (files: File[]) => boolean;
 }) {
@@ -24,7 +25,9 @@ export function useDesktopNativeShare(input: {
     : null;
   // Import deduplication lasts only while the corresponding attachment draft exists.
   const key = target ? `${target.agentKey}\u0000${target.newChat}\u0000${target.batchId}\u0000${input.attachmentResetVersion ?? 0}` : "";
-  const ready = Boolean(target && !input.chatId && target.agentKey === input.pendingAgentKey);
+  const interactionPending = input.interactionPending === true;
+  // Loading an Agent's input capabilities is not a settled denial of attachments.
+  const ready = Boolean(target && !interactionPending && !input.chatId && target.agentKey === input.pendingAgentKey);
   const [importState, setImportState] = useState<ImportState>(null);
   const [retryVersion, setRetryVersion] = useState(0);
   const stagedKeyRef = useRef("");
@@ -42,7 +45,7 @@ export function useDesktopNativeShare(input: {
     controllerRef.current = controller;
     setImportState({ key, status: "loading" });
     void readDesktopNativeShareFiles(target, controller.signal).then((files) => {
-      if (controller.signal.aborted || latest.current.key !== key || latest.current.chatId ||
+      if (controller.signal.aborted || latest.current.key !== key || latest.current.chatId || latest.current.interactionPending === true ||
           latest.current.pendingAgentKey !== target.agentKey) return;
       if (!latest.current.stageFiles(files)) throw new Error(t("nativeShare.attachmentRejected"));
       stagedKeyRef.current = key;
@@ -92,7 +95,7 @@ export function useDesktopNativeShare(input: {
   const state = importState?.key === key ? importState : null;
   return {
     pending: Boolean(target),
-    busy: Boolean(target && (!state || state.status === "loading" || state.status === "completing")),
+    busy: Boolean(target && (interactionPending || !state || state.status === "loading" || state.status === "completing")),
     blocked: Boolean(target && stagedKeyRef.current !== key),
     error: state?.status === "error" ? state.error || t("nativeShare.failed") : "",
     retry,
