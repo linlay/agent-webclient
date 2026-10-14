@@ -30,6 +30,7 @@ export const SteerBar: React.FC<{
   onCancel: (steerId: string) => void;
 }> = ({ pendingSteers, mainChatRunning, onSubmit, onCancel }) => {
   const { t } = useI18n();
+  const isMac = typeof navigator !== "undefined" && /Mac|iPhone|iPad|iPod/.test(navigator.platform);
 
   if (pendingSteers.length === 0) return null;
   const shortcutSteerId = mainChatRunning ? pendingSteers.find(steer => steer.status === "queued")?.steerId : undefined;
@@ -80,7 +81,7 @@ export const SteerBar: React.FC<{
                 >
                   {t(isSending ? "composer.steer.waiting" : "composer.steer.submit")}
                   {steer.steerId === shortcutSteerId && (
-                    <ShortcutHint keyLabel="Enter" />
+                    <ShortcutHint keyLabel="Enter" modifier={isMac ? "Meta" : "Control"} />
                   )}
                 </Button>
                 <Button
