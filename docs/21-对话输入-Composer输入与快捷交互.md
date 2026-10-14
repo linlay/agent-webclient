@@ -52,7 +52,7 @@ BTW Composer 在 idle 时于发送位显示 Send；running 时始终在同一位
 ## 连接器
 目录、挂载读取与开关保存均通过统一请求路由：Platform 复用主 WS，Desktop 复用 Frame Port/Broker；Gateway 当前保留 HTTP。WS 失败直接上报，不回退 HTTP 或自动重放写入。目录保持无缓存，关联读取复用共享 Agent 详情缓存和请求合并，管理目录与认证仍走独立 HTTP 接口。
 
-使用接口为 `/api/agent`、`GET /api/connectors?agentKey=...` 和 `PUT /api/agents/connectors`，不单独读取挂载或调用管理目录。Agent 的 tools/skills/connectors 均为 ID 数组，菜单开关复用共享 Agent 的 connectors；目录保留 id/name、可选 description/iconUrl/mutuallyExclusiveWith，并提供 readiness、MCP 同步快照和 Agent 的 reloadPending。平台预置不出现在菜单，普通 builtin 仍可切换。
+使用接口为 `/api/agent`、`GET /api/connectors?agentKey=...` 和 `PUT /api/agents/connectors`，不单独读取挂载或调用管理目录。Agent 的 tools/skills/connectors 均为 ID 数组，菜单开关复用共享 Agent 的 connectors；目录保留 id/name、可选 description/iconUrl/mutuallyExclusiveWith，并提供 readiness、Agent 当前发布版本的 MCP 同步快照和 reloadPending。平台预置不出现在菜单，普通 builtin 仍可切换。
 
 Composer 的“+”菜单提供“连接器”，按当前 Agent 加载已安装目录和挂载配置，支持搜索；每行显示图标、名称、可用状态和开关。账号授权、CLI 准备和 Token 凭据由独立连接器中心提供。开关初始值来自 Agent 源配置，切换后立即保存并触发平台重载；不随聊天草稿保存，也不进入 Query 请求。窄窗口在原弹层内展示列表和返回入口。具体接口和授权边界见 [连接器](53-Worker管理-连接器.md)。
 
