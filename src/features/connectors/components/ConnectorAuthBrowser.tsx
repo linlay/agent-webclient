@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Modal } from "antd";
 import { useI18n } from "@/shared/i18n";
+import { UiButton } from "@/shared/ui/UiButton";
 import { isAppMode } from "@/shared/utils/routing";
 import { CONNECTOR_AUTH_BROWSER_GLOBAL, type ConnectorAuthBrowserBridge } from "@/shared/contracts/generated/agentWebclientBridge";
 import { safeConnectorAuthorizationUrl } from "../lib/connectorAuth";
@@ -43,12 +44,16 @@ export function ConnectorAuthBrowser({ auth }: { auth: ConnectorAuthRuntime }) {
   if (!active) return null;
   return <Modal open={!desktop || error} title={t("connectors.auth.title")} footer={null} width={600}
     maskClosable={false} destroyOnClose onCancel={() => void auth.cancel()}>
-    {(error || (url && !safeUrl)) && <p role="alert">{t("connectors.auth.embedFailed")}</p>}
-    {!desktop && safeUrl && <iframe key={`${session?.sessionId}:${attempt}`} className={styles.frame} src={safeUrl}
-      title={t("connectors.auth.title")} sandbox="allow-scripts allow-forms allow-same-origin" referrerPolicy="no-referrer"
-      onError={() => setError(true)} />}
-    {!safeUrl && !error && <p role="status">{t("connectors.auth.starting")}</p>}
-    <p>{t("connectors.auth.embedHint")}</p>
-    <button type="button" onClick={() => { setError(false); setAttempt(value => value + 1); }}>{t("connectors.action.retry")}</button>
+    <div className={styles.body}>
+      {(error || (url && !safeUrl)) && <p role="alert">{t("connectors.auth.embedFailed")}</p>}
+      {!desktop && safeUrl && <iframe key={`${session?.sessionId}:${attempt}`} className={styles.frame} src={safeUrl}
+        title={t("connectors.auth.title")} sandbox="allow-scripts allow-forms allow-same-origin" referrerPolicy="no-referrer"
+        onError={() => setError(true)} />}
+      {!safeUrl && !error && <p role="status">{t("connectors.auth.starting")}</p>}
+      <p className={styles.hint}>{t("connectors.auth.embedHint")}</p>
+      <div className={styles.actions}>
+        <UiButton size="sm" onClick={() => { setError(false); setAttempt(value => value + 1); }}>{t("connectors.action.retry")}</UiButton>
+      </div>
+    </div>
   </Modal>;
 }

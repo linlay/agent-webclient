@@ -1,1 +1,35 @@
-.frame { display: block; width: 100%; height: min(640px, 65vh); border: 0; background: white; }
+/* Keep one body child so the shared modal flex row cannot split the content. */
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  min-height: 0;
+}
+
+.body p {
+  flex-shrink: 0;
+  margin: 0;
+  line-height: 1.6;
+}
+
+.hint {
+  color: var(--ink-muted);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.actions {
+  display: flex;
+  flex-shrink: 0;
+  justify-content: flex-end;
+}
+
+.frame {
+  display: block;
+  width: 100%;
+  height: min(640px, 65vh);
+  min-height: 0;
+  border: 0;
+  background: white;
+}
