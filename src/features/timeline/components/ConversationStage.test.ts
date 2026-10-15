@@ -24,6 +24,11 @@ jest.mock("@/features/agents/hooks/useAgentWelcome", () => ({
 
 const mockOnFeedback = jest.fn();
 const mockDeriveChatAction = { isDisabled: jest.fn(() => false), execute: jest.fn() };
+type QueryActionMenu = {
+  onClick: (info: { key: string }) => void;
+  items: Array<{ key: string; label: React.ReactNode }>;
+};
+const mockQueryActionMenus: QueryActionMenu[] = [];
 
 let mockCurrentWorker: {
   key: string;
@@ -96,7 +101,7 @@ jest.mock("@/shared/icons/agent", () => ({
 }));
 
 jest.mock("@/features/timeline/components/TimelineRow", () => ({
-  TimelineRow: (props: { node?: { text?: string; id?: string }; toolGroup?: { key?: string } }) =>
+  TimelineRow: (props: { node?: { text?: string; id?: string }; toolGroup?: { key?: string }; metaNode?: React.ReactNode }) =>
     React.createElement(
       "div",
       {
@@ -105,6 +110,7 @@ jest.mock("@/features/timeline/components/TimelineRow", () => ({
         "data-tool-key": props.toolGroup?.key || "",
       },
       props.node?.text || "timeline-row",
+      props.metaNode,
     ),
   formatTimelineTime: jest.fn(() => ({ short: "", full: "" })),
 }));
@@ -114,6 +120,10 @@ jest.mock("antd", () => {
   const React = require("react");
   return {
     ...actual,
+    Dropdown: ({ children, menu }: { children: React.ReactNode; menu?: QueryActionMenu }) => {
+      if (menu) mockQueryActionMenus.push(menu);
+      return React.createElement(React.Fragment, null, children);
+    },
     Popover: ({ children, content, open }: any) =>
       React.createElement(
         "span",
@@ -186,6 +196,7 @@ describe("ConversationStage", () => {
   beforeEach(() => {
     mockGreeting = "";
     mockCurrentWorker = null;
+    mockQueryActionMenus.length = 0;
     mockDeriveChatAction.isDisabled.mockReset().mockReturnValue(false);
     mockDeriveChatAction.execute.mockReset();
     mockUseAgentSkillsQuery.mockReset();
@@ -236,6 +247,89 @@ describe("ConversationStage", () => {
     expect(shouldEnableQueryAnchors(959)).toBe(false);
     expect(shouldEnableQueryAnchors(960)).toBe(true);
     expect(shouldEnableQueryAnchors(998)).toBe(true);
+  });
+
+  describe("query resend actions", () => {
+    const references = [
+      { type: "file", id: "file_1", name: "note.txt", url: "@chat/docs/note.txt" },
+      { type: "skill", id: "skill_1" },
+    ];
+
+    beforeEach(() => {
+      const row = createAgentWorkerRow();
+      mockCurrentWorker = { ...row, raw: null, row, relatedChats: [] };
+      const query: TimelineNode = {
+        id: "user_1", kind: "message", role: "user", text: "请再回答一次",
+        ts: 100, references,
+      };
+      useAppState.mockReturnValue({
+        ...createInitialState(),
+        chatId: "source_chat",
+        workerSelectionKey: row.key,
+        timelineNodes: createTimelineMap([query]),
+        timelineOrder: [query.id],
+      });
+    });
+
+    function clickQueryAction(key: string) {
+      const menu = mockQueryActionMenus.find((candidate) =>
+        candidate.items.some((item) => item.key === key),
+      );
+      expect(menu).toBeDefined();
+      menu!.onClick({ key });
+    }
+
+    it.each(["main", "copilot"] as const)(
+      "starts a new conversation before resending from %s while ordinary resend keeps the current chat",
+      (surfaceMode) => {
+        renderToStaticMarkup(React.createElement(ConnectedConversationStage, {
+          onFeedback: mockOnFeedback, deriveChatAction: mockDeriveChatAction, surfaceMode,
+        }));
+        const dispatchEvent = globalWithStorage.window!.dispatchEvent;
+
+        clickQueryAction("resend");
+        expect(dispatchEvent.mock.calls.map(([event]) => ({ type: event.type, detail: event.detail })))
+          .toEqual([{
+            type: "agent:send-message",
+            detail: { message: "请再回答一次", references },
+          }]);
+        dispatchEvent.mockClear();
+
+        clickQueryAction("resendInNewChat");
+        expect(dispatchEvent.mock.calls.map(([event]) => ({ type: event.type, detail: event.detail })))
+          .toEqual([
+            {
+              type: "agent:start-new-conversation",
+              detail: {
+                agentKey: "xiao-zhai", preserveWorkerContext: true, focusComposerOnComplete: false,
+              },
+            },
+            {
+              type: "agent:send-message",
+              detail: {
+                agentKey: "xiao-zhai", message: "请再回答一次",
+                references: [
+                  { ...references[0], url: "/api/resource?file=source_chat%2Fdocs%2Fnote.txt" },
+                  references[1],
+                ],
+              },
+            },
+          ]);
+      },
+    );
+
+    it("uses the prepared route callback for an Agent chat resend", () => {
+      const onResendInNewChat = jest.fn();
+      renderToStaticMarkup(React.createElement(ConnectedConversationStage, {
+        onFeedback: mockOnFeedback, deriveChatAction: mockDeriveChatAction,
+        surfaceMode: "agent", onResendInNewChat,
+      }));
+
+      clickQueryAction("resendInNewChat");
+      expect(onResendInNewChat).toHaveBeenCalledTimes(1);
+      expect(onResendInNewChat).toHaveBeenCalledWith("请再回答一次", { references });
+      expect(globalWithStorage.window!.dispatchEvent).not.toHaveBeenCalled();
+    });
   });
 
   it.each([false, true])("renders the completed run action with injected disabled=%s", (disabled) => {
