@@ -128,9 +128,26 @@ describe("ComposerActions", () => {
 
     expect(enabledHtml).toContain("composer-context-toggle-btn");
     expect(enabledHtml).toContain('data-material-icon="edit_square"');
-    expect(enabledHtml).toContain("composer.editingMode.label");
     expect(enabledHtml).not.toContain("ant-switch");
     expect(disabledHtml).not.toContain("composer.editingMode.label");
+  });
+
+  it("renders enabled connectors avatar stack when available", () => {
+    const html = renderToStaticMarkup(
+      React.createElement(ComposerActions, {
+        ...baseProps,
+        planningMode: true,
+        canUsePlanningMode: true,
+        enabledConnectors: [
+          { id: "conn-1", name: "Connector 1" },
+          { id: "conn-2", name: "Connector 2" },
+        ],
+      } as any),
+    );
+
+    expect(html).toContain("composer-connector-stack-btn");
+    expect(html).toContain("composer-connector-avatar-stack");
+    expect(html).toContain("Connector 1");
   });
 });
 

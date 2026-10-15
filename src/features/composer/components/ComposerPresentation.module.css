@@ -318,6 +318,69 @@
     box-shadow: none;
 }
 
+.composer-connector-stack-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0;
+    padding: 2px 6px;
+    height: 24px;
+    border-radius: 9999px;
+    border: none;
+    background: color-mix(in srgb, var(--bg-elev-2) 90%, var(--bg-input));
+    cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+    user-select: none;
+}
+
+.composer-connector-stack-btn:hover {
+    background: var(--bg-hover);
+}
+
+.composer-connector-stack-btn:focus-visible {
+    outline: 2px solid var(--accent-electric);
+    outline-offset: 1px;
+}
+
+.composer-connector-stack-btn:disabled {
+    opacity: 0.6;
+    cursor: default;
+    pointer-events: none;
+}
+
+.composer-connector-avatar-stack {
+    display: inline-flex;
+    align-items: center;
+    position: relative;
+}
+
+.composer-connector-avatar-item {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: var(--bg-elev-1);
+    box-shadow: 0 0 0 1.5px var(--bg-elev-2);
+    overflow: hidden;
+}
+
+.composer-connector-avatar-item + .composer-connector-avatar-item {
+    margin-left: -6px;
+}
+
+.composer-connector-picker-popover :global(.ant-popover-inner) {
+    padding: 10px 12px;
+    border: 1px solid color-mix(in srgb, var(--line-soft) 88%, transparent);
+    border-radius: 12px;
+    box-shadow: var(--shadow-soft);
+    background: var(--bg-elev-1);
+}
+
+.composer-connector-picker-popover :global(.ant-popover-inner-content) {
+    padding: 0;
+}
+
+
 .composer-popover-overlay :global(.ant-popover-inner-content) {
     padding: 0;
 }
