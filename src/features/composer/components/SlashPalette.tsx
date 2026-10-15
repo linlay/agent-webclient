@@ -18,11 +18,11 @@ const presentationClasses = bindCssModuleClasses({ ...composerPresentation });
 
 
 const SLASH_COMMAND_POPOVER_CLASS =
-  "slash-command-popover tw:max-h-[min(360px,calc(100vh-120px))] tw:overflow-auto tw:rounded-panel tw:border tw:border-line-soft tw:bg-bg-base";
+  "slash-command-popover tw:max-h-[min(360px,calc(100vh-120px))] tw:overflow-auto";
 const SLASH_COMMAND_LIST_CLASS =
   "slash-command-list tw:flex tw:flex-col tw:gap-1 tw:p-1";
 const SLASH_GROUP_LABEL_CLASS =
-  "tw:px-2 tw:pb-0.5 tw:pt-1.5 tw:text-xs tw:font-bold tw:tracking-[0.08em] tw:text-text-muted tw:sticky tw:top-0 tw:bg-bg-base tw:z-10";
+  "tw:px-2 tw:pb-0.5 tw:pt-1.5 tw:text-xs tw:font-bold tw:tracking-[0.08em] tw:text-text-muted tw:sticky tw:top-0 tw:bg-transparent tw:z-10";
 const SLASH_COMMAND_ITEM_CLASS = presentationClasses("slash-command-item");
 const SLASH_COMMAND_ITEM_STATE_CLASS = {
   idle: "",

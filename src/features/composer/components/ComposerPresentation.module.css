@@ -314,8 +314,10 @@
 
 .composer-popover-overlay :global(.ant-popover-inner) {
     padding: 0;
-    background: transparent;
-    box-shadow: none;
+    border: 1px solid color-mix(in srgb, var(--line-soft) 88%, transparent);
+    border-radius: 15px;
+    box-shadow: var(--shadow-soft);
+    overflow: hidden;
 }
 
 .composer-connector-stack-btn {
@@ -371,9 +373,8 @@
 .composer-connector-picker-popover :global(.ant-popover-inner) {
     padding: 10px 12px;
     border: 1px solid color-mix(in srgb, var(--line-soft) 88%, transparent);
-    border-radius: 12px;
+    border-radius: 15px;
     box-shadow: var(--shadow-soft);
-    background: var(--bg-elev-1);
 }
 
 .composer-connector-picker-popover :global(.ant-popover-inner-content) {
