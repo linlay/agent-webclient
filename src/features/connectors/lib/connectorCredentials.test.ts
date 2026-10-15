@@ -1,7 +1,7 @@
 /** @jest-environment jsdom */
 import type { ConnectorSummary } from "@/shared/data";
 import { connectorTokenSchema, initialConnectorCredentials, validatedConnectorCredentials } from "./connectorCredentials";
-const item: ConnectorSummary = { id: "private", name: "Private", version: "1", type: "mcp", auth_mode: "token", hasMcp: true, hasCli: false, hasBin: false, skills: [], token_schema: {
+const item: ConnectorSummary = { id: "private", name: "Private", version: "1", type: "mcp", authMode: "token", hasMcp: true, hasCli: false, hasBin: false, skills: [], tokenSchema: {
   fields: [{ key: "URL", label: "Service URL", type: "text", required: true, defaultValue: "https://example.test" }, { key: "API_KEY", label: "API key", type: "password", required: true }],
 } };
 it("uses declared fields and text defaults without ever prefilling passwords", () => {
@@ -18,10 +18,10 @@ it.each([
   { fields: [{ key: "API_KEY", label: "Key", required: true, type: "password", defaultValue: "test" }] },
   { fields: [{ key: "A", label: "A", required: true }, { key: "A", label: "Duplicate", required: true }] },
 ])("rejects invalid field schemas instead of sending users to JSON credentials", schema => {
-  expect(connectorTokenSchema({ ...item, token_schema: schema })).toBeNull();
+  expect(connectorTokenSchema({ ...item, tokenSchema: schema })).toBeNull();
 });
 it("normalizes only documented legacy metadata and rejects unsafe documentation URLs", () => {
-  const schema = connectorTokenSchema({ ...item, token_schema: { fields: [{ name: "API_KEY", label: "Key", required: true }], docUrl: "https://user:password@example.test" } })!;
+  const schema = connectorTokenSchema({ ...item, tokenSchema: { fields: [{ name: "API_KEY", label: "Key", required: true }], docUrl: "https://user:password@example.test" } })!;
   expect(schema.fields[0]).toEqual({ key: "API_KEY", label: "Key", type: "password", required: true });
   expect(schema.docUrl).toBeUndefined();
 });

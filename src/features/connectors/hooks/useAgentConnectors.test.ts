@@ -26,7 +26,7 @@ const saved = (key: string, ids: string[]) => ({ code: 0, msg: "", data: { agent
 const connection = (id: string, changes: Partial<ConnectorConnection> = {}): ConnectorConnection => ({
   connectorId: id, configured: true, configurationRequired: true, readiness: "ready",
   authentication: { connectorId: id, sessionId: "", status: "authorized", expiresAt: "" },
-  capabilities: { canConnect: true, canDisconnect: true, canCheck: true, authMode: null, authBrowser: "system", hasCli: false, hasMcp: false },
+  capabilities: { canConnect: true, canDisconnect: true, canCheck: true, authMode: "self", authBrowser: "system", hasCli: false, hasMcp: false },
   ...changes,
 });
 const connections = (...items: ConnectorConnection[]) => ({ code: 0, msg: "", data: { connections: items } });
@@ -165,7 +165,7 @@ it("observes account unlink independently of saved associations and keeps no_aut
   const dbx = connection("builtin.dbx", {
     configured: false, configurationRequired: false, readiness: "no_auth",
     authentication: { connectorId: "builtin.dbx", sessionId: "", status: "no_auth", expiresAt: "" },
-    capabilities: { ...connection("builtin.dbx").capabilities, authMode: "no_auth", authBrowser: "" },
+    capabilities: { ...connection("builtin.dbx").capabilities, authMode: "none", authBrowser: "" },
   });
   mockStateRef.current.agents[0].connectors = ["wecom", "builtin.dbx"];
   jest.mocked(getConnectorConnections).mockResolvedValue(connections(connection("wecom"), dbx));

@@ -2,7 +2,7 @@ import type { AdminToolSummary, ConnectorSummary } from "@/shared/data";
 import { connectorFiles, connectorToolDisplayName, connectorsRoutePath, filterConnectorTools, filterConnectors, isConnectorCatalogUpdate, toolsForConnector, unassignedConnectorTools } from "./connectorCatalog";
 import { parseConnectorDefinition, updateConnectorField } from "./connectorDefinition";
 
-const mixed: ConnectorSummary = { id: "search", name: "Search", version: "1.0.0", type: "cli", auth_mode: "none", hasMcp: true, hasCli: true, hasBin: true, skills: ["lookup"], mcp: [
+const mixed: ConnectorSummary = { id: "search", name: "Search", version: "1.0.0", type: "cli", authMode: "none", hasMcp: true, hasCli: true, hasBin: true, skills: ["lookup"], mcp: [
   { serverKey: "search", status: "ready", toolCount: 1 },
   { serverKey: "search.extra", status: "unavailable", toolCount: 1 },
 ] };
@@ -61,7 +61,7 @@ test("VIEW is a composable component and has its own definition tab", () => {
 });
 
 it("lists native tools and native.json without granting CLI or MCP", () => {
- const desktop: ConnectorSummary = { id: "builtin.platform-control", name: "Platform Control", version: "1.0.0", type: "native", auth_mode: null, builtin: true, readOnly: true, hasNative: true, nativeTools: ["catalog_query", "desktop_shell"], hasMcp: false, hasCli: false, hasBin: false, skills: ["platform-control"] };
+ const desktop: ConnectorSummary = { id: "builtin.platform-control", name: "Platform Control", version: "1.0.0", type: "native", authMode: "self", builtin: true, readOnly: true, hasNative: true, nativeTools: ["catalog_query", "desktop_shell"], hasMcp: false, hasCli: false, hasBin: false, skills: ["platform-control"] };
  expect(filterConnectors([desktop, mixed], "", "native")).toEqual([desktop]);
  expect(filterConnectors([desktop], "", "cli")).toEqual([]);
  expect(connectorFiles(desktop)).toEqual(["connector.json", "native.json"]);

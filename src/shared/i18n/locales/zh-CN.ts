@@ -477,6 +477,8 @@ export const zhCNMessages = {
     "请在内嵌页面完成授权。如果页面空白或无法加载，请重试；不会自动打开外部浏览器。",
   "connectors.auth.embedFailed": "无法打开内嵌授权页面，请重试或取消授权。",
   "connectors.auth.open": "打开授权页面",
+  "connectors.auth.userCode": "设备码：{code}。请在授权页面确认或输入。",
+  "connectors.auth.cliOpensBrowser": "请在连接器打开的浏览器中完成登录，然后回到这里等待确认。",
   "connectors.auth.openHint":
     "链接在新页面打开；若浏览器拦截，请允许本次打开或再次点击链接。完成授权后返回此页等待确认。",
   "connectors.auth.login": "登录",
@@ -532,7 +534,7 @@ export const zhCNMessages = {
   "connectors.credentials.configure": "配置连接凭据",
   "connectors.credentials.title": "连接 {name}",
   "connectors.credentials.hint": "填写此连接器声明的连接凭据。凭据单独存入 Platform，不会写入连接器源码或聊天。",
-  "connectors.credentials.schemaInvalid": "此连接器缺少有效的凭据字段声明，请先完善连接器包中的 token_schema。不要将实际凭据写入 JSON 配置。",
+  "connectors.credentials.schemaInvalid": "此连接器缺少有效的凭据字段声明，请先完善连接器包中的 token-schema.json。不要将实际凭据写入 JSON 配置。",
   "connectors.credentials.documentation": "查看配置说明",
   "connectors.credentials.invalid": "请按声明填写必填字段，凭据须为单行且总长度不超过 64 KiB。",
   "connectors.credentials.save": "保存并验证",

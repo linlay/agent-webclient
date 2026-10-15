@@ -12,7 +12,7 @@ jest.mock("antd", () => {
   Input.Password = (props: any) => React.createElement(Input, { ...props, type: "password" });
   return { Input, Modal: ({ children, onCancel }: any) => React.createElement("div", { role: "dialog" }, React.createElement("button", { onClick: onCancel }, "close"), children) };
 });
-const item: ConnectorSummary = { id: "token-one", name: "Token One", version: "1", type: "mcp", auth_mode: "token", hasCli: false, hasMcp: true, hasBin: false, skills: [], token_schema: { fields: [{ key: "SERVICE", label: "Service", type: "text", required: true, defaultValue: "https://example.test" }, { key: "API_KEY", label: "API key", type: "password", required: true }] } };
+const item: ConnectorSummary = { id: "token-one", name: "Token One", version: "1", type: "mcp", authMode: "token", hasCli: false, hasMcp: true, hasBin: false, skills: [], tokenSchema: { fields: [{ key: "SERVICE", label: "Service", type: "text", required: true, defaultValue: "https://example.test" }, { key: "API_KEY", label: "API key", type: "password", required: true }] } };
 const auth = (changes: Partial<ConnectorAuthSession> = {}) => ({ code: 0, msg: "", data: { connectorId: item.id, sessionId: "", status: "authorized" as const, expiresAt: "", ...changes } });
 let root: Root;
 let container: HTMLDivElement;
@@ -94,7 +94,7 @@ it("clears both fields and old completions when the installed connector identity
   expect(saved).not.toHaveBeenCalled(); expect(close).not.toHaveBeenCalled();
 });
 it("does not create a credential field when manifest schema is missing", async () => {
-  await mount({ ...item, token_schema: undefined });
+  await mount({ ...item, tokenSchema: undefined });
   expect(container.querySelector("input")).toBeNull();
   expect(container.textContent).toContain("connectors.credentials.schemaInvalid");
   expect(button("connectors.credentials.save").disabled).toBe(true);

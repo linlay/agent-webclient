@@ -15,7 +15,7 @@ jest.mock("@/shared/data", () => ({
   deleteConnector: jest.fn(), getAdminConnectors: jest.fn(), getAdminTools: jest.fn(), getConnectorDefinition: jest.fn(), importConnectorArchive: jest.fn(), updateConnectorDefinition: jest.fn(),
 }));
 
-const item: ConnectorSummary = { id: "demo", name: "Demo", version: "1.0.0", type: "cli", auth_mode: "none", hasCli: true, hasMcp: true, hasBin: true, skills: [], mcp: [] };
+const item: ConnectorSummary = { id: "demo", name: "Demo", version: "1.0.0", type: "cli", authMode: "none", hasCli: true, hasMcp: true, hasBin: true, skills: [], mcp: [] };
 const definition: ConnectorDefinition = { id: "demo", file: "connector.json", content: '{"name":"Demo"}', sha256: "sha-1" };
 let current: ReturnType<typeof useConnectorsRuntime>;
 const onRouteIdChange = jest.fn();

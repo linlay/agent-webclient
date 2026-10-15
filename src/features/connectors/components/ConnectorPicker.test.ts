@@ -2,7 +2,7 @@
 import React, { act, useState } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { fetchConnectorIcon, getConnectors, getConnectorAuthStatus, startConnectorAuth, logoutConnectorAuth } from "@/shared/data";
-import type { ConnectorSummary } from "@/shared/data";
+import type { ConnectorSummary, ConnectorAuthMode } from "@/shared/data";
 import { ConnectorPicker } from "./ConnectorPicker";
 import { AgentConnectorPicker } from "./AgentConnectorPicker";
 import { useAgentConnectors } from "../hooks/useAgentConnectors";
@@ -35,7 +35,7 @@ jest.mock("antd", () => ({
   }),
 }));
 
-const connector = (id: string, name: string, mode: ConnectorSummary["auth_mode"] = "none"): ConnectorSummary => ({ id, name, version: "1", type: "cli", auth_mode: mode, hasCli: true, hasMcp: false, hasBin: false, skills: [] });
+const connector = (id: string, name: string, mode: ConnectorAuthMode = "none"): ConnectorSummary => ({ id, name, version: "1", type: "cli", authMode: mode, hasCli: true, hasMcp: false, hasBin: false, skills: [] });
 let root: Root;
 let container: HTMLDivElement;
 const onSelectionChange = jest.fn();
@@ -222,7 +222,7 @@ it("renders saved mounting state when no connection snapshot is supplied", async
 it("allows mounting builtin and delegated or identity-token packages without waiting for interactive login", async () => {
   jest.mocked(getConnectors).mockResolvedValue({ code: 0, msg: "", data: { connectors: [
     { ...connector("builtin.dbx", "DBX", null), builtin: true, readOnly: true },
-    connector("identity", "Identity", "oneid-token"),
+    connector("identity", "Identity", "oneid"),
   ] } });
   await mount({ initialIds: ["builtin.dbx"] });
   const switches = container.querySelectorAll<HTMLButtonElement>('[role="switch"]');
@@ -279,7 +279,7 @@ it("Desktop no_auth mounts and unmounts without checking or connecting",async()=
 });
 
 it("keeps every authentication mode compact with icons, names and switches", async () => {
-  const modes: ConnectorSummary["auth_mode"][] = [null, "token", "oneid-token", "oauth", "mcp", "no_auth"];
+  const modes: ConnectorAuthMode[] = ["self", "token", "oneid", "oauth", "mcp", "none"];
   const items = modes.map((mode, index) => connector(`item-${index}`, `Item ${index}`, mode));
   jest.mocked(getConnectors).mockResolvedValue({ code: 0, msg: "", data: { connectors: items } });
   await mount({ initialIds: items.map(item => item.id) });

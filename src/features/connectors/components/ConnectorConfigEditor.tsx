@@ -55,7 +55,7 @@ export function ConnectorConfigEditor({
         t("connectors.field.primaryType"),
         String(parsed?.type || "—").toUpperCase(),
       )}
-      {readOnlyField(t("connectors.field.auth"), parsed?.auth_mode)}
+      {readOnlyField(t("connectors.field.auth"), parsed?.authMode)}
     </div>
   );
   const field = (

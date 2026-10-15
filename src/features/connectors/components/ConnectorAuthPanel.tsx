@@ -28,7 +28,7 @@ export function ConnectorAuthPanel(props: Props) {
 
 function StandaloneConnectorAuthPanel(props: Props) {
   const { item, onCredentialsChange, onStatusChange } = props;
-  const auth = useConnectorAuth({ id: item.id, mode: item.auth_mode, readOnly: item.builtin === true || item.readOnly === true, onCredentialsChange, onStatusChange });
+  const auth = useConnectorAuth({ id: item.id, mode: item.authMode, readOnly: item.builtin === true || item.readOnly === true, onCredentialsChange, onStatusChange });
   return <><ConnectorAuthPanelContent {...props} auth={auth} /><ConnectorAuthBrowser auth={auth} /></>;
 }
 
@@ -43,14 +43,14 @@ function ConnectorAuthPanelContent({ item, disabled, onConfigure, onCredentialsC
   const connectionScope = useRef<AbortController | null>(null);
   const connectionCheck = useRef<AbortController | null>(null);
   useEffect(() => () => { connectionScope.current?.abort(); connectionScope.current = null; connectionCheck.current?.abort(); connectionCheck.current = null; }, [item.id]);
-  const checkable = supportsConnectorAuthCheck(item.auth_mode);
-  const interactive = supportsConnectorLogin(item.auth_mode) && auth.status !== "delegated";
+  const checkable = supportsConnectorAuthCheck(item.authMode);
+  const interactive = supportsConnectorLogin(item.authMode) && auth.status !== "delegated";
   const active = isConnectorAuthActive(auth.session);
   const busy = !!auth.operation || disabled;
   const status = auth.operation === "start" ? "preparing" : auth.status;
   const url = status === "pending" && !busy ? safeConnectorAuthorizationUrl(auth.session?.authorizationUrl) : null;
   const deadline = connectorAuthDeadline(auth.session);
-  const confirmable = status === "delegated" || item.auth_mode === "oneid-token" && status === "authorized";
+  const confirmable = status === "delegated" || item.authMode === "oneid" && status === "authorized";
   const refreshConnection = useCallback(async () => {
     if (!confirmable) return;
     connectionCheck.current?.abort();
@@ -79,17 +79,19 @@ function ConnectorAuthPanelContent({ item, disabled, onConfigure, onCredentialsC
       <h3>{t("connectors.auth.title")}</h3>
       <UiTag role="status" tone={status === "authorized" ? "accent" : ["failed", "expired"].includes(status) || auth.error ? "danger" : "muted"}>{t(status === "unknown" ? auth.error ? "connectors.auth.checkFailed" : "connectors.auth.checking" : `connectors.auth.status.${status}`)}</UiTag>
     </div>
-    <p>{t(item.auth_mode === "token" ? "connectors.auth.token" : status === "unknown" ? auth.error ? "connectors.auth.checkFailedHint" : "connectors.auth.checkingHint" : item.auth_mode === "oneid-token" ? "connectors.auth.oneid" : `connectors.auth.description.${status}`)}</p>
+    <p>{t(item.authMode === "token" ? "connectors.auth.token" : status === "unknown" ? auth.error ? "connectors.auth.checkFailedHint" : "connectors.auth.checkingHint" : item.authMode === "oneid" ? "connectors.auth.oneid" : `connectors.auth.description.${status}`)}</p>
     {item.hasNative && <p className={styles.hint}>{t("connectors.native.hint")}</p>}
     {(auth.session?.pendingVerification || status === "pending_verification") && <p className={styles.notice} role="status">{t("connectors.credentials.pending")}</p>}
     {checkable && <>
       {interactive && <p className={styles.hint}>{t("connectors.auth.shared")}</p>}
-      {(item.auth_mode === "oauth" || item.auth_mode === "mcp") && <p className={styles.notice}>{t("connectors.auth.localCallback")}</p>}
+      {(item.authMode === "oauth" || item.authMode === "mcp") && <p className={styles.notice}>{t("connectors.auth.localCallback")}</p>}
       {item.hasMcp && <p className={styles.hint}>{t("connectors.auth.mcpAvailability")}</p>}
-      {item.auth_mode !== "token" && auth.session?.message && ["failed", "setup_required", "canceled", "expired"].includes(status) && <p className={styles.hint}>{auth.session.message}</p>}
-      {errorText && <div className={styles.error} role="alert">{t("connectors.auth.error.prefix")} {item.auth_mode === "token" ? t("connectors.credentials.checkFailed") : errorText}</div>}
+      {item.authMode !== "token" && auth.session?.message && ["failed", "setup_required", "canceled", "expired"].includes(status) && <p className={styles.hint}>{auth.session.message}</p>}
+      {errorText && <div className={styles.error} role="alert">{t("connectors.auth.error.prefix")} {item.authMode === "token" ? t("connectors.credentials.checkFailed") : errorText}</div>}
       {status === "pending" && auth.session?.authorizationUrl && !safeConnectorAuthorizationUrl(auth.session.authorizationUrl) && <p className={styles.error} role="alert">{t("connectors.auth.error.url")}</p>}
       {active && deadline !== null && status !== "expired" && <p className={styles.hint}>{t("connectors.auth.expires", { time: new Date(deadline).toLocaleString(locale) })}</p>}
+      {status === "pending" && !busy && auth.session?.userCode && <p className={styles.notice} role="status">{t("connectors.auth.userCode", { code: auth.session.userCode })}</p>}
+      {status === "pending" && !busy && !auth.session?.authorizationUrl && <p className={styles.hint}>{t("connectors.auth.cliOpensBrowser")}</p>}
       {url && <div className={styles.stack}>
         <div className={styles.authActions}>
           {auth.session?.authBrowser === "embedded" ? <UiButton size="sm" variant="primary" onClick={auth.openBrowser}>{t("connectors.auth.open")}</UiButton> : <a className="ui-btn ui-btn-primary ui-btn-sm" href={url} target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer"><MaterialIcon name="open_in_new" />{t("connectors.auth.open")}</a>}
@@ -131,7 +133,7 @@ function ConnectorAuthPanelContent({ item, disabled, onConfigure, onCredentialsC
         </div>
       </div>}
     </>}
-    {item.auth_mode === "token" && <div><UiButton size="sm" disabled={disabled} onClick={() => setCredentialsOpen(true)}>{t("connectors.credentials.configure")}</UiButton></div>}
+    {item.authMode === "token" && <div><UiButton size="sm" disabled={disabled} onClick={() => setCredentialsOpen(true)}>{t("connectors.credentials.configure")}</UiButton></div>}
     {credentialsOpen && <ConnectorCredentialsDialog key={`${item.id}/${item.version}`} item={item} onClose={() => setCredentialsOpen(false)} onSaved={() => { onCredentialsChange?.(); void auth.refresh(); }} />}
   </section>;
 }

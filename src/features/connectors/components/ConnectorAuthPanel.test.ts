@@ -12,7 +12,7 @@ jest.mock("@/shared/data", () => ({
   getConnectorAuthStatus: jest.fn(), startConnectorAuth: jest.fn(), cancelConnectorAuth: jest.fn(), logoutConnectorAuth: jest.fn(),
   getConnectorConnection: jest.fn(), connectConnector: jest.fn(),
 }));
-const item: ConnectorSummary = { id: "configured-cli", name: "Configured CLI", version: "1.0", type: "cli", auth_mode: "cli", hasCli: true, hasMcp: false, hasBin: true, skills: [] };
+const item: ConnectorSummary = { id: "configured-cli", name: "Configured CLI", version: "1.0", type: "cli", authMode: "self", hasCli: true, hasMcp: false, hasBin: true, skills: [] };
 const onConfigure = jest.fn();
 const onCredentialsChange = jest.fn();
 const onStatusChange = jest.fn();
@@ -21,7 +21,7 @@ let container: HTMLDivElement;
 const response = (status: ConnectorAuthSession["status"], values: Partial<ConnectorAuthSession> = {}) => ({ code: 0, msg: "", data: { connectorId: item.id, sessionId: "session-1", expiresAt: new Date(Date.now() + 900_000).toISOString(), status, ...values } });
 async function mount(connector = item, locale: "zh-CN" | "en-US" = "zh-CN") {
   await act(async () => root.render(React.createElement(I18nProvider, { locale, persistLocale: false }, React.createElement(React.Fragment, null,
-    React.createElement(ConnectorAuthPanel, { key: `${connector.id}/${connector.auth_mode}`, item: connector, onConfigure, onCredentialsChange, onStatusChange }),
+    React.createElement(ConnectorAuthPanel, { key: `${connector.id}/${connector.authMode}`, item: connector, onConfigure, onCredentialsChange, onStatusChange }),
     React.createElement(ConnectorComponents, { item: connector, tools: [] }),
   ))));
 }
@@ -35,16 +35,16 @@ beforeEach(() => {
   jest.mocked(startConnectorAuth).mockResolvedValue(response("pending", { authorizationUrl: "https://official.example/authorize?state=test" }));
   jest.mocked(cancelConnectorAuth).mockResolvedValue({ code: 0, msg: "", data: { id: item.id, status: "canceled" } });
   jest.mocked(logoutConnectorAuth).mockResolvedValue({ code: 0, msg: "", data: { id: item.id, status: "unauthorized" } });
-  jest.mocked(getConnectorConnection).mockImplementation(async id => ({ code: 0, msg: "", data: { connectorId: id, configured: false, configurationRequired: true, readiness: "configuration_required", authentication: { connectorId: id, sessionId: "", status: "delegated", expiresAt: "" }, capabilities: { canConnect: true, canDisconnect: true, canCheck: true, authMode: null, authBrowser: "system", hasCli: false, hasMcp: false } } }));
+  jest.mocked(getConnectorConnection).mockImplementation(async id => ({ code: 0, msg: "", data: { connectorId: id, configured: false, configurationRequired: true, readiness: "configuration_required", authentication: { connectorId: id, sessionId: "", status: "delegated", expiresAt: "" }, capabilities: { canConnect: true, canDisconnect: true, canCheck: true, authMode: "self", authBrowser: "system", hasCli: false, hasMcp: false } } }));
   container = document.createElement("div");
   document.body.appendChild(container);
   root = createRoot(container);
 });
 afterEach(async () => { await act(async () => root.unmount()); container.remove(); jest.useRealTimers(); jest.restoreAllMocks(); });
 
-it.each(["cli", null] as const)("offers a safe manual link for auth_mode=%s and only displays success after server confirmation", async mode => {
+it.each(["self"] as const)("offers a safe manual link for authMode=%s and only displays success after server confirmation", async mode => {
   const open = jest.spyOn(window, "open").mockReturnValue(null);
-  await mount({ ...item, auth_mode: mode });
+  await mount({ ...item, authMode: mode });
   await click("登录");
   expect(container.textContent).toContain("等待扫码 / 授权");
   const link = container.querySelector<HTMLAnchorElement>('a[target="_blank"]')!;
@@ -106,8 +106,16 @@ it("blocks unsafe links and offers cancellation instead of navigating", async ()
   expect(button("取消登录")).toBeDefined();
 });
 
+it("shows a CLI device code and withholds the link when the CLI opens the browser", async () => {
+  jest.mocked(getConnectorAuthStatus).mockResolvedValueOnce(response("pending", { userCode: "AB-12" }));
+  await mount();
+  expect(container.textContent).toContain("设备码：AB-12");
+  expect(container.textContent).toContain("请在连接器打开的浏览器中完成登录");
+  expect(container.querySelector("a")).toBeNull();
+});
+
 it("distinguishes MCP tool availability from OAuth login in English", async () => {
-  const mcp: ConnectorSummary = { ...item, type: "mcp", auth_mode: "oauth", hasCli: false, hasMcp: true, mcp: [{ serverKey: "demo.main", status: "unavailable", toolCount: 0 }] };
+  const mcp: ConnectorSummary = { ...item, type: "mcp", authMode: "oauth", hasCli: false, hasMcp: true, mcp: [{ serverKey: "demo.main", status: "unavailable", toolCount: 0 }] };
   jest.mocked(getConnectorAuthStatus).mockResolvedValueOnce(response("authorized"));
   await mount(mcp, "en-US");
   expect(container.textContent).toContain("Authorized");
@@ -118,30 +126,30 @@ it("distinguishes MCP tool availability from OAuth login in English", async () =
 });
 
 it("opens a separate token credential form without routing secrets to definition editing", async () => {
-  await mount({ ...item, auth_mode: "token" });
+  await mount({ ...item, authMode: "token" });
   expect(container.textContent).toContain("凭据配置");
   await click("配置连接凭据");
   expect(onConfigure).not.toHaveBeenCalled();
-  expect(document.querySelector('[role="dialog"]')?.textContent).toContain("token_schema");
+  expect(document.querySelector('[role="dialog"]')?.textContent).toContain("token-schema.json");
   expect(getConnectorAuthStatus).toHaveBeenCalledTimes(1);
   expect(button("登录")).toBeUndefined();
 });
 it("never renders raw token diagnostics which may echo private credentials", async () => {
   jest.mocked(getConnectorAuthStatus).mockResolvedValue(response("failed", { message: "echo synthetic-test-token" }));
-  await mount({ ...item, auth_mode: "token" });
+  await mount({ ...item, authMode: "token" });
   expect(container.textContent).not.toContain("synthetic-test-token");
 });
 
 it("shows the none mode without querying authorization", async () => {
-  await mount({ ...item, auth_mode: "none" });
-  expect(container.textContent).toContain("无需授权");
+  await mount({ ...item, authMode: "none" });
+  expect(container.textContent).toContain("此连接器无需认证");
   expect(getConnectorAuthStatus).not.toHaveBeenCalled();
   expect(button("登录")).toBeUndefined();
 });
 
 it.each(["zh-CN", "en-US"] as const)("displays delegated authentication without an endless spinner or login action in %s", async locale => {
   jest.mocked(getConnectorAuthStatus).mockResolvedValue(response("delegated"));
-  await mount({ ...item, auth_mode: null }, locale);
+  await mount({ ...item, authMode: "self" }, locale);
   expect(container.textContent).toContain(locale === "zh-CN" ? "由连接器管理" : "Managed");
   expect(container.textContent).not.toContain(locale === "zh-CN" ? "检查中" : "Checking");
   expect(button(locale === "zh-CN" ? "登录" : "Sign in")).toBeUndefined();
@@ -151,7 +159,7 @@ it.each(["zh-CN", "en-US"] as const)("displays delegated authentication without 
 
 it.each(["unauthorized", "authorized"] as const)("shows Desktop identity %s with refresh and Desktop guidance", async status => {
   jest.mocked(getConnectorAuthStatus).mockResolvedValue(response(status));
-  await mount({ ...item, auth_mode: "oneid-token" });
+  await mount({ ...item, authMode: "oneid" });
   expect(container.textContent).toContain(status === "authorized" ? "已授权" : "未登录");
   expect(container.textContent).toContain("请在 Desktop 中登录或退出");
   expect(button("登录")).toBeUndefined();
@@ -160,13 +168,13 @@ it.each(["unauthorized", "authorized"] as const)("shows Desktop identity %s with
   expect(getConnectorAuthStatus).toHaveBeenCalledTimes(2);
 });
 
-it.each([null, "oneid-token"] as const)("restores confirmation from real configured state after disconnect without remounting auth_mode=%s", async mode => {
-  const status = mode === null ? "delegated" : "authorized";
+it.each(["self", "oneid"] as const)("restores confirmation from real configured state after disconnect without remounting authMode=%s", async mode => {
+  const status = mode === "self" ? "delegated" : "authorized";
   let configured = false;
   jest.mocked(getConnectorAuthStatus).mockResolvedValue(response(status));
   jest.mocked(connectConnector).mockImplementation(async () => { configured = true; return response(status); });
   jest.mocked(getConnectorConnection).mockImplementation(async id => ({ code: 0, msg: "", data: { connectorId: id, configured, configurationRequired: true, readiness: configured ? "ready" : "configuration_required", authentication: response(status).data, capabilities: { canConnect: true, canDisconnect: true, canCheck: true, authMode: mode, authBrowser: "system", hasCli: false, hasMcp: false } } }));
-  await mount({ ...item, auth_mode: mode });
+  await mount({ ...item, authMode: mode });
   await click("确认连接");
   expect(button("确认连接")).toBeUndefined();
   configured = false;
@@ -175,9 +183,9 @@ it.each([null, "oneid-token"] as const)("restores confirmation from real configu
   await click("确认连接"); expect(connectConnector).toHaveBeenCalledTimes(2);
 });
 
-it.each([null, "oneid-token"] as const)("shows and recovers from canonical auth_mode=%s check errors", async mode => {
+it.each(["self", "oneid"] as const)("shows and recovers from canonical authMode=%s check errors", async mode => {
   jest.mocked(getConnectorAuthStatus).mockRejectedValueOnce(new ApiError("unauthorized", { status: 401 }));
-  await mount({ ...item, auth_mode: mode });
+  await mount({ ...item, authMode: mode });
   expect(container.querySelector('[role="alert"]')?.textContent).toContain("Platform 身份认证未通过");
   expect(container.textContent).not.toContain("正在获取授权状态");
   await click("重新检查状态");
@@ -195,7 +203,7 @@ it("removes expired links while retaining an explicit retry action", async () =>
 });
 
 it.each(["zh-CN","en-US"] as const)("Desktop no_auth has no configuration workflow in %s",async locale=>{
- await mount({...item,id:"builtin.desktop",type:"native",hasNative:true,hasCli:false,auth_mode:"no_auth",builtin:true,readOnly:true},locale);
+ await mount({...item,id:"builtin.desktop",type:"native",hasNative:true,hasCli:false,authMode:"none",builtin:true,readOnly:true},locale);
  expect(container.textContent).toContain(locale==="zh-CN"?"无需配置":"No configuration required");
  expect(container.textContent).not.toContain(locale==="zh-CN"?"检查中":"Checking");
  expect(container.querySelectorAll("button")).toHaveLength(0);

@@ -10,7 +10,7 @@ export function readConnectorConnection(value: ConnectorConnection, id: string):
   if (!value || value.connectorId !== id || typeof value.configured !== "boolean" || typeof value.configurationRequired !== "boolean"
     || !["no_auth", "configuration_required", "pending_verification", "preparing", "authorization_required", "ready", "unavailable"].includes(value.readiness)
     || value.authentication?.connectorId !== id || !value.capabilities || typeof value.capabilities.hasCli !== "boolean"
-    || value.readiness === "no_auth" && (value.capabilities.authMode !== "no_auth" || value.authentication.status !== "no_auth" || value.configured || value.configurationRequired)
+    || value.readiness === "no_auth" && (value.capabilities.authMode !== "none" || value.authentication.status !== "no_auth" || value.configured || value.configurationRequired)
     || value.readiness === "ready" && (!value.configured || !["authorized", "configured", "delegated"].includes(value.authentication.status))
     || value.preparation && (value.preparation.connectorId !== id || !["pending", "preparing", "ready", "failed", "canceled"].includes(value.preparation.status))) {
     throw new ConnectorChatError("invalidResponse");

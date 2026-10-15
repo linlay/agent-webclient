@@ -31,7 +31,7 @@ jest.mock("@/shared/data", () => ({
   getConnectorSkills: jest.fn(), getConnectorSkillDetail: jest.fn(),
   getConnectorAuthStatus: jest.fn(), startConnectorAuth: jest.fn(), cancelConnectorAuth: jest.fn(), logoutConnectorAuth: jest.fn(),
 }));
-const item: ConnectorSummary = { id: "demo", name: "Demo connector", version: "1.0", description: "Connector description", icon: "assets/icon.svg", type: "cli", auth_mode: "cli", hasCli: true, hasMcp: true, hasBin: true, skills: [], mcp: [] };
+const item: ConnectorSummary = { id: "demo", name: "Demo connector", version: "1.0", description: "Connector description", icon: "assets/icon.svg", type: "cli", authMode: "self", hasCli: true, hasMcp: true, hasBin: true, skills: [], mcp: [] };
 let container: HTMLDivElement;
 let root: Root;
 const button = (text: string) => Array.from(container.querySelectorAll("button")).find(node => node.textContent?.replace(" •", "") === text)!;
@@ -72,8 +72,8 @@ const mount = async () => { await act(async () => root.render(React.createElemen
 
 it("resolves canonical null CLI auth in both catalog rows and the selected overview", async () => {
   const connectors = [
-    { ...item, auth_mode: null, name: "企业微信" },
-    { ...item, id: "tmeet", auth_mode: null, name: "腾讯会议" },
+    { ...item, authMode: "self", name: "企业微信" },
+    { ...item, id: "tmeet", authMode: "self", name: "腾讯会议" },
   ];
   jest.mocked(getAdminConnectors).mockResolvedValue({ code: 0, msg: "", data: { connectors } });
   jest.mocked(getConnectorAuthStatus).mockImplementation(async id => ({ code: 0, msg: "", data: {
@@ -172,7 +172,7 @@ it("keeps built-in fields and the Monaco JSON source read-only", async () => {
   await mount();
   const basics = detail().querySelector('[aria-label="基本信息"]')!;
   const fields = Array.from(basics.querySelectorAll("input"));
-  expect(fields.map(input => input.value)).toEqual([item.id, "CLI", "cli", item.name, item.version]);
+  expect(fields.map(input => input.value)).toEqual([item.id, "CLI", "self", item.name, item.version]);
   expect(fields.every(input => input.readOnly)).toBe(true);
   expect(basics.querySelector("textarea")?.readOnly).toBe(true);
   expect(basics.textContent).toContain("只读");
@@ -420,7 +420,7 @@ it("keeps the writable configuration and save action beside conversation editing
 });
 
 it("no_auth list and detail consistently show no configuration required",async()=>{
- const desktop:ConnectorSummary={...item,type:"native",hasNative:true,hasCli:false,hasMcp:false,auth_mode:"no_auth",builtin:true,readOnly:true};
+ const desktop:ConnectorSummary={...item,type:"native",hasNative:true,hasCli:false,hasMcp:false,authMode:"none",builtin:true,readOnly:true};
  jest.mocked(getAdminConnectors).mockResolvedValue({code:0,msg:"",data:{connectors:[desktop]}});
  await act(async()=>root.render(React.createElement(Harness)));
  expect(container.textContent).toContain("无需配置");

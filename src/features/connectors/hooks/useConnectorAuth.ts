@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ApiError, cancelConnectorAuth, getConnectorAuthStatus, getConnectorConnection, prepareConnector, logoutConnectorAuth, startConnectorAuth } from "@/shared/data";
-import type { ConnectorAuthSession, ConnectorSummary } from "@/shared/data";
+import type { ConnectorAuthMode, ConnectorAuthSession, ConnectorSummary } from "@/shared/data";
 import { connectorAuthDeadline, connectorAuthViewStatus, isConnectorAuthActive, readConnectorAuthAction, readConnectorAuthSession, supportsConnectorAuthCheck, supportsConnectorLogin } from "../lib/connectorAuth";
 import type { ConnectorAuthViewStatus } from "../lib/connectorAuth";
 import { ensureConnectorPrepared, waitForConnectorPoll } from "../lib/connectorChat";
@@ -19,7 +19,7 @@ interface AuthState {
 }
 interface Options {
   id: string;
-  mode: ConnectorSummary["auth_mode"];
+  mode: ConnectorAuthMode;
   readOnly?: boolean;
   onStatusChange?: (id: string, status: ConnectorAuthViewStatus) => void;
   onCredentialsChange?: () => void;
@@ -32,7 +32,7 @@ interface Options {
 export function useConnectorAuth({ id, mode, readOnly = false, onStatusChange, onCredentialsChange, checkStatus = getConnectorAuthStatus, observe = false, pollInactive = true }: Options) {
   const enabled = supportsConnectorAuthCheck(mode);
   const identity = `${id}/${mode}/${readOnly}`;
-  const initial = (): AuthState => ({ identity, browserRequestRevision: 0, browserSessionId: null, session: null, status: mode === "no_auth" ? "no_auth" : mode === "none" ? "not_required" : "unknown", checking: enabled, operation: null, error: null, preparingDependency: false });
+  const initial = (): AuthState => ({ identity, browserRequestRevision: 0, browserSessionId: null, session: null, status: mode === "none" ? "no_auth" : "unknown", checking: enabled, operation: null, error: null, preparingDependency: false });
   const [state, setState] = useState<AuthState>(initial);
   const callbacks = useRef({ onStatusChange, onCredentialsChange });
   callbacks.current = { onStatusChange, onCredentialsChange };
@@ -66,7 +66,7 @@ export function useConnectorAuth({ id, mode, readOnly = false, onStatusChange, o
 
     const publish = () => {
       if (disposed) return;
-      const status = mode === "no_auth" ? "no_auth" : mode === "none" ? "not_required" : connectorAuthViewStatus(session);
+      const status = mode === "none" ? "no_auth" : connectorAuthViewStatus(session);
       setState({ identity, browserRequestRevision, browserSessionId, session, status, checking: !!request && !operation, operation, error, preparingDependency });
       if (reportedStatus !== status) {
         reportedStatus = status;

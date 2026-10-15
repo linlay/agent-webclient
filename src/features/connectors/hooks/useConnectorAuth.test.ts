@@ -2,7 +2,7 @@
 import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { ApiError, cancelConnectorAuth, getConnectorAuthStatus, getConnectorConnection, prepareConnector, logoutConnectorAuth, startConnectorAuth } from "@/shared/data";
-import type { ApiResponse, ConnectorAuthSession, ConnectorSummary } from "@/shared/data";
+import type { ApiResponse, ConnectorAuthSession, ConnectorSummary, ConnectorAuthMode } from "@/shared/data";
 import { useConnectorAuth } from "./useConnectorAuth";
 
 jest.mock("@/shared/data", () => ({
@@ -15,7 +15,7 @@ const onCredentialsChange = jest.fn();
 let current: ReturnType<typeof useConnectorAuth>;
 let root: Root;
 let mounted: boolean;
-function Harness({ id = "demo", mode = "cli", readOnly = false, observe = false }: { id?: string; mode?: ConnectorSummary["auth_mode"]; readOnly?: boolean; observe?: boolean }) {
+function Harness({ id = "demo", mode = "self", readOnly = false, observe = false }: { id?: string; mode?: ConnectorAuthMode; readOnly?: boolean; observe?: boolean }) {
   current = useConnectorAuth({ id, mode, readOnly, observe, onStatusChange, onCredentialsChange });
   return null;
 }
@@ -47,7 +47,7 @@ afterEach(async () => {
   jest.useRealTimers();
 });
 
-it.each(["cli", null] as const)("starts once with auth_mode=%s, polls preparing → pending → authorized, then refreshes associated data and stops polling", async mode => {
+it.each(["self"] as const)("starts once with authMode=%s, polls preparing → pending → authorized, then refreshes associated data and stops polling", async mode => {
   await mount({ mode });
   const start = deferred<ApiResponse<ConnectorAuthSession>>();
   jest.mocked(startConnectorAuth).mockReturnValueOnce(start.promise);
@@ -225,14 +225,14 @@ it("reads token status without starting interactive login or periodic probing", 
 
 const preparationConnection = (status: "pending" | "preparing" | "ready" | "failed") => ({ code: 0, msg: "", data: {
   connectorId: "demo", configured: false, configurationRequired: true, readiness: status === "ready" ? "configuration_required" : "preparing",
-  authentication: response("setup_required").data, capabilities: { canConnect: true, canDisconnect: true, canCheck: true, authMode: null, authBrowser: "system", hasCli: true, hasMcp: false }, preparation: { connectorId: "demo", status },
+  authentication: response("setup_required").data, capabilities: { canConnect: true, canDisconnect: true, canCheck: true, authMode: "self", authBrowser: "system", hasCli: true, hasMcp: false }, preparation: { connectorId: "demo", status },
 } });
 
 it("explicitly prepares setup_required CLI before starting login", async () => {
   jest.mocked(getConnectorAuthStatus).mockResolvedValue(response("setup_required"));
   jest.mocked(getConnectorConnection).mockResolvedValueOnce(preparationConnection("pending") as any).mockResolvedValue(preparationConnection("ready") as any);
   jest.mocked(prepareConnector).mockResolvedValue({ code: 0, msg: "", data: { connectorId: "demo", status: "ready" } });
-  await mount({ mode: null }); await act(async () => current.start());
+  await mount({ mode: "self" }); await act(async () => current.start());
   expect(prepareConnector).toHaveBeenCalledTimes(1); expect(startConnectorAuth).toHaveBeenCalledTimes(1);
   expect(jest.mocked(prepareConnector).mock.invocationCallOrder[0]).toBeLessThan(jest.mocked(startConnectorAuth).mock.invocationCallOrder[0]);
 });
@@ -241,7 +241,7 @@ it("keeps failed preparation separate from a login attempt", async () => {
   jest.mocked(getConnectorAuthStatus).mockResolvedValue(response("setup_required"));
   jest.mocked(getConnectorConnection).mockResolvedValue(preparationConnection("pending") as any);
   jest.mocked(prepareConnector).mockResolvedValue({ code: 0, msg: "", data: { connectorId: "demo", status: "failed" } });
-  await mount({ mode: null }); await act(async () => current.start());
+  await mount({ mode: "self" }); await act(async () => current.start());
   expect(startConnectorAuth).not.toHaveBeenCalled();
   expect(current.error?.message).toBe("connectors.chat.preparationFailed"); expect(current.preparingDependency).toBe(false);
 });
@@ -250,7 +250,7 @@ it("stops its preparation observer and ignores late completion without canceling
   jest.mocked(getConnectorAuthStatus).mockResolvedValue(response("setup_required"));
   jest.mocked(getConnectorConnection).mockResolvedValueOnce(preparationConnection("pending") as any).mockResolvedValue(preparationConnection("preparing") as any);
   jest.mocked(prepareConnector).mockResolvedValue({ code: 0, msg: "", data: { connectorId: "demo", status: "preparing" } });
-  await mount({ mode: null }); let result!: Promise<void>;
+  await mount({ mode: "self" }); let result!: Promise<void>;
   await act(async () => { result = current.start(); });
   expect(current.preparingDependency).toBe(true); expect(startConnectorAuth).not.toHaveBeenCalled();
   await act(async () => { await current.cancel(); await result; });
@@ -260,7 +260,7 @@ it("stops its preparation observer and ignores late completion without canceling
 
 it("finishes delegated authentication checks without starting or canceling connector-managed login", async () => {
   jest.mocked(getConnectorAuthStatus).mockResolvedValue(response("delegated"));
-  await mount({ mode: null });
+  await mount({ mode: "self" });
   expect(getConnectorAuthStatus).toHaveBeenCalledTimes(1);
   expect(current.status).toBe("delegated");
   expect(current.checking).toBe(false);
@@ -273,7 +273,7 @@ it("finishes delegated authentication checks without starting or canceling conne
 
 it.each(["unauthorized", "authorized"] as const)("observes Desktop identity %s without managing its credentials", async status => {
   jest.mocked(getConnectorAuthStatus).mockResolvedValue(response(status));
-  await mount({ mode: "oneid-token", observe: true });
+  await mount({ mode: "oneid", observe: true });
   expect(current.status).toBe(status);
   expect(current.checking).toBe(false);
   await act(async () => { void current.start(); void current.cancel(); void current.logout(); });
@@ -345,7 +345,7 @@ it("does not refresh the catalog for each initially authorized row and stops aut
 });
 
 it("no_auth never checks, polls or performs authentication operations", async () => {
- await mount({mode:"no_auth",observe:true});
+ await mount({mode:"none",observe:true});
  expect(current.status).toBe("no_auth");
  expect(current.checking).toBe(false);
  await act(async()=>{await current.refresh();await current.start();await current.cancel();await current.logout();await current.openBrowser();});
@@ -358,7 +358,7 @@ it("switching to no_auth aborts the previous check and ignores its result",async
  jest.mocked(getConnectorAuthStatus).mockReturnValueOnce(pending.promise);
  await mount({mode:"oauth",observe:true});
  const signal=jest.mocked(getConnectorAuthStatus).mock.calls[0][1];
- await mount({mode:"no_auth",observe:true});
+ await mount({mode:"none",observe:true});
  expect(signal?.aborted).toBe(true);
  await act(async()=>pending.resolve(response("authorized")));
  await advance(90_000);

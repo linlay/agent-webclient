@@ -162,9 +162,7 @@ export function ConnectorsConsole({
       authStatus && authStatus !== "unknown"
         ? t(`connectors.auth.status.${authStatus}`)
         : "";
-    const authLabel = item.auth_mode === "no_auth" ? t("connectors.auth.status.no_auth") :
-      item.auth_mode === "none"
-        ? t("connectors.auth.status.not_required")
+    const authLabel = item.authMode === "none" ? t("connectors.auth.status.no_auth")
         : auth?.error
             ? knownStatus
               ? t("connectors.auth.checkFailedWithStatus", {

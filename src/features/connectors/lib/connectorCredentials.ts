@@ -10,8 +10,8 @@ export function confirmCredentialState(id: string) { requiredChecks.delete(id); 
 
 /** Only manifest-declared fields enter a request. Never read credential values. */
 export function connectorTokenSchema(item: ConnectorSummary): ConnectorTokenSchema | null {
-  if (item.auth_mode !== "token" || !item.token_schema || typeof item.token_schema !== "object") return null;
-  const raw = item.token_schema as Record<string, unknown>;
+  if (item.authMode !== "token" || !item.tokenSchema || typeof item.tokenSchema !== "object") return null;
+  const raw = item.tokenSchema as Record<string, unknown>;
   if (!Array.isArray(raw.fields) || !raw.fields.length || raw.fields.length > 64) return null;
   const fields: ConnectorTokenSchema["fields"] = [];
   const seen = new Set<string>();

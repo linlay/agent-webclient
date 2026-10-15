@@ -25,7 +25,7 @@ jest.mock("@/shared/utils/routing", () => ({ isDesktopAppMode: () => false }));
 jest.mock("@/shared/i18n", () => ({ useI18n: () => ({ t: (key: string) => key }) }));
 const push = { subscribe: jest.fn(() => jest.fn()) };
 jest.mock("@/features/transport/hooks/useRealtimeTransport", () => ({ usePushTransport: () => push }));
-const item: ConnectorSummary = { id: "demo", name: "Installed", version: "1", type: "mcp", auth_mode: "token", hasCli: false, hasMcp: true, hasBin: false, skills: [] };
+const item: ConnectorSummary = { id: "demo", name: "Installed", version: "1", type: "mcp", authMode: "token", hasCli: false, hasMcp: true, hasBin: false, skills: [] };
 const connection: ConnectorConnection = { connectorId: item.id, configured: true, configurationRequired: true, readiness: "ready", authentication: { connectorId: item.id, sessionId: "", status: "authorized", expiresAt: "" }, capabilities: { canConnect: false, canDisconnect: true, canCheck: true, authMode: "token", authBrowser: "system", hasCli: false, hasMcp: true } };
 const sourceState = { agentKey: "default", connectorIds: [], activeConnectorIds: [], presetConnectorIds: [], declaredConnectorIds: [], reloadPending: false };
 const activeState = { ...sourceState, connectorIds: [item.id], activeConnectorIds: [item.id] };

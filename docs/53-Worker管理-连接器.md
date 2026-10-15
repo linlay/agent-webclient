@@ -12,9 +12,9 @@
 - `POST /api/admin/connectors/import` 使用 multipart 的 `file` 上传 ZIP，需要覆盖时额外提交 `overwrite=true`；成功读取 `data.id/name/version/installed/authMode`。
 - `GET /api/admin/connectors/auth?id=...` 恢复或轮询当前授权状态；`POST` 同地址异步开始登录，`DELETE` 同地址退出并清除此部署的连接器凭据。
 - `POST /api/admin/connectors/auth/cancel?id=...` 仅取消当前登录，不等同于退出账号。
-- `PUT /api/admin/connectors/auth?id=...` 仅以 `{credentials}` 提交清单 `token_schema` 声明的私有字段；不修改连接器包定义。
+- `PUT /api/admin/connectors/auth?id=...` 仅以 `{credentials}` 提交 `token-schema.json` 声明的私有字段；不修改连接器包定义。
 - `GET /api/connectors/connection?id=...` 读取独立的配置完成、认证、CLI 准备与就绪状态。`POST /api/admin/connectors/prepare?id=...` 明确准备 CLI；GET 不执行安装、登录或远端探测。
-- `POST /api/connectors/connect?id=...` 明确确认 delegated 或 oneid-token 连接；`POST /api/connectors/check?id=...` 手工验证当前连接及待验证候选。
+- `POST /api/connectors/connect?id=...` 明确确认 delegated 或 oneid 连接；`POST /api/connectors/check?id=...` 手工验证当前连接及待验证候选。
 
 旧 MCP Registry YAML 接口与前端实现已移除。页面支持外部连接器 ZIP 导入与删除确认；`builtin` 或 `readOnly` 标记的内置包仅可查看和复制配置，不能保存或通过 ZIP 覆盖。
 
@@ -58,9 +58,9 @@ Composer 另用现有 HTTP `GET /api/connectors/connection` 读取连接配置�
 `/agents/:agentKey` 的能力区通过 `/api/admin/agents/connectors`、`/api/admin/connectors` 与 `/api/admin/tools` 展示预置、声明及当前生效挂载。连接器默认折叠，展开查看其工具和 CLI/VIEW/技能能力，原生工具用 nativeTools 归属、MCP 服务按当前 agentKey 隔离；不重复出现在自身工具区。预置带锁，无挂载修改入口。管理“发起对话”仍使用管理挂载接口的完整 activeConnectorIds，确认生效后导航。两套挂载 PUT 均拒绝预置修改（403 preset_connector_readonly），预置运行时工具和技能仍正常挂载。
 
 ## 账号授权
-现有详情页概览中的“账号授权”区域按目录返回的 `auth_mode` 决定交互：`no_auth` 直接显示“无需配置”，不请求认证接口；`null/oauth/mcp` 查询统一状态 API；`null` 表示由连接器处理认证，受管 CLI 沿用统一登录流程，服务端返回 `delegated` 时显示“由连接器管理”，引导按技能说明操作，不提供登录或退出按钮。`oneid-token` 查询并展示 Desktop SSO 状态，仅提供重新检查和 Desktop 登录说明，不调用连接器登录、取消或退出接口。`token` 使用独立私有凭据弹窗，字段仅来自清单 `token_schema`；实际值不进入 connector.json、cli.json、mcp.json 或对话草稿。兼容旧服务返回的 `cli` 登录模式与 `none` 无需授权模式；当前 Platform 会将旧包中的 `cli/none` 规范化为目录中的 `null`，因此不能只检查旧字符串，也不能把 `null` 当成无需认证。前端不根据连接器 id 分支，不执行 CLI 或安装命令；实际认证声明、依赖准备、OAuth 发现及凭据保管均由后端从 cli.json/mcp.json 和清单解释。
+现有详情页概览中的“账号授权”区域按目录返回的 `authMode` 决定交互：`none` 直接显示“无需配置”，不请求认证接口；`self/oauth/mcp` 查询统一状态 API；`self` 表示由连接器处理认证，受管 CLI 沿用统一登录流程，服务端返回 `delegated` 时显示“由连接器管理”，引导按技能说明操作，不提供登录或退出按钮。`oneid` 查询并展示 Desktop SSO 状态，仅提供重新检查和 Desktop 登录说明，不调用连接器登录、取消或退出接口。`token` 使用独立私有凭据弹窗，字段仅来自目录返回的 `tokenSchema`（包内 `token-schema.json`）；实际值不进入 connector.json、cli.json、mcp.json 或对话草稿。前端不根据连接器 id 分支，不执行 CLI 或安装命令；实际认证声明、依赖准备、OAuth 发现及凭据保管均由后端从 cli.json/mcp.json 和清单解释。
 
-列表与详情共用页面内的授权观察器，进入目录后自动读取 `null/cli/oauth/mcp/oneid-token` 的连接器状态，展示 no_auth/not_required/delegated/setup_required/unauthorized/preparing/pending/authorized/failed/canceled。`no_auth`、旧 `none` 无需授权模式不查询授权接口。`token` 读取真实凭据状态，但不调用交互登录接口；配置完成和认证可用性不能由认证模式推定。preparing/pending 每次响应后等待 2 秒再检查；网络错误退避至 5 秒，401/403/404/405 停止自动重试并展示身份、权限或版本诊断。请求 20 秒超时后可重新检查。sessionId 为空及 expiresAt 的零时间不会误判过期；有效期限到达时禁止打开旧链接，显示过期和重试入口。重试仍活动的过期会话会先取消，再发起新登录。
+列表与详情共用页面内的授权观察器，进入目录后自动读取 `self/oauth/mcp/oneid` 的连接器状态，展示 no_auth/not_required/delegated/setup_required/unauthorized/preparing/pending/authorized/failed/canceled。`authMode: none` 不查询授权接口；状态里的 `no_auth` 是状态值，不是清单取值。`token` 读取真实凭据状态，但不调用交互登录接口；配置完成和认证可用性不能由认证模式推定。preparing/pending 每次响应后等待 2 秒再检查；网络错误退避至 5 秒，401/403/404/405 停止自动重试并展示身份、权限或版本诊断。请求 20 秒超时后可重新检查。sessionId 为空及 expiresAt 的零时间不会误判过期；有效期限到达时禁止打开旧链接，显示过期和重试入口。重试仍活动的过期会话会先取消，再发起新登录。
 
 pending 时展示后端返回的“打开授权页面”链接，只接受无用户名密码的显式 HTTP(S) URL，使用新页面、noopener/noreferrer 与 no-referrer。入口由用户直接点击，避免依赖异步自动弹窗；链接会保留供浏览器拦截后手动再次打开。页面仅在后端返回 authorized 后显示成功，扫码、打开链接或时间到达均不代表授权完成。
 
@@ -126,7 +126,7 @@ pending 时展示后端返回的“打开授权页面”链接，只接受无用
 
 ## 连接器内嵌授权
 
-Platform 从 `connector.json.auth_browser` 固定会话展示策略，start/status 的 `authBrowser` 为唯一运行时事实源；省略保持 system。WebClient 不读取 CLI 配置。只有当前观察器发起或显式继续的授权会话展示弹窗，列表后台检查不自动弹窗。
+Platform 从 `connector.json.authBrowser` 固定会话展示策略，start/status 的 `authBrowser` 为唯一运行时事实源；省略保持 system。WebClient 不读取 CLI 配置。只有当前观察器发起或显式继续的授权会话展示弹窗，列表后台检查不自动弹窗。
 
 Standalone 使用 sandbox 模态 iframe；Desktop 使用独立 v1 Connector Auth Browser bridge，通过 connectorId/sessionId 请求宿主重新校验会话并打开隔离 WebView。缺失 bridge 或嵌入失败不降级外部浏览器。授权成功只依据 Platform 状态。用户关闭弹窗通过带 sessionId 的取消接口取消当前会话；页面卸载只关闭展示与观察，不注销凭据。
 
@@ -135,37 +135,20 @@ Standalone 使用 sandbox 模态 iframe；Desktop 使用独立 v1 Connector Auth
 手工创建、编辑、保存与对话方式并存。独立的「通过对话创建／修改」入口使用默认 Chat 智能体，预选 `platform-admin` 并填写草稿，不自动发送。保留原有表单、源码编辑、ZIP 导入及只读边界；连接器手工新增沿用 ZIP 导入。详见[资源对话创建与修改](01-应用基础-应用入口路由与布局壳层.md#资源对话创建与修改)。
 
 
-## 六种 auth_mode
+## 六种 authMode
 
-当前协议支持六种模式；旧字符串 none/cli 仅是历史别名，不作为独立模式计数。
+`connector.json.authMode` 必须显式声明；Platform 接受 `oneid-token` 作为 `oneid` 的别名，目录统一返回 `oneid`。
 
 | 模式 | 语义与界面行为 |
 | --- | --- |
-| no_auth | 无需认证，挂载即可使用；显示“无需配置”，不检查、不轮询、不提供登录或断开认证按钮 |
-| null | 认证由连接器 Skill / CLI / SDK 管理；受管 CLI 支持登录，delegated 不显示登录退出 |
-| token | 依据 token_schema 的私有凭据弹窗配置，读取 configured/authorized/pending_verification |
-| oneid-token | 使用 Desktop SSO，连接器内不提供登录退出 |
+| none | 无需认证，挂载即可使用；显示“无需配置”，不检查、不轮询、不提供登录或断开认证按钮 |
+| self | 认证由连接器 Skill / CLI / SDK 管理；受管 CLI 支持登录，delegated 不显示登录退出 |
+| token | 依据 `tokenSchema` 的私有凭据弹窗配置，读取 configured/authorized/pending_verification |
+| oneid | 使用 Desktop SSO，连接器内不提供登录退出 |
 | oauth | 普通 OAuth 授权 |
 | mcp | MCP OAuth 授权 |
 
-Desktop 声明 no_auth，详情与列表复用通用认证展示，不保留 native 专用配置面板或 connection.json 操作。Composer “+”菜单只保留挂载开关，不显示“检查中”或“连接”；挂载不等于客户端在线，实际路由、权限和可用性由调用结果说明。取消使用通过移除 Agent 挂载完成。
-
-Connection DTO 接收 configurationRequired、authentication、capabilities 和独立 preparation。no_auth 的 configurationRequired=false、canConnect/canDisconnect/canCheck=false，configured=false 不能解释为未连接。认证 hook 依据清单 no_auth 直接进入终态，既不请求认证接口也不使用配置完成标记；CLI 安装准备与 MCP 同步状态独立于认证状态。
-
-## Agent 连接器互斥选择
-
-目录 DTO 接收包清单的可选 `mutuallyExclusiveWith`。Composer 选择器依据未经过搜索筛选的使用目录和当前 Agent 已选 ID 双向判断：任意一方声明即冲突，未声明不推导，搜索过滤不影响判断，源码不保留 Desktop ID 特例。
-
-冲突项保留可点击开关；点击时不发送保存请求，弹出中英文错误并在列表顶部显示“无法选择‘名称’：已选择与其互斥的‘冲突名称’。请先取消原选择。”原选择不变，不自动替换；取消原选择后可正常选择另一项。名称来自目录本地化值，找不到时回退 ID。
-
-服务端最终校验。`PUT /api/agents/connectors` 失败中的 `data.error.code=connector_selection_conflict`、`connectorId` 和 `conflictingConnectorIds` 映射为相同提示；其他保存失败显示实际错误。HTTP 非 2xx 与 HTTP 200 业务失败都保留错误详情；失败重新读取来源，不乐观切换开关。加载错误位于列表之前。相关组件、hook 和 API 测试覆盖单向声明的两种选择顺序、搜索、取消后切换、过期目录和保存失败。
-
-
-## 私有凭据与业务对话
-
-账号授权、部署配置完成、CLI 准备、Agent 挂载与运行态发布相互独立。`configured` 只表示已完成部署配置；`pendingVerification=true` 表示新候选仍在验证，旧有效凭据可以保持 authorized/ready。仅 pending_verification 的首次配置不视为可用。delegated 与 oneid-token 在概览通过用户显式“确认连接”保存配置完成事实；该动作不登录或退出 Desktop 身份。
-
-私有凭据弹窗只读取 token_schema 的字段声明，兼容 Platform 已定义的 name/key、默认 password 元数据；仅 text 字段使用声明的默认值，password 不预填。值只留在当前弹窗内存，取消、成功、切换连接器、离开组件时清空或丢弃；schema 缺失不引导用户把凭据写入包 JSON。请求使用现有身份 HTTP 客户端、no-store 和禁止自动重放，不进入 data-request/WS 调试帧、server-state 缓存、浏览器存储或 URL。错误只显示本地化通用说明，不能保留或渲染可能回显凭据的后端原始原因；无法确认保存结果时清空输入并要求先检查服务端状态，再由用户决定新一次写入。CLI 类型保存前同样先确认准备就绪。
+私有凭据弹窗只读取 `tokenSchema` 的字段声明（key、label、type，默认 password）；仅 text 字段使用声明的默认值，password 不预填。值只留在当前弹窗内存，取消、成功、切换连接器、离开组件时清空或丢弃；schema 缺失不引导用户把凭据写入包 JSON。请求使用现有身份 HTTP 客户端、no-store 和禁止自动重放，不进入 data-request/WS 调试帧、server-state 缓存、浏览器存储或 URL。错误只显示本地化通用说明，不能保留或渲染可能回显凭据的后端原始原因；无法确认保存结果时清空输入并要求先检查服务端状态，再由用户决定新一次写入。CLI 类型保存前同样先确认准备就绪。
 
 连接器详情新增业务“去对话”，与使用 platform-admin 的“通过对话修改”分别服务实际使用和包定义编辑。业务入口按资源助手相同规则解析默认普通 Chat Agent，先检查准备状态，需要时显式 POST prepare 并进行有界观察；未完成配置或授权时保留本页并引导概览。连接就绪后读取/设置该 Agent 的实际安装包 connectorId，等 activeConnectorIds 包含它且 reloadPending=false 才导航。已经生效不重复挂载；写结果未知只重读真实状态，不重放变更。等待期间切换条目、离开页面或改动配置草稿均不得由迟到结果跳走，准备按连接器部署共享，当前协议没有本页独占的任务身份；取消等待与页面卸载均只停止本页观察，不取消共享准备。
 

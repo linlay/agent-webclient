@@ -30,7 +30,7 @@ beforeEach(() => {
   jest.mocked(getAdminTools).mockResolvedValue({ code: 0, msg: "", data: [] });
   jest.mocked(getAdminAgentConnectors).mockResolvedValue(selection("zenmi"));
   jest.mocked(getAdminConnectors).mockResolvedValue({ code: 0, msg: "success", data: { connectors: [
-    { id: "builtin.web-control", name: "网页控制", description: "控制网页", version: "1", type: "native", auth_mode: "no_auth", builtin: true, readOnly: true, canDelete: false, hasNative: true, nativeTools: ["awcp_manual"], tools: [{key:"awcp_manual",name:"awcp_manual",label:"Website manual",description:"Read website instructions",kind:"native",sourceType:"native",sourceCategory:"platform"}], hasMcp: false, hasCli: false, hasBin: false, skills: [] },
+    { id: "builtin.web-control", name: "网页控制", description: "控制网页", version: "1", type: "native", authMode: "none", builtin: true, readOnly: true, canDelete: false, hasNative: true, nativeTools: ["awcp_manual"], tools: [{key:"awcp_manual",name:"awcp_manual",label:"Website manual",description:"Read website instructions",kind:"native",sourceType:"native",sourceCategory:"platform"}], hasMcp: false, hasCli: false, hasBin: false, skills: [] },
   ] } });
   container = document.createElement("div");
   root = createRoot(container);

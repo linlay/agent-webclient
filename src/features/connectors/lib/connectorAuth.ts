@@ -1,15 +1,15 @@
-import type { ConnectorAuthActionResult, ConnectorAuthSession, ConnectorAuthStatus, ConnectorSummary } from "@/shared/data";
+import type { ConnectorAuthActionResult, ConnectorAuthMode, ConnectorAuthSession, ConnectorAuthStatus } from "@/shared/data";
 
 export type ConnectorAuthViewStatus = ConnectorAuthStatus | "unknown" | "expired";
 
-export function supportsConnectorLogin(mode: ConnectorSummary["auth_mode"]): boolean {
-  // null delegates authentication to the connector. Its status distinguishes
+export function supportsConnectorLogin(mode: ConnectorAuthMode): boolean {
+  // self delegates authentication to the connector. Its status distinguishes
   // managed CLI login from authentication handled entirely by its skill/CLI.
-  return mode === null || mode === "cli" || mode === "oauth" || mode === "mcp";
+  return mode === "self" || mode === "oauth" || mode === "mcp";
 }
 
-export function supportsConnectorAuthCheck(mode: ConnectorSummary["auth_mode"]): boolean {
-  return supportsConnectorLogin(mode) || mode === "oneid-token" || mode === "token";
+export function supportsConnectorAuthCheck(mode: ConnectorAuthMode): boolean {
+  return supportsConnectorLogin(mode) || mode === "oneid" || mode === "token";
 }
 
 export function isConnectorAuthActive(session: ConnectorAuthSession | null): boolean {
@@ -43,7 +43,8 @@ export function readConnectorAuthSession(value: ConnectorAuthSession, id: string
   if (!value || value.connectorId !== id || !statuses.includes(value.status) || typeof value.sessionId !== "string" || typeof value.expiresAt !== "string"
     || (value.authBrowser !== undefined && value.authBrowser !== "system" && value.authBrowser !== "embedded")
     || (value.pendingVerification !== undefined && typeof value.pendingVerification !== "boolean")
-    || (value.authorizationUrl !== undefined && typeof value.authorizationUrl !== "string") || (value.message !== undefined && typeof value.message !== "string")) {
+    || (value.authorizationUrl !== undefined && typeof value.authorizationUrl !== "string") || (value.message !== undefined && typeof value.message !== "string")
+    || (value.userCode !== undefined && typeof value.userCode !== "string") || (value.userCodeExpiresAt !== undefined && typeof value.userCodeExpiresAt !== "string")) {
     throw new Error("connectors.auth.error.response");
   }
   return value;

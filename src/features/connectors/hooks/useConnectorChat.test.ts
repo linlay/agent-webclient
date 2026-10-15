@@ -9,7 +9,7 @@ jest.mock("@/shared/data", () => ({ getAgents: jest.fn(), getAdminAgentConnector
 jest.mock("@/shared/utils/routing", () => ({ isDesktopAppMode: jest.fn() }));
 const mockNavigate = jest.fn();
 jest.mock("react-router-dom", () => ({ useNavigate: () => mockNavigate }));
-const item: ConnectorSummary = { id: "installed-one", name: "Installed", version: "1", type: "mcp", auth_mode: "token", hasCli: false, hasMcp: true, hasBin: false, skills: [], builtin: true, readOnly: true };
+const item: ConnectorSummary = { id: "installed-one", name: "Installed", version: "1", type: "mcp", authMode: "token", hasCli: false, hasMcp: true, hasBin: false, skills: [], builtin: true, readOnly: true };
 const connection: ConnectorConnection = { connectorId: item.id, configured: true, configurationRequired: true, readiness: "ready", authentication: { connectorId: item.id, sessionId: "", status: "authorized", expiresAt: "" }, capabilities: { canConnect: false, canDisconnect: true, canCheck: true, authMode: "token", authBrowser: "system", hasCli: false, hasMcp: true } };
 const state = { agentKey: "default", connectorIds: [item.id], activeConnectorIds: [item.id], presetConnectorIds: [], declaredConnectorIds: [item.id], reloadPending: false };
 let root: Root;

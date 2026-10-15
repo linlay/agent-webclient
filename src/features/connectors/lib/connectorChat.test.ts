@@ -1,7 +1,7 @@
 import type { AdminAgentConnectorsResponse, ConnectorConnection, ConnectorSummary } from "@/shared/data";
 import { connectorChatUrl, prepareConnectorChat, type ConnectorChatDependencies } from "./connectorChat";
-const item: ConnectorSummary = { id: "installed-id", name: "Installed", version: "1", type: "cli", auth_mode: null, hasCli: true, hasMcp: false, hasBin: false, skills: [] };
-const connection = (changes: Partial<ConnectorConnection> = {}): ConnectorConnection => ({ connectorId: item.id, configured: true, configurationRequired: true, readiness: "ready", authentication: { connectorId: item.id, sessionId: "", status: "authorized", expiresAt: "" }, capabilities: { canConnect: true, canDisconnect: true, canCheck: true, authMode: null, authBrowser: "system", hasCli: true, hasMcp: false }, preparation: { connectorId: item.id, status: "ready" }, ...changes });
+const item: ConnectorSummary = { id: "installed-id", name: "Installed", version: "1", type: "cli", authMode: "self", hasCli: true, hasMcp: false, hasBin: false, skills: [] };
+const connection = (changes: Partial<ConnectorConnection> = {}): ConnectorConnection => ({ connectorId: item.id, configured: true, configurationRequired: true, readiness: "ready", authentication: { connectorId: item.id, sessionId: "", status: "authorized", expiresAt: "" }, capabilities: { canConnect: true, canDisconnect: true, canCheck: true, authMode: "self", authBrowser: "system", hasCli: true, hasMcp: false }, preparation: { connectorId: item.id, status: "ready" }, ...changes });
 const state = (changes: Partial<AdminAgentConnectorsResponse> = {}): AdminAgentConnectorsResponse => ({ agentKey: "default", connectorIds: [], activeConnectorIds: [], presetConnectorIds: [], declaredConnectorIds: [], reloadPending: false, ...changes });
 let now: number;
 let deps: ConnectorChatDependencies;
@@ -53,14 +53,14 @@ it("reads an unknown mount result once without replaying the mutation", async ()
   expect(deps.readAgent).toHaveBeenCalledTimes(2);
 });
 it("does not remount an already active connector and allows no_auth without configured state", async () => {
-  jest.mocked(deps.readConnection).mockResolvedValue(connection({ configured: false, configurationRequired: false, readiness: "no_auth", authentication: { connectorId: item.id, sessionId: "", status: "no_auth", expiresAt: "" }, capabilities: { ...connection().capabilities, authMode: "no_auth" }, preparation: undefined }));
+  jest.mocked(deps.readConnection).mockResolvedValue(connection({ configured: false, configurationRequired: false, readiness: "no_auth", authentication: { connectorId: item.id, sessionId: "", status: "no_auth", expiresAt: "" }, capabilities: { ...connection().capabilities, authMode: "none" }, preparation: undefined }));
   jest.mocked(deps.readAgent).mockResolvedValue(state({ connectorIds: [item.id], activeConnectorIds: [item.id] }));
-  await prepareConnectorChat({ ...item, builtin: true, auth_mode: "no_auth" }, "default", deps);
+  await prepareConnectorChat({ ...item, builtin: true, authMode: "none" }, "default", deps);
   expect(deps.prepare).not.toHaveBeenCalled(); expect(deps.mount).not.toHaveBeenCalled();
 });
 it.each(["failed", "unauthorized"] as const)("rejects inconsistent no_auth plus %s without mounting", async status => {
-  jest.mocked(deps.readConnection).mockResolvedValue(connection({ configured: false, configurationRequired: false, readiness: "no_auth", authentication: { connectorId: item.id, sessionId: "", status, expiresAt: "" }, capabilities: { ...connection().capabilities, authMode: "no_auth" }, preparation: undefined }));
-  await expect(prepareConnectorChat({ ...item, builtin: true, hasCli: false, auth_mode: "no_auth" }, "default", deps)).rejects.toMatchObject({ reason: "invalidResponse" });
+  jest.mocked(deps.readConnection).mockResolvedValue(connection({ configured: false, configurationRequired: false, readiness: "no_auth", authentication: { connectorId: item.id, sessionId: "", status, expiresAt: "" }, capabilities: { ...connection().capabilities, authMode: "none" }, preparation: undefined }));
+  await expect(prepareConnectorChat({ ...item, builtin: true, hasCli: false, authMode: "none" }, "default", deps)).rejects.toMatchObject({ reason: "invalidResponse" });
   expect(deps.mount).not.toHaveBeenCalled();
 });
 it("bounds preparation and deferred runtime publication without retrying writes", async () => {

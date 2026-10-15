@@ -99,7 +99,7 @@ Main Chat Composer 只消费 owner Chat 匹配的 `workPanel.composer.insertDraf
 
 ## 连接器内嵌授权
 
-Platform 从 `connector.json.auth_browser` 固定会话展示策略，start/status 的 `authBrowser` 为唯一运行时事实源；省略保持 system。WebClient 不读取 CLI 配置。只有当前观察器发起或显式继续的授权会话展示弹窗，列表后台检查不自动弹窗。
+Platform 从 `connector.json.authBrowser` 固定会话展示策略，start/status 的 `authBrowser` 为唯一运行时事实源；省略保持 system。WebClient 不读取 CLI 配置。只有当前观察器发起或显式继续的授权会话展示弹窗，列表后台检查不自动弹窗。
 
 Standalone 使用 sandbox 模态 iframe；Desktop 使用独立 v1 Connector Auth Browser bridge，通过 connectorId/sessionId 请求宿主重新校验会话并打开隔离 WebView。缺失 bridge 或嵌入失败不降级外部浏览器。授权成功只依据 Platform 状态。用户关闭弹窗通过带 sessionId 的取消接口取消当前会话；页面卸载只关闭展示与观察，不注销凭据。
 

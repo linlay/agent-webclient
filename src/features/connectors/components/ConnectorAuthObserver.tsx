@@ -5,7 +5,7 @@ import { useConnectorAuth, type ConnectorAuthRuntime } from "../hooks/useConnect
 import type { createConnectorAuthChecks } from "../lib/connectorAuthChecks";
 
 export function connectorAuthIdentity(item: ConnectorSummary): string {
-  return JSON.stringify([item.id, item.auth_mode, item.version, item.builtin === true || item.readOnly === true]);
+  return JSON.stringify([item.id, item.authMode, item.version, item.builtin === true || item.readOnly === true]);
 }
 
 // Observers belong to the catalog, so filtering, tabs, and selection don't reset
@@ -18,7 +18,7 @@ export function ConnectorAuthObserver({ item, checks, onChange, onCredentialsCha
   onCredentialsChange: () => void;
 }) {
   const identity = connectorAuthIdentity(item);
-  const auth = useConnectorAuth({ id: item.id, mode: item.auth_mode, readOnly: item.builtin === true || item.readOnly === true,
+  const auth = useConnectorAuth({ id: item.id, mode: item.authMode, readOnly: item.builtin === true || item.readOnly === true,
     checkStatus: checks.request, observe: true, pollInactive, onCredentialsChange });
   useEffect(() => { onChange(identity, auth); }, [identity, auth, onChange]);
   useEffect(() => () => onChange(identity, null), [identity, onChange]);

@@ -12,19 +12,23 @@ export interface ConnectorMcpStatus {
   diagnostic?: { severity: string; code: string; message: string };
 }
 
+/** connector.json authMode; `oneid-token` is accepted by Platform and returned as `oneid`. */
+export type ConnectorAuthMode = "none" | "self" | "token" | "oauth" | "mcp" | "oneid";
+
 export interface ConnectorSummary {
   tools?: AdminToolSummary[];
   id: string;
   name: string;
   version: string;
   type: ConnectorType;
-  auth_browser?: "system" | "embedded";
-  auth_mode: "no_auth" | "none" | "cli" | "mcp" | "token" | "oneid-token" | "oauth" | null;
+  authBrowser?: "system" | "embedded";
+  authMode: ConnectorAuthMode;
   description?: string;
   icon?: string;
   iconSha256?: string;
   iconUrl?: string;
-  token_schema?: unknown;
+  /** token-schema.json, returned for authMode token. */
+  tokenSchema?: unknown;
   oauth?: unknown;
   builtin?: boolean;
   readOnly?: boolean;
@@ -136,7 +140,7 @@ export interface ImportConnectorArchiveResponse {
   name: string;
   version: string;
   installed: boolean;
-  authMode: ConnectorSummary["auth_mode"];
+  authMode: ConnectorAuthMode;
 }
 
 export type ConnectorAuthStatus = "no_auth" | "configured" | "pending_verification" | "not_required" | "delegated" | "setup_required" | "unauthorized" | "preparing" | "pending" | "authorized" | "failed" | "canceled";
@@ -146,6 +150,9 @@ export interface ConnectorAuthSession {
   sessionId: string;
   status: ConnectorAuthStatus;
   authorizationUrl?: string;
+  /** CLI device-flow code the user confirms or enters at the authorization page. */
+  userCode?: string;
+  userCodeExpiresAt?: string;
   authBrowser?: "system" | "embedded";
   message?: string;
   /** Candidate credentials are being checked; existing active credentials may remain usable. */
@@ -197,7 +204,7 @@ export interface ConnectorConnection {
     canConnect: boolean;
     canDisconnect: boolean;
     canCheck: boolean;
-    authMode: ConnectorSummary["auth_mode"];
+    authMode: ConnectorAuthMode;
     authBrowser: "" | "system" | "embedded";
     hasCli: boolean;
     hasMcp: boolean;

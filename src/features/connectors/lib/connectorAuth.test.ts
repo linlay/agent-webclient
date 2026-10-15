@@ -3,13 +3,13 @@ import type { ConnectorAuthSession } from "@/shared/data";
 
 const session: ConnectorAuthSession = { connectorId: "demo", sessionId: "", status: "unauthorized", expiresAt: "0001-01-01T00:00:00Z" };
 it("uses auth modes instead of provider identifiers", () => {
-  expect(["cli", "oauth", "mcp", "none", "token"].map(mode => supportsConnectorLogin(mode as "cli"))).toEqual([true, true, true, false, false]);
+  expect(["self", "oauth", "mcp", "none", "token"].map(mode => supportsConnectorLogin(mode as "self"))).toEqual([true, true, true, false, false]);
 });
 it("checks canonical delegated and Desktop identity modes while keeping Desktop login external", () => {
-  expect(supportsConnectorAuthCheck(null)).toBe(true);
-  expect(supportsConnectorLogin(null)).toBe(true);
-  expect(supportsConnectorAuthCheck("oneid-token")).toBe(true);
-  expect(supportsConnectorLogin("oneid-token")).toBe(false);
+  expect(supportsConnectorAuthCheck("self")).toBe(true);
+  expect(supportsConnectorLogin("self")).toBe(true);
+  expect(supportsConnectorAuthCheck("oneid")).toBe(true);
+  expect(supportsConnectorLogin("oneid")).toBe(false);
   expect(readConnectorAuthSession({ ...session, status: "delegated" }, "demo").status).toBe("delegated");
 });
 it.each(["javascript:alert(1)", "data:text/html,test", "file:///tmp/login", "//example.test/login", "https://user:password@example.test", "https://example.test/\nlogin", "https://", "https:\\example.test"])("rejects an unsafe authorization URL: %s", url => {
@@ -33,7 +33,7 @@ it("rejects a mismatched connector or unknown protocol state", () => {
 });
 
 it("accepts no_auth as a terminal state without login or authentication checks",()=>{
- expect(supportsConnectorAuthCheck("no_auth")).toBe(false);
- expect(supportsConnectorLogin("no_auth")).toBe(false);
+ expect(supportsConnectorAuthCheck("none")).toBe(false);
+ expect(supportsConnectorLogin("none")).toBe(false);
  expect(readConnectorAuthSession({...session,status:"no_auth"},"demo").status).toBe("no_auth");
 });
