@@ -41,6 +41,27 @@ export function connectorSelectionConflictNames(conflict: ConnectorSelectionConf
   return { name: name(conflict.connectorId), conflicts: conflict.conflictingConnectorIds.map(name).join(", ") };
 }
 
+// Platform 内置连接器（native 与随包分发的 CLI），与 agent-platform 的 native.go、
+// resources/connectors/*/connector.json、scripts/release-assets/connectors.lock.json 保持一致。
+// 仅用于 Composer 已选连接器的堆叠排序，不影响可选性与挂载规则。
+export const BUILTIN_CONNECTOR_IDS: readonly string[] = [
+  "builtin.web-control",
+  "builtin.platform-control",
+  "builtin.kanban-control",
+  "builtin.kbase-control",
+  "builtin.task-control",
+  "builtin.dbx",
+  "builtin.httpx",
+];
+
+export function orderConnectorsBuiltinLast<T extends { id: string }>(items: readonly T[]): T[] {
+  const builtinIds = new Set(BUILTIN_CONNECTOR_IDS);
+  return [
+    ...items.filter(item => !builtinIds.has(item.id)),
+    ...items.filter(item => builtinIds.has(item.id)),
+  ];
+}
+
 export function filterConnectorOptions(items: ConnectorOption[], search: string): ConnectorOption[] {
   const needle = search.trim().toLowerCase();
   return items.filter(item => [item.id, item.name, item.description].filter(Boolean).join(" ").toLowerCase().includes(needle));

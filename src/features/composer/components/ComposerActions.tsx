@@ -26,6 +26,7 @@ import { useAgentConnectors } from "@/features/connectors/hooks/useAgentConnecto
 import { useConnectorPickerCatalog } from "@/features/connectors/hooks/useConnectorPickerCatalog";
 import { ConnectorIcon } from "@/features/connectors/components/ConnectorIcon";
 import { AgentConnectorPicker } from "@/features/connectors/components/AgentConnectorPicker";
+import { orderConnectorsBuiltinLast } from "@/features/connectors/lib/connectorSelection";
 import { useOptionalAppContext } from "@/app/state/AppContext";
 const presentationClasses = bindCssModuleClasses({
   ...timelinePresentation,
@@ -58,6 +59,8 @@ const SEND_BUTTON_CLASS = presentationClasses(
 );
 const INTERRUPT_BUTTON_CLASS =
   "interrupt-btn tw:!h-8 tw:!min-h-8 tw:!w-8 tw:!min-w-8 tw:!flex-none tw:self-center tw:!rounded-lg tw:!border-0 tw:!p-0 tw:!text-[11px] tw:!font-bold tw:hover:!bg-[color-mix(in_srgb,var(--accent-danger)_10%,transparent)] tw:disabled:opacity-60";
+// 已选连接器堆叠最多显示的图标数量
+const CONNECTOR_STACK_MAX_ICONS = 3;
 
 interface ComposerActionsProps extends Omit<
   AddMenuTriggerProps,
@@ -341,7 +344,7 @@ const ComposerActionsPure: React.FC<
                         "composer-connector-avatar-stack",
                       )}
                     >
-                      {enabledConnectors.slice(0, 4).map((connector) => (
+                      {enabledConnectors.slice(0, CONNECTOR_STACK_MAX_ICONS).map((connector) => (
                         <span
                           key={connector.id}
                           className={presentationClasses(
@@ -353,18 +356,6 @@ const ComposerActionsPure: React.FC<
                         </span>
                       ))}
                     </span>
-                    {enabledConnectors.length > 4 && (
-                      <span
-                        style={{
-                          fontSize: 10,
-                          marginLeft: 3,
-                          color: "var(--ink-muted)",
-                          fontWeight: 600,
-                        }}
-                      >
-                        +{enabledConnectors.length - 4}
-                      </span>
-                    )}
                   </button>
                 </Popover>
               )}
@@ -501,9 +492,11 @@ const ComposerActionsWithConnectors: React.FC<
     if (!connectorSelection.data?.connectorIds?.length) return [];
     const selectedSet = new Set(connectorSelection.data.connectorIds);
     const available = connectorSelection.availableIds;
-    return connectorCatalog.items.filter(
-      (item) =>
-        selectedSet.has(item.id) && (!available || available.includes(item.id)),
+    return orderConnectorsBuiltinLast(
+      connectorCatalog.items.filter(
+        (item) =>
+          selectedSet.has(item.id) && (!available || available.includes(item.id)),
+      ),
     );
   }, [
     connectorSelection.data?.connectorIds,
