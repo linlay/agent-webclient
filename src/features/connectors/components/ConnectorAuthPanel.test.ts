@@ -115,7 +115,7 @@ it("shows a CLI device code and withholds the link when the CLI opens the browse
 });
 
 it("distinguishes MCP tool availability from OAuth login in English", async () => {
-  const mcp: ConnectorSummary = { ...item, type: "mcp", authMode: "oauth", hasCli: false, hasMcp: true, mcp: [{ serverKey: "demo.main", status: "unavailable", toolCount: 0 }] };
+  const mcp: ConnectorSummary = { ...item, type: "mcp", authMode: "mcp", hasCli: false, hasMcp: true, mcp: [{ serverKey: "demo.main", status: "unavailable", toolCount: 0 }] };
   jest.mocked(getConnectorAuthStatus).mockResolvedValueOnce(response("authorized"));
   await mount(mcp, "en-US");
   expect(container.textContent).toContain("Authorized");

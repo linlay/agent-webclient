@@ -5,7 +5,7 @@ export type ConnectorAuthViewStatus = ConnectorAuthStatus | "unknown" | "expired
 export function supportsConnectorLogin(mode: ConnectorAuthMode): boolean {
   // self delegates authentication to the connector. Its status distinguishes
   // managed CLI login from authentication handled entirely by its skill/CLI.
-  return mode === "self" || mode === "oauth" || mode === "mcp";
+  return mode === "self" || mode === "mcp";
 }
 
 export function supportsConnectorAuthCheck(mode: ConnectorAuthMode): boolean {

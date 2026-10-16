@@ -93,7 +93,7 @@ it("ignores an old connector result and restores the new connector's server sess
   await mount();
   const signal = jest.mocked(getConnectorAuthStatus).mock.calls[0][1];
   jest.mocked(getConnectorAuthStatus).mockResolvedValueOnce(response("pending", { connectorId: "other" }));
-  await mount({ id: "other", mode: "oauth" });
+  await mount({ id: "other", mode: "mcp" });
   expect(signal?.aborted).toBe(true);
   await act(async () => old.resolve(response("authorized")));
   expect(current.session?.connectorId).toBe("other");
@@ -356,7 +356,7 @@ it("no_auth never checks, polls or performs authentication operations", async ()
 it("switching to no_auth aborts the previous check and ignores its result",async()=>{
  const pending=deferred<ApiResponse<ConnectorAuthSession>>();
  jest.mocked(getConnectorAuthStatus).mockReturnValueOnce(pending.promise);
- await mount({mode:"oauth",observe:true});
+ await mount({mode:"mcp",observe:true});
  const signal=jest.mocked(getConnectorAuthStatus).mock.calls[0][1];
  await mount({mode:"none",observe:true});
  expect(signal?.aborted).toBe(true);

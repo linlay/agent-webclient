@@ -84,7 +84,7 @@ function ConnectorAuthPanelContent({ item, disabled, onConfigure, onCredentialsC
     {(auth.session?.pendingVerification || status === "pending_verification") && <p className={styles.notice} role="status">{t("connectors.credentials.pending")}</p>}
     {checkable && <>
       {interactive && <p className={styles.hint}>{t("connectors.auth.shared")}</p>}
-      {(item.authMode === "oauth" || item.authMode === "mcp") && <p className={styles.notice}>{t("connectors.auth.localCallback")}</p>}
+      {item.authMode === "mcp" && <p className={styles.notice}>{t("connectors.auth.localCallback")}</p>}
       {item.hasMcp && <p className={styles.hint}>{t("connectors.auth.mcpAvailability")}</p>}
       {item.authMode !== "token" && auth.session?.message && ["failed", "setup_required", "canceled", "expired"].includes(status) && <p className={styles.hint}>{auth.session.message}</p>}
       {errorText && <div className={styles.error} role="alert">{t("connectors.auth.error.prefix")} {item.authMode === "token" ? t("connectors.credentials.checkFailed") : errorText}</div>}
