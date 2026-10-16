@@ -4,7 +4,6 @@
   align-items: center;
   gap: 6px;
   border: 1px solid var(--line-soft);
-  border-radius: 999px;
   background: color-mix(in srgb, var(--bg-elev-2) 94%, transparent);
   padding: 4px 10px;
   color: var(--ink-1);

@@ -35,15 +35,15 @@ const BTW_BODY_CLASS = [
   SCROLLBAR_THIN_CLASS_NAME,
 ].join(" ");
 const BTW_TIMELINE_CLASS =
-  "btw-tab-timeline tw:flex tw:min-h-full tw:flex-col tw:justify-end tw:gap-2.5";
+  "btw-tab-timeline tw:flex tw:min-h-full tw:flex-col tw:gap-2.5";
 const BTW_RUN_CLASS =
-  "btw-tab-run tw:flex tw:flex-col tw:gap-2 tw:border-l tw:border-line-soft tw:pl-2";
+  "btw-tab-run tw:flex tw:flex-col tw:gap-2";
 const BTW_EMPTY_CLASS =
   "btw-tab-empty tw:flex tw:min-h-40 tw:flex-1 tw:flex-col tw:items-center tw:justify-center tw:gap-2 tw:text-center tw:text-xs tw:text-ink-muted";
 const BTW_COMPOSER_CLASS =
-  "btw-tab-composer tw:flex-none tw:border-t tw:border-line-soft tw:p-2";
+  "btw-tab-composer tw:flex-none tw:p-2 tw:rounded-lg tw:border tw:border-line-soft tw:bg-bg-input tw:m-[10px]";
 const BTW_COMPOSER_INNER_CLASS =
-  "btw-tab-composer-inner tw:flex tw:min-h-10 tw:items-end tw:gap-1.5 tw:rounded-lg tw:border tw:border-line-soft tw:bg-bg-input tw:p-1.5";
+  "btw-tab-composer-inner tw:flex tw:items-end tw:gap-1.5";
 
 function renderEntry(entry: TimelineRenderEntry): React.ReactNode {
   if (entry.kind === "node") {
@@ -171,7 +171,10 @@ export const BtwTabView: React.FC<BtwTabViewProps> = ({
               .filter(Boolean)
               .join(" ")}
           >
-            <MaterialIcon name={running ? "progress_activity" : "lock"} />
+            <MaterialIcon
+              name={running ? "progress_activity" : "lock"}
+              className={running ? "tw:animate-ui-spin" : undefined}
+            />
             <span>
               {t(running ? "btw.status.running" : "btw.status.readOnly")}
             </span>
