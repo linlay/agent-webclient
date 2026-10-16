@@ -119,22 +119,66 @@ describe("useComposerKeyboard", () => {
 
 
 describe("queued steer shortcut", () => {
+  const originalNavigator = global.navigator;
+
+  afterEach(() => {
+    if (originalNavigator) {
+      Object.defineProperty(global, "navigator", {
+        value: originalNavigator,
+        configurable: true,
+      });
+    } else {
+      delete (global as unknown as { navigator?: unknown }).navigator;
+    }
+  });
+
   const keyEvent = (overrides = {}) => ({
-    key: "Enter", metaKey: true, shiftKey: false, altKey: false, repeat: false,
+    key: "Enter", metaKey: true, ctrlKey: false, shiftKey: false, altKey: false, repeat: false,
     preventDefault: jest.fn(), stopPropagation: jest.fn(), ...overrides,
   } as unknown as React.KeyboardEvent<HTMLTextAreaElement>);
 
-  it("submits queued steer with Cmd+Enter without sending the new draft or selecting suggestions", () => {
+  it("submits queued steer with Cmd+Enter on Mac without sending the new draft or selecting suggestions", () => {
+    Object.defineProperty(global, "navigator", {
+      value: { platform: "MacIntel" },
+      configurable: true,
+    });
     const onSubmitQueuedSteer = jest.fn();
     const handleSend = jest.fn();
     const onSelectSlashItem = jest.fn();
-    const event = keyEvent();
+    const event = keyEvent({ metaKey: true, ctrlKey: false });
     renderKeyboardHook({ onSubmitQueuedSteer, handleSend, showSlashPalette: true, onSelectSlashItem })(event);
     expect(onSubmitQueuedSteer).toHaveBeenCalledTimes(1);
     expect(handleSend).not.toHaveBeenCalled();
     expect(onSelectSlashItem).not.toHaveBeenCalled();
     expect(event.preventDefault).toHaveBeenCalled();
     expect(event.stopPropagation).toHaveBeenCalled();
+  });
+
+  it("submits queued steer with Ctrl+Enter on Windows/Linux", () => {
+    Object.defineProperty(global, "navigator", {
+      value: { platform: "Win32" },
+      configurable: true,
+    });
+    const onSubmitQueuedSteer = jest.fn();
+    const handleSend = jest.fn();
+    const event = keyEvent({ metaKey: false, ctrlKey: true });
+    renderKeyboardHook({ onSubmitQueuedSteer, handleSend })(event);
+    expect(onSubmitQueuedSteer).toHaveBeenCalledTimes(1);
+    expect(handleSend).not.toHaveBeenCalled();
+    expect(event.preventDefault).toHaveBeenCalled();
+    expect(event.stopPropagation).toHaveBeenCalled();
+  });
+
+  it("does not submit queued steer on Windows when pressing Cmd+Enter", () => {
+    Object.defineProperty(global, "navigator", {
+      value: { platform: "Win32" },
+      configurable: true,
+    });
+    const onSubmitQueuedSteer = jest.fn();
+    const handleSend = jest.fn();
+    const event = keyEvent({ metaKey: true, ctrlKey: false });
+    renderKeyboardHook({ onSubmitQueuedSteer, handleSend })(event);
+    expect(onSubmitQueuedSteer).not.toHaveBeenCalled();
   });
 
   it("keeps ordinary Enter on the existing enqueue path", () => {
