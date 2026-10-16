@@ -7,6 +7,9 @@ import {
   getAdminAgents,
   getAdminSkills,
   getAdminTools,
+  getAgents,
+  createAgent,
+  updateAgent,
   type AgentEditorOptionsResponse,
   type ApiResponse,
 } from "@/shared/data";
@@ -27,12 +30,16 @@ jest.mock("@/shared/data", () => ({
   getAdminAgentEditorOptions: jest.fn(),
   getAdminTools: jest.fn(),
   getAdminSkills: jest.fn(),
+  getAgents: jest.fn(),
+  createAgent: jest.fn(),
+  updateAgent: jest.fn(),
 }));
 jest.mock("antd", () => ({
   Modal: () => null,
   Popconfirm: ({ children }: React.PropsWithChildren) => children,
   Spin: ({ children }: React.PropsWithChildren) => children,
   Tooltip: ({ children }: React.PropsWithChildren) => children,
+  message: { success: jest.fn(), error: jest.fn(), warning: jest.fn() },
 }));
 jest.mock("@/shared/ui/MaterialIcon", () => ({ MaterialIcon: () => null }));
 jest.mock("@/shared/icons/agent", () => ({ AGENT_ICON_NAMES: [], AgentIcon: () => null }));
@@ -47,7 +54,7 @@ jest.mock("./AgentEditor", () => ({
 }));
 jest.mock("./AgentCreateModal", () => ({ AgentCreateModal: () => null }));
 jest.mock("./AgentSourceEditor", () => ({ AgentSourceEditor: () => null }));
-jest.mock("@/features/connectors/hooks/useAgentConnectorCapabilities", () => ({ useAgentConnectorCapabilities: () => ({ items: [], ownedToolNames: [], loading: false, error: null, reloadPending: false, refresh: jest.fn() }) }));
+jest.mock("@/features/connectors/hooks/useAgentConnectorCapabilities", () => ({ useAgentConnectorCapabilities: () => ({ ready: true, items: [], catalog: [], ownedToolNames: [], loading: false, error: null, reloadPending: false, refresh: jest.fn() }) }));
 
 const agent = {
   key: "agent-a",
@@ -98,6 +105,7 @@ beforeEach(() => {
   jest.mocked(getAdminAgentEditorOptions).mockResolvedValue(response(options));
   jest.mocked(getAdminTools).mockResolvedValue(response([]));
   jest.mocked(getAdminSkills).mockResolvedValue(response({ skills: [], packages: [], pinned: [] }));
+  jest.mocked(getAgents).mockResolvedValue(response([]));
   container = document.createElement("div");
   document.body.appendChild(container);
   root = createRoot(container);
@@ -181,3 +189,61 @@ it("keeps structured editing available beside conversation creation", async () =
 });
 
 jest.mock("@/shared/ui/EditMenuButton", () => ({ EditMenuButton: ({ label, onStructured }: any) => React.createElement("button", { onClick: onStructured }, label) }));
+
+function connectorEditor() {
+  return (editor().connectors as React.ReactElement<{ selectedIds: string[]; savedIds: string[]; onSelectionChange: (ids: string[]) => void }>).props;
+}
+function saveButton() {
+  return Array.from(container.querySelectorAll("button")).find(button => button.textContent?.includes("agentConsole.action.saveChanges"))!;
+}
+
+it("saves connector drafts with the Agent form and clears them only after successful persistence", async () => {
+  const detail = { ...agent, definition: { ...agent.definition, connectorConfig: { connectors: ["docs"] } } };
+  jest.mocked(getAdminAgentDetail).mockResolvedValue(response(detail));
+  const dirty = jest.fn();
+  await act(async () => root.render(React.createElement(AgentConsole, { selectedAgentKey: agent.key, onDirtyChange: dirty })));
+  expect(connectorEditor().selectedIds).toEqual(["docs"]);
+  expect(saveButton().disabled).toBe(true);
+  await act(async () => connectorEditor().onSelectionChange(["builtin.httpx"]));
+  expect(connectorEditor().savedIds).toEqual(["docs"]);
+  expect(updateAgent).not.toHaveBeenCalled();
+  expect(createAgent).not.toHaveBeenCalled();
+  expect(dirty).toHaveBeenLastCalledWith(true);
+  expect(saveButton().disabled).toBe(false);
+
+  jest.mocked(updateAgent).mockRejectedValueOnce(new Error("Save failed"));
+  await act(async () => saveButton().click());
+  expect(connectorEditor().selectedIds).toEqual(["builtin.httpx"]);
+  expect(connectorEditor().savedIds).toEqual(["docs"]);
+  expect(saveButton().disabled).toBe(false);
+
+  jest.mocked(updateAgent).mockImplementation(async params => response({ ...detail, definition: params.definition }));
+  await act(async () => saveButton().click());
+  expect(updateAgent).toHaveBeenLastCalledWith(expect.objectContaining({
+    definition: expect.objectContaining({ connectorConfig: { connectors: ["builtin.httpx"] } }),
+  }));
+  expect(connectorEditor().selectedIds).toEqual(["builtin.httpx"]);
+  expect(connectorEditor().savedIds).toEqual(["builtin.httpx"]);
+  expect(dirty).toHaveBeenLastCalledWith(false);
+  expect(saveButton().disabled).toBe(true);
+});
+
+it("uses the existing draft-discard confirmation when switching Agents", async () => {
+  await render(false, agent.key);
+  await act(async () => connectorEditor().onSelectionChange(["docs"]));
+  const confirm = jest.spyOn(window, "confirm").mockReturnValueOnce(false).mockReturnValueOnce(true);
+  try {
+    await act(async () => list().onSelect("other"));
+    expect(confirm).toHaveBeenCalledWith("agentConsole.confirm.switch");
+    expect(connectorEditor().selectedIds).toEqual(["docs"]);
+    expect(getAdminAgentDetail).toHaveBeenCalledTimes(1);
+    jest.mocked(getAdminAgentDetail).mockResolvedValue(response({ ...agent, key: "other", definition: { ...agent.definition, key: "other" } }));
+    // An uncontrolled console lets its own selection state commit the change.
+    await render(false);
+    await act(async () => list().onSelect("other"));
+    expect(connectorEditor().selectedIds).toEqual([]);
+    expect(updateAgent).not.toHaveBeenCalled();
+  } finally {
+    confirm.mockRestore();
+  }
+});

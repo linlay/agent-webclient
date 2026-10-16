@@ -1,25 +1,26 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { getAdminAgentConnectors, getAdminConnectors, type AdminAgentConnectorBinding } from "@/shared/data";
+import { getAdminAgentConnectors, getAdminConnectors, type AdminAgentConnectorBinding, type ConnectorSummary } from "@/shared/data";
 import { usePushTransport } from "@/features/transport/hooks/useRealtimeTransport";
 import { agentConnectorCapabilities, agentConnectorCapabilitiesFromBindings, type AgentConnectorCapability } from "../lib/agentConnectorCapabilities";
 
 const emptyItems: AgentConnectorCapability[] = [];
 const emptyNames: string[] = [];
+const emptyCatalog: ConnectorSummary[] = [];
 export function useAgentConnectorCapabilities(agentKey: string, bindings?: AdminAgentConnectorBinding[] | null, reloadPending = false) {
   const push = usePushTransport();
-  const [snapshot, setSnapshot] = useState<{ agentKey: string; items: AgentConnectorCapability[]; ownedToolNames: string[]; reloadPending: boolean }>();
+  const [snapshot, setSnapshot] = useState<{ agentKey: string; items: AgentConnectorCapability[]; catalog: ConnectorSummary[]; ownedToolNames: string[]; reloadPending: boolean }>();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const request = useRef(0);
-  const refresh = useCallback(async () => {
+  const refresh = useCallback(async (refreshSelection = false) => {
     const current = ++request.current;
     setLoading(true);
     try {
-      const [selection, catalog] = await Promise.all([(bindings !== undefined ? Promise.resolve(null) : agentKey ? getAdminAgentConnectors(agentKey) : Promise.resolve(null)), getAdminConnectors()]);
+      const [selection, catalog] = await Promise.all([(agentKey && (bindings === undefined || refreshSelection) ? getAdminAgentConnectors(agentKey) : Promise.resolve(null)), getAdminConnectors()]);
       if (current !== request.current) return;
       if (selection && selection.data.agentKey !== agentKey) throw new Error("Invalid Agent connector response");
-      setSnapshot({ agentKey, items: bindings ? agentConnectorCapabilitiesFromBindings(agentKey, bindings, catalog.data.connectors) : selection ? agentConnectorCapabilities(selection.data, catalog.data.connectors) : [],
-        ownedToolNames: catalog.data.connectors.flatMap(item => item.nativeTools || []), reloadPending: bindings ? reloadPending : selection?.data.reloadPending || false });
+      setSnapshot({ agentKey, items: selection ? agentConnectorCapabilities(selection.data, catalog.data.connectors) : bindings ? agentConnectorCapabilitiesFromBindings(agentKey, bindings, catalog.data.connectors) : [],
+        catalog: catalog.data.connectors, ownedToolNames: catalog.data.connectors.flatMap(item => item.nativeTools || []), reloadPending: selection ? selection.data.reloadPending : reloadPending });
       setError(null);
     } catch (cause) {
       if (current === request.current) setError(cause instanceof Error ? cause : new Error(String(cause)));
@@ -34,14 +35,15 @@ export function useAgentConnectorCapabilities(agentKey: string, bindings?: Admin
     void refresh();
     const unsubscribe = push.subscribe({ types: ["catalog.updated"] }, frame => {
       const value = frame as { data?: { reason?: string } };
-      if (["agents", "connectors", "config"].includes(value.data?.reason || "")) void refresh();
+      if (["agents", "connectors", "config"].includes(value.data?.reason || "")) void refresh(true);
     });
-    const onVisible = () => { if (document.visibilityState === "visible") void refresh(); };
+    const onVisible = () => { if (document.visibilityState === "visible") void refresh(true); };
     document.addEventListener("visibilitychange", onVisible);
-    return () => { request.current += 1; unsubscribe(); document.removeEventListener("visibilitychange", onVisible); };
+    window.addEventListener("focus", onVisible);
+    return () => { request.current += 1; unsubscribe(); document.removeEventListener("visibilitychange", onVisible); window.removeEventListener("focus", onVisible); };
   }, [push, refresh, agentKey]);
 
   const current = snapshot?.agentKey === agentKey ? snapshot : undefined;
-  return { ready: !!current && !error, items: current?.items || emptyItems, ownedToolNames: current?.ownedToolNames || emptyNames,
+  return { ready: !!current && !error, items: current?.items || emptyItems, catalog: current?.catalog || emptyCatalog, ownedToolNames: current?.ownedToolNames || emptyNames,
     reloadPending: current?.reloadPending || false, loading, error, refresh };
 }

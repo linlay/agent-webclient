@@ -4,7 +4,7 @@
 .heading > span, .hint { color: var(--ink-muted); font-size: 12px; }
 .hint { margin: 0; line-height: 1.6; overflow-wrap: anywhere; }
 .list { display: flex; flex-direction: column; gap: 8px; }
-.card { border: 1px solid var(--line-soft); border-radius: var(--radius-control, 8px); }
+.card { position: relative; border: 1px solid var(--line-soft); border-radius: var(--radius-control, 8px); }
 .summary { display: flex; align-items: center; gap: 12px; padding: 12px; cursor: pointer; list-style: none; }
 .summary::-webkit-details-marker { display: none; }
 .summary:hover { background: var(--surface-hover); }
@@ -14,7 +14,17 @@
 .meta { display: flex; align-items: center; gap: 12px; color: var(--ink-muted); font-size: 12px; }
 .meta > span { display: inline-flex; align-items: center; gap: 4px; }
 .chevron { transition: transform .15s; }
-.card[open] .chevron { transform: rotate(180deg); }
+.details[open] .chevron { transform: rotate(180deg); }
+.withAction { padding-right: 124px; }
+.manage { margin-left: auto; }
+.card > .remove { position: absolute; top: 10px; right: 10px; }
+.manager { width: min(440px, calc(100vw - 48px)); display: flex; flex-direction: column; gap: 10px; }
+.manager > a { font-size: 12px; }
+.options { display: flex; flex-direction: column; gap: 4px; max-height: min(360px, 50vh); overflow-y: auto; }
+.option { display: flex; align-items: center; gap: 10px; padding: 8px; border-radius: var(--radius-control, 8px); cursor: pointer; }
+.option:hover { background: var(--surface-hover); }
+.option input { accent-color: var(--accent-electric); }
+.option:focus-within { outline: 2px solid var(--accent-electric); outline-offset: -2px; }
 .content { border-top: 1px solid var(--line-soft); padding: 12px; display: flex; flex-direction: column; gap: 10px; }
 @media (max-width: 700px) { .summary { flex-wrap: wrap; } .meta { order: 1; width: 100%; padding-left: 34px; } }
 

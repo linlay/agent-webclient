@@ -219,6 +219,8 @@ Composer 的连接器目录、Agent 关联读取与开关写入统一经 routedC
 
 管理详情与管理端创建、修改、改名响应不再返回顶层 tools，工具展示使用 toolBindings，编辑与保存使用 definition.toolConfig；使用端 /api/agent.tools 保留运行时工具 ID 数组。
 
+`/agents` 的连接器管理编辑 `definition.connectorConfig.connectors` 对应的表单草稿，随 Agent 创建／保存统一提交；预置按 connectorBindings.source 锁定，包 builtin/readOnly 不限制普通挂载选择。未保存增删与后端 active/pendingRemoval/reloadPending 分开展示，目录与运行快照刷新不覆盖草稿；安装、卸载及账号配置通过新窗口进入连接器中心。
+
 共享知识库通过单个 kbaseConfig.libraryId 绑定所有 Native Agent，Workspace 独立用于项目与编辑。项目创建可选已有库或从目录同时建库与 Agent；中心 collection 保存 include/exclude/chunk。source.publish 的 libraryId/agentKey 必须在 live/replay 投影保留；来源详情通过专用 Chat 已发布来源 read/file API 回读，不转换成 Workspace /api/resource 链接。旧 Agent refresh 与等待回执已删除，库中心自动维护。
 
 集合支持 description，管理表单保留 include/exclude/chunk/defaultQuery。知识库配置不授予来源目录的文件读写权限，旧 editable 字段已删除；目录权限统一由 Agent Workspace、hostAccess 与通用 AccessPolicy 决定。editingMode 仅控制本次 Workspace 编辑，四种 Native Agent 显式 true/false 语义一致；省略时沿用模板默认值（KBASE 只读，其他可编辑）。

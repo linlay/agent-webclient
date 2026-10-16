@@ -55,7 +55,7 @@ Composer 另用现有 HTTP `GET /api/connectors/connection` 读取连接配置�
 
 保存期间使 Agent 详情缓存与在途可用性检查失效，显示加载并禁止重复切换，成功后使用响应中的配置；失败保留诊断并重新读取源配置，避免网络中断后误报状态。初始配置加载失败时不假设所有连接器关闭，提供重试。切换 Agent 或关闭面板后忽略旧响应。
 
-`/agents/:agentKey` 的能力区通过 `/api/admin/agents/connectors`、`/api/admin/connectors` 与 `/api/admin/tools` 展示预置、声明及当前生效挂载。连接器默认折叠，展开查看其工具和 CLI/VIEW/技能能力，原生工具用 nativeTools 归属、MCP 服务按当前 agentKey 隔离；不重复出现在自身工具区。预置带锁，无挂载修改入口。管理“发起对话”仍使用管理挂载接口的完整 activeConnectorIds，确认生效后导航。两套挂载 PUT 均拒绝预置修改（403 preset_connector_readonly），预置运行时工具和技能仍正常挂载。
+`/agents/:agentKey` 的能力区复用 `/api/admin/agent` 的 connectorBindings，再读取 `/api/admin/connectors` 展示预置、声明及当前生效挂载；后台目录更新、窗口重新聚焦和恢复可见时重读管理详情以校准运行快照。连接器默认折叠，展开查看其工具和 CLI/VIEW/技能能力，原生工具用 nativeTools 归属、MCP 服务按当前 agentKey 隔离；不重复出现在自身工具区。“管理连接器”和卡片移除只编辑 `definition.connectorConfig.connectors` 对应的表单草稿，统一随 Agent 创建／保存提交，不调用单项挂载 PUT。预置带锁；builtin/readOnly 包的普通挂载仍可选择。待保存增删与后端等待重载分开展示，后台刷新不覆盖草稿；安装、卸载及账号连接通过新窗口进入连接器中心。管理“发起对话”仍使用管理详情投影的完整 activeConnectorIds，确认生效后导航。两套挂载 PUT 均拒绝预置修改（403 preset_connector_readonly），预置运行时工具和技能仍正常挂载。
 
 ## 账号授权
 现有详情页概览中的“账号授权”区域按目录返回的 `authMode` 决定交互：`none` 直接显示“无需配置”，不请求认证接口；`self/oauth/mcp` 查询统一状态 API；`self` 表示由连接器处理认证，受管 CLI 沿用统一登录流程，服务端返回 `delegated` 时显示“由连接器管理”，引导按技能说明操作，不提供登录或退出按钮。`oneid` 查询并展示 Desktop SSO 状态，仅提供重新检查和 Desktop 登录说明，不调用连接器登录、取消或退出接口。`token` 使用独立私有凭据弹窗，字段仅来自目录返回的 `tokenSchema`（包内 `token-schema.json`）；实际值不进入 connector.json、cli.json、mcp.json 或对话草稿。前端不根据连接器 id 分支，不执行 CLI 或安装命令；实际认证声明、依赖准备、OAuth 发现及凭据保管均由后端从 cli.json/mcp.json 和清单解释。

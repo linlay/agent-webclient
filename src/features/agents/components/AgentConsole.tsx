@@ -398,6 +398,7 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
   const connectorCapabilities = useAgentConnectorCapabilities(formMode === "edit" ? form.key : "",
     formMode === "edit" && detail?.key === form.key && "connectorBindings" in detail ? detail.connectorBindings ?? null : null,
     !!(detail && "reloadPending" in detail && detail.reloadPending));
+  const savedConnectorIds = useMemo(() => detail && formMode === "edit" ? formFromDetail(detail).connectors : [], [detail, formMode]);
   const detailToolBindings = detail && "toolBindings" in detail ? detail.toolBindings : undefined;
   const { available: displayToolOptions, selected: selectedTools } = useMemo(
     () => projectAgentTools(toolOptions, formMode === "edit" ? detailToolBindings : [], form.tools, connectorCapabilities.ownedToolNames),
@@ -1542,7 +1543,10 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
                 selectedModelLabel={selectedModelLabel}
                 selectedReasoningLabel={selectedReasoningLabel}
                 contextTagOptions={contextTagOptions}
-                connectors={<AgentConnectorCapabilities key={form.key} {...connectorCapabilities} />}
+                connectors={<AgentConnectorCapabilities key={form.key} {...connectorCapabilities}
+                  agentKey={formMode === "edit" ? form.key : ""} selectedIds={form.connectors} savedIds={savedConnectorIds}
+                  disabled={savingForm || deleting || loadingDetail || privateSkillImporting}
+                  onSelectionChange={connectors => updateForm({ connectors })} />}
                 toolsManagementDisabled={!connectorCapabilities.ready}
                 filteredToolOptions={filteredToolOptions}
                 selectedTools={selectedTools}

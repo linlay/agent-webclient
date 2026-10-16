@@ -9,9 +9,28 @@ export interface AgentConnectorCapability {
   preset: boolean;
   active: boolean;
   pendingRemoval?: boolean;
+  draftChange?: "add" | "remove";
   missing: boolean;
   connector?: ConnectorSummary;
   tools: AdminToolSummary[];
+}
+
+/** Source declarations and the editable draft are separate from the live mounting snapshot. */
+export function projectAgentConnectorDraft(
+  agentKey: string,
+  items: AgentConnectorCapability[],
+  catalog: ConnectorSummary[],
+  savedIds: string[],
+  selectedIds: string[],
+): AgentConnectorCapability[] {
+  const additionalIds = [...new Set([...savedIds, ...selectedIds])].filter(id => !items.some(item => item.id === id));
+  const additional = agentConnectorCapabilitiesFromBindings(agentKey, additionalIds.map(id => ({ id, source: "agent", active: false })), catalog);
+  return [...items, ...additional].map(item => ({
+    ...item,
+    draftChange: item.preset ? undefined
+      : savedIds.includes(item.id) && !selectedIds.includes(item.id) ? "remove"
+      : !savedIds.includes(item.id) && selectedIds.includes(item.id) ? "add" : undefined,
+  }));
 }
 
 export function agentConnectorCapabilities(selection: AdminAgentConnectorsResponse, catalog: ConnectorSummary[]): AgentConnectorCapability[] {
