@@ -5,10 +5,11 @@ import { useConnectorImport } from "./useConnectorImport";
 
 jest.mock("@/shared/i18n", () => ({ useI18n: () => ({ t: (key: string) => key }) }));
 const onImport = jest.fn<Promise<string | null>, [File, boolean]>();
+const onImportMCP = jest.fn<Promise<string | null>, [{ mcpUrl: string; authMode?: "mcp" | "none" }]>();
 const onImported = jest.fn();
 let current: ReturnType<typeof useConnectorImport>;
 let root: Root;
-function Harness() { current = useConnectorImport({ onImport, onImported }); return null; }
+function Harness() { current = useConnectorImport({ onImport, onImportMCP, onImported }); return null; }
 const archive = () => new File(["zip fixture"], "connector.zip", { type: "application/zip" });
 beforeEach(async () => {
   (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
@@ -76,4 +77,56 @@ it("allows cancelling the overwrite prompt without modifying the existing packag
   await act(async () => current.show());
   expect(current.archive).toBeNull();
   expect(current.overwriteRequired).toBe(false);
+});
+
+it("imports a trimmed MCP URL with an explicit auth mode and clears it after success", async () => {
+  onImportMCP.mockResolvedValueOnce("mcp.example.test");
+  await act(async () => current.setMode("mcp"));
+  expect(current.canSubmit).toBe(false);
+  await act(async () => { current.setMCPURL("  https://mcp.example.test/mcp  "); current.setAuthMode("none"); });
+  await act(async () => current.submit());
+  expect(onImportMCP).toHaveBeenCalledWith({ mcpUrl: "https://mcp.example.test/mcp", authMode: "none" });
+  expect(onImport).not.toHaveBeenCalled();
+  expect(onImported).toHaveBeenCalledWith("mcp.example.test");
+  expect(current.open).toBe(false);
+  expect(current.mcpUrl).toBe("");
+});
+
+it("validates MCP URLs and never offers overwrite for a hostname conflict", async () => {
+  await act(async () => { current.setMode("mcp"); current.setMCPURL("https://user:password@mcp.example.test/mcp"); });
+  await act(async () => current.submit());
+  expect(current.error).toBe("connectors.import.mcp.invalidUrl");
+  expect(onImportMCP).not.toHaveBeenCalled();
+  onImportMCP.mockRejectedValueOnce({ status: 409, code: "connector_exists" });
+  await act(async () => current.setMCPURL("https://mcp.example.test/mcp"));
+  await act(async () => current.submit());
+  expect(current.error).toBe("connectors.import.mcp.exists");
+  expect(current.overwriteRequired).toBe(false);
+  expect(current.open).toBe(true);
+  expect(current.mcpUrl).toBe("https://mcp.example.test/mcp");
+  await act(async () => current.close());
+  expect(current.mcpUrl).toBe("");
+});
+
+it("blocks duplicate MCP imports and mode changes until installation finishes", async () => {
+  let resolve!: (id: string) => void;
+  onImportMCP.mockImplementationOnce(() => new Promise(done => { resolve = done; }));
+  await act(async () => { current.setMode("mcp"); current.setMCPURL("https://mcp.example.test/mcp"); });
+  let pending!: Promise<void>;
+  await act(async () => { pending = current.submit(); });
+  await act(async () => { current.close(); current.setMode("archive"); current.setMCPURL("https://other.test/mcp"); current.setAuthMode("none"); void current.submit(); });
+  expect(onImportMCP).toHaveBeenCalledTimes(1);
+  expect(current.open).toBe(true);
+  expect(current.mode).toBe("mcp");
+  expect(current.authMode).toBe("mcp");
+  expect(current.mcpUrl).toBe("https://mcp.example.test/mcp");
+  await act(async () => { resolve("mcp.example.test"); await pending; });
+  expect(current.submitting).toBe(false);
+});
+
+it("uses MCP request limits for an oversized URL instead of ZIP package limits", async () => {
+  onImportMCP.mockRejectedValueOnce({ status: 413, code: "payload_too_large" });
+  await act(async () => { current.setMode("mcp"); current.setMCPURL("https://mcp.example.test/mcp"); });
+  await act(async () => current.submit());
+  expect(current.error).toBe("connectors.import.mcp.serverSize");
 });

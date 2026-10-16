@@ -136,6 +136,11 @@ export interface ImportConnectorArchiveRequest {
   overwrite?: boolean;
 }
 
+export interface ImportConnectorMCPRequest {
+  mcpUrl: string;
+  authMode?: "mcp" | "none";
+}
+
 export interface ImportConnectorArchiveResponse {
   id: string;
   name: string;

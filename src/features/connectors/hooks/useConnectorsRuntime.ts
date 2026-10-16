@@ -4,8 +4,8 @@ import { useBlocker } from "react-router-dom";
 import { usePushTransport } from "@/features/transport/hooks/useRealtimeTransport";
 import { fetchConnectorCatalog, isConnectorCatalogUpdate } from "@/features/connectors/lib/connectorCatalog";
 import { parseConnectorDefinition } from "@/features/connectors/lib/connectorDefinition";
-import { ApiError, deleteConnector, getConnectorDefinition, importConnectorArchive, updateConnectorDefinition } from "@/shared/data";
-import type { AdminToolSummary, ConnectorDefinition, ConnectorDefinitionFile, ConnectorSummary } from "@/shared/data";
+import { ApiError, deleteConnector, getConnectorDefinition, importConnectorArchive, importConnectorMCP, updateConnectorDefinition } from "@/shared/data";
+import type { AdminToolSummary, ConnectorDefinition, ConnectorDefinitionFile, ConnectorSummary, ImportConnectorMCPRequest } from "@/shared/data";
 import { useI18n } from "@/shared/i18n";
 import { connectorNavigationPath, type ConnectorNavigationApproval } from "../lib/connectorNavigation";
 
@@ -206,15 +206,15 @@ export function useConnectorsRuntime(routeId: string, onRouteIdChange: (id: stri
     }
   };
 
-  const importArchive = async (archive: File, overwrite: boolean): Promise<string | null> => {
+  const importPackage = async (install: () => ReturnType<typeof importConnectorArchive>): Promise<string | null> => {
     if (savingRef.current || importingRef.current || deletingRef.current) return null;
     if (dirtyRef.current && !window.confirm(t("connectors.import.confirmDraft"))) return null;
     importingRef.current = true;
     setImporting(true);
     try {
-      const response = await importConnectorArchive({ file: archive, overwrite });
+      const response = await install();
       const id = response.data.id;
-      // The upload succeeded. Only now discard the previous draft and reload its hash.
+      // Installation succeeded. Only now discard the previous draft and reload its hash.
       detailRequest.current += 1;
       dirtyRef.current = false;
       setDetail(null);
@@ -230,6 +230,9 @@ export function useConnectorsRuntime(routeId: string, onRouteIdChange: (id: stri
       setImporting(false);
     }
   };
+
+  const importArchive = (archive: File, overwrite: boolean) => importPackage(() => importConnectorArchive({ file: archive, overwrite }));
+  const importMCP = (params: ImportConnectorMCPRequest) => importPackage(() => importConnectorMCP(params));
 
   const remove = async (id?: string): Promise<string | null> => {
     const target = id ? items.find(item => item.id === id) : selected;
@@ -284,7 +287,7 @@ export function useConnectorsRuntime(routeId: string, onRouteIdChange: (id: stri
 
   return {
     items, tools, loading, catalogError, catalogErrorStatus, selected, file: activeFile, detail, draft, dirty, readOnly,
-    detailLoading, saving, importing, deleting, deletingId, canDelete, remove, error, errorDetails, message, refreshCatalog, selectFile, reload, save, importArchive, confirmNavigation,
+    detailLoading, saving, importing, deleting, deletingId, canDelete, remove, error, errorDetails, message, refreshCatalog, selectFile, reload, save, importArchive, importMCP, confirmNavigation,
     selectConnector: (id: string) => { if (!savingRef.current && !importingRef.current && !deletingRef.current && id !== selectedId) onRouteIdChange(id); },
     updateDraft: (value: string) => { if (!readOnly && !savingRef.current && !importingRef.current && !deletingRef.current) { if (value !== navigationScope.current.draft) invalidateNavigation(); setDraft(value); setMessage(""); setError(""); } },
   };

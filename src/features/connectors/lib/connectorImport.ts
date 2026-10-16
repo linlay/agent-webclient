@@ -18,6 +18,14 @@ export function isConnectorImportConflict(error: unknown): boolean {
   return value?.status === 409 && value.code === "connector_exists";
 }
 
+export function validateConnectorMCPURL(raw: string): boolean {
+  if (!/^https?:\/\//i.test(raw.trim()) || raw.includes("#")) return false;
+  try {
+    const url = new URL(raw.trim());
+    return !!url.hostname && !url.username && !url.password;
+  } catch { return false; }
+}
+
 export function connectorImportErrorKey(error: unknown): string {
   const value = error as { status?: number; code?: string } | null;
   if (value?.status === 413) return "connectors.import.error.serverSize";

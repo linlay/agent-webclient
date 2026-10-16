@@ -102,6 +102,7 @@ export function ConnectorsConsole({
   }, [runtime.refreshCatalog]);
   const importer = useConnectorImport({
     onImport: runtime.importArchive,
+    onImportMCP: runtime.importMCP,
     onImported: (id) => {
       void messageApi.success({
         key: "connector-import",
@@ -396,7 +397,7 @@ export function ConnectorsConsole({
             </UiButton>
             <CreateMenuButton
               label={t("resourceAssistant.new")}
-              manualLabel={t("resourceAssistant.import")}
+              manualLabel={t("connectors.import.title")}
               disabled={busy || runtime.detailLoading || assistant.opening}
               onManual={importer.show}
               onConversation={() => {

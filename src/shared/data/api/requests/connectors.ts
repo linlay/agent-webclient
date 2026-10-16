@@ -4,7 +4,7 @@ import type {
   ConnectorDefinition, ConnectorDefinitionTarget, ConnectorListResponse,
   ConnectorOrderResponse, UpdateConnectorOrderRequest,
   UpdateConnectorDefinitionRequest, DeleteConnectorResponse,
-  ImportConnectorArchiveRequest, ImportConnectorArchiveResponse,
+  ImportConnectorArchiveRequest, ImportConnectorArchiveResponse, ImportConnectorMCPRequest,
   ConnectorSkillListResponse, ConnectorSkillDetail,
   ConnectorAuthSession, ConnectorAuthActionResult, ConnectorConnection, ConnectorConnectionsResponse,
   ConnectorPreparation,
@@ -86,6 +86,14 @@ export function importConnectorArchive(params: ImportConnectorArchiveRequest): P
     method: "POST",
     body: form,
     jsonContentType: false,
+  });
+}
+
+// Use direct HTTP: endpoint queries may contain private gateway keys.
+export function importConnectorMCP(params: ImportConnectorMCPRequest): Promise<ApiResponse<ImportConnectorArchiveResponse>> {
+  const endpoint = dataEndpoints.adminConnectorMCPImport;
+  return requestJson(endpoint.path, {
+    method: endpoint.method, body: JSON.stringify(params), cache: "no-store", retryUnauthorized: false,
   });
 }
 
