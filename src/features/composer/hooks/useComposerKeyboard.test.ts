@@ -154,9 +154,12 @@ describe("queued steer shortcut", () => {
     expect(onSubmitQueuedSteer).not.toHaveBeenCalled();
   });
 
-  it("does not send a draft when queued steering is unavailable", () => {
+  it("sends a draft like ordinary Enter when queued steering is unavailable", () => {
     const handleSend = jest.fn();
-    renderKeyboardHook({ handleSend })(keyEvent());
-    expect(handleSend).not.toHaveBeenCalled();
+    const event = keyEvent();
+    renderKeyboardHook({ handleSend })(event);
+    expect(handleSend).toHaveBeenCalledTimes(1);
+    expect(event.preventDefault).toHaveBeenCalledTimes(1);
+    expect(event.stopPropagation).not.toHaveBeenCalled();
   });
 });

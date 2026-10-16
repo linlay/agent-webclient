@@ -86,11 +86,15 @@ function readAwaitingTerminalSubmitCode(
 	) {
 		return structuredCode;
 	}
+	if (structuredCode) return "";
 	if (
 		error instanceof Error
-		&& /unknown awaiting|unknown_awaiting|awaiting.*not found|awaiting.*expired/i.test(error.message)
+		&& /unknown awaiting|unknown_awaiting|awaiting.*not found/i.test(error.message)
 	) {
 		return "unknown_awaiting";
+	}
+	if (error instanceof Error && /awaiting.*expired/i.test(error.message)) {
+		return "awaiting_expired";
 	}
 	return "";
 }
@@ -264,6 +268,8 @@ export async function submitComposerAwaiting(
         void message.info(t("composer.awaiting.alreadyResolved"));
       } else if (terminalCode === "awaiting_interrupted") {
         void message.warning(t("composer.awaiting.interrupted"));
+      } else if (terminalCode === "unknown_awaiting") {
+        void message.warning(t("composer.awaiting.unknown"));
       } else {
         void message.warning(t("composer.awaiting.expired"));
       }

@@ -53,10 +53,10 @@ export function useComposerKeyboard({
         return;
       }
 
-      if (event.key === "Enter" && event.metaKey && !event.shiftKey && !event.altKey) {
+      if (event.key === "Enter" && event.metaKey && !event.shiftKey && !event.altKey && onSubmitQueuedSteer) {
         event.preventDefault();
         event.stopPropagation();
-        if (!event.repeat) onSubmitQueuedSteer?.();
+        if (!event.repeat) onSubmitQueuedSteer();
         return;
       }
 

@@ -282,6 +282,7 @@ describe("submitComposerAwaiting", () => {
 
 	it.each([
 		["awaiting_expired", "composer.awaiting.expired", "warning"],
+		["unknown_awaiting", "composer.awaiting.unknown", "warning"],
 		["awaiting_interrupted", "composer.awaiting.interrupted", "warning"],
 		["already_resolved", "composer.awaiting.alreadyResolved", "info"],
 	] as const)(
@@ -321,7 +322,8 @@ describe("submitComposerAwaiting", () => {
 				mode: "question",
 				questions: [],
 			};
-			const submitAwaitingImpl = jest.fn().mockRejectedValue(new ApiError(code, {
+			const submitAwaitingImpl = jest.fn().mockRejectedValue(new ApiError(
+				code === "unknown_awaiting" ? "awaiting has expired" : "unknown awaitingId", {
 				status: 409,
 				platformError: {
 					code,
@@ -371,7 +373,12 @@ describe("submitComposerAwaiting", () => {
 		},
 	);
 
-	it("keeps compatibility with the legacy unknown awaitingId error message", async () => {
+	it.each([
+		["unknown awaitingId", "composer.awaiting.unknown"],
+		["unknown_awaiting", "composer.awaiting.unknown"],
+		["awaiting not found", "composer.awaiting.unknown"],
+		["awaiting has expired", "composer.awaiting.expired"],
+	] as const)("classifies legacy error text: %s", async (errorMessage, messageKey) => {
 		const dispatch = jest.fn<void, [AppAction]>();
 		const clearActiveAwaiting = jest.fn();
 		const warning = jest.fn();
@@ -413,10 +420,10 @@ describe("submitComposerAwaiting", () => {
 			state: { ...createInitialState(), chatId: "chat_1" },
 			t: (key) => key,
 			createSubmitId: () => "submit_test",
-			submitAwaitingImpl: jest.fn().mockRejectedValue(new Error("unknown awaitingId")),
+			submitAwaitingImpl: jest.fn().mockRejectedValue(new Error(errorMessage)),
 		});
 
-		expect(warning).toHaveBeenCalledWith("composer.awaiting.expired");
+		expect(warning).toHaveBeenCalledWith(messageKey);
 		expect(clearActiveAwaiting).toHaveBeenCalledTimes(1);
 		expect(dispatch).toHaveBeenCalledWith({
 			type: "SET_AWAITING_RUNTIME",
@@ -425,6 +432,55 @@ describe("submitComposerAwaiting", () => {
 		});
 		expect(dispatchEvent).toHaveBeenCalledWith(expect.objectContaining({
 			type: "agent:load-chat",
+		}));
+	});
+
+	it("preserves non-terminal structured errors even when the text mentions an expired awaiting", async () => {
+		const dispatch = jest.fn<void, [AppAction]>();
+		const clearActiveAwaiting = jest.fn();
+		const info = jest.fn();
+		const warning = jest.fn();
+		const error = new ApiError("awaiting has expired", {
+			status: 400,
+			platformError: {
+				code: "invalid_params",
+				category: "tool_interaction",
+				scope: "request",
+				status: 400,
+				retryable: false,
+				message: "awaiting has expired",
+				diagnostics: null,
+				raw: null,
+				technicalText: "awaiting has expired",
+			},
+		});
+
+		const result = await submitComposerAwaiting({
+			activeAwaiting: {
+				key: "run_1#await_1",
+				runId: "run_1",
+				awaitingId: "await_1",
+				agentKey: "agent_run",
+				timeout: null,
+				mode: "question",
+				questions: [],
+			},
+			clearActiveAwaiting,
+			dispatch,
+			message: { info, warning },
+			payload: { runId: "run_1", awaitingId: "await_1", params: [] },
+			state: { ...createInitialState(), chatId: "chat_1" },
+			t: (key) => key,
+			createSubmitId: () => "submit_test",
+			submitAwaitingImpl: jest.fn().mockRejectedValue(error),
+		});
+
+		expect(result).toBe(error);
+		expect(clearActiveAwaiting).not.toHaveBeenCalled();
+		expect(info).not.toHaveBeenCalled();
+		expect(warning).not.toHaveBeenCalled();
+		expect(dispatch).not.toHaveBeenCalledWith(expect.objectContaining({
+			type: "SET_AWAITING_RUNTIME",
 		}));
 	});
 });
