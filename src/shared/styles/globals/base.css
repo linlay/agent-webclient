@@ -630,12 +630,6 @@ textarea {
     cursor: not-allowed;
 }
 
-.ui-btn:focus-visible,
-.ui-input:focus-visible {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px;
-}
-
 .ui-input:focus {
     background: var(--control-input-bg);
 }
