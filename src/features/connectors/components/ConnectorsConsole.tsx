@@ -231,16 +231,16 @@ export function ConnectorsConsole({
         })();
       }
     };
+    const isItemSelected = !showUnassigned && selected?.id === item.id;
     return (
       <div key={item.id} className={styles.itemWrap}>
         <button
           type="button"
           className={styles.listItem}
-          aria-current={
-            !showUnassigned && selected?.id === item.id ? "true" : undefined
-          }
+          aria-current={isItemSelected ? "true" : undefined}
           disabled={busy}
           onClick={() => {
+            if (isItemSelected) return;
             authChecks.prioritize(item.id);
             void auth?.refresh();
             setShowUnassigned(false);

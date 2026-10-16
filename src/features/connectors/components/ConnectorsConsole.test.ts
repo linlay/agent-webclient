@@ -287,15 +287,17 @@ it("checks unselected connectors independently while the list and configuration 
   expect(rows()[1].textContent).toContain("已授权");
 });
 
-it("rechecks even the selected item without hiding its known status or duplicating requests", async () => {
+it("ignores click on already selected item without duplicating auth check or hiding its known status", async () => {
   await mount();
   const row = container.querySelector<HTMLButtonElement>('aside button[aria-current="true"]')!;
   let resolveCheck!: (value: any) => void;
   jest.mocked(getConnectorAuthStatus).mockImplementationOnce(() => new Promise(resolve => { resolveCheck = resolve; }));
   await act(async () => { row.click(); row.click(); });
-  expect(getConnectorAuthStatus).toHaveBeenCalledTimes(2);
+  expect(getConnectorAuthStatus).toHaveBeenCalledTimes(1);
   expect(row.textContent).toContain("未登录");
   expect(row.textContent).not.toContain("尚未确认");
+  expect(button("重新检查状态")).toBeDefined();
+  await click("重新检查状态");
   expect(button("重新检查状态")).toBeUndefined();
   await act(async () => resolveCheck({ code: 0, msg: "", data: { connectorId: "demo", sessionId: "", status: "authorized", expiresAt: "" } }));
   expect(row.textContent).toContain("已授权");
@@ -306,7 +308,7 @@ it("keeps the last known status on errors and shares retries between list and de
   await mount();
   const row = container.querySelector<HTMLButtonElement>('aside button[aria-current="true"]')!;
   jest.mocked(getConnectorAuthStatus).mockRejectedValueOnce(new Error("network offline"));
-  await act(async () => row.click());
+  await click("重新检查状态");
   expect(row.textContent).toContain("未登录 · 检查失败");
   expect(detail().querySelector('[role="alert"]')?.textContent).toContain("network offline");
   await click("重新检查状态");
