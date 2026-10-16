@@ -31,9 +31,9 @@ import styles from "./RegistryConsole.module.css";
 const LIST_CLASS_NAME =
   "automation-console-list tw:flex tw:min-h-0 tw:min-w-0 tw:flex-col tw:gap-2 tw:overflow-hidden tw:max-[860px]:max-h-[260px]";
 const TOOLBAR_CLASS_NAME =
-  "automation-console-toolbar registry-console-toolbar tw:grid tw:grid-cols-[minmax(0,1fr)_auto_auto] tw:items-center tw:gap-2 tw:max-[860px]:grid-cols-[minmax(0,1fr)_auto_auto]";
+  "automation-console-toolbar registry-console-toolbar tw:grid tw:grid-cols-[minmax(0,1fr)_auto_auto] tw:items-center tw:gap-2 tw:px-[6px] tw:pt-[6px] tw:max-[860px]:grid-cols-[minmax(0,1fr)_auto_auto]";
 const LIST_ITEM_CLASS_NAME =
-  "automation-list-item tw:flex tw:w-full tw:flex-col tw:gap-[3px] tw:rounded-control tw:border tw:border-transparent tw:bg-transparent tw:px-2.5 tw:py-2 tw:text-left tw:text-ink-1 tw:hover:[border-color:color-mix(in_srgb,var(--accent-soft)_58%,var(--line-soft))] tw:hover:bg-bg-hover tw:[&.is-active]:[border-color:color-mix(in_srgb,var(--accent)_40%,var(--line-soft))] tw:[&.is-active]:bg-[var(--bg-selected)] tw:[&.is-active]:text-[var(--nav-selected-text)]";
+  "automation-list-item tw:flex tw:w-full tw:flex-col tw:gap-[3px] tw:bg-transparent tw:px-2.5 tw:py-2 tw:text-left tw:text-ink-1 tw:hover:bg-bg-hover tw:[&.is-active]:bg-[var(--bg-selected)] tw:[&.is-active]:text-[var(--nav-selected-text)]";
 const CAPABILITY_CHIP_CLASS_NAME =
   "registry-capability-chip tw:inline-flex tw:h-5 tw:w-[22px] tw:min-w-[22px] tw:flex-none tw:items-center tw:justify-center tw:rounded-[var(--radius-sm)] tw:p-0 tw:[&_.material-icon-svg]:h-3 tw:[&_.material-icon-svg]:w-3";
 
@@ -81,37 +81,46 @@ export function RegistryCategoryTabs({
   activeCategory,
   categoryCounts,
   onSwitchCategory,
+  extra,
 }: {
   activeCategory: RegistryConsoleTab;
   categoryCounts: Record<RegistryConsoleTab, number>;
   onSwitchCategory: (category: RegistryConsoleTab) => void;
+  extra?: React.ReactNode;
 }) {
   const { t } = useI18n();
   return (
-    <div
-      className={styles.categoryTabs}
-      role="tablist"
-      aria-label={t("registryConsole.section.categories")}
-    >
-      {REGISTRY_CONSOLE_TABS.map((category) => (
-        <button
-          type="button"
-          key={category}
-          role="tab"
-          aria-selected={category === activeCategory}
-          className={styles.categoryTab}
-          onClick={() => onSwitchCategory(category)}
-        >
-          <span>
-            {translateWithFallback(
-              t,
-              `registryConsole.category.${category}`,
-              category,
-            )}
-          </span>
-          <strong>{categoryCounts[category]}</strong>
-        </button>
-      ))}
+    <div className={`registry-category-tabs-header ${styles.categoryTabsHeader || ""}`}>
+      <div
+        className={`registry-category-tabs ${styles.categoryTabs || ""}`}
+        role="tablist"
+        aria-label={t("registryConsole.section.categories")}
+      >
+        {REGISTRY_CONSOLE_TABS.map((category) => (
+          <button
+            type="button"
+            key={category}
+            role="tab"
+            aria-selected={category === activeCategory}
+            className={`registry-category-tab ${styles.categoryTab || ""}`}
+            onClick={() => onSwitchCategory(category)}
+          >
+            <span>
+              {translateWithFallback(
+                t,
+                `registryConsole.category.${category}`,
+                category,
+              )}
+            </span>
+            <strong>{categoryCounts[category]}</strong>
+          </button>
+        ))}
+      </div>
+      {extra ? (
+        <div className={`registry-category-tabs-actions ${styles.categoryTabsActions || ""}`}>
+          {extra}
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -192,7 +201,7 @@ export function RegistryListPane(props: RegistryListPaneProps) {
             },
           )}
         </div>
-        <div className="automation-console-list-scroll tw:min-h-0 tw:flex-auto tw:overflow-auto tw:pr-0.5">
+        <div className="automation-console-list-scroll tw:min-h-0 tw:flex-auto tw:overflow-auto">
           <Spin spinning={props.isToolsTab ? props.toolsLoading : props.loading}>
             {props.filteredItems.length === 0 ? (
               <div className="command-empty-state">
@@ -206,7 +215,7 @@ export function RegistryListPane(props: RegistryListPaneProps) {
                 ) : null}
               </div>
             ) : (
-              <div className="automation-list-items tw:flex tw:flex-col tw:gap-1.5">
+              <div className="automation-list-items tw:flex tw:flex-col">
                 {props.filteredItems.map((item) => {
                   const itemKey =
                     String(item.category) === "tools"
