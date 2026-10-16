@@ -554,6 +554,7 @@ export const zhCNMessages = {
   "connectors.configuration.open": "打开连接器配置",
   "connectors.configuration.openFailed": "无法打开连接器配置，请确认当前窗口支持此入口后重试。原页面已保留。",
   "connectors.auth.confirmConnection": "确认连接",
+  "connectors.auth.confirmConnectionSuccess": "连接已确认",
   "connectors.auth.status.pending_verification": "新配置待验证",
   "connectors.auth.description.pending_verification": "新凭据仍在验证，请重新检查状态。",
   "connectors.credentials.configure": "配置连接凭据",

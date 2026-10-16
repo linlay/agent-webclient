@@ -6,6 +6,7 @@ import { useI18n } from "@/shared/i18n";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
 import { UiTag } from "@/shared/ui/UiTag";
+import { useAppMessage } from "@/shared/ui/useAppMessage";
 import { useConnectorAuth, type ConnectorAuthRuntime } from "../hooks/useConnectorAuth";
 import { connectorAuthDeadline, isConnectorAuthActive, readConnectorAuthSession, safeConnectorAuthorizationUrl, supportsConnectorAuthCheck, supportsConnectorLogin } from "../lib/connectorAuth";
 import { readConnectorConnection } from "../lib/connectorChat";
@@ -34,6 +35,7 @@ function StandaloneConnectorAuthPanel(props: Props) {
 
 function ConnectorAuthPanelContent({ item, disabled, onConfigure, onCredentialsChange, auth }: Props & { auth: ConnectorAuthRuntime }) {
   const { t, locale } = useI18n();
+  const message = useAppMessage();
   const readOnly = item.builtin === true || item.readOnly === true;
   const [confirmLogout, setConfirmLogout] = useState(false);
   const [credentialsOpen, setCredentialsOpen] = useState(false);
@@ -105,7 +107,7 @@ function ConnectorAuthPanelContent({ item, disabled, onConfigure, onCredentialsC
         {auth.preparingDependency && <UiButton size="sm" disabled={disabled || auth.operation === "cancel"} onClick={() => void auth.cancel()}>{t("connectors.auth.cancelPreparation")}</UiButton>}
         {interactive && !readOnly && active && <UiButton size="sm" disabled={busy} loading={auth.operation === "cancel"} onClick={() => void auth.cancel()}>{t("connectors.auth.cancel")}</UiButton>}
         {interactive && !readOnly && status === "authorized" && !confirmLogout && <UiButton size="sm" disabled={busy} onClick={() => setConfirmLogout(true)}>{t("connectors.auth.logout")}</UiButton>}
-        <UiButton size="sm" variant="ghost" disabled={busy || auth.checking} onClick={() => void auth.refresh()}>{t(auth.checking ? "connectors.auth.checking" : "connectors.auth.refresh")}</UiButton>
+        <UiButton size="sm" variant="secondary" disabled={busy || auth.checking} onClick={() => void auth.refresh()}>{t(auth.checking ? "connectors.auth.checking" : "connectors.auth.refresh")}</UiButton>
       </div>
       {confirmable && configured !== true && <div className={styles.authActions}>
         <UiButton size="sm" loading={confirmingConnection} disabled={busy || confirmingConnection} onClick={() => {
@@ -117,6 +119,7 @@ function ConnectorAuthPanelContent({ item, disabled, onConfigure, onCredentialsC
             if (connectionScope.current !== controller || controller.signal.aborted) return;
             const confirmed = readConnectorAuthSession(response.data, item.id);
             if (!["authorized", "delegated"].includes(confirmed.status)) throw new Error("Connection was not confirmed");
+            message.success(t("connectors.auth.confirmConnectionSuccess"));
             onCredentialsChange?.(); void auth.refresh(); void refreshConnection();
           }).catch(() => { if (connectionScope.current === controller) setConnectionError(true); }).finally(() => {
             window.clearTimeout(timeout);

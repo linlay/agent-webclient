@@ -3,6 +3,7 @@ import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { ApiError, cancelConnectorAuth, connectConnector, getConnectorAuthStatus, getConnectorConnection, logoutConnectorAuth, startConnectorAuth } from "@/shared/data";
 import type { ConnectorAuthSession, ConnectorSummary } from "@/shared/data";
+import { message } from "antd";
 import { I18nProvider } from "@/shared/i18n";
 import { ConnectorAuthPanel } from "./ConnectorAuthPanel";
 import { ConnectorComponents } from "./ConnectorComponents";
@@ -169,6 +170,7 @@ it.each(["unauthorized", "authorized"] as const)("shows Desktop identity %s with
 });
 
 it.each(["self", "oneid"] as const)("restores confirmation from real configured state after disconnect without remounting authMode=%s", async mode => {
+  const messageSuccess = jest.spyOn(message, "success").mockImplementation(() => () => {});
   const status = mode === "self" ? "delegated" : "authorized";
   let configured = false;
   jest.mocked(getConnectorAuthStatus).mockResolvedValue(response(status));
@@ -177,6 +179,7 @@ it.each(["self", "oneid"] as const)("restores confirmation from real configured 
   await mount({ ...item, authMode: mode });
   await click("确认连接");
   expect(button("确认连接")).toBeUndefined();
+  expect(messageSuccess).toHaveBeenCalledWith("连接已确认");
   configured = false;
   await click("重新检查状态");
   expect(button("确认连接")).toBeDefined();

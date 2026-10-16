@@ -517,6 +517,7 @@ export const enUSMessages = {
   "connectors.configuration.open": "Open connector configuration",
   "connectors.configuration.openFailed": "Could not open connector configuration. Check that this window supports it and retry. The current page is preserved.",
   "connectors.auth.confirmConnection": "Confirm connection",
+  "connectors.auth.confirmConnectionSuccess": "Connection confirmed",
   "connectors.auth.status.pending_verification": "New configuration pending verification",
   "connectors.auth.description.pending_verification": "New credentials are still being verified. Check the status again.",
   "connectors.credentials.configure": "Configure connection credentials",
