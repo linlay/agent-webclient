@@ -7,6 +7,11 @@ jest.mock('antd', () => ({
   Button: ({ children, loading, disabled }: { children: React.ReactNode; loading?: boolean; disabled?: boolean }) =>
     React.createElement('button', { 'data-loading': String(Boolean(loading)), disabled }, children),
   Typography: { Text: ({ children }: { children: React.ReactNode }) => React.createElement('span', null, children) },
+  Popover: ({ children, content }: { children: React.ReactNode; content?: React.ReactNode }) =>
+    React.createElement('span', { className: 'ant-popover-wrap' }, children, React.createElement('div', { className: 'ant-popover-content' }, content)),
+}));
+jest.mock('@/app/state/AppContext', () => ({
+  useAppState: () => ({ chatId: 'test-chat' }),
 }));
 jest.mock('@/shared/i18n', () => ({ useI18n: () => ({ t: (key: string) => key }) }));
 
