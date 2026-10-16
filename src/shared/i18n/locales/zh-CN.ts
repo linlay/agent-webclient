@@ -2367,6 +2367,8 @@ export const zhCNMessages = {
   "platformError.category.chat_run": "运行失败，请稍后重试。",
   "platformError.code.context_window_uncompactable":
     "上下文无法压缩至模型可用范围，本次运行已停止。",
+  "platformError.code.context_compact_failed":
+    "上下文压缩时生成摘要失败，本次运行已停止。",
   "platformError.category.model": "模型服务请求失败，请稍后重试。",
   "platformError.category.protocol": "连接协议异常，请稍后重试。",
   "platformError.category.request": "请求无效，服务无法处理当前请求。",
