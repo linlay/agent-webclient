@@ -1,11 +1,13 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
+import { ConfigProvider } from "antd";
 import "@/shared/styles/globals.css";
 import "katex/dist/katex.min.css";
 import { parseConversationSnapshotV1 } from "./conversationSnapshotV1";
 import { conversationExportMessages, resolveConversationExportLocale } from "@/shared/i18n/conversationExport";
 import { I18nProvider } from "@/shared/i18n";
 import { ConversationExportDocument } from "./ConversationExportDocument";
+import { readConversationStyleNonce } from "./styleNonce";
 import {
   applyConversationExportFavicon,
   readLocalExportBrandId,
@@ -36,6 +38,7 @@ const rootElement = document.getElementById(ROOT_ELEMENT_ID);
 if (!rootElement) throw new Error("export_root_missing");
 
 try {
+  const nonce = readConversationStyleNonce();
   const snapshot = parseConversationSnapshotV1(readSnapshot());
   if (!snapshot) throw new Error("snapshot_invalid");
   const locale = snapshot.locale;
@@ -50,9 +53,11 @@ try {
   const publicBrand = readPublicShareBrand();
   applyConversationExportFavicon(publicBrand?.id || readLocalExportBrandId());
   createRoot(rootElement).render(
-    <I18nProvider locale={locale} persistLocale={false}>
-      <ConversationExportDocument snapshot={snapshot} publicBrand={publicBrand} />
-    </I18nProvider>,
+    <ConfigProvider csp={{ nonce }}>
+      <I18nProvider locale={locale} persistLocale={false}>
+        <ConversationExportDocument snapshot={snapshot} publicBrand={publicBrand} />
+      </I18nProvider>
+    </ConfigProvider>,
   );
 } catch {
   showFailure(rootElement);
