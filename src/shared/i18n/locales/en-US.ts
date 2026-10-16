@@ -2224,6 +2224,7 @@ export const enUSMessages = {
   "platformError.category.auth": "Sign-in or permission verification failed. Sign in again or contact an administrator.",
   "platformError.category.chat_run": "The run failed. Please try again later.",
   "platformError.code.context_window_uncompactable": "The context cannot be compacted to fit the model window. This run has stopped.",
+  "platformError.code.context_compact_failed": "Generating the context compaction summary failed. This run has stopped.",
   "platformError.category.model": "The model service request failed. Please try again later.",
   "platformError.category.protocol": "The connection protocol failed. Please try again later.",
   "platformError.category.request": "The request is invalid and cannot be processed.",
