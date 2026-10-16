@@ -115,7 +115,10 @@ export const AgentSwitcherPopover: React.FC<{
         styles={{
           body: {
             padding: 0,
+            border: "1px solid color-mix(in srgb, var(--line-soft) 88%, transparent)",
+            borderRadius: 15,
             boxShadow: "var(--shadow-soft)",
+            overflow: "hidden",
           },
         }}
         content={

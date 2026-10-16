@@ -1,5 +1,6 @@
 import { bindCssModuleClasses } from "@/shared/utils/cssModuleClasses";
 import timelinePresentation from "@/features/timeline/components/TimelinePresentation.module.css";
+import composerPresentation from "@/features/composer/components/ComposerPresentation.module.css";
 import { SkinVisual } from "@/shared/ui/SkinVisual";
 import React, {
   useCallback,
@@ -9,7 +10,10 @@ import React, {
   useState,
 } from "react";
 import { ControlsForm } from "@/features/composer/components/ControlsForm";
-import { AddMenuTrigger, type AddMenuTriggerProps } from "@/features/composer/components/ComposerAddMenu";
+import {
+  AddMenuTrigger,
+  type AddMenuTriggerProps,
+} from "@/features/composer/components/ComposerAddMenu";
 import { QuerySettingsControls } from "@/features/composer/components/QuerySettingsControls";
 import { useComposerContext } from "@/features/composer/components/ComposerContext";
 import type { ComposerContextReferenceInput } from "@/features/composer/lib/composerAttachments";
@@ -17,9 +21,17 @@ import type { QueryAccessLevel, QueryModelOverride } from "@/shared/data";
 import { useI18n } from "@/shared/i18n";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
-import { Flex, Tooltip } from "antd";
-const presentationClasses = bindCssModuleClasses({ ...timelinePresentation });
-
+import { Flex, Popover, Tooltip } from "antd";
+import { useAgentConnectors } from "@/features/connectors/hooks/useAgentConnectors";
+import { useConnectorPickerCatalog } from "@/features/connectors/hooks/useConnectorPickerCatalog";
+import { ConnectorIcon } from "@/features/connectors/components/ConnectorIcon";
+import { AgentConnectorPicker } from "@/features/connectors/components/AgentConnectorPicker";
+import { orderConnectorsBuiltinLast } from "@/features/connectors/lib/connectorSelection";
+import { useOptionalAppContext } from "@/app/state/AppContext";
+const presentationClasses = bindCssModuleClasses({
+  ...timelinePresentation,
+  ...composerPresentation,
+});
 
 const COMPOSER_CONTROL_ROW_CLASS =
   "composer-control-row tw:flex tw:w-full tw:items-center tw:gap-2.5 tw:overflow-hidden";
@@ -42,12 +54,32 @@ const VOICE_BUTTON_STATE_CLASS = {
   listening:
     "is-listening tw:!border-[color-mix(in_srgb,var(--accent-danger)_56%,var(--line-soft))] tw:!bg-[color-mix(in_srgb,var(--accent-danger)_12%,var(--bg-elev-2))] tw:!shadow-[0_0_0_3px_color-mix(in_srgb,var(--accent-danger)_22%,transparent)]",
 } as const;
-const SEND_BUTTON_CLASS =
-  presentationClasses("send-btn tw:!grid tw:!h-8 tw:!min-h-8 tw:!w-8 tw:!min-w-8 tw:!flex-none tw:!place-items-center tw:self-center tw:!rounded-lg tw:!border-0 tw:!bg-accent-electric tw:!p-0 tw:!text-base tw:!font-bold tw:!text-[var(--accent-on)] tw:!shadow-[0_6px_16px_color-mix(in_srgb,var(--accent)_22%,transparent)] tw:!transition-[transform,box-shadow] tw:duration-[180ms] tw:ease-in-out tw:hover:!scale-[1.03] tw:hover:!bg-[var(--control-primary-hover)] tw:hover:!shadow-[0_6px_12px_color-mix(in_srgb,var(--accent)_28%,transparent)] tw:active:!scale-[0.97] tw:[&_.material-icon]:text-[17px]");
+const SEND_BUTTON_CLASS = presentationClasses(
+  "send-btn tw:!grid tw:!h-8 tw:!min-h-8 tw:!w-8 tw:!min-w-8 tw:!flex-none tw:!place-items-center tw:self-center tw:!rounded-lg tw:!border-0 tw:!bg-accent-electric tw:!p-0 tw:!text-base tw:!font-bold tw:!text-[var(--accent-on)] tw:!shadow-[0_6px_16px_color-mix(in_srgb,var(--accent)_22%,transparent)] tw:!transition-[transform,box-shadow] tw:duration-[180ms] tw:ease-in-out tw:hover:!scale-[1.03] tw:hover:!bg-[var(--control-primary-hover)] tw:hover:!shadow-[0_6px_12px_color-mix(in_srgb,var(--accent)_28%,transparent)] tw:active:!scale-[0.97] tw:[&_.material-icon]:text-[17px]",
+);
 const INTERRUPT_BUTTON_CLASS =
   "interrupt-btn tw:!h-8 tw:!min-h-8 tw:!w-8 tw:!min-w-8 tw:!flex-none tw:self-center tw:!rounded-lg tw:!border-0 tw:!p-0 tw:!text-[11px] tw:!font-bold tw:hover:!bg-[color-mix(in_srgb,var(--accent-danger)_10%,transparent)] tw:disabled:opacity-60";
+// 已选连接器堆叠最多显示的图标数量
+const CONNECTOR_STACK_MAX_ICONS = 3;
 
-interface ComposerActionsProps extends Omit<AddMenuTriggerProps, "disabled" | "loading" | "planningMode" | "editingMode" | "canUsePlanningMode" | "canUseEditingMode" | "currentChatId" | "canCaptureDesktopScreenshot" | "isCapturingDesktopScreenshot" | "onOpenFilePicker" | "onCaptureScreenshot" | "screenshotDisabledReason" | "onAddReference" | "onTogglePlanningMode" | "onEditingModeChange"> {
+interface ComposerActionsProps extends Omit<
+  AddMenuTriggerProps,
+  | "disabled"
+  | "loading"
+  | "planningMode"
+  | "editingMode"
+  | "canUsePlanningMode"
+  | "canUseEditingMode"
+  | "currentChatId"
+  | "canCaptureDesktopScreenshot"
+  | "isCapturingDesktopScreenshot"
+  | "onOpenFilePicker"
+  | "onCaptureScreenshot"
+  | "screenshotDisabledReason"
+  | "onAddReference"
+  | "onTogglePlanningMode"
+  | "onEditingModeChange"
+> {
   accessLevel: QueryAccessLevel;
   isFrontendActive: boolean;
   isVoiceMode: boolean;
@@ -77,7 +109,24 @@ interface ComposerActionsProps extends Omit<AddMenuTriggerProps, "disabled" | "l
   onAddReference: (reference: ComposerContextReferenceInput) => void;
 }
 
-export const ComposerActions: React.FC<ComposerActionsProps> = ({
+export const ComposerActions: React.FC<ComposerActionsProps> = (props) => {
+  const hasAppContext = Boolean(useOptionalAppContext());
+  if (!props.currentAgentKey || !hasAppContext) {
+    return <ComposerActionsPure {...props} />;
+  }
+  return (
+    <ComposerActionsWithConnectors
+      {...props}
+      currentAgentKey={props.currentAgentKey}
+    />
+  );
+};
+
+const ComposerActionsPure: React.FC<
+  ComposerActionsProps & {
+    enabledConnectors?: import("@/shared/data").ConnectorOption[];
+  }
+> = ({
   interactionConfig,
   accessLevel,
   isFrontendActive,
@@ -109,10 +158,13 @@ export const ComposerActions: React.FC<ComposerActionsProps> = ({
   currentAgentKey,
   isMainChatRunning,
   selectedSkillIds,
-  kbaseCatalog, selectedKbases, onSelectKbases,
+  kbaseCatalog,
+  selectedKbases,
+  onSelectKbases,
   lockedSkillIds,
   onSelectSkills,
   onSelectSkill,
+  enabledConnectors = [],
 }) => {
   const { t } = useI18n();
   const {
@@ -125,7 +177,8 @@ export const ComposerActions: React.FC<ComposerActionsProps> = ({
   const attachmentActionsDisabled =
     interactionDisabled || isFrontendActive || isVoiceMode || isStreaming;
   // streaming 时允许通过 + 菜单上传附件，仅在前端工具激活或语音模式下禁用
-  const addMenuDisabled = interactionDisabled || isFrontendActive || isVoiceMode;
+  const addMenuDisabled =
+    interactionDisabled || isFrontendActive || isVoiceMode;
 
   const controlRowRef = useRef<HTMLDivElement>(null);
   const [compact, setCompact] = useState(false);
@@ -155,6 +208,9 @@ export const ComposerActions: React.FC<ComposerActionsProps> = ({
       window.location.pathname.startsWith("/copilot"),
     [],
   );
+
+  const [connectorPickerOpen, setConnectorPickerOpen] = useState(false);
+  const [connectorSearch, setConnectorSearch] = useState("");
   const voiceButtonStateClass = speechListening
     ? VOICE_BUTTON_STATE_CLASS.listening
     : VOICE_BUTTON_STATE_CLASS.idle;
@@ -181,101 +237,163 @@ export const ComposerActions: React.FC<ComposerActionsProps> = ({
       )}
       <div ref={controlRowRef} className={COMPOSER_CONTROL_ROW_CLASS}>
         <div className={COMPOSER_PLUS_WRAP_CLASS}>
-          {statusNotice ?? <>
-          <AddMenuTrigger
-            interactionConfig={interactionConfig}
-            disabled={addMenuDisabled}
-            loading={hasUploadingAttachments}
-            currentChatId={currentChatId}
-            currentAgentKey={currentAgentKey}
-            planningMode={planningMode}
-            editingMode={editingMode}
-            canUsePlanningMode={canUsePlanningMode}
-            canUseEditingMode={canUseEditingMode}
-            isMainChatRunning={isMainChatRunning}
-            canCaptureDesktopScreenshot={canCaptureDesktopScreenshot}
-            isCapturingDesktopScreenshot={isCapturingDesktopScreenshot}
-            kbaseCatalog={kbaseCatalog} selectedKbases={selectedKbases} onSelectKbases={onSelectKbases}
-            selectedSkillIds={selectedSkillIds}
-            lockedSkillIds={lockedSkillIds}
-            onSelectSkills={onSelectSkills}
-            onOpenFilePicker={openFilePicker}
-            onCaptureScreenshot={() => void captureDesktopScreenshot()}
-            screenshotDisabledReason={screenshotDisabledReason}
-            onAddReference={onAddReference}
-            onTogglePlanningMode={onTogglePlanningMode}
-            onEditingModeChange={onEditingModeChange}
-            onSelectSkill={onSelectSkill}
-          />
-          {planningMode && canUsePlanningMode && (
-            <Tooltip
-              title={
-                <Flex align="center" vertical style={{ fontSize: 12 }}>
-                  <div>{t("composer.tooltip.createPlan")}</div>
-                  <div>
-                    <code className={PLAN_TOGGLE_SHORTCUT_CLASS}>
-                      Shift + Tab
-                    </code>{" "}
-                    {t("composer.tooltip.planShortcut")}
-                  </div>
-                </Flex>
-              }
-            >
-              <UiButton
-                className={CONTEXT_TOGGLE_BUTTON_CLASS}
-                variant="ghost"
-                size="sm"
-                disabled={interactionDisabled}
-                onClick={onTogglePlanningMode}
-              >
-                <MaterialIcon
-                  name="checklist"
-                  className={CONTEXT_TOGGLE_ICON_CLASS}
+          {statusNotice ?? (
+            <>
+              <AddMenuTrigger
+                interactionConfig={interactionConfig}
+                disabled={addMenuDisabled}
+                loading={hasUploadingAttachments}
+                currentChatId={currentChatId}
+                currentAgentKey={currentAgentKey}
+                planningMode={planningMode}
+                editingMode={editingMode}
+                canUsePlanningMode={canUsePlanningMode}
+                canUseEditingMode={canUseEditingMode}
+                isMainChatRunning={isMainChatRunning}
+                canCaptureDesktopScreenshot={canCaptureDesktopScreenshot}
+                isCapturingDesktopScreenshot={isCapturingDesktopScreenshot}
+                kbaseCatalog={kbaseCatalog}
+                selectedKbases={selectedKbases}
+                onSelectKbases={onSelectKbases}
+                selectedSkillIds={selectedSkillIds}
+                lockedSkillIds={lockedSkillIds}
+                onSelectSkills={onSelectSkills}
+                onOpenFilePicker={openFilePicker}
+                onCaptureScreenshot={() => void captureDesktopScreenshot()}
+                screenshotDisabledReason={screenshotDisabledReason}
+                onAddReference={onAddReference}
+                onTogglePlanningMode={onTogglePlanningMode}
+                onEditingModeChange={onEditingModeChange}
+                onSelectSkill={onSelectSkill}
+              />
+              {planningMode && canUsePlanningMode && (
+                <Tooltip
+                  title={
+                    <Flex align="center" vertical style={{ fontSize: 12 }}>
+                      <div>{t("composer.tooltip.createPlan")}</div>
+                      <div>
+                        <code className={PLAN_TOGGLE_SHORTCUT_CLASS}>
+                          Shift + Tab
+                        </code>{" "}
+                        {t("composer.tooltip.planShortcut")}
+                      </div>
+                    </Flex>
+                  }
+                >
+                  <UiButton
+                    className={CONTEXT_TOGGLE_BUTTON_CLASS}
+                    variant="ghost"
+                    size="sm"
+                    disabled={interactionDisabled}
+                    onClick={onTogglePlanningMode}
+                  >
+                    <MaterialIcon
+                      name="checklist"
+                      className={CONTEXT_TOGGLE_ICON_CLASS}
+                    />
+                    <MaterialIcon
+                      name="close"
+                      className={CONTEXT_TOGGLE_CLOSE_ICON_CLASS}
+                    />
+                    {!compact && (
+                      <span className={CONTEXT_TOGGLE_LABEL_CLASS}>
+                        {t("composer.actions.plan")}
+                      </span>
+                    )}
+                  </UiButton>
+                </Tooltip>
+              )}
+              {enabledConnectors.length > 0 && (
+                <Popover
+                  open={connectorPickerOpen}
+                  onOpenChange={setConnectorPickerOpen}
+                  trigger={["click"]}
+                  placement="topLeft"
+                  arrow={false}
+                  destroyOnHidden
+                  classNames={{
+                    root: presentationClasses(
+                      "composer-connector-picker-popover",
+                    ),
+                  }}
+                  content={
+                    <div
+                      style={{ width: 240 }}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <AgentConnectorPicker
+                        key={currentAgentKey}
+                        agentKey={currentAgentKey || ""}
+                        search={connectorSearch}
+                        onSearchChange={setConnectorSearch}
+                        disabled={addMenuDisabled}
+                      />
+                    </div>
+                  }
+                >
+                  <button
+                    type="button"
+                    className={presentationClasses(
+                      "composer-connector-stack-btn",
+                    )}
+                    disabled={interactionDisabled}
+                    aria-label={t("composer.addMenu.section.connectors")}
+                  >
+                    <span
+                      className={presentationClasses(
+                        "composer-connector-avatar-stack",
+                      )}
+                    >
+                      {enabledConnectors.slice(0, CONNECTOR_STACK_MAX_ICONS).map((connector) => (
+                        <span
+                          key={connector.id}
+                          className={presentationClasses(
+                            "composer-connector-avatar-item",
+                          )}
+                          title={connector.name || connector.id}
+                        >
+                          <ConnectorIcon item={connector} size={16} />
+                        </span>
+                      ))}
+                    </span>
+                  </button>
+                </Popover>
+              )}
+              {editingMode && canUseEditingMode ? (
+                <Tooltip title={t("composer.editingMode.tooltip")}>
+                  <UiButton
+                    className={CONTEXT_TOGGLE_BUTTON_CLASS}
+                    variant="ghost"
+                    size="sm"
+                    disabled={attachmentActionsDisabled}
+                    onClick={() => onEditingModeChange(false)}
+                  >
+                    <MaterialIcon
+                      name="edit_square"
+                      className={CONTEXT_TOGGLE_ICON_CLASS}
+                    />
+                    <MaterialIcon
+                      name="close"
+                      className={CONTEXT_TOGGLE_CLOSE_ICON_CLASS}
+                    />
+                    {!compact && (
+                      <span className={CONTEXT_TOGGLE_LABEL_CLASS}>
+                        {t("composer.editingMode.label")}
+                      </span>
+                    )}
+                  </UiButton>
+                </Tooltip>
+              ) : null}
+              {!isCopilot && (
+                <ControlsForm
+                  disabled={
+                    interactionDisabled || isFrontendActive || isStreaming
+                  }
+                  onChange={onControlParamsChange}
                 />
-                <MaterialIcon
-                  name="close"
-                  className={CONTEXT_TOGGLE_CLOSE_ICON_CLASS}
-                />
-                {!compact && (
-                  <span className={CONTEXT_TOGGLE_LABEL_CLASS}>
-                    {t("composer.actions.plan")}
-                  </span>
-                )}
-              </UiButton>
-            </Tooltip>
+              )}
+            </>
           )}
-          {editingMode && canUseEditingMode ? (
-            <Tooltip title={t("composer.editingMode.tooltip")}>
-              <UiButton
-                className={CONTEXT_TOGGLE_BUTTON_CLASS}
-                variant="ghost"
-                size="sm"
-                disabled={attachmentActionsDisabled}
-                onClick={() => onEditingModeChange(false)}
-              >
-                <MaterialIcon
-                  name="edit_square"
-                  className={CONTEXT_TOGGLE_ICON_CLASS}
-                />
-                <MaterialIcon
-                  name="close"
-                  className={CONTEXT_TOGGLE_CLOSE_ICON_CLASS}
-                />
-                {!compact && (
-                  <span className={CONTEXT_TOGGLE_LABEL_CLASS}>
-                    {t("composer.editingMode.label")}
-                  </span>
-                )}
-              </UiButton>
-            </Tooltip>
-          ) : null}
-          {!isCopilot && (
-            <ControlsForm
-              disabled={interactionDisabled || isFrontendActive || isStreaming}
-              onChange={onControlParamsChange}
-            />
-          )}
-          </>}
         </div>
         {isStreaming ? (
           <>
@@ -298,7 +416,9 @@ export const ComposerActions: React.FC<ComposerActionsProps> = ({
               onClick={() => void interruptCurrentRun()}
               aria-label={t("composer.actions.interrupt")}
             >
-              <SkinVisual slot="chat.stop" size={28}><MaterialIcon name="stop_circle" style={{ fontSize: 28 }} /></SkinVisual>
+              <SkinVisual slot="chat.stop" size={28}>
+                <MaterialIcon name="stop_circle" style={{ fontSize: 28 }} />
+              </SkinVisual>
             </UiButton>
           </>
         ) : !isVoiceMode ? (
@@ -333,7 +453,9 @@ export const ComposerActions: React.FC<ComposerActionsProps> = ({
                     : speechStatus
                 }
               >
-                <SkinVisual slot="chat.voice"><MaterialIcon name="mic" /></SkinVisual>
+                <SkinVisual slot="chat.voice">
+                  <MaterialIcon name="mic" />
+                </SkinVisual>
               </UiButton>
             ) : null}
             <UiButton
@@ -346,11 +468,43 @@ export const ComposerActions: React.FC<ComposerActionsProps> = ({
               onClick={() => handleSend()}
               aria-label={t("composer.actions.send")}
             >
-              <SkinVisual slot="chat.send"><MaterialIcon name="arrow_upward" /></SkinVisual>
+              <SkinVisual slot="chat.send">
+                <MaterialIcon name="arrow_upward" />
+              </SkinVisual>
             </UiButton>
           </>
         ) : null}
       </div>
     </Flex>
+  );
+};
+
+const ComposerActionsWithConnectors: React.FC<
+  ComposerActionsProps & { currentAgentKey: string }
+> = (props) => {
+  const connectorSelection = useAgentConnectors(props.currentAgentKey);
+  const connectorCatalog = useConnectorPickerCatalog(
+    props.currentAgentKey,
+    connectorSelection.catalogRevision,
+  );
+
+  const enabledConnectors = useMemo(() => {
+    if (!connectorSelection.data?.connectorIds?.length) return [];
+    const selectedSet = new Set(connectorSelection.data.connectorIds);
+    const available = connectorSelection.availableIds;
+    return orderConnectorsBuiltinLast(
+      connectorCatalog.items.filter(
+        (item) =>
+          selectedSet.has(item.id) && (!available || available.includes(item.id)),
+      ),
+    );
+  }, [
+    connectorSelection.data?.connectorIds,
+    connectorSelection.availableIds,
+    connectorCatalog.items,
+  ]);
+
+  return (
+    <ComposerActionsPure {...props} enabledConnectors={enabledConnectors} />
   );
 };

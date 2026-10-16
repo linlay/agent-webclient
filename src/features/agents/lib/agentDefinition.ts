@@ -62,6 +62,7 @@ export interface AgentFormState {
   reasoningEffort: string;
   tools: string[];
   skills: string[];
+  connectors: string[];
   greetingsText: string;
   introductionsText: string;
   wondersText: string;
@@ -94,6 +95,7 @@ export const EMPTY_FORM: AgentFormState = {
   reasoningEffort: "",
   tools: [],
   skills: [],
+  connectors: [],
   greetingsText: "[]",
   introductionsText: "[]",
   wondersText: "[]",
@@ -707,6 +709,7 @@ export function formFromDetail(detail: EditableAgentDetail): AgentFormState {
     reasoningEffort,
     tools: textListFromUnknown(detail.definition ? toolConfig.tools : ("toolBindings" in detail && detail.toolBindings ? detail.toolBindings.filter(tool => tool.source === "agent").map(tool => tool.name) : ("tools" in detail ? detail.tools : []))),
     skills: textListFromUnknown(skillConfig.skills || detail.skills),
+    connectors: textListFromUnknown(asRecord(definition.connectorConfig).connectors),
     greetingsText: stringifyJson(
       definition.greetings ?? detail.greetings ?? [],
       "[]",
@@ -806,6 +809,12 @@ export function buildDefinition(
   if (skills.length > 0)
     definition.skillConfig = { ...asRecord(definition.skillConfig), skills };
   else delete definition.skillConfig;
+
+  const connectors = [...new Set(form.connectors.map(item => item.trim()).filter(Boolean))];
+  const originalConnectorConfig = asRecord(definition.connectorConfig);
+  if (connectors.length > 0 || Object.keys(originalConnectorConfig).length > 0)
+    definition.connectorConfig = { ...originalConnectorConfig, connectors };
+  else delete definition.connectorConfig;
 
   const greetings = parseJsonField(
     t("agentConsole.field.greetings"),

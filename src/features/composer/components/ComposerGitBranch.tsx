@@ -79,6 +79,7 @@ export function ComposerGitBranch({ agentKey, workspaceDir, disabled = false }: 
     <Popover open={open && !disabled} onOpenChange={next => {
       if (!disabled && !mutating.current) { setOpen(next); if (next) { setError(""); setName(""); } }
     }} trigger={["click"]} placement="topLeft" arrow={false}
+      overlayClassName={styles.branchPopover}
       align={{ overflow: { adjustX: true, adjustY: true, shiftX: 8, shiftY: 8 } }} content={
       <div className={styles.branchMenu} role="dialog" aria-label={t("composer.git.select")}>
         <form onSubmit={event => { event.preventDefault(); void change("create", name.trim()); }}>

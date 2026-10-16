@@ -18,6 +18,8 @@ Agent 管理台由 `/agents` 路由进入，页面壳层为 `src/app/pages/agent
 
 已有 Agent 在“上下文与能力”中通过 `/api/admin/agent` 的 `connectorBindings` 读取预置、声明和实际生效挂载的并集，使用 `/api/admin/connectors` 的 `tools` 展示连接器名称、说明、归属工具和能力。连接器默认收起，点击或键盘展开后显示工具名称、说明及搜索（超过 8 项），CLI、VIEW、技能和 MCP 同步状态分别解释。预置带锁且只读；未生效、等待重载、目录缺失和空列表有独立状态。切换 Agent、目录更新和页面重新可见时刷新，并忽略旧请求响应。MCP 服务按 agentKey 过滤，避免显示其他 Agent 的工具。
 
+连接器标题提供“管理连接器”，从已安装目录搜索和选择；普通挂载卡片支持移除与撤销移除，目录缺失的自身声明仍可移除。选择仅修改表单草稿，与工具、技能一起由页面保存或创建；草稿从 `definition.connectorConfig.connectors` 初始化并写回，预置和运行中待卸载挂载不因展示进入源码。包的 builtin/readOnly/canDelete 不限制普通挂载选择，预置只读取 `connectorBindings.source=preset`。未保存增删分别标记“待保存添加／移除”，后端 active/pendingRemoval/reloadPending 独立展示；目录更新、窗口重新聚焦和恢复可见只刷新目录与运行快照，不覆盖草稿。配置账号及安装／卸载包通过面板中的连接器中心入口在新窗口打开，保留当前草稿。
+
 自身工具区不重复展示连接器原生工具或 MCP 工具；原生归属来自目录 `nativeTools`，不按工具名前缀推断。平台预置和运行时依赖默认折叠，保留 excluded/active 与只读标识。显示分组不修改 `definition.toolConfig.tools`，保存仍仅使用自身声明，不把自动挂载写回源码。连接器包详情仍在 `/connectors` 查看；两套挂载 PUT 均由后端拒绝修改预置。
 
 ## 新建与 ZIP 导入

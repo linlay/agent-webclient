@@ -242,9 +242,7 @@ button:hover {
 }
 
 .ui-btn.ui-btn-primary {
-    border-color: color-mix(in srgb,
-            var(--accent-electric) 64%,
-            var(--line-soft));
+    border: 0;
     background: var(--control-primary-bg);
     color: var(--accent-on);
 }
@@ -304,8 +302,8 @@ button:hover {
 }
 
 .ui-btn.ui-btn-primary:hover {
+    border: 0;
     background: var(--control-primary-hover);
-    border-color: var(--control-primary-hover);
     color: var(--accent-on);
 }
 
@@ -628,12 +626,6 @@ textarea {
     color: var(--ink-muted);
     opacity: var(--control-disabled-opacity);
     cursor: not-allowed;
-}
-
-.ui-btn:focus-visible,
-.ui-input:focus-visible {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px;
 }
 
 .ui-input:focus {

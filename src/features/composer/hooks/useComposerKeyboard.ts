@@ -4,6 +4,11 @@ import type { AppAction } from "@/app/state/AppContext";
 import type { SlashPaletteItem } from "@/features/composer/lib/slashCommands";
 import { isImeEnterConfirming } from "@/shared/utils/ime";
 
+function isMacPlatform(): boolean {
+  if (typeof navigator === "undefined") return false;
+  return /Mac|iPhone|iPad|iPod/.test(navigator.platform);
+}
+
 export function useComposerKeyboard({
   closeMention,
   dispatch,
@@ -53,10 +58,15 @@ export function useComposerKeyboard({
         return;
       }
 
-      if (event.key === "Enter" && event.metaKey && !event.shiftKey && !event.altKey) {
+      const isMac = isMacPlatform();
+      const isModifier = isMac
+        ? event.metaKey && !event.ctrlKey
+        : event.ctrlKey && !event.metaKey;
+
+      if (event.key === "Enter" && isModifier && !event.shiftKey && !event.altKey && onSubmitQueuedSteer) {
         event.preventDefault();
         event.stopPropagation();
-        if (!event.repeat) onSubmitQueuedSteer?.();
+        if (!event.repeat) onSubmitQueuedSteer();
         return;
       }
 

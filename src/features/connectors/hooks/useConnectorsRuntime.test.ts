@@ -2,7 +2,7 @@
 import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { useConnectorsRuntime } from "./useConnectorsRuntime";
-import { deleteConnector, ApiError, getAdminConnectors, getAdminTools, getConnectorDefinition, importConnectorArchive, updateConnectorDefinition } from "@/shared/data";
+import { deleteConnector, ApiError, getAdminConnectors, getAdminTools, getConnectorDefinition, importConnectorArchive, importConnectorMCP, updateConnectorDefinition } from "@/shared/data";
 import type { ConnectorDefinition, ConnectorSummary } from "@/shared/data";
 
 const push = { subscribe: jest.fn(() => jest.fn()) };
@@ -12,7 +12,7 @@ jest.mock("@/features/transport/hooks/useRealtimeTransport", () => ({ usePushTra
 jest.mock("@/shared/i18n", () => ({ useI18n: () => ({ t: (key: string) => key }) }));
 jest.mock("@/shared/data", () => ({
   ApiError: jest.requireActual("@/shared/data/api/http").ApiError,
-  deleteConnector: jest.fn(), getAdminConnectors: jest.fn(), getAdminTools: jest.fn(), getConnectorDefinition: jest.fn(), importConnectorArchive: jest.fn(), updateConnectorDefinition: jest.fn(),
+  deleteConnector: jest.fn(), getAdminConnectors: jest.fn(), getAdminTools: jest.fn(), getConnectorDefinition: jest.fn(), importConnectorArchive: jest.fn(), importConnectorMCP: jest.fn(), updateConnectorDefinition: jest.fn(),
 }));
 
 const item: ConnectorSummary = { id: "demo", name: "Demo", version: "1.0.0", type: "cli", authMode: "none", hasCli: true, hasMcp: true, hasBin: true, skills: [], mcp: [] };
@@ -148,7 +148,6 @@ it("preserves HTTP 401 diagnostics for the catalog entry point and clears them a
   expect(current.catalogError).toBe("");
 });
 
-
 it("preserves the selected draft when deletion is canceled or rejected as in use", async () => {
   await mount();
   await act(async () => current.updateDraft('{"name":"Unsaved"}'));
@@ -221,4 +220,25 @@ it.each([{ builtin: true }, { readOnly: true }, { canDelete: false }])("rejects 
   await act(async () => expect(current.remove()).resolves.toBeNull());
   expect(window.confirm).not.toHaveBeenCalled();
   expect(deleteConnector).not.toHaveBeenCalled();
+});
+
+it("preserves drafts on failed MCP import, then selects the installed connector even if refresh fails", async () => {
+  await mount();
+  await act(async () => current.updateDraft('{"name":"Unsaved"}'));
+  const params = { mcpUrl: "https://mcp.example.test/mcp", authMode: "none" as const };
+  jest.spyOn(window, "confirm").mockReturnValue(false);
+  await act(async () => expect(current.importMCP(params)).resolves.toBeNull());
+  expect(importConnectorMCP).not.toHaveBeenCalled();
+  jest.mocked(window.confirm).mockReturnValue(true);
+  jest.mocked(importConnectorMCP).mockRejectedValueOnce(new Error("conflict"));
+  await act(async () => expect(current.importMCP(params)).rejects.toThrow("conflict"));
+  expect(current.draft).toBe('{"name":"Unsaved"}');
+  expect(current.importing).toBe(false);
+  jest.mocked(importConnectorMCP).mockResolvedValueOnce({ code: 0, msg: "", data: { id: "mcp.example.test", name: "MCP", version: "1.0.0", installed: true, authMode: "none" } });
+  jest.mocked(getAdminConnectors).mockRejectedValueOnce(new Error("refresh unavailable"));
+  await act(async () => expect(current.importMCP(params)).resolves.toBe("mcp.example.test"));
+  expect(current.dirty).toBe(false);
+  expect(current.catalogError).toBe("refresh unavailable");
+  expect(onRouteIdChange).toHaveBeenCalledWith("mcp.example.test");
+  expect(importConnectorMCP).toHaveBeenCalledWith(params);
 });

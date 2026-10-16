@@ -878,7 +878,7 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
       if (currentWorker?.type === "agent" && currentWorker.sourceId) {
         workerDetail.agentKey = currentWorker.sourceId;
         sendDetail.agentKey = currentWorker.sourceId;
-      } else
+      }
 
       window.dispatchEvent(
         new CustomEvent("agent:start-new-conversation", {

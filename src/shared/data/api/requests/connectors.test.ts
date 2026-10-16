@@ -1,5 +1,5 @@
 /** @jest-environment jsdom */
-import { deleteConnector, cancelConnectorAuth, getAdminConnectors, getConnectorSkills, getConnectorSkillDetail, getConnectorAuthStatus, getConnectorDefinition, importConnectorArchive, logoutConnectorAuth, startConnectorAuth, updateConnectorDefinition } from "./connectors";
+import { deleteConnector, cancelConnectorAuth, getAdminConnectors, getConnectorSkills, getConnectorSkillDetail, getConnectorAuthStatus, getConnectorDefinition, importConnectorArchive, importConnectorMCP, logoutConnectorAuth, startConnectorAuth, updateConnectorDefinition } from "./connectors";
 import { ApiError, requestJson, setAccessToken } from "@/shared/data/api/http";
 import { getConnectors, setAgentConnector, getAdminAgentConnectors, setAdminAgentConnector } from "./connectors";
 import { getConnectorConnections, prepareConnector, saveConnectorCredentials } from "./connectors";
@@ -112,7 +112,6 @@ it("consumes the Platform envelope through the existing identity client and pres
   }
 });
 
-
 it("scopes connector skill queries to the admin connector and original skill name", async () => {
   await getConnectorSkills("builtin.dbx");
   await getConnectorSkillDetail("builtin.dbx", "query&report");
@@ -120,12 +119,10 @@ it("scopes connector skill queries to the admin connector and original skill nam
   expect(requestJson).toHaveBeenNthCalledWith(2, "/api/admin/connectors/skills/detail?id=builtin.dbx&skillId=query%26report");
 });
 
-
 it("deletes the installed package through the detail endpoint with an encoded id", async () => {
   await deleteConnector("demo & other");
   expect(requestJson).toHaveBeenCalledWith("/api/admin/connectors/detail?id=demo+%26+other", { method: "DELETE", cache: "no-store" });
 });
-
 
 it.each([false, true])("preserves delete conflict reasons and references through HTTP (structured=%s)", async structured => {
   const originalFetch = globalThis.fetch;
@@ -150,7 +147,6 @@ it("keeps a busy conflict distinct from an Agent binding conflict", async () => 
   } finally { globalThis.fetch = originalFetch; }
 });
 
-
 it.each([400, 200])("preserves connector selection errors for status %s", async status => {
   const originalFetch = globalThis.fetch;
   const reason = "所选连接器互斥，请先取消已选择的冲突连接器";
@@ -174,5 +170,13 @@ it("projects compact detail bindings for the existing mount write workflow", asy
   expect((await getAdminAgentConnectors("demo")).data).toEqual({
     agentKey: "demo", connectorIds: ["preset", "new"], presetConnectorIds: ["preset"],
     declaredConnectorIds: ["new"], activeConnectorIds: ["preset", "old"], reloadPending: true,
+  });
+});
+
+it("imports MCP URLs over direct uncached HTTP without automatically replaying a mutation", async () => {
+  const params = { mcpUrl: "https://example.test/mcp?key=synthetic-key", authMode: "none" as const };
+  await importConnectorMCP(params);
+  expect(requestJson).toHaveBeenCalledWith("/api/admin/connectors/import-mcp", {
+    method: "POST", body: JSON.stringify(params), cache: "no-store", retryUnauthorized: false,
   });
 });

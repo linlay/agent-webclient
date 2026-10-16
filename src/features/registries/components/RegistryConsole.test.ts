@@ -107,7 +107,9 @@ describe("RegistryConsole", () => {
     const html = renderRegistryConsole("en-US");
 
     expect(html).toContain("management-page-console");
-    expect(html).toContain("280px_minmax(0,1fr)");
+    expect(html).toContain("minmax(0,1fr)");
+    expect(html).toContain("registry-category-tabs-actions");
+    expect(html).toContain("is-icon-only");
     expect(html).not.toContain("command-modal-section");
   });
 

@@ -4,6 +4,9 @@
 .query-settings-menu:global(.ant-dropdown-menu) {
     font-size: 13px;
     min-width: 160px;
+    border: 1px solid color-mix(in srgb, var(--line-soft) 88%, transparent);
+    border-radius: 15px;
+    box-shadow: var(--shadow-soft);
 }
 
 .query-settings-menu:global(.ant-dropdown-menu-submenu) {
@@ -49,6 +52,9 @@
 
 .query-settings-submenu :global(.ant-dropdown-menu) {
     min-width: 280px;
+    border: 1px solid color-mix(in srgb, var(--line-soft) 88%, transparent);
+    border-radius: 15px;
+    box-shadow: var(--shadow-soft);
 }
 
 .query-settings-submenu :global(.ant-dropdown-menu) :global(.ant-dropdown-menu-item) {

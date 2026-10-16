@@ -102,6 +102,7 @@ export function ConnectorsConsole({
   }, [runtime.refreshCatalog]);
   const importer = useConnectorImport({
     onImport: runtime.importArchive,
+    onImportMCP: runtime.importMCP,
     onImported: (id) => {
       void messageApi.success({
         key: "connector-import",
@@ -230,16 +231,16 @@ export function ConnectorsConsole({
         })();
       }
     };
+    const isItemSelected = !showUnassigned && selected?.id === item.id;
     return (
       <div key={item.id} className={styles.itemWrap}>
         <button
           type="button"
           className={styles.listItem}
-          aria-current={
-            !showUnassigned && selected?.id === item.id ? "true" : undefined
-          }
+          aria-current={isItemSelected ? "true" : undefined}
           disabled={busy}
           onClick={() => {
+            if (isItemSelected) return;
             authChecks.prioritize(item.id);
             void auth?.refresh();
             setShowUnassigned(false);
@@ -396,7 +397,7 @@ export function ConnectorsConsole({
             </UiButton>
             <CreateMenuButton
               label={t("resourceAssistant.new")}
-              manualLabel={t("resourceAssistant.import")}
+              manualLabel={t("connectors.import.title")}
               disabled={busy || runtime.detailLoading || assistant.opening}
               onManual={importer.show}
               onConversation={() => {

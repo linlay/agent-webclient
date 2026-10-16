@@ -3,7 +3,7 @@ import type { ConnectorAuthSession } from "@/shared/data";
 
 const session: ConnectorAuthSession = { connectorId: "demo", sessionId: "", status: "unauthorized", expiresAt: "0001-01-01T00:00:00Z" };
 it("uses auth modes instead of provider identifiers", () => {
-  expect(["self", "oauth", "mcp", "none", "token"].map(mode => supportsConnectorLogin(mode as "self"))).toEqual([true, true, true, false, false]);
+  expect(["self", "mcp", "none", "token", "oneid"].map(mode => supportsConnectorLogin(mode as "self"))).toEqual([true, true, false, false, false]);
 });
 it("checks canonical delegated and Desktop identity modes while keeping Desktop login external", () => {
   expect(supportsConnectorAuthCheck("self")).toBe(true);

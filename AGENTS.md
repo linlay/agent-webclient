@@ -47,7 +47,7 @@ Native `wait` 使用 `tool.wait/tool.wait.update` 投影同 Run 等待，时间�
 - `src/features/model-config/`：Composer 与 Agent 管理台共用的模型菜单 presenter，以及模型、reasoning、service tier 的 React-free 归一化逻辑
 - `src/features/automations/`：Automation 列表、Execution 历史、编辑 Drawer、领域运行时和表单/DTO 纯逻辑
 - `src/features/registries/`：providers/models 与非 MCP tools 管理台的界面、加载/刷新运行时、编辑状态和配置映射逻辑；VIEW 统一在连接器管理，旧 viewport-servers 不进入此管理台
-- `src/features/connectors/`：MCP/CLI/VIEW 连接器安装包目录、ZIP 导入、外部包删除确认与占用诊断、组件概览、JSON 配置编辑与同步状态
+- `src/features/connectors/`：MCP/CLI/VIEW 连接器安装包目录、ZIP 与 MCP 地址导入、外部包删除确认与占用诊断、组件概览、JSON 配置编辑与同步状态
 - `src/features/archive/` / `src/features/memory/`：归档与记忆管理页面、内嵌面板及各自运行时；不再归入 Settings
 - `src/features/command-center/` / `src/features/shortcuts/`：跨领域命令容器与全局快捷键装配
 - `src/features/debug/` / `src/features/overview/` / `src/features/source/`：右栏内容与独立 Viewer Surface
@@ -218,6 +218,8 @@ Composer 的连接器目录、Agent 关联读取与开关写入统一经 routedC
 管理工具归属：`/api/admin/tools` 与 Agent 管理详情的 `toolBindings` 仅展示独立工具；原生连接器工具及 MCP 工具由 `/api/admin/connectors` 每项的 `tools` 提供名称、说明与路由标识。`catalogVisible:false` 仍限制独立目录，不阻止在所属连接器中查看详情；不改变原始 definition、运行时工具集合及挂载权限。通用 bash/file_read 依赖不视作连接器所属工具。
 
 管理详情与管理端创建、修改、改名响应不再返回顶层 tools，工具展示使用 toolBindings，编辑与保存使用 definition.toolConfig；使用端 /api/agent.tools 保留运行时工具 ID 数组。
+
+`/agents` 的连接器管理编辑 `definition.connectorConfig.connectors` 对应的表单草稿，随 Agent 创建／保存统一提交；预置按 connectorBindings.source 锁定，包 builtin/readOnly 不限制普通挂载选择。未保存增删与后端 active/pendingRemoval/reloadPending 分开展示，目录与运行快照刷新不覆盖草稿；安装、卸载及账号配置通过新窗口进入连接器中心。
 
 共享知识库通过单个 kbaseConfig.libraryId 绑定所有 Native Agent，Workspace 独立用于项目与编辑。项目创建可选已有库或从目录同时建库与 Agent；中心 collection 保存 include/exclude/chunk。source.publish 的 libraryId/agentKey 必须在 live/replay 投影保留；来源详情通过专用 Chat 已发布来源 read/file API 回读，不转换成 Workspace /api/resource 链接。旧 Agent refresh 与等待回执已删除，库中心自动维护。
 

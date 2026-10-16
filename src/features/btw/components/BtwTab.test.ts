@@ -155,6 +155,15 @@ describe("BtwTab composer controls", () => {
     useAppState.mockReturnValue({ chatId: "chat_1" });
   });
 
+  it("renders spinning status icon while running", () => {
+    const html = renderSession({
+      status: "running",
+    });
+
+    expect(html).toContain('data-icon="progress_activity"');
+    expect(html).toContain("tw:animate-ui-spin");
+  });
+
   it("renders the primary Send action while idle", () => {
     const html = renderSession();
     const button = findButton(html, "btw.send");

@@ -356,6 +356,12 @@ export const dataEndpoints = createEndpointRegistry({
     method: "POST",
     transport: "http",
   }),
+  adminConnectorMCPImport: defineEndpoint({
+    key: "admin.connectors.import-mcp",
+    path: "/api/admin/connectors/import-mcp",
+    method: "POST",
+    transport: "http",
+  }),
   adminConnectorSkills: defineEndpoint<{ id: string }, { id: string }>({
     key: "admin.connectors.skills",
     path: "/api/admin/connectors/skills",

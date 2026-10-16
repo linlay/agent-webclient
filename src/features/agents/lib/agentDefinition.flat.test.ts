@@ -1,4 +1,4 @@
-import {fallbackDefinition, formFromDetail, buildDefinition} from "./agentDefinition";
+import {fallbackDefinition, formFromDetail, buildDefinition, createEmptyAgentForm} from "./agentDefinition";
 import type {AgentDetailResponse} from "@/shared/data/api/dto/agents";
 
 it("maps runtime skill IDs to editor skill IDs and NONE to disabled reasoning", () => {
@@ -45,4 +45,33 @@ it("preserves explicit entry overrides and leaves unset defaults out of the YAML
   expect(buildDefinition(form, definition, translate).interactionConfig).toEqual({showEditingMode: true});
   form.interactionConfig = undefined;
   expect(buildDefinition(form, definition, translate)).not.toHaveProperty("interactionConfig");
+});
+
+it("edits only source connector declarations and round-trips additions and the last removal", () => {
+ const definition = { key: "demo", connectorConfig: { connectors: ["docs"] }, toolConfig: { tools: ["file_read"], excludeTools: ["bash"] } };
+ const detail = { key: "demo", name: "Demo", status: "ready", definition, connectorBindings: [
+  { id: "web", source: "preset" as const, active: true },
+  { id: "docs", source: "agent" as const, active: false },
+  { id: "old", source: "agent" as const, active: true, pendingRemoval: true },
+ ] };
+ const form = formFromDetail(detail);
+ const translate = (key: string) => key;
+ expect(form.connectors).toEqual(["docs"]);
+ form.connectors = ["docs", " builtin.httpx ", "docs"];
+ const saved = buildDefinition(form, definition, translate);
+ expect(saved.connectorConfig).toEqual({ connectors: ["docs", "builtin.httpx"] });
+ expect(saved.toolConfig).toEqual(definition.toolConfig);
+ expect(definition.connectorConfig.connectors).toEqual(["docs"]);
+ form.connectors = [];
+ expect(buildDefinition(form, definition, translate).connectorConfig).toEqual({ connectors: [] });
+});
+
+it("supports connector selections during creation and leaves effective presets out of declarations", () => {
+ const translate = (key: string) => key;
+ const form = createEmptyAgentForm();
+ expect(buildDefinition(form, {}, translate)).not.toHaveProperty("connectorConfig");
+ form.connectors = ["docs"];
+ expect(buildDefinition(form, {}, translate).connectorConfig).toEqual({ connectors: ["docs"] });
+ const detail = { key: "demo", name: "Demo", status: "ready", definition: { key: "demo" }, connectorBindings: [{ id: "web", source: "preset" as const, active: true }] };
+ expect(formFromDetail(detail).connectors).toEqual([]);
 });

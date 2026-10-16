@@ -50,7 +50,7 @@ beforeEach(() => {
   (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
   jest.useFakeTimers();
   jest.clearAllMocks();
-  jest.mocked(getConnectors).mockResolvedValue({ code: 0, msg: "", data: { connectors: [connector("docs", "文档"), connector("login", "会议", "oauth")] } });
+  jest.mocked(getConnectors).mockResolvedValue({ code: 0, msg: "", data: { connectors: [connector("docs", "文档"), connector("login", "会议", "mcp")] } });
   container = document.createElement("div");
   document.body.append(container);
   root = createRoot(container);
@@ -92,7 +92,7 @@ it("filters by name/id and keeps the selected switch state when the filter is cl
 });
 
 it("ranks mounted connectors first on opening and keeps row positions and focus while switching and filtering", async () => {
-  const catalog = [connector("a", "Alpha"), connector("b", "Bravo", "oauth"), connector("c", "Charlie"), connector("d", "Delta")];
+  const catalog = [connector("a", "Alpha"), connector("b", "Bravo", "mcp"), connector("c", "Charlie"), connector("d", "Delta")];
   jest.mocked(getConnectors).mockResolvedValue({ code: 0, msg: "", data: { connectors: catalog } });
   await mount({ initialIds: ["d", "b"] });
   const names = () => [...container.querySelectorAll('[role="switch"]')].map(toggle => toggle.parentElement?.textContent);
@@ -159,7 +159,7 @@ it("disables switches when Agent configuration selection is disabled without ext
 
 it("keeps unrelated Agent switches stable and blocks pointer and keyboard edits throughout a save", async () => {
   jest.mocked(getConnectors).mockResolvedValue({ code: 0, msg: "", data: { connectors: [
-    connector("docs", "文档"), connector("login", "会议", "oauth"), connector("mail", "邮件"),
+    connector("docs", "文档"), connector("login", "会议", "mcp"), connector("mail", "邮件"),
   ] } });
   const selection = {
     data: { agentKey: "zenmi", connectorIds: ["docs", "login"] }, availableIds: ["docs", "login", "mail"],
@@ -239,7 +239,7 @@ it("allows mounting builtin and delegated or identity-token packages without wai
 
 it("does not probe unselected catalog entries even after timers and visibility changes", async () => {
   jest.mocked(getConnectors).mockResolvedValue({ code: 0, msg: "", data: { connectors:
-    Array.from({ length: 100 }, (_, i) => connector(`item-${i}`, `Item ${i}`, "oauth")),
+    Array.from({ length: 100 }, (_, i) => connector(`item-${i}`, `Item ${i}`, "mcp")),
   } });
   await mount({ initialIds: [] });
   await act(async () => {
@@ -279,7 +279,7 @@ it("Desktop no_auth mounts and unmounts without checking or connecting",async()=
 });
 
 it("keeps every authentication mode compact with icons, names and switches", async () => {
-  const modes: ConnectorAuthMode[] = ["self", "token", "oneid", "oauth", "mcp", "none"];
+  const modes: ConnectorAuthMode[] = ["self", "token", "oneid", "mcp", "none"];
   const items = modes.map((mode, index) => connector(`item-${index}`, `Item ${index}`, mode));
   jest.mocked(getConnectors).mockResolvedValue({ code: 0, msg: "", data: { connectors: items } });
   await mount({ initialIds: items.map(item => item.id) });
@@ -425,7 +425,7 @@ it("explains that a disconnected connector must be connected before enabling it"
 
 it("lets the user remove an unlinked saved choice from the existing conflict message", async () => {
   const first = { ...connector("wecom", "企业微信", null), mutuallyExclusiveWith: ["meeting"] };
-  const second = connector("meeting", "会议", "oauth");
+  const second = connector("meeting", "会议", "mcp");
   jest.mocked(getConnectors).mockResolvedValue({ code: 0, msg: "", data: { connectors: [first, second] } });
   await mount({ initialIds: [first.id], availableIds: [second.id] });
   const switches = container.querySelectorAll<HTMLButtonElement>('[role="switch"]');

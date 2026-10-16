@@ -12,8 +12,8 @@ export interface ConnectorMcpStatus {
   diagnostic?: { severity: string; code: string; message: string };
 }
 
-/** connector.json authMode; `oneid-token` is accepted by Platform and returned as `oneid`. */
-export type ConnectorAuthMode = "none" | "self" | "token" | "oauth" | "mcp" | "oneid";
+/** connector.json authMode; Platform reads the aliases `oauth` (mcp) and `oneid-token` (oneid) and returns canonical values. */
+export type ConnectorAuthMode = "none" | "self" | "token" | "mcp" | "oneid";
 
 export interface ConnectorSummary {
   tools?: AdminToolSummary[];
@@ -29,6 +29,7 @@ export interface ConnectorSummary {
   iconUrl?: string;
   /** token-schema.json, returned for authMode token. */
   tokenSchema?: unknown;
+  /** MCP authorization settings of authMode mcp. */
   oauth?: unknown;
   builtin?: boolean;
   readOnly?: boolean;
@@ -133,6 +134,11 @@ export interface DeleteConnectorResponse {
 export interface ImportConnectorArchiveRequest {
   file: File;
   overwrite?: boolean;
+}
+
+export interface ImportConnectorMCPRequest {
+  mcpUrl: string;
+  authMode?: "mcp" | "none";
 }
 
 export interface ImportConnectorArchiveResponse {

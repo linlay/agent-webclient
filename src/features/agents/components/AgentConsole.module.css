@@ -267,7 +267,7 @@
 }
 
 :global(.agent-console-list-item-head) strong {
-    min-width: 0;
+    min-width: 50px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -287,9 +287,11 @@
     justify-content: flex-end;
     gap: 6px;
     min-width: 0;
+    overflow: hidden;
     font-size: 12px;
     color: var(--ink-muted);
     white-space: nowrap;
+    flex-shrink: 0;
 }
 
 :global(.agent-console-status) {

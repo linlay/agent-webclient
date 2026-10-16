@@ -22,7 +22,7 @@ HITL 由 awaiting ask/answer 事件驱动，前端支持 question、approval、f
 - 顶层 `awaiting.status == "awaiting"`：将 wire `mode:"planning"` 映射为前端 `mode:"plan"`，再按 `runId + awaitingId + mode` 与 replay ask 精确匹配，只保留该项。
 - 顶层存在但缺字段、状态不对或找不到完整 ask：不生成空卡片，Composer 保持可输入，并写入 `[awaiting_contract_violation]` debug 诊断。
 
-Submit 收到 HTTP 409 `awaiting_expired`、`awaiting_interrupted`、`already_resolved`，或旧 Platform 的 `unknown awaitingId` 文案后，会清理 submit tracker 和本地 awaiting、停止伪 streaming、清空 abort controller，并重新触发 `agent:load-chat`。提示分别为“已超时/失效”“服务已重启，请重新发起”“已处理”；结构化错误码优先于文案 fallback。
+Submit 收到 `awaiting_expired`、`unknown_awaiting`、`awaiting_interrupted`、`already_resolved` 后，会清理 submit tracker 和本地 awaiting、停止伪 streaming、清空 abort controller，并重新触发 `agent:load-chat`。`awaiting_expired` 提示“该操作已超时，无法提交，请重新发起”；`unknown_awaiting` 提示“未找到对应的待处理操作，无法提交，请查看最新对话状态”，不推断超时、服务重启或操作已恢复。其余提示仍为“服务已重启，请重新发起该操作”“已被其他终端提交”。仅在没有结构化错误码时，兼容旧 Platform 的 unknown/not found 与 expired 文案，分别按未找到和超时处理。
 
 跨重启恢复的 question/plan 采用“先恢复观察、再允许提交”的对称模型：只有 `/api/chat.awaiting` 与同一 `runId` 的 `activeRun(state:"WAITING_SUBMIT")` 同时存在时，前端既恢复交互卡，又在 submit 前主动 attach。`activeRun.lastSeq` 是 replay 覆盖边界；submit 的 `continued:true` 不会触发补 attach。Platform 在同一 EventBus 继续发布时，前端按 `submitId` 去重 submit/answer，并沿原 observer 接收后续输出。timeout、interrupt、cancel 或 planning approve 关闭旧 run 后，统一清除 awaiting、streaming 与 `currentChatActiveRun`；planning approve 的新 execution run 仍通过正常 `run.started` 流程另行 attach。
 

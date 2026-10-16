@@ -663,13 +663,16 @@
   min-width: 0;
   min-height: 0;
   overflow: auto;
-  overscroll-behavior: contain;
-  scrollbar-gutter: stable;
+}
+
+.skillDetail {
+  padding: 0 10px;
 }
 
 .skillList {
   display: flex;
   flex-direction: column;
+  border-right: 1px solid var(--line-soft);
 }
 
 .skillItem {

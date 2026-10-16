@@ -137,6 +137,11 @@
   border-radius: 6px;
 }
 .branchTrigger:disabled { cursor: default; opacity: 0.6; }
+.branchPopover :global(.ant-popover-inner) {
+  border: 1px solid color-mix(in srgb, var(--line-soft) 88%, transparent);
+  border-radius: 15px;
+  box-shadow: var(--shadow-soft);
+}
 .branchMenu { width: min(320px, calc(100vw - 64px)); max-height: calc(100vh - 48px); overflow-y: auto; color: var(--text-main); }
 .branchMenu p { font-size: 12px; color: var(--text-sub); margin: 8px 0; }
 .branchSearch { position: relative; }

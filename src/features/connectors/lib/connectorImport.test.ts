@@ -1,4 +1,4 @@
-import { CONNECTOR_ARCHIVE_MAX_BYTES, connectorImportErrorKey, isConnectorImportConflict, validateConnectorArchive } from "./connectorImport";
+import { CONNECTOR_ARCHIVE_MAX_BYTES, connectorImportErrorKey, isConnectorImportConflict, validateConnectorArchive, validateConnectorMCPURL } from "./connectorImport";
 
 describe("connector ZIP validation", () => {
   it("accepts ZIP names without requiring browser MIME detection and enforces the backend upload limit", () => {
@@ -16,3 +16,10 @@ describe("connector ZIP validation", () => {
     expect(connectorImportErrorKey({ status: 413 })).toBe("connectors.import.error.serverSize");
   });
 });
+
+it.each([
+  ["https://example.test/mcp", true], [" http://localhost:8080/mcp ", true],
+  ["https://example.test/mcp?key=value", true], ["https://example.test/mcp#", false],
+  ["https://user:password@example.test/mcp", false], ["ftp://example.test/mcp", false],
+  ["https:example.test/mcp", false], ["not a URL", false],
+])("validates MCP URL %s", (url, valid) => expect(validateConnectorMCPURL(url as string)).toBe(valid));

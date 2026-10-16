@@ -55,7 +55,7 @@ Composer 另用现有 HTTP `GET /api/connectors/connection` 读取连接配置�
 
 保存期间使 Agent 详情缓存与在途可用性检查失效，显示加载并禁止重复切换，成功后使用响应中的配置；失败保留诊断并重新读取源配置，避免网络中断后误报状态。初始配置加载失败时不假设所有连接器关闭，提供重试。切换 Agent 或关闭面板后忽略旧响应。
 
-`/agents/:agentKey` 的能力区通过 `/api/admin/agents/connectors`、`/api/admin/connectors` 与 `/api/admin/tools` 展示预置、声明及当前生效挂载。连接器默认折叠，展开查看其工具和 CLI/VIEW/技能能力，原生工具用 nativeTools 归属、MCP 服务按当前 agentKey 隔离；不重复出现在自身工具区。预置带锁，无挂载修改入口。管理“发起对话”仍使用管理挂载接口的完整 activeConnectorIds，确认生效后导航。两套挂载 PUT 均拒绝预置修改（403 preset_connector_readonly），预置运行时工具和技能仍正常挂载。
+`/agents/:agentKey` 的能力区复用 `/api/admin/agent` 的 connectorBindings，再读取 `/api/admin/connectors` 展示预置、声明及当前生效挂载；后台目录更新、窗口重新聚焦和恢复可见时重读管理详情以校准运行快照。连接器默认折叠，展开查看其工具和 CLI/VIEW/技能能力，原生工具用 nativeTools 归属、MCP 服务按当前 agentKey 隔离；不重复出现在自身工具区。“管理连接器”和卡片移除只编辑 `definition.connectorConfig.connectors` 对应的表单草稿，统一随 Agent 创建／保存提交，不调用单项挂载 PUT。预置带锁；builtin/readOnly 包的普通挂载仍可选择。待保存增删与后端等待重载分开展示，后台刷新不覆盖草稿；安装、卸载及账号连接通过新窗口进入连接器中心。管理“发起对话”仍使用管理详情投影的完整 activeConnectorIds，确认生效后导航。两套挂载 PUT 均拒绝预置修改（403 preset_connector_readonly），预置运行时工具和技能仍正常挂载。
 
 ## 账号授权
 现有详情页概览中的“账号授权”区域按目录返回的 `authMode` 决定交互：`none` 直接显示“无需配置”，不请求认证接口；`self/oauth/mcp` 查询统一状态 API；`self` 表示由连接器处理认证，受管 CLI 沿用统一登录流程，服务端返回 `delegated` 时显示“由连接器管理”，引导按技能说明操作，不提供登录或退出按钮。`oneid` 查询并展示 Desktop SSO 状态，仅提供重新检查和 Desktop 登录说明，不调用连接器登录、取消或退出接口。`token` 使用独立私有凭据弹窗，字段仅来自目录返回的 `tokenSchema`（包内 `token-schema.json`）；实际值不进入 connector.json、cli.json、mcp.json 或对话草稿。前端不根据连接器 id 分支，不执行 CLI 或安装命令；实际认证声明、依赖准备、OAuth 发现及凭据保管均由后端从 cli.json/mcp.json 和清单解释。
@@ -78,11 +78,17 @@ pending 时展示后端返回的“打开授权页面”链接，只接受无用
 打开技能页不丢弃概览或配置草稿，返回原文件无需再次加载。切换连接器、技能或重试时忽略旧响应，避免同名技能串包。技能版本或名称集合变化会刷新技能列表，也可重新进入技能页加载内容。
 
 ## ZIP 导入
-目录工具栏使用“+”弹出菜单，选择「导入 ZIP」打开导入，选择「通过对话创建」打开创建对话，保留“导入”的悬停提示和无障碍名称，支持选择或拖入单个 ZIP 文件。前端检查 ZIP 扩展名、非空和 64 MiB 上传上限；完整包结构、解压大小、路径安全和 manifest 校验交由后端。ZIP 可以直接包含 connector.json，也可以使用与包 id 一致的单层目录，按需携带 cli.json、mcp.json、bin 和 skills。
+目录工具栏使用“+”弹出菜单，选择「导入连接器」打开导入，选择「通过对话创建」打开创建对话，保留“导入”的悬停提示和无障碍名称，支持选择或拖入单个 ZIP 文件。前端检查 ZIP 扩展名、非空和 64 MiB 上传上限；完整包结构、解压大小、路径安全和 manifest 校验交由后端。ZIP 可以直接包含 connector.json，也可以使用与包 id 一致的单层目录，按需携带 cli.json、mcp.json、bin 和 skills。
 
 首次上传不覆盖已安装包。仅当后端返回 `409 connector_exists` 时展示覆盖警告，用户再次点击“确认覆盖导入”后才发送 `overwrite=true`；更换文件清除覆盖状态。413 显示服务器大小限制提示，内置包覆盖错误显示只读说明，其他错误展示后端诊断并保留所选文件。
 
 存在未保存配置时，导入前确认丢弃；取消或请求失败保留原草稿。上传期间禁止重复提交、关闭弹窗、切换连接器和保存配置。成功后刷新目录、清除搜索筛选并选中返回的 id；目录刷新失败单独展示加载错误，不把已完成安装报告为导入失败。
+
+## MCP 地址导入
+
+导入弹窗支持 ZIP 安装包与 MCP 地址切换。MCP 方式填写完整 HTTP(S) 地址，并显式选择 MCP 标准授权（默认）或无需认证；认证语义由 Platform 决定。标准授权仅支持 HTTPS 或本机 HTTP，导入后在概览中登录；无需认证用于不要求平台登录的服务。URL 保存在可查看的连接器配置中，输入只在弹窗内存中保留，关闭或成功后清空。
+
+请求通过 direct HTTP `POST /api/admin/connectors/import-mcp` 发送 `{mcpUrl,authMode}`，不进入 WS/data-request 调试帧或查询缓存，不自动重放写入。地址在客户端做基本格式检查，完整校验归 Platform。主机名决定连接器 ID，端口与路径不参与；`409 connector_exists` 提示编辑已有连接器，不出现 ZIP 的覆盖操作。成功、失败、草稿保护和刷新行为复用 ZIP 导入流程；导入成功不代表远端可用或已完成授权。
 
 ## 删除连接器
 
@@ -132,7 +138,7 @@ Standalone 使用 sandbox 模态 iframe；Desktop 使用独立 v1 Connector Auth
 
 ## 对话辅助入口
 
-手工创建、编辑、保存与对话方式并存。独立的「通过对话创建／修改」入口使用默认 Chat 智能体，预选 `platform-admin` 并填写草稿，不自动发送。保留原有表单、源码编辑、ZIP 导入及只读边界；连接器手工新增沿用 ZIP 导入。详见[资源对话创建与修改](01-应用基础-应用入口路由与布局壳层.md#资源对话创建与修改)。
+手工创建、编辑、保存与对话方式并存。独立的「通过对话创建／修改」入口使用默认 Chat 智能体，预选 `platform-admin` 并填写草稿，不自动发送。保留原有表单、源码编辑、ZIP 导入及只读边界；连接器手工新增支持 ZIP 或 MCP 地址导入。详见[资源对话创建与修改](01-应用基础-应用入口路由与布局壳层.md#资源对话创建与修改)。
 
 
 ## 六种 authMode

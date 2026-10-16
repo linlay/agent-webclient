@@ -16,7 +16,7 @@
 }
 
 :global(.automation-console-detail) {
-    padding: 0 10px 0 20px;
+    padding: 10px 10px 10px 16px;
 }
 
 :global(.automation-console-detail):global(.is-source-editor) {

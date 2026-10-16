@@ -1,3 +1,14 @@
+.categoryTabsHeader {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    min-height: 40px;
+    padding: 0 10px 0 4px;
+    border-bottom: 1px solid var(--line-soft);
+}
+
 .categoryTabs {
     display: flex;
     flex-shrink: 0;
@@ -5,6 +16,13 @@
     gap: 28px;
     min-height: 40px;
     padding: 0 4px;
+}
+
+.categoryTabsActions {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: flex-end;
 }
 
 .categoryTab {
@@ -77,26 +95,25 @@
 :global(.automation-console-count) {
     font-size: 12px;
     color: var(--ink-muted);
+    padding: 0 10px;
 }
 
 :global(.automation-console-list-scroll) {
     min-height: 0;
     flex: 1 1 auto;
     overflow: auto;
-    padding-right: 2px;
 }
 
 :global(.automation-list-items) {
     display: flex;
     flex-direction: column;
-    gap: 6px;
 }
 
 :global(.automation-list-item) {
     position: relative;
     width: 100%;
-    border: 1px solid transparent;
-    border-radius: var(--radius-md);
+    border: 0;
+    border-radius: 0;
     background: transparent;
     color: var(--ink-1);
     text-align: left;
@@ -331,8 +348,6 @@ html[data-theme="dark"] .registryIcon[data-monochrome="true"] {
     overflow-wrap: anywhere;
 }
 
-:global(.automation-detail-actions),
-:global(.automation-save-actions),
 :global(.automation-form-grid) {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -412,7 +427,6 @@ html[data-theme="dark"] .registryIcon[data-monochrome="true"] {
     min-width: 0;
     overflow: hidden;
     resize: vertical;
-    border: 1px solid var(--line-soft);
     border-radius: var(--radius-md);
     background: var(--bg-elev-1);
 }
@@ -431,4 +445,48 @@ html[data-theme="dark"] .registryIcon[data-monochrome="true"] {
 :global(.registry-dirty) {
     color: var(--ink-muted);
     font-size: 12px;
+}
+
+:global(.registry-console-resize-handle) {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    right: -6px;
+    z-index: 20;
+    width: 12px;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    cursor: col-resize;
+    touch-action: none;
+}
+
+:global(.registry-console-resize-handle)::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 5px;
+    width: 0;
+    border-radius: 999px;
+    background: transparent;
+    transition: outline 0.15s ease;
+    outline: 4px solid transparent;
+}
+
+:global(.registry-console-resize-handle):hover::after,
+:global(.registry-console-resize-handle):focus-visible::after,
+:global(.panel-resizing-horizontal) :global(.registry-console-resize-handle)::after {
+    outline-color: color-mix(in srgb, var(--accent) 40%, transparent);
+}
+
+:global(.registry-console-resize-handle):focus-visible {
+    outline: none;
+}
+
+@media (max-width: 860px) {
+    :global(.registry-console-resize-handle) {
+        display: none;
+    }
 }
