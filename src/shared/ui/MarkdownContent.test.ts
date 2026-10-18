@@ -6,7 +6,9 @@ import {
 } from "@/shared/ui/markdownWebLinks";
 import { sanitizeMarkdownImageProps } from "@/shared/ui/markdownImageProps";
 import {
+  getMarkdownAudioMimeType,
   getMarkdownVideoMimeType,
+  isMarkdownAudioSource,
   isMarkdownVideoSource,
 } from "@/shared/ui/markdownMedia";
 
@@ -64,6 +66,36 @@ describe("isMarkdownVideoSource", () => {
     ["demo.png", ""],
   ])("infers the video MIME fallback for %s", (source, expected) => {
     expect(getMarkdownVideoMimeType(source)).toBe(expected);
+  });
+});
+
+describe("isMarkdownAudioSource", () => {
+  it.each([
+    "artifacts/run_01/voice.mp3",
+    "artifacts/run_01/voice.WAV",
+    "https://cdn.example.com/voice.ogg?token=demo#preview",
+    "artifacts/run_01/%E5%A5%B3%E5%A3%B0.m4a",
+  ])("recognizes a supported Markdown audio resource: %s", (source) => {
+    expect(isMarkdownAudioSource(source)).toBe(true);
+  });
+
+  it.each([
+    "artifacts/run_01/demo.png",
+    "artifacts/run_01/demo.mp4",
+    "artifacts/run_01/voice.mp3.png",
+    "artifacts/run_01/audio",
+    "data:audio/mpeg;base64,AAAA",
+  ])("keeps a non-audio Markdown resource out of the audio player: %s", (source) => {
+    expect(isMarkdownAudioSource(source)).toBe(false);
+  });
+
+  it.each([
+    ["voice.mp3", "audio/mpeg"],
+    ["voice.wav", "audio/wav"],
+    ["voice.m4a", "audio/mp4"],
+    ["voice.png", ""],
+  ])("infers the audio MIME fallback for %s", (source, expected) => {
+    expect(getMarkdownAudioMimeType(source)).toBe(expected);
   });
 });
 

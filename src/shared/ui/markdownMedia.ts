@@ -8,6 +8,17 @@ const markdownVideoExtensions = new Set([
   "webm",
 ]);
 
+const markdownAudioExtensions = new Set([
+  "aac",
+  "m4a",
+  "mp3",
+  "oga",
+  "ogg",
+  "opus",
+  "wav",
+  "weba",
+]);
+
 function getMarkdownResourceExtension(source: string): string {
   const normalized = String(source || "").trim();
   if (!normalized || /^(?:data|blob):/iu.test(normalized)) {
@@ -53,6 +64,35 @@ export function getMarkdownVideoMimeType(source: string | undefined): string {
       return "video/ogg";
     case "webm":
       return "video/webm";
+    default:
+      return "";
+  }
+}
+
+/**
+ * An image whose source names a supported audio file is upgraded to the
+ * authenticated audio player, mirroring the video upgrade above.
+ */
+export function isMarkdownAudioSource(source: string | undefined): boolean {
+  return markdownAudioExtensions.has(getMarkdownResourceExtension(source || ""));
+}
+
+export function getMarkdownAudioMimeType(source: string | undefined): string {
+  switch (getMarkdownResourceExtension(source || "")) {
+    case "aac":
+      return "audio/aac";
+    case "m4a":
+      return "audio/mp4";
+    case "mp3":
+      return "audio/mpeg";
+    case "oga":
+    case "ogg":
+    case "opus":
+      return "audio/ogg";
+    case "wav":
+      return "audio/wav";
+    case "weba":
+      return "audio/webm";
     default:
       return "";
   }

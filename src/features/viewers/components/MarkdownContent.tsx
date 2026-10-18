@@ -30,7 +30,9 @@ import {
   type MarkdownImageProps,
 } from "@/shared/ui/markdownImageProps";
 import {
+  getMarkdownAudioMimeType,
   getMarkdownVideoMimeType,
+  isMarkdownAudioSource,
   isMarkdownVideoSource,
 } from "@/shared/ui/markdownMedia";
 import { useAuthenticatedResourceUrl } from "@/shared/ui/useAuthenticatedResourceUrl";
@@ -354,18 +356,33 @@ const AuthImage: React.FC<AuthImageProps> = (props) => {
   );
 };
 
-type AuthVideoProps = MarkdownImageProps & {
+type MarkdownMediaKind = "video" | "audio";
+
+const markdownMediaConfig = {
+  video: {
+    getMimeType: getMarkdownVideoMimeType,
+    errorKey: "contentViewer.error.video",
+  },
+  audio: {
+    getMimeType: getMarkdownAudioMimeType,
+    errorKey: "contentViewer.error.audio",
+  },
+} as const;
+
+type AuthMediaProps = MarkdownImageProps & {
+  kind: MarkdownMediaKind;
   chatId: string;
   teamChat: boolean;
 };
 
-const AuthVideo: React.FC<AuthVideoProps> = (props) => {
-  const { src: markdownSrc, chatId, teamChat, alt, title } = props;
+const AuthMedia: React.FC<AuthMediaProps> = (props) => {
+  const { kind, src: markdownSrc, chatId, teamChat, alt, title } = props;
   const src = markdownChatAliasToLiteral(markdownSrc);
   const { t } = useI18n();
+  const config = markdownMediaConfig[kind];
   const resolved = useAuthenticatedResourceUrl(src, chatId, {
     teamChat,
-    blobMimeTypeFallback: getMarkdownVideoMimeType(src),
+    blobMimeTypeFallback: config.getMimeType(src),
   });
   const contextTargetId = React.useId();
   const authenticatedResource = useMemo(
@@ -373,10 +390,10 @@ const AuthVideo: React.FC<AuthVideoProps> = (props) => {
     [chatId, src, teamChat],
   );
   const contextTarget = useMemo(() => authenticatedResource && src ? ({
-      targetId: `resource-video:${contextTargetId}`,
+      targetId: `resource-${kind}:${contextTargetId}`,
       kind: "chat-resource" as const,
       name: alt || getSafeResourceDisplayName(src),
-      mediaType: "video" as const,
+      mediaType: kind,
       handlers: {
         "download-resource": () => downloadResource(src, {
           filename: extractFilenameFromResourceUrl(src),
@@ -385,27 +402,36 @@ const AuthVideo: React.FC<AuthVideoProps> = (props) => {
         }),
       },
     }) : null,
-    [alt, authenticatedResource, chatId, contextTargetId, src, teamChat],
+    [alt, authenticatedResource, chatId, contextTargetId, kind, src, teamChat],
   );
-  const contextTargetRef = useDesktopContextMenuTarget<HTMLVideoElement>(contextTarget);
+  const contextTargetRef = useDesktopContextMenuTarget<HTMLMediaElement>(contextTarget);
   if (resolved.error) {
-    const fallback = t("contentViewer.error.video");
+    const fallback = t(config.errorKey);
     return <span role="status">{alt || fallback}</span>;
   }
   if (!resolved.url) {
     return <span aria-busy={resolved.loading}>{alt || ""}</span>;
   }
 
-  return (
+  const mediaProps = {
+    src: resolved.url,
+    controls: true,
+    preload: "metadata",
+    "aria-label": alt || title || undefined,
+    title,
+  };
+  return kind === "video" ? (
     <video
       ref={contextTargetRef}
       className="markdown-video"
-      src={resolved.url}
-      controls
       playsInline
-      preload="metadata"
-      aria-label={alt || title || undefined}
-      title={title}
+      {...mediaProps}
+    />
+  ) : (
+    <audio
+      ref={contextTargetRef}
+      className="markdown-audio"
+      {...mediaProps}
     />
   );
 };
@@ -445,7 +471,9 @@ export const MarkdownContent: React.FC<MarkdownContentProps> = ({
         ),
         img: (imageProps: React.ImgHTMLAttributes<HTMLImageElement>) =>
           isMarkdownVideoSource(imageProps.src) ? (
-            <AuthVideo {...imageProps} chatId={chatId} teamChat={teamChat} />
+            <AuthMedia kind="video" {...imageProps} chatId={chatId} teamChat={teamChat} />
+          ) : isMarkdownAudioSource(imageProps.src) ? (
+            <AuthMedia kind="audio" {...imageProps} chatId={chatId} teamChat={teamChat} />
           ) : (
             <AuthImage {...imageProps} chatId={chatId} teamChat={teamChat} />
           ),

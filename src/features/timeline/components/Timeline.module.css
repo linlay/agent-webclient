@@ -494,6 +494,12 @@
     background: color-mix(in srgb, var(--bg-input) 88%, black);
 }
 
+:global(.timeline-markdown) audio:global(.markdown-audio) {
+    display: block;
+    width: min(100%, 420px);
+    max-width: 100%;
+}
+
 @keyframes fade-slide-in {
     from {
         opacity: 0;
