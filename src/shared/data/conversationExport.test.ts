@@ -2,7 +2,6 @@ import { Blob } from "buffer";
 import {
   buildConversationHtmlBlob,
   conversationHtmlFilename,
-  MAX_CONVERSATION_TEMPLATE_BYTES,
   resolveConversationExportAssetOrigin,
   resolveConversationExportBrandId,
 } from "./conversationExport";
@@ -122,14 +121,12 @@ describe("buildConversationHtmlBlob", () => {
     expect(conversationHtmlFilename("", "chat_1")).toBe("chat_1.html");
   });
 
-  it("rejects a template above 256 KiB before assembling Blob parts", () => {
-    expect(() =>
-      buildConversationHtmlBlob({
-        template: "a".repeat(MAX_CONVERSATION_TEMPLATE_BYTES + 1),
-        snapshot: new Blob(["{}"]),
-        assetOrigin: "http://127.0.0.1:11961",
-        brandId: "zenmind",
-      }),
-    ).toThrow(`limit=${MAX_CONVERSATION_TEMPLATE_BYTES}`);
+  it("assembles HTML above the former 20 MiB limit", () => {
+    const snapshot = new Blob(["x".repeat(20 * 1024 * 1024 + 1)]);
+    const html = buildConversationHtmlBlob({
+      template: "__CONVERSATION_EXPORT_SNAPSHOT_JSON_V1____CONVERSATION_EXPORT_ASSET_ORIGIN____CONVERSATION_EXPORT_LOCAL_BRAND_ID__",
+      snapshot, assetOrigin: "https://share.example.test", brandId: "example",
+    });
+    expect(html.size).toBeGreaterThan(snapshot.size);
   });
 });

@@ -1,9 +1,19 @@
 import { Blob } from "buffer";
 import { URL as NodeURL } from "node:url";
-import { MAX_CONVERSATION_HTML_BYTES } from "@/shared/data/conversationExport";
+import { ReadableStream } from "node:stream/web";
 import { getResourceBlob, getResourceDocumentMetadata, getResourceText, downloadResource, downloadChatExport, downloadConversationHtmlExport, getChatLLMTraceRaw, getChatRawJsonl, downloadAdminSkill, downloadAdminSkillFile, fetchAdminSkillFileBlob, fetchAdminSkillIcon, fetchConnectorIcon } from "@/shared/data/api/resources";
 import { setAccessToken } from "@/shared/data/api/http";
 import { setupRequestHarness } from "@/shared/data/__testUtils__/requestHarness";
+
+const TEST_SNAPSHOT_LIMIT = 1024;
+function responseBody(text: string) {
+  return new ReadableStream({
+    start(controller) {
+      controller.enqueue(Uint8Array.from(Buffer.from(text)));
+      controller.close();
+    },
+  });
+}
 
 describe("resources request contracts", () => {
   const { fetchMock } = setupRequestHarness();
@@ -545,6 +555,7 @@ describe("resources request contracts", () => {
         headers: {
           get: (key: string) => {
             switch (key.toLowerCase()) {
+              case "x-conversation-export-max-bytes": return String(TEST_SNAPSHOT_LIMIT);
               case "content-type":
                 return "application/json; charset=utf-8";
               case "content-length":
@@ -556,7 +567,7 @@ describe("resources request contracts", () => {
             }
           },
         },
-        blob: async () => new Blob([snapshot], { type: "application/json" }),
+        body: responseBody(snapshot),
       })
       .mockResolvedValueOnce({
         ok: true,
@@ -573,7 +584,7 @@ describe("resources request contracts", () => {
             }
           },
         },
-        text: async () => template,
+        body: responseBody(template),
       });
     (
       globalThis as typeof globalThis & {
@@ -610,92 +621,28 @@ describe("resources request contracts", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("rejects snapshot export early when Content-Length exceeds 20 MiB", async () => {
-    const blob = jest.fn();
-    fetchMock
+  it.each([
+    ["declared overflow", String(TEST_SNAPSHOT_LIMIT + 1), "{}", `limit=${TEST_SNAPSHOT_LIMIT}`],
+    ["unknown-length overflow", null, "x".repeat(TEST_SNAPSHOT_LIMIT + 1), `limit=${TEST_SNAPSHOT_LIMIT}`],
+    ["incomplete body", "3", "{}", "conversation_export_response_invalid"],
+  ])("rejects snapshot %s and aborts the export", async (_name, length, body, message) => {
+    const headers = new Headers({
+      "Content-Type": "application/json",
+      "X-Conversation-Export-Max-Bytes": String(TEST_SNAPSHOT_LIMIT),
+    });
+    if (length !== null) headers.set("Content-Length", length);
+    fetchMock.mockResolvedValueOnce({ ok: true, status: 200, headers, body: responseBody(body!) })
       .mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        headers: {
-          get: (key: string) => {
-            switch (key.toLowerCase()) {
-              case "content-type":
-                return "application/json; charset=utf-8";
-              case "content-length":
-                return String(MAX_CONVERSATION_HTML_BYTES + 1);
-              default:
-                return null;
-            }
-          },
-        },
-        blob,
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        headers: {
-          get: (key: string) =>
-            key.toLowerCase() === "content-type" ? "text/html" : null,
-        },
-        text: async () =>
-          "__CONVERSATION_EXPORT_SNAPSHOT_JSON_V1____CONVERSATION_EXPORT_ASSET_ORIGIN____CONVERSATION_EXPORT_LOCAL_BRAND_ID__",
+        ok: true, status: 200, headers: new Headers({ "Content-Type": "text/html" }),
+        body: responseBody("__CONVERSATION_EXPORT_SNAPSHOT_JSON_V1____CONVERSATION_EXPORT_ASSET_ORIGIN____CONVERSATION_EXPORT_LOCAL_BRAND_ID__"),
       });
-    (
-      globalThis as typeof globalThis & {
-        __AGENT_WEBCLIENT_RUNTIME_CONFIG__?: Record<string, unknown>;
-      }
-    ).__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
-      CONVERSATION_EXPORT_ASSET_ORIGIN: "http://127.0.0.1:11961",
-      BRAND_ID: "zenmind",
+    (globalThis as typeof globalThis & {
+      __AGENT_WEBCLIENT_RUNTIME_CONFIG__?: Record<string, unknown>;
+    }).__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
+      CONVERSATION_EXPORT_ASSET_ORIGIN: "http://127.0.0.1:11961", BRAND_ID: "zenmind",
     };
-
-    await expect(downloadConversationHtmlExport("chat_1")).rejects.toThrow(
-      `actual=${MAX_CONVERSATION_HTML_BYTES + 1} limit=${MAX_CONVERSATION_HTML_BYTES}`,
-    );
-    expect(blob).not.toHaveBeenCalled();
-  });
-
-  it("rejects an oversized assembled HTML Blob", async () => {
-    const template =
-      "__CONVERSATION_EXPORT_SNAPSHOT_JSON_V1____CONVERSATION_EXPORT_ASSET_ORIGIN____CONVERSATION_EXPORT_LOCAL_BRAND_ID__";
-    fetchMock
-      .mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        headers: {
-          get: (key: string) =>
-            key.toLowerCase() === "content-type"
-              ? "application/json; charset=utf-8"
-              : null,
-        },
-        blob: async () =>
-          new Blob([Buffer.alloc(MAX_CONVERSATION_HTML_BYTES)], {
-            type: "application/json",
-          }),
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        headers: {
-          get: (key: string) =>
-            key.toLowerCase() === "content-type"
-              ? "text/html; charset=utf-8"
-              : null,
-        },
-        text: async () => template,
-      });
-    (
-      globalThis as typeof globalThis & {
-        __AGENT_WEBCLIENT_RUNTIME_CONFIG__?: Record<string, unknown>;
-      }
-    ).__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
-      CONVERSATION_EXPORT_ASSET_ORIGIN: "http://127.0.0.1:11961",
-      BRAND_ID: "zenmind",
-    };
-
-    await expect(downloadConversationHtmlExport("chat_1")).rejects.toThrow(
-      `limit=${MAX_CONVERSATION_HTML_BYTES}`,
-    );
+    await expect(downloadConversationHtmlExport("chat_1")).rejects.toThrow(message!);
+    expect(fetchMock.mock.calls[0][1]?.signal?.aborted).toBe(true);
   });
 
   it("loads raw chat jsonl as authenticated text", async () => {

@@ -1,7 +1,5 @@
 import { readRuntimeConfigValue } from "@/shared/config/runtimeConfig";
 
-export const MAX_CONVERSATION_HTML_BYTES = 20 * 1024 * 1024;
-export const MAX_CONVERSATION_SNAPSHOT_BYTES = 20 * 1024 * 1024;
 export const MAX_CONVERSATION_TEMPLATE_BYTES = 256 * 1024;
 export const CONVERSATION_EXPORT_TEMPLATE_PATH =
   "/assets/conversation-export/conversation.template.html";
@@ -71,16 +69,6 @@ export function buildConversationHtmlBlob(input: {
   assetOrigin: string;
   brandId: string;
 }): Blob {
-  const templateBytes = new Blob([input.template]).size;
-  if (templateBytes > MAX_CONVERSATION_TEMPLATE_BYTES) {
-    throw new Error(
-      `conversation_export_template_too_large: actual=${templateBytes} limit=${MAX_CONVERSATION_TEMPLATE_BYTES}`,
-    );
-  }
-  if (input.snapshot.size > MAX_CONVERSATION_SNAPSHOT_BYTES) {
-    throw conversationExportHtmlTooLargeError(input.snapshot.size);
-  }
-
   const parts: BlobPart[] = [];
   let cursor = 0;
   let snapshotMarkers = 0;
@@ -130,11 +118,8 @@ export function buildConversationHtmlBlob(input: {
   if (snapshotMarkers !== 1 || assetOriginMarkers < 1 || brandIdMarkers !== 1) {
     throw new Error("conversation_export_template_invalid");
   }
-  const html = new Blob(parts, { type: "text/html;charset=utf-8" });
-  if (html.size > MAX_CONVERSATION_HTML_BYTES) {
-    throw conversationExportHtmlTooLargeError(html.size);
-  }
-  return html;
+  // Platform owns JSON serialization (including script-safe escaping); keep it as Blob parts.
+  return new Blob(parts, { type: "text/html;charset=utf-8" });
 }
 
 export function conversationHtmlFilename(
@@ -146,12 +131,4 @@ export function conversationHtmlFilename(
     return normalized.replace(/\.snapshot\.json$/iu, ".html");
   }
   return `${chatId.trim() || "conversation"}.html`;
-}
-
-export function conversationExportHtmlTooLargeError(
-  actualBytes: number,
-): Error {
-  return new Error(
-    `conversation_export_html_too_large: actual=${actualBytes} limit=${MAX_CONVERSATION_HTML_BYTES} (20 MiB)`,
-  );
 }

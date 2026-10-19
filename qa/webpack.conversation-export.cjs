@@ -38,9 +38,6 @@ const markers = {
 function previewSnapshot(name) {
   if (snapshotPath) {
     const raw = fs.readFileSync(snapshotPath, "utf8");
-    if (Buffer.byteLength(raw) > 20 * 1024 * 1024) {
-      throw new Error("Snapshot exceeds the 20 MiB export limit.");
-    }
     return JSON.parse(raw);
   }
   const fixtureModule = require.resolve("./conversation-export-fixtures.cjs");

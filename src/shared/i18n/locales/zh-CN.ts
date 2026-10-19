@@ -1089,6 +1089,7 @@ export const zhCNMessages = {
   "toolSource.platform": "内置",
   "toolSource.external": "外部",
   "toolSource.mcp": "MCP",
+  "api.conversationExportResourceExhausted": "可用内存不足，无法生成对话文件。",
   "api.downloadFailedWithStatus": "下载失败 ({status})",
   "api.fileDownloadUnsupported": "当前环境不支持文件下载",
   "api.loadResourceTextFailedWithStatus": "加载资源文本失败 ({status})",

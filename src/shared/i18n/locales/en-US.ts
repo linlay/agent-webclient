@@ -1021,6 +1021,7 @@ export const enUSMessages = {
   "toolSource.platform": "Platform",
   "toolSource.external": "External",
   "toolSource.mcp": "MCP",
+  "api.conversationExportResourceExhausted": "Insufficient memory to generate the conversation file.",
   "api.downloadFailedWithStatus": "Download failed ({status})",
   "api.fileDownloadUnsupported": "File download is not supported in this environment",
   "api.loadResourceTextFailedWithStatus": "Failed to load resource text ({status})",

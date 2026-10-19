@@ -9,8 +9,6 @@ const localSnapshotPath = path.resolve(
 function localSnapshot() {
   if (!fs.existsSync(localSnapshotPath)) return fixture;
   const raw = fs.readFileSync(localSnapshotPath, "utf8");
-  if (Buffer.byteLength(raw) > 20 * 1024 * 1024)
-    throw new Error("Local preview snapshot exceeds 20 MiB.");
   const snapshot = JSON.parse(raw);
   if (snapshot.version !== 1) {
     throw new Error(
