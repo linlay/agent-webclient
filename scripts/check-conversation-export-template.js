@@ -15,6 +15,7 @@ const assetOriginMarker =
   "__CONVERSATION_EXPORT_ASSET_ORIGIN__";
 const localBrandIdMarker =
   "__CONVERSATION_EXPORT_LOCAL_BRAND_ID__";
+const styleNonceMarker = "__CONVERSATION_EXPORT_STYLE_NONCE__";
 const profile =
   '<meta name="conversation-export-profile" content="conversation-snapshot-json-v2"';
 const snapshotElementID = "conversation-snapshot";
@@ -105,6 +106,13 @@ assert(
 );
 assert(!/<style\b/iu.test(html), "Export template contains an inline style element.");
 assert(
+  html.split(styleNonceMarker).length === 3
+    && html.includes(`name="conversation-export-style-nonce" content="${styleNonceMarker}"`)
+    && html.includes(`style-src-elem ${assetOriginMarker} 'nonce-${styleNonceMarker}'`)
+    && !/style-src-elem[^;]*'unsafe-inline'/u.test(html),
+  "Export styles must use the response nonce without allowing arbitrary inline style elements.",
+);
+assert(
   !html.includes("__CONVERSATION_EXPORT_ICON_SPRITE__")
     && (html.match(/id="material-icon-sprite"/gu) || []).length === 1,
   "Export template must contain exactly one local Material icon sprite.",
@@ -189,6 +197,7 @@ for (const match of externalAssets) {
 
 const auditedSources = [
   "src/export/index.tsx",
+  "src/export/styleNonce.ts",
   "src/export/ConversationExportDocument.tsx",
   "src/export/conversationSnapshotV1.ts",
   "src/features/conversation/components/ConversationPreview.tsx",

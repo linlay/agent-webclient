@@ -113,7 +113,7 @@ const csp = [
   `img-src data: ${ASSET_ORIGIN_MARKER}`,
   `font-src ${ASSET_ORIGIN_MARKER}`,
   "style-src 'none'",
-  `style-src-elem ${ASSET_ORIGIN_MARKER}`,
+  `style-src-elem ${ASSET_ORIGIN_MARKER} 'nonce-__CONVERSATION_EXPORT_STYLE_NONCE__'`,
   "style-src-attr 'unsafe-inline'",
   `script-src ${ASSET_ORIGIN_MARKER}`,
   "object-src 'none'",

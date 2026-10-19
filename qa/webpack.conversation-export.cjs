@@ -1,5 +1,6 @@
 const fs = require("node:fs");
 const path = require("node:path");
+const crypto = require("node:crypto");
 const webpackConfig = require("../webpack.export.config.js");
 
 const root = path.resolve(__dirname, "..");
@@ -24,7 +25,7 @@ const markers = {
     "img-src data: 'self'",
     "font-src 'self'",
     "style-src 'none'",
-    "style-src-elem 'self'",
+    "style-src-elem 'self' 'nonce-__CONVERSATION_EXPORT_STYLE_NONCE__'",
     "style-src-attr 'unsafe-inline'",
     "script-src 'self'",
     "object-src 'none'",
@@ -67,6 +68,7 @@ function previewHtml(snapshot, brandName) {
     if (!html.includes(marker)) throw new Error(`Missing template marker ${marker}.`);
     html = html.replace(marker, value);
   }
+  html = html.replaceAll("__CONVERSATION_EXPORT_STYLE_NONCE__", crypto.randomBytes(32).toString("base64url"));
   // Development assets change on every rebuild, so the production SRI attributes
   // cannot be pinned here. The release build still calculates and checks them.
   html = html.replace(/\s+integrity="__CONVERSATION_EXPORT_(?:CSS|RUNTIME)_INTEGRITY__"/gu, "");
