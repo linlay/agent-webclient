@@ -7,6 +7,8 @@ import { parseConversationSnapshotV1 } from "./conversationSnapshotV1";
 import { conversationExportMessages, resolveConversationExportLocale } from "@/shared/i18n/conversationExport";
 import { I18nProvider } from "@/shared/i18n";
 import { ConversationExportDocument } from "./ConversationExportDocument";
+import { ShareAttachmentPage } from "./ShareAttachmentPage";
+import { conversationSharePath, readShareAttachmentId } from "./shareAttachmentLinks";
 import { readConversationStyleNonce } from "./styleNonce";
 import {
   applyConversationExportFavicon,
@@ -51,11 +53,17 @@ try {
     : "light";
   document.title = `${snapshot.title} - ${copy.snapshotBadge}`;
   const publicBrand = readPublicShareBrand();
+  const sharePath = conversationSharePath(window.location.pathname);
+  const attachmentId = sharePath ? readShareAttachmentId(window.location.search) : null;
+  const canReshare = Boolean(sharePath) &&
+    document.querySelector<HTMLMetaElement>('meta[name="conversation-export-can-reshare"]')?.content === "true";
   applyConversationExportFavicon(publicBrand?.id || readLocalExportBrandId());
   createRoot(rootElement).render(
     <ConfigProvider csp={{ nonce }}>
       <I18nProvider locale={locale} persistLocale={false}>
-        <ConversationExportDocument snapshot={snapshot} publicBrand={publicBrand} />
+        {attachmentId !== null ? <ShareAttachmentPage snapshot={snapshot} initialAttachmentId={attachmentId}
+          sharePath={sharePath} origin={window.location.origin} canReshare={canReshare} /> :
+          <ConversationExportDocument snapshot={snapshot} publicBrand={publicBrand} canReshare={canReshare} />}
       </I18nProvider>
     </ConfigProvider>,
   );

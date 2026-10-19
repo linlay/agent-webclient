@@ -98,6 +98,10 @@ assert(
   "Export profile must appear exactly once.",
 );
 assert(
+  (html.match(/<meta name="conversation-export-can-reshare" content="" \/>/gu) || []).length === 1,
+  "Local export template must contain one disabled reshare capability placeholder.",
+);
+assert(
   new RegExp(
     `<meta\\s+name=["']conversation-export-asset-set["']\\s+content=["']${manifest.assetSet}["']\\s*/?>`,
     "u",
