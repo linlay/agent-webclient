@@ -64,15 +64,11 @@ describe("parseConversationSnapshotV1 node limits", () => {
     ).toBeNull();
   });
 
-  it("still rejects snapshots larger than 20 MiB", () => {
-    expect(
-      parseConversationSnapshotV1(
-        JSON.stringify({
-          ...buildSnapshot([buildTurn("run-1", 1)]),
-          padding: "x".repeat(20 * 1024 * 1024),
-        }),
-      ),
-    ).toBeNull();
+  it("accepts historical snapshots above the former byte limit", () => {
+    const parsed = parseConversationSnapshotV1(JSON.stringify({
+      ...buildSnapshot([buildTurn("run-1", 1)]), padding: "x".repeat(20 * 1024 * 1024),
+    }));
+    expect(parsed !== null).toBe(true);
   });
 });
 

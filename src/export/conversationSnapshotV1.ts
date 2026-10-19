@@ -71,7 +71,6 @@ export interface ConversationSnapshotV1 {
   attachments: SnapshotAttachmentV1[];
 }
 
-const MAX_BYTES = 20 * 1024 * 1024;
 
 function previewToolLabel(
   node: SnapshotNodeV1,
@@ -103,7 +102,7 @@ const record = (value: unknown): value is Record<string, unknown> =>
 export function parseConversationSnapshotV1(
   input: string,
 ): ConversationSnapshotV1 | null {
-  if (!input || new TextEncoder().encode(input).length > MAX_BYTES) return null;
+  if (!input) return null;
   let value: unknown;
   try {
     value = JSON.parse(input);

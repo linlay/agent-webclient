@@ -24,8 +24,6 @@ import {
   resolveConversationExportAssetOrigin,
   resolveConversationExportBrandId,
   CONVERSATION_EXPORT_TEMPLATE_PATH,
-  MAX_CONVERSATION_SNAPSHOT_BYTES,
-  conversationExportHtmlTooLargeError,
   MAX_CONVERSATION_TEMPLATE_BYTES,
   buildConversationHtmlBlob,
   conversationHtmlFilename,
@@ -247,98 +245,119 @@ export async function downloadConversationHtmlExport(
 
   const assetOrigin = resolveConversationExportAssetOrigin();
   const brandId = resolveConversationExportBrandId();
-  const [snapshotResponse, templateResponse] = await Promise.all([
-    requestWithAuth(
-      `${dataEndpoints.chatExport.path}?chatId=${encodeURIComponent(normalizedChatId)}&format=snapshot`,
-      {
+  const abort = new AbortController();
+  try {
+    const [snapshotResponse, templateResponse] = await Promise.all([
+      requestWithAuth(
+        `${dataEndpoints.chatExport.path}?chatId=${encodeURIComponent(normalizedChatId)}&format=snapshot`,
+        {
+          method: "GET",
+          signal: abort.signal,
+          jsonContentType: false,
+          authFailureSource: "download",
+          headers: { Accept: "application/json" },
+        },
+      ),
+      fetch(new URL(CONVERSATION_EXPORT_TEMPLATE_PATH, assetOrigin).toString(), {
         method: "GET",
-        jsonContentType: false,
-        authFailureSource: "download",
-        headers: { Accept: "application/json" },
-      },
-    ),
-    fetch(new URL(CONVERSATION_EXPORT_TEMPLATE_PATH, assetOrigin).toString(), {
-      method: "GET",
-      credentials: "omit",
-      redirect: "error",
-      cache: "no-store",
-      headers: { Accept: "text/html" },
-    }),
-  ]);
+        credentials: "omit",
+        signal: abort.signal,
+        redirect: "error",
+        cache: "no-store",
+        headers: { Accept: "text/html" },
+      }),
+    ]);
 
-  if (!snapshotResponse.ok) {
-    const rawText = await snapshotResponse.text();
-    const fallbackMessage = t("api.downloadFailedWithStatus", {
-      status: snapshotResponse.status,
-    });
-    const error = getErrorMessageFromText(
-      rawText,
-      fallbackMessage,
-      snapshotResponse.status,
-    );
-    throw new ApiError(error.message, {
-      status: snapshotResponse.status,
-      code: error.code,
-      data: error.data,
-      platformError: error.platformError,
-    });
-  }
-  if (!templateResponse.ok) {
-    throw new Error(`conversation_export_template_unavailable: status=${templateResponse.status}`);
-  }
+    if (!snapshotResponse.ok) {
+      const rawText = await snapshotResponse.text();
+      const fallbackMessage = t("api.downloadFailedWithStatus", {
+        status: snapshotResponse.status,
+      });
+      const error = getErrorMessageFromText(
+        rawText,
+        fallbackMessage,
+        snapshotResponse.status,
+      );
+      throw new ApiError(error.message, {
+        status: snapshotResponse.status,
+        code: error.code,
+        data: error.data,
+        platformError: error.platformError,
+      });
+    }
+    if (!templateResponse.ok) {
+      throw new Error(`conversation_export_template_unavailable: status=${templateResponse.status}`);
+    }
 
-  const snapshotContentType = snapshotResponse.headers
+    const snapshotContentType = snapshotResponse.headers
       .get("Content-Type")
       ?.split(";", 1)[0]
       ?.trim()
       .toLowerCase();
-  if (snapshotContentType !== "application/json") {
-    throw new Error("conversation_export_snapshot_unsupported");
-  }
-  const templateContentType = templateResponse.headers
-    .get("Content-Type")
-    ?.split(";", 1)[0]
-    ?.trim()
-    .toLowerCase();
-  if (templateContentType !== "text/html") {
-    throw new Error("conversation_export_template_invalid");
-  }
+    if (snapshotContentType !== "application/json") {
+      throw new Error("conversation_export_snapshot_unsupported");
+    }
+    const templateContentType = templateResponse.headers
+      .get("Content-Type")
+      ?.split(";", 1)[0]
+      ?.trim()
+      .toLowerCase();
+    if (templateContentType !== "text/html") {
+      throw new Error("conversation_export_template_invalid");
+    }
 
-  requireConversationExportLength(
-    snapshotResponse,
-    MAX_CONVERSATION_SNAPSHOT_BYTES,
-    conversationExportHtmlTooLargeError,
-  );
-  requireConversationExportLength(
-    templateResponse,
-    MAX_CONVERSATION_TEMPLATE_BYTES,
-    (actual) => new Error(
-      `conversation_export_template_too_large: actual=${actual} limit=${MAX_CONVERSATION_TEMPLATE_BYTES}`,
-    ),
-  );
-  const [snapshot, template] = await Promise.all([
-    snapshotResponse.blob(),
-    templateResponse.text(),
-  ]);
-  const html = buildConversationHtmlBlob({ template, snapshot, assetOrigin, brandId });
-  const filename =
-    conversationHtmlFilename(
-      filenameFromContentDisposition(snapshotResponse.headers.get("Content-Disposition")),
-      normalizedChatId,
-    );
-  triggerBrowserDownload(html, filename);
+    const rawLimit = snapshotResponse.headers.get("X-Conversation-Export-Max-Bytes");
+    if (!rawLimit || !/^[1-9]\d*$/u.test(rawLimit) || !Number.isSafeInteger(Number(rawLimit))) {
+      await Promise.allSettled([snapshotResponse.body?.cancel(), templateResponse.body?.cancel()]);
+      throw new Error("conversation_export_limit_invalid");
+    }
+    const [snapshot, templateBlob] = await Promise.all([
+      readConversationExportBody(snapshotResponse, Number(rawLimit)),
+      readConversationExportBody(templateResponse, MAX_CONVERSATION_TEMPLATE_BYTES),
+    ]);
+    const template = await templateBlob.text();
+    const html = buildConversationHtmlBlob({ template, snapshot, assetOrigin, brandId });
+    const filename =
+      conversationHtmlFilename(
+        filenameFromContentDisposition(snapshotResponse.headers.get("Content-Disposition")),
+        normalizedChatId,
+      );
+    triggerBrowserDownload(html, filename);
+  } catch (error) {
+    if (error instanceof RangeError) throw new Error(t("api.conversationExportResourceExhausted"));
+    throw error;
+  } finally {
+    abort.abort();
+  }
 }
 
-function requireConversationExportLength(
-  response: Response,
-  limit: number,
-  errorFactory: (actualBytes: number) => Error,
-): void {
+// The HTTP reader owns the single size boundary; HTML assembly does not repeat it.
+async function readConversationExportBody(response: Response, limit: number): Promise<Blob> {
   const rawLength = response.headers.get("Content-Length");
-  if (rawLength === null) return;
-  const declaredLength = Number(rawLength);
-  if (Number.isFinite(declaredLength) && declaredLength > limit) {
-    throw errorFactory(declaredLength);
+  const declared = rawLength === null ? undefined : Number(rawLength);
+  const reader = response.body?.getReader();
+  const chunks: Uint8Array<ArrayBuffer>[] = [];
+  let total = 0;
+  try {
+    if (rawLength !== null && (!/^(?:0|[1-9]\d*)$/u.test(rawLength) || !Number.isSafeInteger(declared))) {
+      throw new Error("conversation_export_response_invalid");
+    }
+    if (declared !== undefined && declared > limit) throw new Error(`conversation_export_too_large: limit=${limit}`);
+    if (!reader) throw new Error("conversation_export_response_invalid");
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      total += value.byteLength;
+      if (total > limit) throw new Error(`conversation_export_too_large: limit=${limit}`);
+      chunks.push(value);
+    }
+    if (declared !== undefined && total !== declared) throw new Error("conversation_export_response_invalid");
+    return new Blob(chunks);
+  } catch (error) {
+    await reader?.cancel().catch(() => undefined);
+    throw error;
+  } finally {
+    reader?.releaseLock();
   }
 }
 
