@@ -15,7 +15,7 @@ it("restores old Chat history after changing New Chat, and keeps subsequent choi
   let state = createInitialState();
   state = appReducer(state, { type: "SET_COMPOSER_MODEL", target: target(), value: fresh });
   state = appReducer(state, { type: "APPLY_CONVERSATION_REPLAY", snapshot: {
-    ...createInitialState(), chatId: "old", events: [event("request.query", { query: { model: old } })],
+    ...createInitialState(), chatId: "old", events: [event("request.query", { model: old })],
   } });
   expect(readComposerModel(state, target("old"))).toEqual(old);
   state = appReducer(state, { type: "SET_COMPOSER_MODEL", target: target("old"), value: { ...old, reasoningEffort: "MAX" } });
@@ -23,7 +23,7 @@ it("restores old Chat history after changing New Chat, and keeps subsequent choi
   state = appReducer(state, { type: "SET_CHAT_ID", chatId: "" });
   expect(readComposerModel(state, target())).toEqual(fresh);
   state = appReducer(state, { type: "APPLY_CONVERSATION_REPLAY", snapshot: {
-    ...createInitialState(), chatId: "old", events: [event("request.query", { query: { model: old } })],
+    ...createInitialState(), chatId: "old", events: [event("request.query", { model: old })],
   } });
   expect(readComposerModel(state, target("old"))).toEqual({ ...old, reasoningEffort: "MAX" });
   expect(readComposerModel(state, target("other"))).toEqual({});
@@ -31,17 +31,17 @@ it("restores old Chat history after changing New Chat, and keeps subsequent choi
 });
 
 it("recovers effective model and reasoning when request omitted overrides, excluding child lanes", () => {
-  const events = [event("request.query", { query: {} }), event("usage.snapshot", {
+  const events = [event("request.query"), event("usage.snapshot", {
     model: { key: "old-model" }, contextWindow: { reasoningEffort: "low" },
   })];
   for (const extra of [{taskId:"child"}, {subAgentKey:"child"}, {btwId:"btw"}, {lane:"explain"}, {chatId:"other"}]) {
-    events.push(event("request.query", { ...extra, runId: "unrelated", query: { model: fresh } }));
+    events.push(event("request.query", { ...extra, runId: "unrelated", model: fresh }));
   }
   expect(resolveChatModel(events, "old")).toEqual(old);
 });
 
 it("does not inherit a previous Run's reasoning or follow its late usage event", () => {
-  const events = [event("request.query", { query: { model: old } }),
+  const events = [event("request.query", { model: old }),
     event("run.start", { runId: "new-run" }),
     event("usage.snapshot", { model: { key: "old-model" }, contextWindow: { reasoningEffort: "LOW" } }),
     event("usage.snapshot", { runId: "new-run", model: { key: "actual-new" }, contextWindow: { reasoningEffort: "NONE" } })];
@@ -61,4 +61,28 @@ it("initializes accepted Chat once and ignores duplicate identity events after a
   state = updateComposerModel(state, target("accepted"), old);
   state = updateComposerModel(state, target("accepted"), fresh, true);
   expect(readComposerModel(state, target("accepted"))).toEqual(old);
+});
+
+
+it.each([
+  ["58b6339d-9378-499a-90a0-3226385e50a0", "our-glm5_3"],
+  ["b3594466-8d4e-4099-b502-1e79a21aac7d", "th-claude-haiku-5_5"],
+])("restores %s from the wire model after a fresh Desktop session", (chatId, key) => {
+  let state = createInitialState();
+  state = updateComposerModel(state, target(), { key: "th-minimax-m3" });
+  const history: AgentEvent[] = [{
+    type: "request.query", chatId, runId: "latest-run",
+    model: { key, reasoningEffort: "HIGH" },
+  }];
+  state = appReducer(state, { type: "APPLY_CONVERSATION_REPLAY", snapshot: {
+    ...createInitialState(), chatId, events: history,
+  } });
+  expect(readComposerModel(state, target(chatId))).toEqual({ key, reasoningEffort: "HIGH", serviceTier: "STANDARD" });
+  expect(readComposerModel(state, target()).key).toBe("th-minimax-m3");
+});
+
+it("reads only the top-level wire model, never a nested query", () => {
+  expect(resolveChatModel([event("request.query", {
+    query: { model: { key: "requested-model", reasoningEffort: "LOW" } },
+  })], "old")).toBeUndefined();
 });

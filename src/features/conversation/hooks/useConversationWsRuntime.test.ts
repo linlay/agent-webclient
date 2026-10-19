@@ -1286,7 +1286,7 @@ describe("registerAttachRunListener", () => {
 		attachedOnEvent?.({
 			type: "request.query",
 			requestId: "req_1",
-			query: "attached query",
+			message: "attached query",
 			references: [{ name: "demo.txt", sizeBytes: 12 }],
     timestamp: EPOCH_MS
 		} as any);
@@ -1308,7 +1308,7 @@ describe("registerAttachRunListener", () => {
 		});
 		expect(handleEvent).toHaveBeenCalledWith(expect.objectContaining({
 			type: "request.query",
-    query: "attached query"
+    message: "attached query"
 		}));
 		await Promise.resolve();
 

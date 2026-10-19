@@ -55,7 +55,7 @@ afterEach(() => { act(() => root.unmount()); container.remove(); });
 async function click(name: string) { await act(async () => container.querySelector<HTMLButtonElement>(`[data-test="${name}"]`)!.click()); }
 async function loadOld() {
   await act(async () => mockContext.dispatch({ type: "APPLY_CONVERSATION_REPLAY", snapshot: {
-    ...createInitialState(), chatId: "old-chat", events: [{ type: "request.query", chatId: "old-chat", runId: "old-run", query: { model: { key: "old-model", reasoningEffort: "LOW" } } }],
+    ...createInitialState(), chatId: "old-chat", events: [{ type: "request.query", chatId: "old-chat", runId: "old-run", model: { key: "old-model", reasoningEffort: "LOW" } }],
   } }));
 }
 it("keeps old Chat model/effort after New Chat changes, and edits old Chat without changing Agent defaults", async () => {

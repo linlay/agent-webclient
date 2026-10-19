@@ -13,8 +13,7 @@ export function readEventFirstAgentName(event: AgentEvent): string {
 }
 
 export function readRequestQueryText(event: AgentEvent): string {
-  const raw = event as Record<string, unknown>;
-  return safeText(event.message) || safeText(raw.query);
+  return safeText(event.message);
 }
 
 export function readSteerConfirmation(event: AgentEvent): {
@@ -31,6 +30,5 @@ export function readSteerConfirmation(event: AgentEvent): {
 
 
 export function readReferences(event: AgentEvent): unknown[] {
- const refs = event.references ?? (event.query as Record<string,unknown> | undefined)?.references;
- return Array.isArray(refs) ? refs : [];
+ return Array.isArray(event.references) ? event.references : [];
 }

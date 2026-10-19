@@ -31,9 +31,7 @@ export function readRunAccessLevelEvent(event: AgentEvent): RunAccessLevelSnapsh
   const type = toText(event.type);
   if (!["request.query", "run.start", "run.access_level.changed"].includes(type)) return undefined;
   const runId = toText(event.runId);
-  const query = event.query && typeof event.query === "object"
-    ? event.query as Record<string, unknown> : undefined;
-  const accessLevel = readAccessLevel(event.accessLevel ?? (type === "request.query" ? query?.accessLevel : undefined));
+  const accessLevel = readAccessLevel(event.accessLevel);
   const version = type === "run.access_level.changed"
     ? readVersion(event.version) : readVersion(event.accessLevelVersion) ?? 1;
   if (!runId || !accessLevel || version === undefined) return undefined;

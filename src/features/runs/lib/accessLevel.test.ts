@@ -39,8 +39,8 @@ it("ignores other Chats, child tasks and side conversations", () => {
     .toEqual({ runId: "run", accessLevel: "auto_approve", version: 1 });
 });
 
-it("reads saved query payloads and rejects invalid permissions or change versions", () => {
-  expect(readRunAccessLevelEvent({ ...query("run"), query: { accessLevel: "full_access" } })?.accessLevel).toBe("full_access");
+it("reads only the top-level permission and rejects invalid permissions or change versions", () => {
+  expect(readRunAccessLevelEvent({ ...query("run"), query: { accessLevel: "full_access" } })).toBeUndefined();
   expect(readRunAccessLevelEvent(query("run", "admin"))).toBeUndefined();
   expect(readRunAccessLevelEvent(query("run"))).toBeUndefined();
   expect(readRunAccessLevelEvent({ ...changed(2, "full_access"), version: undefined })).toBeUndefined();

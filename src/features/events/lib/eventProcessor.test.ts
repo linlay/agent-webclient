@@ -296,7 +296,7 @@ describe('processStreamEvent', () => {
 
   it("keeps library references in replay/attach user messages", () => {
     const state = createState();
-    processAndApply(state, {type: "request.query", requestId: "multi", message: "query", query: {references: [{type:"kbase",id:"lib-a"},{type:"kbase",id:"lib-b"}]}, timestamp: 100}, "replay");
+    processAndApply(state, {type: "request.query", requestId: "multi", message: "query", references: [{type:"kbase",id:"lib-a"},{type:"kbase",id:"lib-b"}], timestamp: 100}, "replay");
     expect(state.timelineNodes.get("user_multi")?.references).toEqual([{type:"kbase",id:"lib-a"},{type:"kbase",id:"lib-b"}]);
   });
 
@@ -446,7 +446,7 @@ describe('processStreamEvent', () => {
     ]);
   });
 
-  it('reads request.query text from query when message is absent', () => {
+  it('does not read request.query text from a query field', () => {
     const replayCommands = processStreamEvent({
       type: 'request.query',
       requestId: 'req_query_field',
@@ -456,13 +456,7 @@ describe('processStreamEvent', () => {
       reasoningExpandedDefault: false,
     });
 
-    expect(replayCommands).toEqual([
-      expect.objectContaining({
-        cmd: 'USER_MESSAGE',
-        nodeId: 'user_req_query_field',
-        text: 'hello from query',
-      }),
-    ]);
+    expect(replayCommands).toEqual([]);
   });
 
   it('attaches task metadata to replay request.query nodes when taskId is present', () => {

@@ -30,7 +30,7 @@ export function resolveChatModel(events: AgentEvent[], chatId: string): QueryMod
   for (const event of roots) {
     if (runId && event.runId !== runId) continue;
     if (event.type === "request.query") {
-      requested = normalizeRunModel(record(event.query).model);
+      requested = normalizeRunModel(event.model);
     } else if (event.type === "usage.snapshot") {
       const model = record(event.model);
       const context = record(event.contextWindow);
