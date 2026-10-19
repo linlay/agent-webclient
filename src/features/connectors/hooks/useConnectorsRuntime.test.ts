@@ -4,6 +4,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { useConnectorsRuntime } from "./useConnectorsRuntime";
 import { deleteConnector, ApiError, getAdminConnectors, getAdminTools, getConnectorDefinition, importConnectorArchive, importConnectorMCP, updateConnectorDefinition } from "@/shared/data";
 import type { ConnectorDefinition, ConnectorSummary } from "@/shared/data";
+import { normalizePlatformError } from "@/shared/data/errors/platformError";
 
 const push = { subscribe: jest.fn(() => jest.fn()) };
 const blocker = { state: "unblocked" };
@@ -210,6 +211,84 @@ it("keeps successful deletion when its catalog refresh fails and ignores older c
   expect(current.items.some(item => item.id === "demo")).toBe(false);
   expect(current.catalogError).toBe("refresh unavailable");
   expect(onRouteIdChange).toHaveBeenCalledWith("");
+});
+
+it.each([false, true])("retries pending cleanup after the catalog removes the package without another confirmation (structured=%s)", async structured => {
+  await mount();
+  jest.spyOn(window, "confirm").mockReturnValue(true);
+  const cleanupError = (reason: string) => new ApiError(reason, {
+    status: 500,
+    ...(structured ? { platformError: normalizePlatformError({ code: "connector_cleanup_pending", message: reason, status: 500 }) }
+      : { code: "connector_cleanup_pending" }),
+  });
+  jest.mocked(deleteConnector).mockRejectedValueOnce(cleanupError("cleanup failed; token=private-value"));
+  await act(async () => expect(current.remove()).resolves.toBeNull());
+  expect(current.pendingDeletion).toMatchObject({ id: item.id, name: item.name });
+  expect(current.pendingDeletion?.details).not.toContain("private-value");
+  jest.mocked(getAdminConnectors).mockResolvedValue({ code: 0, msg: "", data: { connectors: [] } });
+  await act(async () => current.refreshCatalog(true));
+  expect(current.items).toEqual([]);
+  expect(current.selected).toBeUndefined();
+  expect(current.pendingDeletion?.id).toBe(item.id);
+
+  jest.mocked(deleteConnector).mockRejectedValueOnce(cleanupError("cleanup still pending"));
+  await act(async () => expect(current.retryDeletion()).resolves.toBeNull());
+  expect(current.pendingDeletion?.details).toContain("cleanup still pending");
+  expect(current.deleting).toBe(false);
+  jest.mocked(deleteConnector).mockResolvedValueOnce({ code: 0, msg: "", data: { id: item.id, deleted: true } });
+  await act(async () => expect(current.retryDeletion()).resolves.toBe(item.id));
+  expect(current.pendingDeletion).toBeNull();
+  expect(deleteConnector).toHaveBeenNthCalledWith(1, item.id);
+  expect(deleteConnector).toHaveBeenNthCalledWith(2, item.id);
+  expect(deleteConnector).toHaveBeenNthCalledWith(3, item.id);
+  expect(window.confirm).toHaveBeenCalledTimes(1);
+  expect(onRouteIdChange).toHaveBeenCalledWith("");
+});
+
+it("keeps another connector's draft while retrying cleanup and blocks overlapping cleanup requests", async () => {
+  await mount();
+  jest.spyOn(window, "confirm").mockReturnValue(true);
+  jest.mocked(deleteConnector).mockRejectedValueOnce(new ApiError("cleanup pending", { status: 500, code: "connector_cleanup_pending" }));
+  await act(async () => current.remove());
+  jest.mocked(getAdminConnectors).mockResolvedValue({ code: 0, msg: "", data: { connectors: [{ ...item, id: "other" }] } });
+  await act(async () => current.refreshCatalog(true));
+  await mount("other");
+  await act(async () => current.updateDraft('{"name":"Other draft"}'));
+  await act(async () => expect(current.remove()).resolves.toBeNull());
+  expect(deleteConnector).toHaveBeenCalledTimes(1);
+
+  let finishCleanup!: (value: any) => void;
+  jest.mocked(deleteConnector).mockImplementationOnce(() => new Promise(resolve => { finishCleanup = resolve; }));
+  let cleanup!: Promise<string | null>;
+  await act(async () => { cleanup = current.retryDeletion(); });
+  await act(async () => {
+    await current.retryDeletion();
+    await current.save();
+    await current.importArchive(new File(["zip"], "demo.zip"), true);
+  });
+  expect(current.deleting).toBe(true);
+  expect(deleteConnector).toHaveBeenCalledTimes(2);
+  expect(updateConnectorDefinition).not.toHaveBeenCalled();
+  expect(importConnectorArchive).not.toHaveBeenCalled();
+  await act(async () => { finishCleanup({ code: 0, msg: "", data: { id: item.id, deleted: true } }); await cleanup; });
+  expect(current.pendingDeletion).toBeNull();
+  expect(current.selected?.id).toBe("other");
+  expect(current.draft).toBe('{"name":"Other draft"}');
+  expect(current.detail?.sha256).toBe("sha-1");
+  expect(current.dirty).toBe(true);
+  expect(window.confirm).toHaveBeenCalledTimes(1);
+  expect(onRouteIdChange).not.toHaveBeenCalled();
+});
+
+it("does not offer cleanup retry for another deletion failure", async () => {
+  await mount();
+  jest.spyOn(window, "confirm").mockReturnValue(true);
+  jest.mocked(deleteConnector).mockRejectedValueOnce(new ApiError("connector_cleanup_pending", { status: 500, code: "connector_reload_failed" }));
+  await act(async () => current.remove());
+  expect(current.pendingDeletion).toBeNull();
+  expect(current.error).toBe("connector_cleanup_pending");
+  await act(async () => expect(current.retryDeletion()).resolves.toBeNull());
+  expect(deleteConnector).toHaveBeenCalledTimes(1);
 });
 
 it.each([{ builtin: true }, { readOnly: true }, { canDelete: false }])("rejects deleting protected connectors: %p", async protection => {
