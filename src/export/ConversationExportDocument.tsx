@@ -1,4 +1,5 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
+import { Tooltip } from "antd";
 import { ConversationPreview, type ConversationPreviewProps } from "@/features/conversation/components/ConversationPreview";
 import { ConversationMarkdown, type ConversationMarkdownElementProps } from "@/shared/ui/ConversationMarkdown";
 import { ConversationMarkdownCode, type ConversationMarkdownCodeProps } from "@/shared/ui/markdown-code/ConversationMarkdownCode";
@@ -9,19 +10,21 @@ import type { ConversationSnapshotV1, SnapshotAttachmentV1 } from "./conversatio
 import { snapshotV1PreviewData } from "./conversationSnapshotV1";
 import type { PublicShareBrand } from "./publicShareBrand";
 import { PublicShareAppEntry } from "./PublicShareAppEntry";
+import { buildShareAttachmentLinks, conversationSharePath } from "./shareAttachmentLinks";
+import { ShareAttachmentViewer } from "./ShareAttachmentViewer";
+import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import styles from "./ConversationExportDocument.module.css";
 
-export type ConversationExportDocumentProps = { snapshot: ConversationSnapshotV1; publicBrand?: PublicShareBrand | null };
+export type ConversationExportDocumentProps = {
+  snapshot: ConversationSnapshotV1;
+  publicBrand?: PublicShareBrand | null;
+  canReshare?: boolean;
+};
 
 type LinkProps = ConversationMarkdownElementProps<{ href?: string; title?: string }>;
 
 const ExportMarkdownCode: React.FC<ConversationMarkdownCodeProps> = props =>
   <ConversationMarkdownCode {...props} htmlPreview={false} />;
-
-function attachmentRoute(id: string, action: "preview" | "download"): string {
-  const match = /^\/share\/([A-Za-z0-9_-]+)(?:\/|$)/u.exec(window.location.pathname);
-  return match ? `/share/${match[1]}/attachments/${id}/${action}` : "";
-}
 
 // A body link and a snapshot sourceRef name the same published file in
 // different spellings: "@chat/<path>" or a bare reference, percent-encoded by
@@ -49,10 +52,31 @@ function findPublishedAttachment(href: string | undefined, attachments: Map<stri
   return undefined;
 }
 
-export const ConversationExportDocument: React.FC<ConversationExportDocumentProps> = ({ snapshot, publicBrand }) => {
+export const ConversationExportDocument: React.FC<ConversationExportDocumentProps> = ({ snapshot, publicBrand, canReshare = false }) => {
   const copy = conversationExportMessages[snapshot.locale];
   const labels = copy.attachments;
-  const [selected, setSelected] = useState<SnapshotAttachmentV1 | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [expanded, setExpanded] = useState(false);
+  const selected = snapshot.attachments.find((attachment) => attachment.id === selectedId);
+  const previewOpen = Boolean(selected);
+  const sharePath = conversationSharePath(window.location.pathname);
+  const attachmentLinks = (id: string) => buildShareAttachmentLinks(sharePath, id, window.location.origin);
+  const close = () => { setSelectedId(null); setExpanded(false); };
+  useEffect(() => {
+    if (!previewOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    const previousFocus = document.activeElement;
+    document.body.style.overflow = "hidden";
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") { setSelectedId(null); setExpanded(false); }
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener("keydown", onKeyDown);
+      if (previousFocus instanceof HTMLElement && previousFocus.isConnected) previousFocus.focus();
+    };
+  }, [previewOpen]);
   const data = useMemo(() => snapshotV1PreviewData(snapshot), [snapshot]);
   const assistantByRunId = useMemo(() => new Map(snapshot.turns.map((turn) =>
     [turn.runId, turn.assistant])), [snapshot.turns]);
@@ -62,12 +86,13 @@ export const ConversationExportDocument: React.FC<ConversationExportDocumentProp
   const attachments = useMemo(() => new Map(snapshot.attachments.map((attachment) =>
     [chatFilePath(attachment.sourceRef), attachment])), [snapshot.attachments]);
   const open = (attachment: SnapshotAttachmentV1) => {
-    if (!attachmentRoute(attachment.id, "preview")) return;
-    setSelected(attachment);
+    if (!attachmentLinks(attachment.id).preview) return;
+    setSelectedId(attachment.id);
   };
   const attachmentLink = (attachment: SnapshotAttachmentV1, children: React.ReactNode, props?: React.AnchorHTMLAttributes<HTMLAnchorElement>) => {
     const previewable = attachment.mimeType === "text/html";
-    const route = attachmentRoute(attachment.id, previewable ? "preview" : "download");
+    const links = attachmentLinks(attachment.id);
+    const route = previewable ? links.preview : links.download;
     if (!route) return <span key={attachment.id} title={labels.unavailable}>{children}</span>;
     return <a key={attachment.id} {...props} href={route}
       onClick={previewable ? (event) => { event.preventDefault(); open(attachment); } : undefined}>{children}</a>;
@@ -111,15 +136,28 @@ export const ConversationExportDocument: React.FC<ConversationExportDocumentProp
       <footer className={styles.footer}>{copy.readOnly}</footer>
     </div>
     {publicBrand && <PublicShareAppEntry brand={publicBrand} locale={snapshot.locale} />}
-    {selected && <div className={styles.previewBackdrop} role="presentation" onClick={() => setSelected(null)}>
-      <aside className={styles.previewPanel} role="dialog" aria-modal="true" aria-label={selected.name}
+    {selected && <div className={styles.previewBackdrop} role="presentation" onClick={close}>
+      <aside className={`${styles.previewPanel} ${expanded ? styles.previewExpanded : ""}`} role="dialog" aria-modal="true" aria-label={selected.name}
         onClick={(event) => event.stopPropagation()}>
-        <div className={styles.previewHeader}><strong>{selected.name}</strong>
-          <a href={attachmentRoute(selected.id, "download")}>{labels.download}</a>
-          <button type="button" onClick={() => setSelected(null)} aria-label={labels.close}>×</button>
-        </div>
-        <iframe title={selected.name} sandbox="" referrerPolicy="no-referrer"
-          src={attachmentRoute(selected.id, "preview")} />
+        <ShareAttachmentViewer attachments={snapshot.attachments} selectedId={selected.id}
+          onSelect={setSelectedId} links={attachmentLinks(selected.id)} canReshare={canReshare} locale={snapshot.locale}>
+          <Tooltip title={labels.openStandalone} trigger={["hover", "focus"]}>
+            <a href={attachmentLinks(selected.id).page} target="_blank" rel="noopener noreferrer" aria-label={labels.openStandalone}>
+              <MaterialIcon name="open_in_new" aria-hidden="true" />
+            </a>
+          </Tooltip>
+          <Tooltip title={expanded ? labels.collapse : labels.expand} trigger={["hover", "focus"]}>
+            <button className={styles.expandButton} type="button" aria-expanded={expanded}
+              aria-label={expanded ? labels.collapse : labels.expand} onClick={() => setExpanded((value) => !value)}>
+              <MaterialIcon name={expanded ? "collapse_content" : "expand_content"} aria-hidden="true" />
+            </button>
+          </Tooltip>
+          <Tooltip title={labels.close} trigger={["hover", "focus"]}>
+            <button type="button" onClick={close} aria-label={labels.close}>
+              <MaterialIcon name="close" aria-hidden="true" />
+            </button>
+          </Tooltip>
+        </ShareAttachmentViewer>
       </aside>
     </div>}
   </main>;

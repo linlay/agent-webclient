@@ -122,3 +122,61 @@ it("opens a legacy Markdown HTML link directly without a HEAD request", () => {
     globalThis.fetch = previousFetch;
   }
 });
+
+it("keeps the iframe on expand, keeps expansion across files, and resets after closing", () => {
+  window.history.replaceState({}, "", "/share/share-1");
+  const host = document.createElement("div");
+  document.body.append(host);
+  const root = createRoot(host);
+  const attachments = [
+    { id: "0123456789abcdef01234567", name: "page.html", mimeType: "text/html", sourceRef: "artifacts/run-1/page.html" },
+    { id: "abcdef0123456789abcdef01", name: "other.html", mimeType: "text/html", sourceRef: "other.html" },
+  ];
+  const button = (label: string) => host.querySelector<HTMLButtonElement>(`button[aria-label="${label}"]`)!;
+  const open = () => act(() => Array.from(host.querySelectorAll("a")).find((item) => item.textContent === attachments[0].name)!
+    .dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true })));
+  const previousOverflow = document.body.style.overflow;
+  try {
+    act(() => root.render(React.createElement(ConversationExportDocument, { snapshot: { ...snapshot, attachments }, canReshare: true })));
+    const trigger = Array.from(host.querySelectorAll("a")).find((item) => item.textContent === attachments[0].name)!;
+    trigger.focus();
+    open();
+    expect(document.activeElement).toBe(trigger);
+    const frame = host.querySelector("iframe");
+    expect(button("展开").querySelector('[data-material-icon="expand_content"]')).not.toBeNull();
+    act(() => button("展开").click());
+    expect(host.querySelector("iframe")).toBe(frame);
+    expect(button("收起").getAttribute("aria-expanded")).toBe("true");
+    expect(button("收起").querySelector('[data-material-icon="collapse_content"]')).not.toBeNull();
+    act(() => host.querySelector<HTMLButtonElement>('button[aria-haspopup="menu"]')!.click());
+    act(() => {
+      Array.from(document.querySelectorAll<HTMLElement>('[role="menuitem"]'))
+        .find((item) => item.textContent === attachments[1].name)!.click();
+    });
+    expect(button("收起").getAttribute("aria-expanded")).toBe("true");
+    const link = host.querySelector<HTMLAnchorElement>('a[aria-label="独立打开"]')!;
+    expect(link.getAttribute("href")).toContain(`?attachment=${attachments[1].id}`);
+    expect(link.target).toBe("_blank");
+    expect(link.rel).toBe("noopener noreferrer");
+    act(() => button("关闭").focus());
+    act(() => button("关闭").click());
+    expect(document.activeElement).toBe(trigger);
+    expect(document.body.style.overflow).toBe(previousOverflow);
+    expect(host.querySelector("iframe")).toBeNull();
+    open();
+    expect(button("展开").getAttribute("aria-expanded")).toBe("false");
+  } finally {
+    act(() => root.unmount()); host.remove();
+  }
+  expect(document.body.style.overflow).toBe(previousOverflow);
+});
+
+it("does not enable online attachment actions in a local export", () => {
+  window.history.replaceState({}, "", "/local-export.html?attachment=0123456789abcdef01234567");
+  const html = renderToStaticMarkup(React.createElement(ConversationExportDocument, {
+    snapshot: { ...snapshot, attachments: [{ id: "0123456789abcdef01234567", name: "page.html", mimeType: "text/html", sourceRef: "artifacts/run-1/page.html" }] },
+  }));
+  expect(html).toContain("仅在线分享页面可预览");
+  expect(html).not.toContain("<iframe");
+  expect(html).not.toContain("/attachments/");
+});

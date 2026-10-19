@@ -1,0 +1,4 @@
+.page { position: fixed; inset: 0; display: flex; padding: 16px; background: var(--bg-elev-1); color: var(--ink-1); }
+.error { margin: auto; text-align: center; }
+.error a { color: var(--ink-1); }
+@media (max-width: 700px) { .page { padding: 10px; } }

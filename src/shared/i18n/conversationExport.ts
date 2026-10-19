@@ -2,7 +2,16 @@ export type ConversationExportLocale = "zh-CN" | "en-US";
 
 export const conversationExportMessages = {
   "zh-CN": {
-    attachments: { attachments: "附件", download: "下载", close: "关闭", unavailable: "仅在线分享页面可预览" },
+    attachments: {
+      attachments: "附件", download: "下载", close: "关闭", unavailable: "仅在线分享页面可预览",
+      selectFile: "选择附件",
+      openStandalone: "独立打开", expand: "展开", collapse: "收起", shareLink: "分享链接",
+      sharePolicy: "沿用原分享的访问权限和有效期，接收者也可访问原对话与其他附件",
+      reshareUnavailable: "一次性分享不支持转发，请联系原作者重新分享",
+      linkCopied: "链接已复制", copyFailed: "复制失败，请手动复制以下链接",
+      unsupported: "此类型暂不支持在线预览，请下载查看", notFound: "附件不存在或链接无效",
+      backToConversation: "返回对话",
+    },
     appEntry: {
       opening: "正在打开 {productName}",
       description: "若未安装，可点击「前往下载」。",
@@ -50,7 +59,16 @@ export const conversationExportMessages = {
     user: "用户",
   },
   "en-US": {
-    attachments: { attachments: "Attachments", download: "Download", close: "Close", unavailable: "Available only from the shared page" },
+    attachments: {
+      attachments: "Attachments", download: "Download", close: "Close", unavailable: "Available only from the shared page",
+      selectFile: "Select attachment",
+      openStandalone: "Open separately", expand: "Expand", collapse: "Collapse", shareLink: "Share link",
+      sharePolicy: "Uses the original share's access and expiry; recipients can also access the conversation and other attachments",
+      reshareUnavailable: "Single-use shares cannot be forwarded. Ask the author to share again.",
+      linkCopied: "Link copied", copyFailed: "Copy failed. Copy the link below manually.",
+      unsupported: "Preview is unavailable for this file type. Download it to view.", notFound: "Attachment not found or link invalid",
+      backToConversation: "Back to conversation",
+    },
     appEntry: {
       opening: "Opening {productName}",
       description: "If the app is not installed, select “Go to download”.",
