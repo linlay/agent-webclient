@@ -41,9 +41,9 @@ const moreButton = (name: string) => container.querySelector<HTMLButtonElement>(
 const openMore = async (name: string) => { expect(moreButton(name)).toBeDefined(); await act(async () => moreButton(name).click()); };
 const menuItem = (text: string) => Array.from(document.querySelectorAll<HTMLElement>('[role="menuitem"]')).find(node => node.textContent?.includes(text))!;
 const clickMenu = async (text: string) => { expect(menuItem(text)).toBeDefined(); await act(async () => menuItem(text).click()); };
-function Harness() {
+function Harness({ locale = "zh-CN" }: { locale?: "zh-CN" | "en-US" }) {
   const [id, setId] = useState("demo");
-  return React.createElement(I18nProvider, { locale: "zh-CN", persistLocale: false }, React.createElement(ConnectorsConsole, { routeId: id, onRouteIdChange: setId }));
+  return React.createElement(I18nProvider, { locale, persistLocale: false }, React.createElement(ConnectorsConsole, { routeId: id, onRouteIdChange: setId }));
 }
 beforeEach(() => {
   (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
@@ -68,7 +68,7 @@ beforeEach(() => {
   root = createRoot(container);
 });
 afterEach(async () => { await act(async () => root.unmount()); container.remove(); jest.restoreAllMocks(); });
-const mount = async () => { await act(async () => root.render(React.createElement(Harness))); };
+const mount = async (locale: "zh-CN" | "en-US" = "zh-CN") => { await act(async () => root.render(React.createElement(Harness, { locale }))); };
 
 it("resolves canonical null CLI auth in both catalog rows and the selected overview", async () => {
   const connectors = [
@@ -376,6 +376,26 @@ it("preserves connector order on save failure and reads remote pins when focused
 });
 
 
+it.each([
+  { locale: "zh-CN" as const, more: "Demo connector 的更多操作", action: "删除", cleanup: "全部本地授权和 CLI 依赖、配置、缓存与数据", reinstall: "重新导入后需重新准备和登录", irreversible: "原状态无法恢复" },
+  { locale: "en-US" as const, more: "More actions for Demo connector", action: "Delete", cleanup: "all local credentials, and CLI dependencies, configuration, caches, and data", reinstall: "you must set it up and log in again", irreversible: "previous state cannot be restored" },
+])("explains local state deletion in one confirmation ($locale)", async ({ locale, more, action, cleanup, reinstall, irreversible }) => {
+  await mount(locale);
+  jest.spyOn(window, "confirm").mockReturnValue(false);
+  const moreAction = container.querySelector<HTMLButtonElement>(`button[aria-label="${more}"]`);
+  expect(moreAction).not.toBeNull();
+  await act(async () => moreAction!.click());
+  await clickMenu(action);
+  expect(window.confirm).toHaveBeenCalledTimes(1);
+  const prompt = jest.mocked(window.confirm).mock.calls[0][0];
+  expect(prompt).toContain(item.name);
+  expect(prompt).toContain(item.id);
+  expect(prompt).toContain(cleanup);
+  expect(prompt).toContain(reinstall);
+  expect(prompt).toContain(irreversible);
+  expect(deleteConnector).not.toHaveBeenCalled();
+});
+
 it("confirms the package identity before deleting and leaves the list usable after deleting the last item", async () => {
   await mount();
   jest.spyOn(window, "confirm").mockReturnValue(false);
@@ -393,6 +413,38 @@ it("confirms the package identity before deleting and leaves the list usable aft
   expect(container.textContent).not.toContain("找不到连接器");
   expect(container.querySelectorAll("aside strong")).toHaveLength(0);
   expect(container.querySelector('button[aria-label="新增连接器"]')).not.toBeNull();
+});
+
+it("keeps a cleanup retry above the empty catalog and reports success only when cleanup completes", async () => {
+  await mount();
+  jest.spyOn(window, "confirm").mockReturnValue(true);
+  jest.mocked(deleteConnector).mockRejectedValueOnce(new ApiError("state directory is busy", { status: 500, code: "connector_cleanup_pending" }));
+  await openMore(item.name);
+  await clickMenu("删除");
+  const cleanupAlert = () => button("重试清理")?.closest('[role="alert"]');
+  expect(cleanupAlert()?.textContent).toContain("本地状态清理未完成");
+  expect(cleanupAlert()?.textContent).toContain(item.name);
+  expect(cleanupAlert()?.textContent).toContain("state directory is busy");
+  expect(document.body.textContent).not.toContain("连接器 demo 已删除");
+
+  jest.mocked(getAdminConnectors).mockResolvedValue({ code: 0, msg: "", data: { connectors: [] } });
+  await act(async () => container.querySelector<HTMLButtonElement>('button[aria-label="刷新列表"]')!.click());
+  expect(container.querySelectorAll("aside strong")).toHaveLength(0);
+  expect(cleanupAlert()?.textContent).toContain("本地状态清理未完成");
+  jest.mocked(deleteConnector).mockRejectedValueOnce(new ApiError("cleanup remains blocked", { status: 500, code: "connector_cleanup_pending" }));
+  await click("重试清理");
+  expect(cleanupAlert()?.textContent).toContain("cleanup remains blocked");
+  expect(document.body.textContent).not.toContain("连接器 demo 已删除");
+
+  jest.mocked(deleteConnector).mockResolvedValueOnce({ code: 0, msg: "", data: { id: item.id, deleted: true } });
+  await click("重试清理");
+  expect(button("重试清理")).toBeUndefined();
+  expect(container.textContent).not.toContain("本地状态清理未完成");
+  expect(document.body.textContent).toContain("连接器 demo 已删除");
+  expect(deleteConnector).toHaveBeenCalledTimes(3);
+  expect(jest.mocked(deleteConnector).mock.calls.every(([id]) => id === item.id)).toBe(true);
+  expect(window.confirm).toHaveBeenCalledTimes(1);
+  expect(jest.requireMock("@/shared/data").startConnectorAuth).not.toHaveBeenCalled();
 });
 
 it.each([false, true])("displays blocking Agent names from an HTTP envelope (structured=%s)", async structured => {

@@ -25,6 +25,7 @@ export function useConnectorsRuntime(routeId: string, onRouteIdChange: (id: stri
   const [importing, setImporting] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deletingId, setDeletingId] = useState("");
+  const [pendingDeletion, setPendingDeletion] = useState<{ id: string; name: string; details: string } | null>(null);
   const [error, setErrorMessage] = useState("");
   const [errorDetails, setErrorDetails] = useState("");
   const setError = (message: string) => { setErrorMessage(message); setErrorDetails(""); };
@@ -234,17 +235,10 @@ export function useConnectorsRuntime(routeId: string, onRouteIdChange: (id: stri
   const importArchive = (archive: File, overwrite: boolean) => importPackage(() => importConnectorArchive({ file: archive, overwrite }));
   const importMCP = (params: ImportConnectorMCPRequest) => importPackage(() => importConnectorMCP(params));
 
-  const remove = async (id?: string): Promise<string | null> => {
-    const target = id ? items.find(item => item.id === id) : selected;
-    if (!target) return null;
-    const targetReadOnly = target.readOnly === true || target.builtin === true;
-    const targetCanDelete = target.canDelete !== false && !targetReadOnly;
-    if (!targetCanDelete || savingRef.current || importingRef.current || deletingRef.current) return null;
+  const deleteTarget = async (target: { id: string; name: string }, retry = false): Promise<string | null> => {
+    if (savingRef.current || importingRef.current || deletingRef.current) return null;
     const targetId = target.id;
-    const isSelected = targetId === selectedId;
-    const prompt = t("connectors.delete.confirm", { name: target.name, id: targetId })
-      + (isSelected && dirtyRef.current ? "\n\n" + t("connectors.delete.unsaved") : "");
-    if (!window.confirm(prompt)) return null;
+    const isSelected = targetId === selectedId || targetId === routeId;
     deletingRef.current = true;
     setDeleting(true);
     setDeletingId(targetId);
@@ -255,11 +249,14 @@ export function useConnectorsRuntime(routeId: string, onRouteIdChange: (id: stri
     catalogBusy.current = false;
     try {
       await deleteConnector(targetId);
-      detailRequest.current += 1;
-      dirtyRef.current = false;
-      setDetail(null);
-      setDraft("");
-      setFile("connector.json");
+      if (isSelected) {
+        detailRequest.current += 1;
+        dirtyRef.current = false;
+        setDetail(null);
+        setDraft("");
+        setFile("connector.json");
+      }
+      setPendingDeletion(null);
       setItems(previous => previous.filter(item => item.id !== targetId));
       await refreshCatalog();
       deletingRef.current = false;
@@ -269,6 +266,12 @@ export function useConnectorsRuntime(routeId: string, onRouteIdChange: (id: stri
       }
       return targetId;
     } catch (cause) {
+      const cleanupPending = cause instanceof ApiError
+        && (cause.platformError?.code || cause.code) === "connector_cleanup_pending";
+      if (cleanupPending || retry) {
+        setPendingDeletion({ id: targetId, name: target.name, details: connectorErrorDetails(cause) });
+      }
+      if (cleanupPending) return null;
       const data = cause instanceof ApiError && cause.status === 409 ? cause.data : null;
       const details = data && typeof data === "object" && "error" in data ? data.error : data;
       const agentKeys = details && typeof details === "object" && "agentKeys" in details
@@ -285,9 +288,21 @@ export function useConnectorsRuntime(routeId: string, onRouteIdChange: (id: stri
     }
   };
 
+  const remove = async (id?: string): Promise<string | null> => {
+    const target = id ? items.find(item => item.id === id) : selected;
+    if (!target || pendingDeletion || savingRef.current || importingRef.current || deletingRef.current) return null;
+    if (target.canDelete === false || target.readOnly === true || target.builtin === true) return null;
+    const prompt = t("connectors.delete.confirm", { name: target.name, id: target.id })
+      + (target.id === selectedId && dirtyRef.current ? "\n\n" + t("connectors.delete.unsaved") : "");
+    if (!window.confirm(prompt)) return null;
+    return deleteTarget(target);
+  };
+
+  const retryDeletion = () => pendingDeletion ? deleteTarget(pendingDeletion, true) : Promise.resolve(null);
+
   return {
     items, tools, loading, catalogError, catalogErrorStatus, selected, file: activeFile, detail, draft, dirty, readOnly,
-    detailLoading, saving, importing, deleting, deletingId, canDelete, remove, error, errorDetails, message, refreshCatalog, selectFile, reload, save, importArchive, importMCP, confirmNavigation,
+    detailLoading, saving, importing, deleting, deletingId, pendingDeletion, canDelete, remove, retryDeletion, error, errorDetails, message, refreshCatalog, selectFile, reload, save, importArchive, importMCP, confirmNavigation,
     selectConnector: (id: string) => { if (!savingRef.current && !importingRef.current && !deletingRef.current && id !== selectedId) onRouteIdChange(id); },
     updateDraft: (value: string) => { if (!readOnly && !savingRef.current && !importingRef.current && !deletingRef.current) { if (value !== navigationScope.current.draft) invalidateNavigation(); setDraft(value); setMessage(""); setError(""); } },
   };

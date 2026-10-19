@@ -155,6 +155,16 @@ export function ConnectorsConsole({
   });
   const tools = selected ? toolsForConnector(selected) : [];
   const unassigned = unassignedConnectorTools(runtime.tools, runtime.items);
+  const onDeleted = (id: string) => {
+    setSkillsConnectorId(null);
+    setShowUnassigned(false);
+    void refreshPins().catch(() => undefined);
+    void messageApi.success({
+      key: "connector-delete",
+      content: t("connectors.delete.success", { id }),
+      duration: 3,
+    });
+  };
 
   const renderItem = (item: (typeof items)[number]) => {
     const auth = authRuntimes[connectorAuthIdentity(item)];
@@ -197,7 +207,7 @@ export function ConnectorsConsole({
         icon: <MaterialIcon name="delete" />,
         label: t("connectors.delete.action"),
         danger: true,
-        disabled: busy || !itemDeletable || deletingId === item.id,
+        disabled: busy || !!runtime.pendingDeletion || !itemDeletable || deletingId === item.id,
       },
     ];
     const onMenuClick: MenuProps["onClick"] = ({ domEvent, key }) => {
@@ -220,14 +230,7 @@ export function ConnectorsConsole({
         void (async () => {
           const id = await runtime.remove(item.id);
           if (!id) return;
-          setSkillsConnectorId(null);
-          setShowUnassigned(false);
-          void refreshPins().catch(() => undefined);
-          void messageApi.success({
-            key: "connector-delete",
-            content: t("connectors.delete.success", { id }),
-            duration: 3,
-          });
+          onDeleted(id);
         })();
       }
     };
@@ -322,6 +325,21 @@ export function ConnectorsConsole({
 
   return (
     <div className={`management-page-console ${styles.console}`}>
+      {runtime.pendingDeletion && (
+        <div className={styles.error} role="alert">
+          <p>{t("connectors.delete.cleanupPending", runtime.pendingDeletion)}</p>
+          <UiButton size="sm" variant="ghost" disabled={busy} loading={runtime.deleting}
+            onClick={() => { void runtime.retryDeletion().then(id => { if (id) onDeleted(id); }); }}>
+            {t("connectors.delete.retryCleanup")}
+          </UiButton>
+          {runtime.pendingDeletion.details && (
+            <details>
+              <summary>{t("connectors.error.details")}</summary>
+              <pre style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>{runtime.pendingDeletion.details}</pre>
+            </details>
+          )}
+        </div>
+      )}
       {runtime.items.map((item) => (
         <ConnectorAuthObserver
           key={connectorAuthIdentity(item)}
