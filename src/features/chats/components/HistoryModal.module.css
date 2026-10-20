@@ -63,6 +63,10 @@
     flex: 1 1 auto;
 }
 
+.historyPanel :global(.history-list-title) {
+    font-weight: 400;
+}
+
 :global(.history-list-status) {
     flex: 0 0 auto;
     margin-inline-end: 0 !important;
@@ -169,13 +173,99 @@
     white-space: nowrap;
 }
 
-@media (max-width: 600px) {
-    :global(.history-modal-title:not(.modal-title-bar-drawer)) :global(.ant-input-affix-wrapper) {
-        flex-basis: calc(100% - 40px);
-        order: -1;
-    }
+/* Keep narrow assistant panels on one row, independent of generic title styles. */
+.historyPanel :global(.history-modal-title) {
+    flex-wrap: nowrap;
+    flex-shrink: 0;
+    gap: 4px;
+    /* Desktop dock close button: top 11px + half of its 24px hit area. */
+    height: 46px;
+    align-items: center;
+}
 
-    :global(.history-modal-title:not(.modal-title-bar-drawer)) > :global(.ui-btn):last-child {
-        order: -1;
-    }
+.historyPanel :global(.history-modal-title) :global(.ant-input-affix-wrapper) {
+    flex: 1 1 0;
+    min-width: 0;
+    height: 28px;
+    padding: 0 4px;
+    font-size: 13px;
+    font-weight: 400;
+}
+
+.historyPanel :global(.history-modal-title) :global(.ant-input) {
+    min-width: 0;
+    font-size: 13px;
+    font-weight: 400;
+    line-height: 20px;
+}
+
+.historyPanel :global(.history-modal-title) :global(.ant-input-prefix) {
+    margin-inline-end: 6px;
+}
+
+.historyPanel :global(.history-modal-title) :global(.sidebar-static-icon),
+.historyPanel :global(.history-modal-title) :global(.ui-btn-label) {
+    font-size: 16px;
+    line-height: 1;
+}
+
+.historyPanel :global(.history-modal-title) > :global(.ui-btn) {
+    flex: 0 0 24px;
+    width: 24px;
+    height: 24px;
+    min-height: 24px;
+    padding: 0;
+}
+
+.historyPanel :global(.history-modal-count) {
+    flex: 0 0 auto;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 5px;
+    border-radius: 10px;
+    background: var(--accent-soft);
+    color: var(--accent);
+    font-size: 11px;
+    font-weight: 500;
+    line-height: 20px;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+}
+
+.historyPanel :global(.history-list-item) {
+    padding-inline: 12px;
+}
+
+.historyPanel :global(.history-list-agent-name) {
+    flex: 0 1 auto;
+    max-width: 72px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.historyPanel :global(.history-list-action-time) {
+    flex: 0 0 auto;
+    white-space: nowrap;
+}
+
+.historyPanel :global(.history-list-unread-dot) {
+    flex: 0 0 6px;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--skin-unread, var(--accent));
+}
+
+/* Opaque action surface keeps preview text from showing through the buttons. */
+.historyPanel :global(.history-list-item) :global(.history-list-actions) {
+    top: 50%;
+    right: 8px;
+    bottom: auto;
+    transform: translateY(-50%);
+    min-height: 28px;
+    padding: 1px 2px;
+    border: 1px solid var(--line-soft);
+    border-radius: 6px;
+    background: var(--control-popover-bg, var(--bg-base));
 }

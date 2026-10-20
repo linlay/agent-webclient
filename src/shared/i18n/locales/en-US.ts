@@ -2528,6 +2528,7 @@ export const enUSMessages = {
   "history.exportedHtml": "Static HTML exported to the downloads folder",
   "history.exportHtmlFailed": "Static HTML export failed",
   "modalTitleBar.close": "Close",
+  "modalTitleBar.back": "Back",
   "modalTitleBar.collapse": "Collapse",
   "history.searchPlaceholder": "Search Chat",
   "history.refresh": "Refresh",

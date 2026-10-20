@@ -5,7 +5,7 @@ import React, {
   useRef,
   useState,
 } from "react";
-import "./HistoryModal.module.css";
+import styles from "./HistoryModal.module.css";
 import { Flex, Input, InputRef, Tag, Tooltip } from "antd";
 import type { AppState } from "@/app/state/AppContext";
 import type { Chat } from "@/features/chats/lib/chatState";
@@ -34,9 +34,6 @@ import {
 import { ModalTitleBar } from "@/shared/ui/ModalTitleBar";
 import { readEpochMillis } from "@/shared/utils/platformTime";
 import { useChatOperations } from "@/features/chats/hooks/useChatOperations";
-
-const HISTORY_MODAL_TITLE_TAG_CLASS =
-  "history-modal-title-tag tw:rounded-[10px] tw:bg-accent-soft tw:px-1.5 tw:py-0.5 tw:text-xs tw:font-normal tw:text-accent";
 
 function getAwaitingStatusKey(mode?: string): string {
   switch (mode) {
@@ -445,9 +442,10 @@ export const HistoryModal: React.FC<{
     });
   };
   return (
-    <div className="command-modal-section">
+    <div className={`command-modal-section ${styles.historyPanel}`}>
       <ModalTitleBar
         variant={titleBarVariant}
+        drawerAction="back"
         onClose={() => onClose?.()}
         className="history-modal-title"
       >
@@ -482,6 +480,25 @@ export const HistoryModal: React.FC<{
             onReset={handleResetFilters}
           />
         )}
+        <Tooltip title={t("leftSidebar.historyCount", { count: historyRows.length })}>
+          <div className="history-modal-count" aria-label={t("leftSidebar.historyCount", { count: historyRows.length })}>
+            {historyRows.length}
+          </div>
+        </Tooltip>
+        {unreadCount > 0 && (
+          <Tooltip title={t("history.markAllRead")}>
+            <UiButton
+              className="ui-icon-hover-24"
+              variant="ghost"
+              size="sm"
+              iconOnly
+              aria-label={t("history.markAllRead")}
+              onClick={handleMarkAllRead}
+            >
+              <MaterialIcon name="done_all" />
+            </UiButton>
+          </Tooltip>
+        )}
         <Tooltip title={t("history.refresh")}>
           <UiButton
             className="ui-icon-hover-24"
@@ -495,24 +512,7 @@ export const HistoryModal: React.FC<{
             <MaterialIcon name="refresh" />
           </UiButton>
         </Tooltip>
-        <div className={HISTORY_MODAL_TITLE_TAG_CLASS}>
-          {t("leftSidebar.historyCount", { count: historyRows.length })}
-        </div>
       </ModalTitleBar>
-      {unreadCount > 0 && (
-        <div className="command-history-toolbar">
-          <div className="command-history-toolbar-actions">
-            <UiButton
-              className="command-history-action"
-              variant="ghost"
-              size="sm"
-              onClick={handleMarkAllRead}
-            >
-              {t("history.markAllRead")}
-            </UiButton>
-          </div>
-        </div>
-      )}
       {historyRows.length === 0 ? (
         <div className="command-empty-state">{t("history.empty")}</div>
       ) : (
@@ -542,7 +542,7 @@ export const HistoryModal: React.FC<{
                 <Flex align="center" gap={6} className="history-list-summary">
                   <span className="history-list-title">{historyTitle}</span>
                   {isChatUnread(chat) ? (
-                    <Tag color="blue" style={{ background: "var(--skin-unread)", color: "var(--skin-unread-text)", borderColor: "var(--skin-unread)" }}>{t("history.unread")}</Tag>
+                    <span className="history-list-unread-dot" role="img" aria-label={t("history.unread")} />
                   ) : null}
                   {isChatActiveRun(chat) ? (
                     <Tag color="processing" className="history-list-status">

@@ -13,8 +13,9 @@ export const ModalTitleBar: React.FC<{
   onClose: () => void;
   variant?: "default" | "drawer";
   className?: string;
+  drawerAction?: "collapse" | "back";
   children?: React.ReactNode;
-}> = ({ title, onClose, variant = "default", className = "", children }) => {
+}> = ({ title, onClose, variant = "default", className = "", drawerAction = "collapse", children }) => {
   const { t } = useI18n();
   const isDrawer = variant === "drawer";
 
@@ -28,13 +29,14 @@ export const ModalTitleBar: React.FC<{
           size="sm"
           variant="ghost"
           iconOnly
-          aria-label={t("modalTitleBar.collapse")}
+          aria-label={t(drawerAction === "back" ? "modalTitleBar.back" : "modalTitleBar.collapse")}
+          title={t(drawerAction === "back" ? "modalTitleBar.back" : "modalTitleBar.collapse")}
           onClick={(event) => {
             event.stopPropagation();
             onClose();
           }}
         >
-          <MaterialIcon name="keyboard_arrow_right" />
+          <MaterialIcon name={drawerAction === "back" ? "chevron_left" : "keyboard_arrow_right"} />
         </UiButton>
       ) : null}
       {title ? <span className="modal-title-bar-title">{title}</span> : null}

@@ -222,10 +222,6 @@
     top: 9px;
 }
 
-:global(.layout-copilot) :global(.history-list-actions) {
-    background: color-mix(in srgb, var(--bg-elevated, var(--bg-base)) 92%, transparent);
-}
-
 :global(.layout-copilot) :global(.command-modal-section) {
     gap: 10px;
 }

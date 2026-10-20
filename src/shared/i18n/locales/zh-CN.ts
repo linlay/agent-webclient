@@ -2704,6 +2704,7 @@ export const zhCNMessages = {
   "history.exportedHtml": "静态 HTML 已导出到下载目录",
   "history.exportHtmlFailed": "静态 HTML 导出失败",
   "modalTitleBar.close": "关闭",
+  "modalTitleBar.back": "返回",
   "modalTitleBar.collapse": "收起",
   "history.searchPlaceholder": "搜索对话",
   "history.refresh": "刷新",

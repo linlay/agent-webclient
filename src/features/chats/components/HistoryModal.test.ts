@@ -287,7 +287,8 @@ describe("HistoryModal", () => {
       expect(mockGetChats).toHaveBeenLastCalledWith({});
       expect(container.textContent).toContain("Beta history");
       expect(container.textContent).toContain("A compact history title");
-      expect(container.textContent).toContain("共 2 条对话");
+      expect(container.querySelector(".history-modal-count")?.textContent).toBe("2");
+      expect(container.querySelector(".history-modal-count")?.getAttribute("aria-label")).toBe("共 2 条对话");
     } finally {
       act(() => root.unmount());
       HTMLElement.prototype.scrollIntoView = scrollIntoView;
@@ -368,12 +369,12 @@ describe("HistoryModal", () => {
     }
   });
 
-  it("renders mark-all-read inside toolbar actions when unread chats exist", () => {
+  it("renders an accessible mark-all-read icon beside the numeric count", () => {
     const html = renderHistoryModal([createHistoryChat()]);
 
-    expect(html).toContain("command-history-toolbar");
-    expect(html).toContain("command-history-toolbar-actions");
-    expect(html).toContain("command-history-action");
+    expect(html).not.toContain("command-history-toolbar");
+    expect(html).toContain("history-modal-count");
+    expect(html).toContain('aria-label="一键已读"');
     expect(html).toContain("一键已读");
   });
 
@@ -399,6 +400,8 @@ describe("HistoryModal", () => {
       titleBarVariant: "drawer",
     });
 
+    expect(html).toContain('aria-label="返回"');
+    expect(html).toContain('data-material-icon="chevron_left"');
     expect(html).not.toContain("history-filter-trigger");
     expect(html).not.toContain("history-filter-popover");
     expect(html).toContain("history-modal-title");
@@ -414,7 +417,8 @@ describe("HistoryModal", () => {
       }),
     ]);
 
-    expect(html).toContain("未读");
+    expect(html).toContain('class="history-list-unread-dot" role="img" aria-label="未读"');
+    expect(html).not.toContain(">未读<");
     expect(html).toContain("运行中");
     expect(html).toContain("等待回答");
     expect(html).toContain("history-list-status");
