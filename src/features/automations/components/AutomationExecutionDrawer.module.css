@@ -383,3 +383,42 @@
     display: none;
   }
 }
+
+/* Match the result's 960px reading column, including its outer gutters. */
+.chatBody :global(.conversation-stage-virtuoso) > div {
+  max-width: 1024px;
+  padding: 28px 32px 40px;
+}
+
+.chatBody :global(.timeline-row-flow) {
+  position: relative;
+  display: block;
+}
+
+.chatBody :global(.timeline-row-flow) > :global(.timeline-marker) {
+  position: absolute;
+  inset: 0 auto 0 -20px;
+  width: 14px;
+}
+
+.chatBody :global(.timeline-flow-content),
+.chatBody :global(.timeline-content-stack),
+.chatBody :global(.timeline-markdown) {
+  width: 100%;
+  max-width: 100%;
+}
+
+.panelCanceled {
+  color: var(--accent-warning, #ff7d00);
+}
+
+@media (max-width: 859px) {
+  .chatBody :global(.conversation-stage-virtuoso) > div {
+    padding: 16px 16px 28px;
+  }
+
+  .chatBody :global(.timeline-row-flow) > :global(.timeline-marker) {
+    left: -14px;
+    width: 12px;
+  }
+}

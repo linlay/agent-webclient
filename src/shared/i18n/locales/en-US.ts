@@ -838,6 +838,7 @@ export const enUSMessages = {
   "automationHistory.preview.empty": "This run did not produce assistant output",
   "automationHistory.preview.running": "Running; the result will appear when it completes",
   "automationHistory.result.details": "Execution details",
+  "automationHistory.result.canceled": "This run was canceled.",
   "automationHistory.result.empty": "This run has no result to display.",
   "automationHistory.result.error": "Error",
   "automationHistory.result.queryContent": "Trigger query",

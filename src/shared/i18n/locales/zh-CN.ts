@@ -901,6 +901,7 @@ export const zhCNMessages = {
   "automationHistory.preview.empty": "本次运行没有助手输出",
   "automationHistory.preview.running": "正在运行，结果将在完成后显示",
   "automationHistory.result.details": "执行详情",
+  "automationHistory.result.canceled": "本次运行已取消。",
   "automationHistory.result.empty": "本次运行没有可显示的结果。",
   "automationHistory.result.error": "错误信息",
   "automationHistory.result.queryContent": "触发指令",
