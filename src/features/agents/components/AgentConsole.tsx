@@ -1220,8 +1220,13 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
         setFormMode("edit");
         setStructuredDirty(false);
       }
+      message.success(t("agentConsole.message.saveSuccess"));
     } catch (error) {
-      setFormError((error as Error).message);
+      const errorMessage = (error as Error).message;
+      setFormError(errorMessage);
+      message.error(
+        t("agentConsole.message.saveFailed", { detail: errorMessage }),
+      );
     } finally {
       setSavingForm(false);
     }
