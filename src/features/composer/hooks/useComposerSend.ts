@@ -135,6 +135,7 @@ interface UseComposerSendInput {
   stopSpeechInput: () => void;
   textareaRef: RefObject<TextAreaRef>;
   updateMentionSuggestions: (value: string) => void;
+  onRecordMessage?: (message: string) => void;
 }
 
 export function useComposerSend(input: UseComposerSendInput) {
@@ -171,6 +172,7 @@ export function useComposerSend(input: UseComposerSendInput) {
     stopSpeechInput,
     textareaRef,
     updateMentionSuggestions,
+    onRecordMessage,
   } = input;
   const { t } = useI18n();
   const runs = useRunTransport();
@@ -580,6 +582,7 @@ export function useComposerSend(input: UseComposerSendInput) {
         // The queue now owns these references; cancellation restores them through
         // the existing pending-steer reference state.
         notifySelectedTextReferencesAccepted(sendReferences);
+        onRecordMessage?.(message);
         setInputValue("");
         dispatch({ type: "SET_COMPOSER_DRAFT", draft: "" });
         clearComposerAttachments();
@@ -628,6 +631,7 @@ export function useComposerSend(input: UseComposerSendInput) {
     }
 
     const submissionRequestId = createRequestId("req");
+    onRecordMessage?.(message);
     setInputValue("");
     dispatch({ type: "SET_COMPOSER_DRAFT", draft: "" });
     clearComposerAttachments();
@@ -700,6 +704,7 @@ export function useComposerSend(input: UseComposerSendInput) {
     stopSpeechInput,
     submitCompactCommand,
     t,
+    onRecordMessage,
   ]);
 
   const handleSubmitQueuedSteer = useCallback(() => {

@@ -28,6 +28,8 @@ export function useComposerKeyboard({
   setSlashDismissed,
   showSlashPalette,
   slashItemsLength,
+  onHistoryPrevious,
+  onHistoryNext,
 }: {
   closeMention: () => void;
   dispatch: Dispatch<AppAction>;
@@ -47,6 +49,8 @@ export function useComposerKeyboard({
   setSlashDismissed: Dispatch<SetStateAction<boolean>>;
   showSlashPalette: boolean;
   slashItemsLength: number;
+  onHistoryPrevious?: () => void;
+  onHistoryNext?: () => void;
 }) {
   return useCallback(
     (event: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -138,6 +142,27 @@ export function useComposerKeyboard({
         }
       }
 
+      // 历史文案上下翻阅：仅在无 slash / mention 弹窗时生效，
+      // 且光标必须位于首行（上键）或末行（下键），避免抢占多行文本内的光标移动。
+      if (event.key === "ArrowUp" && onHistoryPrevious) {
+        const el = event.currentTarget;
+        const beforeCursor = el.value.slice(0, el.selectionStart ?? el.value.length);
+        if (!beforeCursor.includes("\n")) {
+          event.preventDefault();
+          onHistoryPrevious();
+          return;
+        }
+      }
+      if (event.key === "ArrowDown" && onHistoryNext) {
+        const el = event.currentTarget;
+        const afterCursor = el.value.slice(el.selectionEnd ?? el.value.length);
+        if (!afterCursor.includes("\n")) {
+          event.preventDefault();
+          onHistoryNext();
+          return;
+        }
+      }
+
       if (event.key === "Enter" && !event.shiftKey) {
         event.preventDefault();
         handleSend();
@@ -162,6 +187,8 @@ export function useComposerKeyboard({
       setSlashDismissed,
       showSlashPalette,
       slashItemsLength,
+      onHistoryPrevious,
+      onHistoryNext,
     ],
   );
 }

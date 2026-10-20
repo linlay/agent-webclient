@@ -65,6 +65,7 @@ import { useComposerLifecycle } from "@/features/composer/hooks/useComposerLifec
 import { useComposerMention } from "@/features/composer/hooks/useComposerMention";
 import { useRuntimeAccessLevel } from "@/features/composer/hooks/useRuntimeAccessLevel";
 import { useComposerSend } from "@/features/composer/hooks/useComposerSend";
+import { useInputHistory } from "@/features/composer/hooks/useInputHistory";
 import { useComposerSlash } from "@/features/composer/hooks/useComposerSlash";
 import { useComposerWonders } from "@/features/composer/hooks/useComposerWonders";
 import { useCommandOverlayOpen } from "@/features/command-center/components/CommandOverlayProvider";
@@ -713,6 +714,56 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     ],
   );
 
+  // 提取当前会话 timeline 中的主查询用户消息（排除 steer/remember/learn 等变体），
+  // 作为输入历史的“后备来源”：输入历史翻完后继续翻阅这些历史用户消息。
+  const timelineUserMessages = useMemo(() => {
+    const list: string[] = [];
+    for (const id of state.timelineOrder) {
+      const node = state.timelineNodes.get(id);
+      if (!node || node.kind !== "message" || node.role !== "user" || node.taskId) {
+        continue;
+      }
+      if (
+        node.messageVariant === "steer" ||
+        node.messageVariant === "remember" ||
+        node.messageVariant === "learn"
+      ) {
+        continue;
+      }
+      const text = node.text?.trim();
+      if (text) list.push(text);
+    }
+    return list;
+  }, [state.timelineOrder, state.timelineNodes]);
+
+  const inputHistoryFallback = useMemo(() => {
+    const map = new Map<string, readonly string[]>();
+    const key = String(state.chatId || "").trim();
+    if (key) map.set(key, timelineUserMessages);
+    return map;
+  }, [state.chatId, timelineUserMessages]);
+
+  const inputHistory = useInputHistory(inputHistoryFallback);
+
+  const handleHistoryPrevious = useCallback(() => {
+    const next = inputHistory.navigatePrevious(state.chatId, inputValue);
+    if (next === null) return;
+    setInputValue(next);
+  }, [inputHistory, state.chatId, inputValue]);
+
+  const handleHistoryNext = useCallback(() => {
+    const next = inputHistory.navigateNext(state.chatId);
+    if (next === null) return;
+    setInputValue(next);
+  }, [inputHistory, state.chatId]);
+
+  const recordSentMessage = useCallback(
+    (message: string) => {
+      inputHistory.record(state.chatId, message);
+    },
+    [inputHistory, state.chatId],
+  );
+
   const {
     applyComposerDraft,
     executeSlashCommand,
@@ -780,6 +831,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     stopSpeechInput,
     textareaRef,
     updateMentionSuggestions,
+    onRecordMessage: recordSentMessage,
   });
 
   const handleSend = useCallback((directSteer = false) => {
@@ -896,6 +948,8 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     setSlashDismissed,
     showSlashPalette,
     slashItemsLength: slashItems.length,
+    onHistoryPrevious: handleHistoryPrevious,
+    onHistoryNext: handleHistoryNext,
   });
 
   useComposerLifecycle({
@@ -1151,6 +1205,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
                   emptyInputMinRows={emptyInputMinRows}
                   inputMaxRows={inputMaxRows}
                   onInputChange={(next) => {
+                    inputHistory.reset(state.chatId);
                     dispatch({ type: "SET_COMPOSER_DRAFT", draft: next });
                     setInputValue(next);
                     setSlashDismissed(false);
