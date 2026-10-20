@@ -556,7 +556,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     });
 
   const handleSelectSlashSkill = useCallback(
-    (skill: AgentSkill | ResolvedSlashPackageDefinition) => {
+    (skill: AgentSkill | ResolvedSlashPackageDefinition, trimSlash = true) => {
       if (!interactionConfig.attachment.skills || chatTransitionBlocking) {
         return;
       }
@@ -573,7 +573,9 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
         const selected = manual.length === 1 && !manual[0].selectedViaPackageId && skillIdentity(manual[0].id) === identity;
         return setPackageSelection(current, [skill], !selected, lockedKeys);
       });
-      setInputValue((current) => current.slice(0, filterStartIndex - 1));
+      if (trimSlash) {
+        setInputValue((current) => current.slice(0, filterStartIndex - 1));
+      }
       setSlashDismissed(true);
       closeMention();
       window.requestAnimationFrame(() => {
@@ -581,6 +583,14 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
       });
     },
     [closeMention, forcedSkills, isMainChatRunning, chatTransitionBlocking, interactionConfig.attachment.skills, setSlashDismissed, filterStartIndex],
+  );
+
+  // 「+」添加菜单选择技能时没有斜杠前缀，不能截断输入框内容。
+  const handleSelectMenuSkill = useCallback(
+    (skill: AgentSkill) => {
+      handleSelectSlashSkill(skill, false);
+    },
+    [handleSelectSlashSkill],
   );
 
   const handleSelectPackageSkills = useCallback((members: AgentSkill[], selected: boolean, packageId?: string) => {
@@ -1278,7 +1288,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
                   kbaseCatalog={kbaseMenuAvailable ? kbaseCatalog : undefined} selectedKbases={kbaseSelection} onSelectKbases={updateKbaseReferences}
                   selectedSkillIds={effectiveSkills.map((skill) => skill.id)}
                   selectedPackageId={effectiveManualSkills.find(skill => skill.selectedViaPackageId)?.selectedViaPackageId}
-                  onSelectSkill={handleSelectSlashSkill}
+                  onSelectSkill={handleSelectMenuSkill}
                   onSelectSkills={handleSelectPackageSkills}
                   lockedSkillIds={forcedSkills.map(skill => skill.id)}
                 />
