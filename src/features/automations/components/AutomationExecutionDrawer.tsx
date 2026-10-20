@@ -318,6 +318,7 @@ export const AutomationExecutionDrawer: React.FC<
                 <MarkdownContent
                   content={detailState.data.resultContent}
                   chatId={chatId}
+                  agentKey={agentKey}
                   teamChat={Boolean("")}
                 />
               ) : (

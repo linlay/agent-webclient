@@ -29,6 +29,7 @@ export const PlanningViewerSurface: React.FC<{ chatId: string; planningId: strin
       <PlanningPreviewContent
         node={node}
         chatId={chatId}
+        agentKey={runtime.snapshot?.owner?.agentKey}
         teamChat={false}
       />
     </IndependentSurfaceFrame>

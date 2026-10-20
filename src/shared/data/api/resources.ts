@@ -10,6 +10,7 @@ import {
   ApiError,
 } from "@/shared/data/api/http";
 import type {
+  AgentFileRequest,
   ResourceDocumentMetadataResponse,
   ResourceDocumentTextResponse,
 } from "@/shared/data/api/dto/resources";
@@ -129,6 +130,22 @@ export async function getResourceBlob(
   options: { signal?: AbortSignal; chatId?: string; teamChat?: boolean } = {},
 ): Promise<Blob> {
   const response = await requestResource(path, options, t("contentViewer.error.loadText"));
+  await requireResourceSuccess(response, "api.downloadFailedWithStatus");
+  return response.blob();
+}
+
+/** Workspace binary content uses the file endpoint, never ChatScope resolution. */
+export async function getAgentFileContentBlob(
+  params: Pick<AgentFileRequest, "agentKey" | "path">,
+  options: { signal?: AbortSignal } = {},
+): Promise<Blob> {
+  const query = endpointQuery(dataEndpoints.agentFileContent, params);
+  const response = await requestWithAuth(withQuery(dataEndpoints.agentFileContent.path, query), {
+    method: "GET",
+    signal: options.signal,
+    jsonContentType: false,
+    authFailureSource: "download",
+  });
   await requireResourceSuccess(response, "api.downloadFailedWithStatus");
   return response.blob();
 }

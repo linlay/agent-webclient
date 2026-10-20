@@ -34,6 +34,24 @@ Desktop 内容区右键语义只把资源名称、媒体类型和固定 open/dow
 
 Desktop 原生图片稳定后，WebClient 的 preview-review 只保留 HTML Resource Viewer 分支。HTML 仍位于不带 `allow-same-origin` 的 sandbox iframe，通过只接受当前 frame source 与运行期 token 的窄 postMessage 桥同步编辑状态、选择元素和重绘 XPath 编号框。PNG、JPEG、WebP 的批注、临时 PNG 合成和 Composer staged attachment 均由 Desktop 原生图片编辑器负责；PDF、音视频、文本与不支持格式不声明批注能力。
 
+## Markdown 内嵌媒体路径
+
+`![名称](资源路径)` 可展示图片，并按文件扩展名升级为音频或视频播放器。Chat 资源使用 `@chat/...` 或安全的 Chat 相对路径；Workspace 资源使用 `@workspace/...`，由所属 Chat 的 Agent 身份与相对文件路径调用现有 HTTP `GET /api/file?agentKey=...&path=...&response=content` 读取二进制内容。主时间线、历史预览、BTW、Automation 结果以及规划和来源预览显式传递对应 Agent 身份，不依赖当前 Agent 目录 hydration。身份缺失或路径非法时不请求资源，读取失败不回退到 ChatScope。媒体 Blob 缓存按 Chat、Agent、路径和 MIME 隔离。
+
+```markdown
+![Workspace 图片](@workspace/docs/images/screenshots/debug-sidebar.png)
+![Workspace 视频](<@workspace/videos/期权诞生 短片.mp4>)
+![Workspace 音频](@workspace/audio/voice.mp3)
+![本地视频](</实际/Workspace/绝对路径/期权诞生 短片.mp4>)
+![临时图片](/tmp/poster.png)
+```
+
+绝对路径仍经 `/api/resource` 携带 Chat 上下文读取，是否处于允许的 Workspace 或系统临时目录、是否有访问权限由 Platform 判定，不能由前端保证任意 Downloads 文件可访问。HTTP(S) 外链继续直接交给媒体元素加载。
+
+包含空格的路径推荐使用 `<...>` 包裹或对空格进行 `%20` 编码；为兼容模型直接输出的本地媒体，Markdown tokenizer 也识别 `![短片](/tmp/期权诞生 短片.mp4)`，仅作用于本地媒体引用，不修改代码块、行内代码或外部网址。播放器使用鉴权 Blob URL，具体 MIME 缺失时按后缀补齐；读取失败或浏览器解码失败时显示对应媒体加载失败提示。
+
+`qa/markdown-media-preview.tsx` 与 `qa/webpack.markdown-media.cjs` 提供本地媒体夹具页。通过 `MEDIA_QA_VIDEO`、`MEDIA_QA_AUDIO` 指定实际视频和 WAV 文件，启动 `node node_modules/webpack-cli/bin/cli.js serve --config qa/webpack.markdown-media.cjs --mode development` 后访问 `http://127.0.0.1:11963/`。此页面验证前端解析、接口请求和实际解码，不代表真实 Platform 授权联调。
+
 ## Office 在线预览
 
 Desktop 中的 PPT/PPTX、DOC/DOCX、XLS/XLSX 元信息卡提供本机应用直接打开。只有宿主为当前已登记 File、Artifact 或 Reference 子 Surface 授予专用直接打开 capability 时才显示：宿主提前探测真实候选应用、默认项和图标，前端按返回值显示名称，有多个候选时提供下拉，无默认且多个候选时要求用户选择。未找到应用与检测失败分别展示，重新获得焦点时刷新；Standalone 沿用原有行为，不调用此能力。

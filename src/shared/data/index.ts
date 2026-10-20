@@ -31,6 +31,7 @@ export {
   fetchConnectorIcon,
   downloadConversationHtmlExport,
   getResourceBlob,
+  getAgentFileContentBlob,
   getResourceDocumentMetadata,
   getResourceDocumentText,
 } from "@/shared/data/api/resources";

@@ -17,6 +17,19 @@
   overflow-y: hidden;
 }
 
+.root :global(.markdown-video) {
+  display: block;
+  width: 100%;
+  max-height: 70vh;
+  border-radius: 10px;
+  background: #000;
+}
+
+.root :global(.markdown-audio) {
+  display: block;
+  width: 100%;
+}
+
 .root :global(.markdown-echarts) {
   width: 100%;
   min-height: 180px;

@@ -21,8 +21,9 @@ const PLANNING_PREVIEW_EMPTY_CLASS_NAME =
 export const PlanningPreviewContent: React.FC<{
   node?: TimelineNode | null;
   chatId: string;
+  agentKey?: string;
   teamChat?: boolean;
-}> = ({ node, chatId, teamChat = false }) => {
+}> = ({ node, chatId, agentKey, teamChat = false }) => {
   if (!node) {
     return (
       <div className={PLANNING_PREVIEW_CLASS_NAME}>
@@ -39,6 +40,7 @@ export const PlanningPreviewContent: React.FC<{
         <MarkdownContent
           content={node.text || ""}
           chatId={chatId}
+          agentKey={agentKey}
           teamChat={teamChat}
         />
       </div>
@@ -67,6 +69,7 @@ export const PlanningPreviewTabContent: React.FC<PlanningPreviewTabProps> = ({
     <PlanningPreviewContent
       node={node}
       chatId={state.chatId}
+      agentKey={currentChat?.agentKey || currentChat?.firstAgentKey || state.chatAgentById.get(state.chatId)}
       teamChat={teamChat}
     />
   );

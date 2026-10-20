@@ -100,11 +100,13 @@ export function resolveInitialSourceChunkId(
 export const SourceDetailContent: React.FC<{
   source: TimelineSource | null;
   chatId: string;
+  agentKey?: string;
   teamChat?: boolean;
   initialChunkId?: string;
 }> = ({
   source,
   chatId,
+  agentKey,
   teamChat = false,
   initialChunkId = "",
 }) => {
@@ -172,6 +174,7 @@ export const SourceDetailContent: React.FC<{
               <MarkdownContent
                 content={activeChunk.content}
                 chatId={chatId}
+                agentKey={agentKey}
                 teamChat={teamChat}
               />
             </div>
@@ -196,6 +199,7 @@ export const SourceDetailTabContent: React.FC = () => {
     <SourceDetailContent
       source={state.activeSourceDetail}
       chatId={state.chatId}
+      agentKey={currentChat?.agentKey || currentChat?.firstAgentKey || state.chatAgentById.get(state.chatId)}
       teamChat={teamChat}
     />
   );

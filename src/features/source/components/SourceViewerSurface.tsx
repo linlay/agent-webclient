@@ -30,6 +30,7 @@ export const SourceViewerSurface: React.FC<{
       <SourceDetailContent
         source={source}
         chatId={chatId}
+        agentKey={runtime.snapshot?.owner?.agentKey}
         teamChat={false}
         initialChunkId={chunkId}
       />

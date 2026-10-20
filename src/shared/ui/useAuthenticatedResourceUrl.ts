@@ -2,6 +2,7 @@ import React from "react";
 import {
   classifyResourceUrl,
   getResourceBlob,
+  getAgentFileContentBlob,
   type ResourceUrlClassificationOptions,
 } from "@/shared/data";
 import {
@@ -9,6 +10,7 @@ import {
   withBlobMimeTypeFallback,
   type AuthenticatedResourceCacheState,
 } from "./authenticatedResourceUrl";
+import { parseWorkspaceFileHref } from "./markdownWorkspaceLinks";
 
 export interface AuthenticatedResourceUrlState {
   url: string;
@@ -23,6 +25,7 @@ interface InternalAuthenticatedResourceUrlState
 
 export interface AuthenticatedResourceUrlOptions
   extends ResourceUrlClassificationOptions {
+  agentKey?: string;
   blobMimeTypeFallback?: string;
   /** A new value fetches a fresh Blob without invalidating other viewers' leases. */
   refreshKey?: string | number;
@@ -33,7 +36,7 @@ function createRequestKey(
   chatId: string,
   options: AuthenticatedResourceUrlOptions,
 ): string {
-  const base = `${chatId}\u0000${options.teamChat ? "team" : "agent"}\u0000${options.blobMimeTypeFallback || ""}\u0000${source}`;
+  const base = `${chatId}\u0000${options.teamChat ? "team" : "agent"}\u0000${options.blobMimeTypeFallback || ""}\u0000${source}\u0000${options.agentKey || ""}`;
   return options.refreshKey ? `${base}\u0000refresh:${options.refreshKey}` : base;
 }
 
@@ -50,7 +53,8 @@ function getImmediateState(
   if (classified.kind === "external" || classified.kind === "inline") {
     return { requestKey, url: classified.source, loading: false, error: null };
   }
-  if (classified.kind === "invalid") {
+  if (classified.kind === "invalid" || (classified.kind === "workspace"
+    && (!options.agentKey || !parseWorkspaceFileHref(source)))) {
     return {
       requestKey,
       url: "",
@@ -75,13 +79,14 @@ export function useAuthenticatedResourceUrl(
 ): AuthenticatedResourceUrlState {
   const normalized = String(source || "").trim();
   const teamChat = Boolean(options.teamChat);
+  const agentKey = String(options.agentKey || "").trim();
   const refreshKey = options.refreshKey;
   const blobMimeTypeFallback = String(options.blobMimeTypeFallback || "")
     .trim()
     .toLowerCase();
   const requestOptions = React.useMemo(
-    () => ({ teamChat, blobMimeTypeFallback, refreshKey }),
-    [blobMimeTypeFallback, teamChat, refreshKey],
+    () => ({ teamChat, agentKey, blobMimeTypeFallback, refreshKey }),
+    [agentKey, blobMimeTypeFallback, teamChat, refreshKey],
   );
   const classificationOptions = React.useMemo(
     () => ({ teamChat }),
@@ -102,7 +107,8 @@ export function useAuthenticatedResourceUrl(
       setState({ requestKey, url: classified.source, loading: false, error: null });
       return;
     }
-    if (classified.kind === "invalid") {
+    const workspaceFile = classified.kind === "workspace" ? parseWorkspaceFileHref(normalized) : null;
+    if (classified.kind === "invalid" || (classified.kind === "workspace" && (!agentKey || !workspaceFile))) {
       setState(getImmediateState(normalized, chatId, requestOptions));
       return;
     }
@@ -111,7 +117,9 @@ export function useAuthenticatedResourceUrl(
     // （虚拟列表滚动、markdown 重渲染）不再触发重复网络请求。
     const subscription = authenticatedResourceBlobCache.acquire(
       requestKey,
-      () => getResourceBlob(normalized, { chatId, teamChat })
+      () => (workspaceFile
+        ? getAgentFileContentBlob({ agentKey, path: workspaceFile.filePath })
+        : getResourceBlob(normalized, { chatId, teamChat }))
         .then((blob) => withBlobMimeTypeFallback(blob, blobMimeTypeFallback)),
     );
     const listener = (next: AuthenticatedResourceCacheState) => {
@@ -124,7 +132,7 @@ export function useAuthenticatedResourceUrl(
       subscription.unsubscribe(listener);
       subscription.release();
     };
-  }, [blobMimeTypeFallback, chatId, classificationOptions, classified.kind, classified.source, normalized, requestKey, requestOptions, teamChat]);
+  }, [agentKey, blobMimeTypeFallback, chatId, classificationOptions, classified.kind, classified.source, normalized, requestKey, requestOptions, teamChat]);
 
   return state.requestKey === requestKey
     ? state

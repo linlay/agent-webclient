@@ -4,6 +4,7 @@ import { ReadableStream } from "node:stream/web";
 import { getResourceBlob, getResourceDocumentMetadata, getResourceText, downloadResource, downloadChatExport, downloadConversationHtmlExport, getChatLLMTraceRaw, getChatRawJsonl, downloadAdminSkill, downloadAdminSkillFile, fetchAdminSkillFileBlob, fetchAdminSkillIcon, fetchConnectorIcon } from "@/shared/data/api/resources";
 import { setAccessToken } from "@/shared/data/api/http";
 import { setupRequestHarness } from "@/shared/data/__testUtils__/requestHarness";
+import { getAgentFileContentBlob } from "@/shared/data/api/resources";
 
 const TEST_SNAPSHOT_LIMIT = 1024;
 function responseBody(text: string) {
@@ -17,6 +18,26 @@ function responseBody(text: string) {
 
 describe("resources request contracts", () => {
   const { fetchMock } = setupRequestHarness();
+
+  it("reads Workspace binary content over authenticated HTTP without a Chat resource request", async () => {
+    setAccessToken("workspace-token");
+    const blob = new Blob(["video"], { type: "video/mp4" });
+    fetchMock.mockResolvedValueOnce({ ok: true, blob: async () => blob });
+    const controller = new AbortController();
+    await expect(getAgentFileContentBlob({ agentKey: "history-owner", path: "docs/期权 短片.mp4" }, { signal: controller.signal })).resolves.toBe(blob);
+    const [url, options] = fetchMock.mock.calls[0] as [string, RequestInit];
+    const parsed = new NodeURL(url, "http://localhost");
+    expect(parsed.pathname).toBe("/api/file");
+    expect(Object.fromEntries(parsed.searchParams)).toEqual({ agentKey: "history-owner", path: "docs/期权 短片.mp4", response: "content" });
+    expect(options).toMatchObject({ method: "GET", signal: controller.signal, headers: { Authorization: "Bearer workspace-token" } });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("preserves Workspace binary permission failures", async () => {
+    fetchMock.mockResolvedValueOnce({ ok: false, status: 403, text: async () => JSON.stringify({ code: "forbidden", msg: "outside workspace" }) });
+    await expect(getAgentFileContentBlob({ agentKey: "owner", path: "outside.mp4" })).rejects.toMatchObject({ status: 403, code: "forbidden" });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
 
   it("reads authoritative resource document metadata and size from HEAD", async () => {
     fetchMock.mockResolvedValueOnce({

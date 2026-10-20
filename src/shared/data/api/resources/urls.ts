@@ -240,7 +240,7 @@ export function getResourceRequestTarget(
 	options: ResourceUrlClassificationOptions = {},
 ): ResourceUrlClassification {
 	const classified = classifyResourceUrl(value, chatId, options);
-	if (classified.kind === "invalid") {
+	if (classified.kind === "invalid" || classified.kind === "workspace") {
 		throw new Error(fallbackMessage);
 	}
 	return classified;
