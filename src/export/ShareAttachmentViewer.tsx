@@ -3,12 +3,16 @@ import { Dropdown, message, Tooltip } from "antd";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { conversationExportMessages, type ConversationExportLocale } from "@/shared/i18n/conversationExport";
 import { copyWebText } from "@/shared/utils/webClipboard";
-import type { SnapshotAttachmentV1 } from "./conversationSnapshotV1";
+import { ShareHtmlPreview } from "./ShareHtmlPreview";
+import { ShareMediaPreview } from "./ShareMediaPreview";
+import { shareMediaKind } from "./shareResources";
+import type { SnapshotAttachmentV1, SnapshotOmittedResource } from "./conversationSnapshotV1";
 import type { ShareAttachmentLinks } from "./shareAttachmentLinks";
 import styles from "./ShareAttachmentViewer.module.css";
 
 interface ShareAttachmentViewerProps {
   attachments: SnapshotAttachmentV1[];
+  omittedResources?: SnapshotOmittedResource[];
   selectedId: string;
   onSelect: (id: string) => void;
   links: ShareAttachmentLinks;
@@ -17,10 +21,11 @@ interface ShareAttachmentViewerProps {
   children?: React.ReactNode;
 }
 
+const NO_OMISSIONS: SnapshotOmittedResource[] = [];
 const COPY_MESSAGE_KEY = "share-attachment-copy";
 
 export const ShareAttachmentViewer: React.FC<ShareAttachmentViewerProps> = ({
-  attachments, selectedId, onSelect, links, canReshare, locale, children,
+  attachments, omittedResources = NO_OMISSIONS, selectedId, onSelect, links, canReshare, locale, children,
 }) => {
   const labels = conversationExportMessages[locale].attachments;
   const attachment = attachments.find((item) => item.id === selectedId);
@@ -114,11 +119,16 @@ export const ShareAttachmentViewer: React.FC<ShareAttachmentViewerProps> = ({
         </div>
       </div>
     </header>
-    {attachment.mimeType === "text/html" ? <iframe key={attachment.id} title={attachment.name}
-      sandbox="" referrerPolicy="no-referrer" src={links.preview} /> :
-      <div className={styles.unsupported}>
-        <strong>{attachment.name}</strong><span>{attachment.mimeType}</span>
-        <p>{labels.unsupported}</p><a href={links.download}>{labels.download}</a>
-      </div>}
+    {shareMediaKind(attachment.mimeType) === "html" ?
+      <ShareHtmlPreview key={attachment.id} attachment={attachment} attachments={attachments}
+        omittedResources={omittedResources} preview={links.preview} locale={locale} /> :
+      shareMediaKind(attachment.mimeType) !== "unsupported" ?
+        <div className={styles.media}><ShareMediaPreview key={attachment.id} attachment={attachment}
+          url={links.preview} unavailable={labels.loadFailed} /></div> :
+        <div className={styles.unsupported}>
+          <strong>{attachment.name}</strong><span>{attachment.mimeType}</span>
+          <p>{labels.unsupported}</p><a href={links.download}>{labels.download}</a>
+        </div>}
+
   </section>;
 };

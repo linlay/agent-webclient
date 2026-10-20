@@ -50,7 +50,7 @@ new Chat 首次创建、数据归属一致的 canonical promotion 与有效同 C
 
 `forceReload` 使用 `same-chat-reload` 并执行同样的保存与恢复。新建空白对话会先保存来源位置、取消当前事务，再 reset；新 Chat 获得 canonical `chatId` 的 session promotion 仍须验证原始 live query 所有权和数据归属。共享展示层阻塞期间（包括退出动画与错误），Composer 及旧的 awaiting、plan、frontend tool 交互均不可提交；有效同 Chat 后台刷新不额外阻塞交互。聚焦 Composer 使用 `preventScroll`，不可使仍被遮蔽的内容获得焦点。
 
-导出与公开分享不复用上述 replay/live 状态。Markdown 直接请求 Agent Platform；WebClient HTML 导出并行请求 Platform Snapshot 与同源模板后用 Blob parts 组装，Desktop 分享则由常驻 Worker 请求 Snapshot 与 WebClient 模板。公开 `/share/` 由 Tunnel 直接返回已生成的 HTML 主文档。所有路径都不 attach active run，也不从当前 renderer timeline 重建快照。
+导出与公开分享不复用上述 replay/live 状态。Markdown 直接请求 Agent Platform；WebClient HTML 导出并行请求 Platform Snapshot 与同源模板后用 Blob parts 组装，Desktop 分享则由常驻 Worker 读取 Snapshot 与专用资源接口，冻结后交给 Tunnel。公开 `/share/` 由 Tunnel 按当前模板返回 HTML 主文档。所有路径都不 attach active run，也不从当前 renderer timeline 重建快照。
 
 当前对象历史与全局历史是两个独立入口。Copilot 顶栏、全局搜索和全局快捷操作通过 Command Overlay 打开当前 Agent/Team 的历史抽屉：Agent 历史使用 `GET /api/chats?agentKey=...`，选择记录后派发 `agent:load-chat` 并在当前壳层内切换。全局聊天历史独立使用 `/history`，以无参数 `GET /api/chats` 获取全量摘要，并在前端按关键词、`updatedAt` 自然日范围和 Agent/Team 归属组合筛选；Agent-owned 记录只输出 `/agent/:agentKey?chatId=...`。Overview、Debug、Planning、Source、Artifact、Reference 的 URL 定位字段不会传给后端；它们只调用 `GET /api/chat?chatId=...`，再从同一 replay 投影按各自稳定 ID 定位。缺少或无效 ID 显示无效目标，不回退到其他节点或最新 Run。
 

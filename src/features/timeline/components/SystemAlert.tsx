@@ -7,7 +7,7 @@ import type {
   TimelineNode,
 } from "@/features/timeline/lib/timelineState";
 import { useI18n } from "@/shared/i18n";
-import { copyText } from "@/shared/utils/copy";
+import { useTimelineCopy } from "./TimelineInteractionContext";
 import { UiButton } from "@/shared/ui/UiButton";
 const presentationClasses = bindCssModuleClasses({ ...sharedPresentation });
 
@@ -79,6 +79,7 @@ export const SystemAlert: React.FC<{
   level?: TimelineNode["systemMessageLevel"];
 }> = ({ text, tooltip, errorDetail, level = "error" }) => {
   const { t } = useI18n();
+  const copyText = useTimelineCopy();
   const showDetails = hasTechnicalDetail(errorDetail);
   const diagnostics = errorDetail?.diagnostics;
   const upstream =
@@ -102,6 +103,7 @@ export const SystemAlert: React.FC<{
   ] as const;
 
   const [copyState, setCopyState] = useState<CopyState>("idle");
+  const copyGeneration = useRef(0);
   const copyTimerRef = useRef<number | null>(null);
   const alertRef = useRef<HTMLDivElement | null>(null);
   const [alertWidth, setAlertWidth] = useState<number | undefined>(undefined);
@@ -116,13 +118,20 @@ export const SystemAlert: React.FC<{
     return () => observer.disconnect();
   }, []);
 
+  useEffect(() => () => {
+    copyGeneration.current += 1;
+    if (copyTimerRef.current !== null) window.clearTimeout(copyTimerRef.current);
+  }, [text, errorDetail]);
   const handleCopy = useCallback(async () => {
+    const generation = ++copyGeneration.current;
     const payload = buildCopyPayload(text, errorDetail);
     if (!payload) return;
     try {
       await copyText(payload);
+      if (generation !== copyGeneration.current) return;
       setCopyState("copied");
     } catch {
+      if (generation !== copyGeneration.current) return;
       setCopyState("error");
     }
     if (copyTimerRef.current != null) {
@@ -132,7 +141,7 @@ export const SystemAlert: React.FC<{
       setCopyState("idle");
       copyTimerRef.current = null;
     }, 1600);
-  }, [text, errorDetail]);
+  }, [copyText, text, errorDetail]);
 
   const copyLabel =
     copyState === "copied"

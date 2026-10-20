@@ -1,3 +1,4 @@
+import { locateSelectedTextReference } from "@/shared/data/desktop/selectedTextLocate";
 import libraryPresentation from "@/shared/ui/Presentation.module.css";
 import { SelectedTextFragmentsPill } from "@/features/selection/components/SelectedTextFragmentsPill";
 import { selectedTextFragmentFromAttachment } from "@/features/selection/lib/selectedTextReference";
@@ -142,7 +143,7 @@ export const SteerBar: React.FC<{
                 )}
                 {selections.length > 0 && (
                   <div className="tw:flex-shrink-0">
-                    <SelectedTextFragmentsPill
+                    <SelectedTextFragmentsPill onLocate={locateSelectedTextReference}
                       fragments={selections}
                       variant="segments"
                     />

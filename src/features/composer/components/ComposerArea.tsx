@@ -1,3 +1,4 @@
+import { locateSelectedTextReference } from "@/shared/data/desktop/selectedTextLocate";
 import { bindCssModuleClasses } from "@/shared/utils/cssModuleClasses";
 import composerPresentation from "@/features/composer/components/ComposerPresentation.module.css";
 import { FailedSubmissions } from "./FailedSubmissions";
@@ -1181,7 +1182,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
                   {t("nativeShare.failed")}
                   <UiButton variant="ghost" size="sm" onClick={nativeShare.retry}>{t("nativeShare.retry")}</UiButton>
                 </div> : null}
-                <SelectedTextFragmentsPill
+                <SelectedTextFragmentsPill onLocate={locateSelectedTextReference}
                   fragments={selectedFragments}
                   variant="annotations"
                   onRemove={removeSelectedFragment}

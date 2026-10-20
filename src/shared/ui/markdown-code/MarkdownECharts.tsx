@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { EChartsOption, EChartsType } from "echarts";
 import { useI18n } from "@/shared/i18n";
 import { BusyInk } from "@/shared/ui/BusyInk";
@@ -37,7 +37,7 @@ export const MarkdownECharts: React.FC<{
 }> = ({ code, streamStatus }) => {
   const { t } = useI18n();
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const chartRef = useRef<EChartsType | null>(null);
+  const [renderFailed, setRenderFailed] = useState(false);
 
   const payload = useMemo(() => {
     try {
@@ -55,41 +55,42 @@ export const MarkdownECharts: React.FC<{
     if (!payload.value || !containerRef.current) return;
 
     let disposed = false;
+    setRenderFailed(false);
     let resizeObserver: ResizeObserver | null = null;
+    let chart: EChartsType | null = null;
     const container = containerRef.current;
+    const dispose = () => {
+      resizeObserver?.disconnect();
+      chart?.dispose();
+      chart = null;
+    };
+    const fail = () => {
+      if (disposed) return;
+      dispose();
+      setRenderFailed(true);
+    };
 
     void import("echarts").then((echartsModule) => {
       if (disposed) return;
 
-      const chart =
-        chartRef.current ||
-        echartsModule.init(
+      chart = echartsModule.init(
           container,
           document.documentElement.dataset.theme === "dark" ? "dark" : null,
           { renderer: "svg" },
         );
-      chartRef.current = chart;
       chart.setOption(payload.value, true);
 
       resizeObserver = new ResizeObserver(() => {
-        chart.resize();
+        try { chart?.resize(); } catch { fail(); }
       });
       resizeObserver.observe(container);
-    });
+    }).catch(fail);
 
     return () => {
       disposed = true;
-      resizeObserver?.disconnect();
+      dispose();
     };
   }, [payload.value]);
-
-  useEffect(
-    () => () => {
-      chartRef.current?.dispose();
-      chartRef.current = null;
-    },
-    [],
-  );
 
   if (!payload.value) {
     // 流式接收中 JSON 天然不完整，用墨流占位而不是报错盒子；
@@ -118,10 +119,9 @@ export const MarkdownECharts: React.FC<{
   }
 
   return (
-    <div
-      ref={containerRef}
-      className="markdown-echarts"
-      style={{ height }}
-    ></div>
+    <>
+      {renderFailed && <div role="status">{t("markdown.echartsRenderFailed")}</div>}
+      <div ref={containerRef} className="markdown-echarts" style={{ height, display: renderFailed ? "none" : undefined }} />
+    </>
   );
 };

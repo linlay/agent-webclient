@@ -22,7 +22,7 @@ import { ConversationPreview } from "@/features/conversation/components/Conversa
 import { conversationPreviewDataFromReplay } from "@/features/conversation/lib/conversationPreviewData";
 import { useOpenTarget } from "@/features/surfaces/hooks/useOpenTarget";
 import type { MarkdownContentProps } from "@/features/viewers/components/MarkdownContent";
-import { AttachmentCard } from "@/features/artifacts/components/AttachmentCard";
+import { TimelineAttachmentView } from "@/features/timeline/components/TimelineAttachmentView";
 import { AgentIcon } from "@/shared/icons/agent";
 import { MarkdownContent } from "@/features/viewers/components/MarkdownContent";
 import { MaterialIcon, type MaterialIconName } from "@/shared/ui/MaterialIcon";
@@ -368,15 +368,16 @@ export const AutomationExecutionDrawer: React.FC<
                 agents={agents}
                 agentKey={agentKey}
                 teamChat={Boolean("")}
-                openTarget={openTarget}
-                onCopyResult={(success) => success
-                  ? message.success(t("timeline.toolPill.copy.copied"))
-                  : message.error(t("timeline.toolPill.copy.failed"))}
+                openTarget={openTarget} copyText={copyText}
+                getChatHref={(chat) => `/?${new URLSearchParams({ chatId: chat.chatId })}`}
+                onCopyResult={(success, text) => success
+                  ? message.success(text ?? t("timeline.toolPill.copy.copied"))
+                  : message.error(text ?? t("timeline.toolPill.copy.failed"))}
                 renderMarkdown={renderAppMarkdown}
-                renderAttachment={(attachment, options) => <AttachmentCard
-                  attachment={attachment} variant="timeline" thumbnailMode="inline"
+                renderAttachment={(attachment, options) => <TimelineAttachmentView
+                  attachment={attachment}
                   surfaceContext={{ chatId: chatState.data!.chat.chatId, agentKey, teamChat: Boolean("") }}
-                  {...options} />}
+                  options={options} openTarget={openTarget} />}
               />
             ) : null}
             {chatState.loading && chatState.data ? (

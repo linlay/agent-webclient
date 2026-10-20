@@ -19,18 +19,19 @@ export function RelatedChatCards({ nodes, agents }: { nodes: TimelineNode[]; age
   return <div className={styles.cards}>
     {[...chats.values()].map(chat => {
       const owner = agents.find(agent => agent.key === chat.agentKey)?.name || chat.agentKey;
-      return <a key={chat.chatId} className={styles.card}
+      const href = interaction?.getChatHref?.(chat);
+      return <a href={href} key={chat.chatId} className={styles.card}
         title={[chat.title || t("timeline.relatedChat.untitled"), owner].filter(Boolean).join(" · ")}
-        href={`/?${new URLSearchParams({ chatId: chat.chatId })}`}
+        aria-disabled={!href}
         onClick={event => {
-          if (!interaction?.openChat || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+          if (!href || !interaction?.openChat || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
           event.preventDefault();
           interaction.openChat(chat);
         }}>
         <span className={styles.copy}>
           <span className={styles.title}>{chat.title || t("timeline.relatedChat.untitled")}</span>
         </span>
-        <span className={styles.action}>{t("timeline.relatedChat.open")} <span aria-hidden="true">↗</span></span>
+        {href && <span className={styles.action}>{t("timeline.relatedChat.open")} <span aria-hidden="true">↗</span></span>}
       </a>;
     })}
   </div>;

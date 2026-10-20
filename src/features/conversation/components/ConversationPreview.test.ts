@@ -214,6 +214,7 @@ describe("ConversationPreview", () => {
     act(() => {
       root.render(
         React.createElement(ConversationPreview, {
+          copyText,
           data: conversationPreviewDataFromReplay(chat, projection),
           onCopyResult: (success) => success
             ? mockCopySuccess("timeline.toolPill.copy.copied")

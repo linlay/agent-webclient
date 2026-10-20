@@ -334,25 +334,19 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
                 TIMELINE_USER_ATTACHMENTS_SINGLE_CLASS_NAME,
               ].join(" ")}
             >
-              {visibleAttachmentItems.map((attachment, index) =>
-                ["chat","site","skill","kbase"].includes(attachment.type || "") ? (
-                  <ReferenceCard
-                    key={`${attachment.type}_${attachment.id || attachment.name}_${index}`}
-                    reference={attachment}
-                    variant="timeline"
-                    density={hasMultipleAttachments ? "compact" : "default"}
-                    skillIcon={attachment.type === "skill" ? resolveSkillIconUrl(activeAgentSkills, String(attachment.id || attachment.name || "")) : undefined}
-                  />
-                ) : (
-                  <React.Fragment key={`${attachment.name}_${index}`}>
-                    {interaction?.renderAttachment?.(attachment, {
-                      density: hasMultipleAttachments ? "compact" : "default",
-                      displayMode: hasMultipleAttachments ? "file" : "auto",
-                      subtitle: getTimelineAttachmentSubtitle(attachment, t, hasMultipleAttachments),
-                    }) ?? <span>{attachment.name}</span>}
-                  </React.Fragment>
-                ),
-              )}
+              {visibleAttachmentItems.map((attachment, index) => (
+                <React.Fragment key={`${attachment.name}_${index}`}>
+                  {interaction?.renderAttachment?.(attachment, {
+                    density: hasMultipleAttachments ? "compact" : "default",
+                    displayMode: hasMultipleAttachments ? "file" : "auto",
+                    subtitle: getTimelineAttachmentSubtitle(attachment, t, hasMultipleAttachments),
+                    skillIcon: attachment.type === "skill" ? resolveSkillIconUrl(activeAgentSkills, String(attachment.id || attachment.name || "")) : undefined,
+                  }) ?? (["chat", "site", "skill", "kbase"].includes(attachment.type || "")
+                    ? <ReferenceCard reference={attachment} variant="timeline" openTarget={interaction?.openTarget}
+                        density={hasMultipleAttachments ? "compact" : "default"} />
+                    : <span>{attachment.name}</span>)}
+                </React.Fragment>
+              ))}
             </div>
           )}
 

@@ -77,7 +77,8 @@ it("previews HTML resources and offers other formal resources for download", () 
   expect(html).toContain('href="/share/share-1/attachments/abcdef0123456789abcdef01/download"');
   expect(html).toContain('>HTML</a>');
   expect(html).toContain('>PDF</a>');
-  expect(html).toContain('>OLD</a>');
+  expect(html).not.toContain('>OLD</a>');
+  expect(html).toContain("OLD — 附件不存在或链接无效");
 });
 
 // The body names a published file as "@chat/<literal path>", while the snapshot
@@ -95,10 +96,10 @@ it("links an @chat/ body reference to its published attachment", () => {
   }));
   expect(html).toContain('href="/share/share-1/attachments/fedcba9876543210fedcba98/download">NEW</a>');
   // An unpublished reference stays plain text rather than a dead link.
-  expect(html).toContain("<span>MISSING</span>");
+  expect(html).toContain("MISSING — 附件不存在或链接无效");
 });
 
-it("opens a legacy Markdown HTML link directly without a HEAD request", () => {
+it("opens a canonical Markdown HTML link without a HEAD probe", () => {
   window.history.replaceState({}, "", "/share/share-1");
   const host = document.createElement("div");
   const root = createRoot(host);
@@ -111,11 +112,11 @@ it("opens a legacy Markdown HTML link directly without a HEAD request", () => {
   }] };
   try {
     act(() => root.render(React.createElement(ConversationExportDocument, { snapshot: page })));
-    const link = Array.from(host.querySelectorAll("a")).find((item) => item.textContent === "OLD");
+    const link = Array.from(host.querySelectorAll("a")).find((item) => item.textContent === "HTML");
     expect(link).toBeDefined();
     act(() => link!.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true })));
     expect(host.querySelector("iframe")?.getAttribute("src"))
-      .toBe("/share/share-1/attachments/0123456789abcdef01234567/preview");
+      .toBe("/share/share-1/attachments/0123456789abcdef01234567/preview?embed=1");
     expect(fetchSpy).not.toHaveBeenCalled();
   } finally {
     act(() => root.unmount());

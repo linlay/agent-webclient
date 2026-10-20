@@ -59,7 +59,7 @@ it("selects files without a previous/next row and offers unsupported files for d
   expect(host.querySelector('a[aria-label="下载"]')?.getAttribute("href")).toContain(`${files[2].id}/download`);
   selectFile(files[0].id);
   expect(host.querySelector("iframe")?.title).toBe(files[0].name);
-  expect(host.querySelector("iframe")?.getAttribute("sandbox")).toBe("");
+  expect(host.querySelector("iframe")?.getAttribute("sandbox")).toBe("allow-scripts");
   expect(host.querySelector("iframe")?.getAttribute("referrerpolicy")).toBe("no-referrer");
 });
 

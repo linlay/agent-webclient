@@ -33,7 +33,7 @@ function boot(path: string, capability?: string) {
   }
   jest.isolateModules(() => require("./index"));
   const tree = render.mock.calls[0][0] as React.ReactElement<{ children: React.ReactElement<{ children: React.ReactElement }> }>;
-  return tree.props.children.props.children;
+  return (tree.props.children.props.children as React.ReactElement<{children: React.ReactElement}>).props.children;
 }
 
 it("selects the independent attachment page only for an online deep link", () => {

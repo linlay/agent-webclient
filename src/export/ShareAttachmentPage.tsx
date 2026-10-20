@@ -20,6 +20,7 @@ export const ShareAttachmentPage: React.FC<ShareAttachmentPageProps> = ({
 }) => {
   const [selectedId, setSelectedId] = useState(initialAttachmentId);
   const attachment = snapshot.attachments.find((item) => item.id === selectedId);
+  const omitted = snapshot.omittedResources?.find((item) => item.id === selectedId);
   const labels = conversationExportMessages[snapshot.locale].attachments;
   const links = buildShareAttachmentLinks(sharePath, selectedId, origin);
   useEffect(() => {
@@ -33,12 +34,12 @@ export const ShareAttachmentPage: React.FC<ShareAttachmentPageProps> = ({
 
   return <main className={styles.page}>
     {attachment && links.page ? <ShareAttachmentViewer attachments={snapshot.attachments}
-      selectedId={selectedId} onSelect={setSelectedId} links={links} canReshare={canReshare} locale={snapshot.locale}>
+      omittedResources={snapshot.omittedResources} selectedId={selectedId} onSelect={setSelectedId} links={links} canReshare={canReshare} locale={snapshot.locale}>
       <Tooltip title={labels.backToConversation} trigger={["hover", "focus"]}>
         <a href={sharePath} aria-label={labels.backToConversation}><MaterialIcon name="chevron_left" aria-hidden="true" /></a>
       </Tooltip>
     </ShareAttachmentViewer> : <div className={styles.error} role="alert">
-      <p>{labels.notFound}</p>{sharePath && <a href={sharePath}>{labels.backToConversation}</a>}
+      <p>{omitted ? `${omitted.name} — ${labels.omission[omitted.reason]}` : labels.notFound}</p>{sharePath && <a href={sharePath}>{labels.backToConversation}</a>}
     </div>}
   </main>;
 };

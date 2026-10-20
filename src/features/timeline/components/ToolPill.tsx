@@ -7,7 +7,7 @@ import { isBashTool, readBashDescription, resolveToolLabel } from "@/features/ti
 import { formatToolDuration as formatToolDurationFromLib } from "@/features/timeline/lib/timelineDuration";
 import type { TranslateFn } from "@/features/timeline/lib/timelineDuration";
 import { t as runtimeT, useI18n } from "@/shared/i18n";
-import { copyText } from "@/shared/utils/copy";
+import { useTimelineCopy } from "./TimelineInteractionContext";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
 import { SCROLLBAR_THIN_CLASS_NAME } from "@/shared/styles/scrollbarClassNames";
@@ -370,12 +370,14 @@ export const ToolPill: React.FC<ToolPillProps> = ({ node, toolGroup }) => {
   const [expanded, setExpanded] = useState(false);
   const [copyStatus, setCopyStatus] = useState<Record<string, CopyState>>({});
   const [wrapMap, setWrapMap] = useState<Record<string, boolean>>({});
+  const copyGeneration = useRef(0);
   const copyTimerRef = useRef<Map<string, number>>(new Map());
   const autoExpandedOutputKeysRef = useRef<Set<string>>(new Set());
   // 用户手动展开或收起过这个 pill 之后，自动行为就停止接管展开态。
   const userToggledRef = useRef(false);
   const source = toolGroup || node;
   const { t } = useI18n();
+  const copyText = useTimelineCopy();
   const interaction = useTimelineInteraction();
   const mainChatStreaming = Boolean(interaction?.conversationActive);
 
@@ -431,6 +433,7 @@ export const ToolPill: React.FC<ToolPillProps> = ({ node, toolGroup }) => {
 
   useEffect(() => {
     return () => {
+      copyGeneration.current += 1;
       copyTimerRef.current.forEach((timer) => window.clearTimeout(timer));
       copyTimerRef.current.clear();
     };
@@ -480,11 +483,12 @@ export const ToolPill: React.FC<ToolPillProps> = ({ node, toolGroup }) => {
   };
 
   const handleCopyResult = async (key: string, text: string) => {
+    const generation = copyGeneration.current;
     try {
       await copyText(text);
-      flashCopyStatus(key, "copied");
+      if (generation === copyGeneration.current) flashCopyStatus(key, "copied");
     } catch {
-      flashCopyStatus(key, "error");
+      if (generation === copyGeneration.current) flashCopyStatus(key, "error");
     }
   };
 
@@ -681,6 +685,7 @@ const JsonToTable: React.FC<{
   emptyText?: string;
 }> = ({ text, className, emptyText }) => {
   const { t } = useI18n();
+  const copyText = useTimelineCopy();
   const json = useMemo<Record<string, any>>(() => {
     if (typeof text === "object") return text;
     try {
