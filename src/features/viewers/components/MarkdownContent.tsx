@@ -492,7 +492,6 @@ export const MarkdownContent: React.FC<MarkdownContentProps> = ({
   return (
     <ConversationMarkdown
       content={content}
-      className="tw:p-[10px]"
       isStreaming={isStreaming}
       components={markdownComponents}
       codeComponent={htmlPreview ? InlineHtmlMarkdownCode : MarkdownCode}
