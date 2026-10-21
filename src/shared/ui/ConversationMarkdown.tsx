@@ -8,6 +8,7 @@ import { removeEmptyMarkdownTables } from "./markdownPreprocess";
 import { useI18n } from "@/shared/i18n";
 import styles from "./ConversationMarkdown.module.css";
 import { MarkdownStreamingContext } from "./MarkdownStreamingContext";
+import { markdownLocalMediaExtension } from "./markdownMedia";
 
 type MarkdownComponents = NonNullable<XMarkdownProps["components"]>;
 
@@ -115,7 +116,7 @@ export const ConversationMarkdown: React.FC<ConversationMarkdownProps> = ({
     () => ({
       gfm: true,
       breaks: true,
-      ...(latexExtensions ? { extensions: latexExtensions } : {}),
+      extensions: [markdownLocalMediaExtension, ...(latexExtensions || [])],
     }),
     [latexExtensions],
   );

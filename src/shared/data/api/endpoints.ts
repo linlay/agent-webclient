@@ -913,6 +913,13 @@ export const dataEndpoints = createEndpointRegistry({
         encoding: params.encoding,
       }),
   }),
+  agentFileContent: defineEndpoint<Pick<AgentFileRequest, "agentKey" | "path">, Record<string, unknown>>({
+    key: "file.content",
+    path: "/api/file",
+    method: "GET",
+    transport: "http",
+    payload: (params) => ({ agentKey: params.agentKey, path: params.path, response: "content" }),
+  }),
   documentPreviewCapabilities: defineEndpoint<Record<string, never>, Record<string, never>>({
     key: "document.preview.capabilities", path: "/api/document/preview/capabilities", method: "GET", transport: "http",
     payload: (params) => params,

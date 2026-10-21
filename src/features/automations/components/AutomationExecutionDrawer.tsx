@@ -307,10 +307,10 @@ export const AutomationExecutionDrawer: React.FC<
           </div>
         ) : detailState.data && visible ? (
           <div className={styles.resultContent}>
-            {visible.error ? (
-              <div className={styles.panelError} role="alert">
-                <MaterialIcon name="error" />
-                <span>{visible.error}</span>
+            {visible.error || visible.status === "canceled" ? (
+              <div className={`${styles.panelError} ${visible.status === "canceled" ? styles.panelCanceled : ""}`} role={visible.status === "canceled" ? "status" : "alert"}>
+                <MaterialIcon name={visible.status === "canceled" ? "stop_circle" : "error"} />
+                <span>{visible.status === "canceled" ? t("automationHistory.result.canceled") : visible.error}</span>
               </div>
             ) : null}
             <div className={styles.resultMarkdown}>
@@ -318,6 +318,7 @@ export const AutomationExecutionDrawer: React.FC<
                 <MarkdownContent
                   content={detailState.data.resultContent}
                   chatId={chatId}
+                  agentKey={agentKey}
                   teamChat={Boolean("")}
                 />
               ) : (

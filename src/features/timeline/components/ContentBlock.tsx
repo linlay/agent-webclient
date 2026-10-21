@@ -128,7 +128,7 @@ export const ContentBlock: React.FC<ContentBlockProps> = ({ node }) => {
 	);
 	const renderMarkdown = (props: MarkdownContentProps) => {
 		const isStreaming = Boolean(interaction?.conversationActive && node.status !== "completed" && node.status !== "failed");
-		return interaction?.renderMarkdown?.({ ...props, isStreaming })
+		return interaction?.renderMarkdown?.({ ...props, agentKey: workspaceFileAgentKey, isStreaming })
 			?? <ConversationMarkdown content={props.content} isStreaming={isStreaming} codeComponent={ConversationMarkdownCode} />;
 	};
 

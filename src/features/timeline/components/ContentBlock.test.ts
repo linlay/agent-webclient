@@ -42,7 +42,7 @@ describe("ContentBlock presentation boundary", () => {
     const html = renderNode(content("> 第一段\n>\n> 第二段"), {
       chatId: "history", agentKey: "agent-1", teamChat: true,
     });
-    expect(markdownProps[0]).toMatchObject({ chatId: "history", teamChat: true, content: "> 第一段\n>\n> 第二段" });
+    expect(markdownProps[0]).toMatchObject({ chatId: "history", agentKey: "agent-1", teamChat: true, content: "> 第一段\n>\n> 第二段" });
     expect(html).toContain("timeline-markdown");
     expect(html).toContain("tw:whitespace-normal");
   });

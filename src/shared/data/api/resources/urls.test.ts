@@ -146,6 +146,7 @@ describe("resources/urls request contracts", () => {
     "/api/resource?file=chat_01%2Fimage.png",
     "chat_01/image.png",
     "artifacts/../image.png",
+    "@workspace/images/poster.png",
     "/tmp/../private/image.png",
     "/tmp/%2E%2E/private/image.png",
   ])("never fetches rejected resource source %s", async (source) => {

@@ -48,6 +48,7 @@ export interface MarkdownContentProps {
   isStreaming?: boolean;
   htmlPreview?: boolean;
   chatId: string;
+  agentKey?: string;
   teamChat?: boolean;
   onWorkspaceFileLinkClick?: (link: WorkspaceFileLink) => void;
   onResourceFileLinkClick?: (link: ResourceFileLink) => void;
@@ -304,14 +305,15 @@ const AuthAnchor: React.FC<AuthAnchorProps> = (props) => {
 
 type AuthImageProps = MarkdownImageProps & {
   chatId: string;
+  agentKey?: string;
   teamChat: boolean;
 };
 
 const AuthImage: React.FC<AuthImageProps> = (props) => {
-  const { src: markdownSrc, chatId, teamChat, alt, ...rendererProps } = props;
+  const { src: markdownSrc, chatId, agentKey, teamChat, alt, ...rendererProps } = props;
   const src = markdownChatAliasToLiteral(markdownSrc);
   const { t } = useI18n();
-  const resolved = useAuthenticatedResourceUrl(src, chatId, { teamChat });
+  const resolved = useAuthenticatedResourceUrl(src, chatId, { teamChat, ...(agentKey ? { agentKey } : {}) });
   const contextTargetId = React.useId();
   const authenticatedResource = useMemo(
     () => isFetchedResourceKind(classifyResourceUrl(src || "", chatId, { teamChat }).kind),
@@ -372,18 +374,22 @@ const markdownMediaConfig = {
 type AuthMediaProps = MarkdownImageProps & {
   kind: MarkdownMediaKind;
   chatId: string;
+  agentKey?: string;
   teamChat: boolean;
 };
 
 const AuthMedia: React.FC<AuthMediaProps> = (props) => {
-  const { kind, src: markdownSrc, chatId, teamChat, alt, title } = props;
+  const { kind, src: markdownSrc, chatId, agentKey, teamChat, alt, title } = props;
   const src = markdownChatAliasToLiteral(markdownSrc);
   const { t } = useI18n();
   const config = markdownMediaConfig[kind];
   const resolved = useAuthenticatedResourceUrl(src, chatId, {
     teamChat,
+    ...(agentKey ? { agentKey } : {}),
     blobMimeTypeFallback: config.getMimeType(src),
   });
+  const [playbackFailed, setPlaybackFailed] = useState(false);
+  React.useEffect(() => setPlaybackFailed(false), [resolved.url]);
   const contextTargetId = React.useId();
   const authenticatedResource = useMemo(
     () => isFetchedResourceKind(classifyResourceUrl(src || "", chatId, { teamChat }).kind),
@@ -405,9 +411,9 @@ const AuthMedia: React.FC<AuthMediaProps> = (props) => {
     [alt, authenticatedResource, chatId, contextTargetId, kind, src, teamChat],
   );
   const contextTargetRef = useDesktopContextMenuTarget<HTMLMediaElement>(contextTarget);
-  if (resolved.error) {
+  if (resolved.error || playbackFailed) {
     const fallback = t(config.errorKey);
-    return <span role="status">{alt || fallback}</span>;
+    return <span role="status">{alt ? `${alt} · ${fallback}` : fallback}</span>;
   }
   if (!resolved.url) {
     return <span aria-busy={resolved.loading}>{alt || ""}</span>;
@@ -419,6 +425,7 @@ const AuthMedia: React.FC<AuthMediaProps> = (props) => {
     preload: "metadata",
     "aria-label": alt || title || undefined,
     title,
+    onError: () => setPlaybackFailed(true),
   };
   return kind === "video" ? (
     <video
@@ -452,6 +459,7 @@ export const MarkdownContent: React.FC<MarkdownContentProps> = ({
   isStreaming,
   htmlPreview = false,
   chatId,
+  agentKey,
   teamChat = false,
   onWorkspaceFileLinkClick,
   onResourceFileLinkClick,
@@ -471,14 +479,14 @@ export const MarkdownContent: React.FC<MarkdownContentProps> = ({
         ),
         img: (imageProps: React.ImgHTMLAttributes<HTMLImageElement>) =>
           isMarkdownVideoSource(imageProps.src) ? (
-            <AuthMedia kind="video" {...imageProps} chatId={chatId} teamChat={teamChat} />
+            <AuthMedia kind="video" {...imageProps} chatId={chatId} agentKey={agentKey} teamChat={teamChat} />
           ) : isMarkdownAudioSource(imageProps.src) ? (
-            <AuthMedia kind="audio" {...imageProps} chatId={chatId} teamChat={teamChat} />
+            <AuthMedia kind="audio" {...imageProps} chatId={chatId} agentKey={agentKey} teamChat={teamChat} />
           ) : (
-            <AuthImage {...imageProps} chatId={chatId} teamChat={teamChat} />
+            <AuthImage {...imageProps} chatId={chatId} agentKey={agentKey} teamChat={teamChat} />
           ),
       }),
-    [chatId, onResourceFileLinkClick, onWebLinkClick, onWorkspaceFileLinkClick, teamChat],
+    [agentKey, chatId, onResourceFileLinkClick, onWebLinkClick, onWorkspaceFileLinkClick, teamChat],
   );
 
   return (

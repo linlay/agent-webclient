@@ -237,6 +237,17 @@ describe("AutomationExecutionDrawer", () => {
     act(() => tab?.click());
   };
 
+  it("shows a localized cancellation notice instead of the backend error", async () => {
+    const item = execution({ status: "canceled", error: "automation query run canceled" });
+    mockGetAutomationExecution.mockResolvedValueOnce({ data: detail(item) });
+    mockGetChat.mockResolvedValueOnce({ data: chat("chat-a") });
+    await act(async () => { renderDrawer(item); });
+    expect(container.textContent).toContain("automationHistory.result.canceled");
+    expect(container.textContent).not.toContain("automation query run canceled");
+    expect(container.querySelector('[role="alert"]')).toBeNull();
+    expect(container.textContent).toContain("# Report A");
+  });
+
   beforeAll(() => {
     (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT =
       true;

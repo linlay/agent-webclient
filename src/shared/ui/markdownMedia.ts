@@ -1,3 +1,9 @@
+import type { XMarkdownProps } from "@ant-design/x-markdown";
+
+type MarkdownExtension = NonNullable<
+  NonNullable<XMarkdownProps["config"]>["extensions"]
+>[number];
+
 const markdownVideoExtensions = new Set([
   "m4v",
   "mov",
@@ -97,3 +103,17 @@ export function getMarkdownAudioMimeType(source: string | undefined): string {
       return "";
   }
 }
+
+/** Accept model-emitted local media paths containing spaces without changing code or web links. */
+export const markdownLocalMediaExtension: MarkdownExtension = {
+  name: "image",
+  level: "inline",
+  start: (source) => source.indexOf("!["),
+  tokenizer(source) {
+    const match = /^!\[([^\]\n]*)\]\(((?:@chat\/|@workspace\/|\/(?!\/))[^()<>\r\n]+)\)/iu.exec(source);
+    if (!match) return;
+    const href = match[2].trim();
+    if (!/[ \t]/u.test(href) || !/\.(?:avif|bmp|gif|ico|jpe?g|png|svg|webp|aac|m4a|mp3|oga|ogg|opus|wav|weba|m4v|mov|mp4|mpeg|mpg|ogv|webm)$/iu.test(href)) return;
+    return { type: "image", raw: match[0], href, text: match[1], title: null };
+  },
+};
