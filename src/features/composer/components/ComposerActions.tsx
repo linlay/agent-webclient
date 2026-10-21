@@ -26,7 +26,6 @@ import { useAgentConnectors } from "@/features/connectors/hooks/useAgentConnecto
 import { useConnectorPickerCatalog } from "@/features/connectors/hooks/useConnectorPickerCatalog";
 import { ConnectorIcon } from "@/features/connectors/components/ConnectorIcon";
 import { AgentConnectorPicker } from "@/features/connectors/components/AgentConnectorPicker";
-import { orderConnectorsBuiltinLast } from "@/features/connectors/lib/connectorSelection";
 import { useOptionalAppContext } from "@/app/state/AppContext";
 const presentationClasses = bindCssModuleClasses({
   ...timelinePresentation,
@@ -492,11 +491,10 @@ const ComposerActionsWithConnectors: React.FC<
     if (!connectorSelection.data?.connectorIds?.length) return [];
     const selectedSet = new Set(connectorSelection.data.connectorIds);
     const available = connectorSelection.availableIds;
-    return orderConnectorsBuiltinLast(
-      connectorCatalog.items.filter(
-        (item) =>
-          selectedSet.has(item.id) && (!available || available.includes(item.id)),
-      ),
+    // 与 AgentConnectorPicker 列表顺序保持一致：沿用目录原始顺序，已启用项相对顺序对齐 picker。
+    return connectorCatalog.items.filter(
+      (item) =>
+        selectedSet.has(item.id) && (!available || available.includes(item.id)),
     );
   }, [
     connectorSelection.data?.connectorIds,
