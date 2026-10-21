@@ -272,6 +272,15 @@ module.exports = (env, argv) => {
       compress: false,
       hot: true,
       client: {
+        overlay: {
+          runtimeErrors: (error) => {
+            // Resize delivery can span frames while the chat layout settles.
+            // Keep the browser notification in the console without blocking chat.
+            const message = error && error.message;
+            return message !== 'ResizeObserver loop completed with undelivered notifications.'
+              && message !== 'ResizeObserver loop limit exceeded';
+          },
+        },
         webSocketURL: {
           pathname: '/__webpack_hmr',
         },
