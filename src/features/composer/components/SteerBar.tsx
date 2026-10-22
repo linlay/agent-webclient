@@ -129,7 +129,7 @@ export const SteerBar: React.FC<{
                         }
                       >
                         <span
-                          className="tw:inline-flex tw:items-center tw:justify-center tw:w-5 tw:h-5 tw:cursor-pointer tw:rounded tw:overflow-hidden hover:tw:ring-1 hover:tw:ring-[color-mix(in_srgb,var(--line-soft)_90%,transparent)] tw:transition-all"
+                          className="tw:inline-flex tw:items-center tw:justify-center tw:w-5 tw:h-5 tw:cursor-pointer tw:rounded tw:overflow-hidden tw:hover:ring-1 tw:hover:ring-[color-mix(in_srgb,var(--line-soft)_90%,transparent)] tw:transition-all"
                           title={attachment.name}
                         >
                           <SteerAttachmentThumbnail

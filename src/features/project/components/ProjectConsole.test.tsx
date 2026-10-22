@@ -21,6 +21,16 @@ jest.mock("@/shared/data", () => ({
   },
 }));
 jest.mock("antd", () => ({
+  Dropdown: ({ children, menu }: any) => (
+    <div data-dropdown>
+      {children}
+      {(menu?.items || []).map((item: any) => (
+        <button key={item.key} type="button" onClick={() => menu.onClick?.({ key: item.key })}>
+          {item.label}
+        </button>
+      ))}
+    </div>
+  ),
   Spin: () => <span role="status">Loading</span>,
   Select: ({ value, options, onChange, className }: any) => (
     <select className={className} value={value || ""} onChange={(event) => onChange(event.target.value)}>
@@ -60,7 +70,10 @@ describe("project files page", () => {
     await act(async () => container.querySelector<HTMLButtonElement>(`.project-tree-row[title="${path}"]`)!.click());
   };
   const toggleHidden = async (checked: boolean) => {
-    await act(async () => Simulate.change(container.querySelector<HTMLInputElement>('input[type="checkbox"]')!, { target: { checked } } as any));
+    const label = checked ? "project.tree.showHidden" : "project.tree.hideHidden";
+    const button = [...container.querySelectorAll<HTMLButtonElement>("[data-dropdown] button")]
+      .find((item) => item.textContent === label)!;
+    await act(async () => button.click());
   };
   const mount = async (route: ProjectRouteState = { agentKey: "project" }) => {
     await act(async () => root.render(<ProjectConsole route={route} onStateChange={onStateChange} />));
@@ -107,7 +120,7 @@ describe("project files page", () => {
       ? tree([entry("src/.local"), entry("src/index.ts")], "src")
       : tree([entry(".git", "directory"), entry("src", "directory"), entry(".env"), entry("README.md")]));
     await mount();
-    expect(container.querySelector<HTMLInputElement>('input[type="checkbox"]')!.checked).toBe(false);
+    expect(container.querySelector(".project-filter-trigger")!.getAttribute("data-active")).toBe("false");
     expect(rows()).toEqual(["src", "README.md"]);
     await clickRow("src");
     expect(rows()).toEqual(["src", "src/index.ts", "README.md"]);

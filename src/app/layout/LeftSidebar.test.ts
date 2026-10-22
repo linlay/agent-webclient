@@ -284,9 +284,12 @@ jest.mock("@/shared/ui/UiButton", () => {
 
 jest.mock("@/app/state/AppContext", () => {
   const actual = jest.requireActual("@/app/state/AppContext");
+  const useAppContext = jest.fn();
   return {
     ...actual,
-    useAppContext: jest.fn()
+    useAppContext,
+    useAppState: () => useAppContext().state,
+    useAppDispatch: () => useAppContext().dispatch
   };
 });
 
@@ -308,6 +311,8 @@ jest.mock("@/shared/icons/agent", () => ({
 
 jest.mock("@/shared/data/desktop/desktopFileSystem", () => ({
   selectProjectFolder: jest.fn(),
+  selectWorkspaceDirectory: jest.fn(),
+  canUseDesktopFileSystemBridge: jest.fn(() => false),
     openRegisteredAgentDirectory: jest.fn()
 }));
 
@@ -378,10 +383,18 @@ describe("LeftSidebar", () => {
       addEventListener: jest.Mock;
       removeEventListener: jest.Mock;
       open: jest.Mock;
+      innerWidth: number;
       location: {
         pathname: string;
         search: string;
       };
+    };
+    document?: {
+      documentElement: Record<string, never>;
+      getElementById: (id: string) => null;
+    };
+    getComputedStyle?: (element: unknown) => {
+      getPropertyValue: (name: string) => string;
     };
     CustomEvent?: typeof CustomEvent;
   };
@@ -549,11 +562,19 @@ describe("LeftSidebar", () => {
       addEventListener: jest.fn(),
       removeEventListener: jest.fn(),
       open: jest.fn(),
+      innerWidth: 1440,
       location: {
         pathname: "/",
         search: ""
     }
     };
+    globalWithWindow.document = {
+      documentElement: {},
+      getElementById: () => null,
+    };
+    globalWithWindow.getComputedStyle = () => ({
+      getPropertyValue: () => "",
+    });
     globalWithWindow.CustomEvent = class CustomEventMock<T = unknown> extends Event {
       detail: T;
 
@@ -1400,6 +1421,7 @@ describe("LeftSidebar", () => {
 
     expect(html).toContain("打开工作目录");
     expect(menu?.items?.map((item) => item.key)).toEqual([
+      "openProject",
       "openWorkspace",
       "openConfigDirectory",
       "renameAgent",
@@ -1424,6 +1446,7 @@ describe("LeftSidebar", () => {
 
     expect(html).toContain("删除智能体");
     expect(menu?.items?.map((item) => item.key)).toEqual([
+      "openProject",
       "openWorkspace",
       "openConfigDirectory",
       "renameAgent",
@@ -1450,6 +1473,7 @@ describe("LeftSidebar", () => {
     expect(expandedMenus).toHaveLength(2);
     expandedMenus.forEach((menu) => {
       expect(menu.items.map((item: any) => item.key)).toEqual([
+        "openProject",
         "openWorkspace",
         "openConfigDirectory",
         "renameAgent",
@@ -1469,6 +1493,7 @@ describe("LeftSidebar", () => {
     );
     expect(collapsedMenus).toHaveLength(1);
     expect(collapsedMenus[0].items.map((item: any) => item.key)).toEqual([
+      "openProject",
       "openWorkspace",
       "openConfigDirectory",
       "renameAgent",
