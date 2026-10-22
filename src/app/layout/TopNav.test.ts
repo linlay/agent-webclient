@@ -91,9 +91,9 @@ describe("TopNav", () => {
 		const html = renderToStaticMarkup(React.createElement(TopNav));
 
 		expect(html).toContain('id="api-status"');
-		expect(html).toContain(">idle<");
+		expect(html).toContain(">待命<");
 		expect(html).toContain("is-idle");
-		expect(html).not.toContain("WebSocket connection error");
+		expect(html).not.toContain("WebSocket 握手失败");
 	});
 
 	it("renders run errors with detailed title", () => {
@@ -117,12 +117,12 @@ describe("TopNav", () => {
 
 		const html = renderToStaticMarkup(React.createElement(TopNav));
 
-		expect(html).toContain(">error<");
+		expect(html).toContain(">运行异常<");
 		expect(html).toContain("is-error");
-		expect(html).toContain("The model service quota is exhausted.");
+		expect(html).toContain("模型服务额度已用尽");
 		expect(html).not.toContain("model request failed");
-		expect(html).toContain('title="error:');
-		expect(html).toContain('aria-label="error:');
+		expect(html).toContain('title="运行异常:');
+		expect(html).toContain('aria-label="运行异常:');
 	});
 
 	it("renders streaming status as running", () => {
@@ -200,8 +200,8 @@ describe("TopNav", () => {
 	it("does not render usage stats when there is no usage snapshot and not streaming", () => {
 		const html = renderToStaticMarkup(React.createElement(TopNav));
 
-		expect(html).not.toContain("Usage stats");
-		expect(html).not.toContain("Open usage stats");
+		expect(html).not.toContain("用量统计");
+		expect(html).not.toContain("打开用量统计");
 	});
 
 	it.each(["GENERAL", "CODER", "KBASE", "TEAM"])("renders the project browser action for a %s agent with a Workspace", (mode) => {
@@ -212,7 +212,7 @@ describe("TopNav", () => {
 
 		const html = renderToStaticMarkup(React.createElement(TopNav));
 
-		expect(html).toContain('aria-label="Open project files"');
+		expect(html).toContain('aria-label="打开项目文件"');
 		expect(html).toContain('data-material-icon="folder_open"');
 	});
 
@@ -245,7 +245,7 @@ describe("TopNav", () => {
 
 		const html = renderToStaticMarkup(React.createElement(TopNav));
 
-		expect(html).not.toContain('aria-label="Open project files"');
+		expect(html).not.toContain('aria-label="打开项目文件"');
 	});
 
 	it("renders usage entry with chat total from the latest snapshot", () => {
@@ -276,12 +276,12 @@ describe("TopNav", () => {
 
 		const html = renderToStaticMarkup(React.createElement(TopNav));
 
-		expect(html).toContain("Open usage stats");
+		expect(html).toContain("打开用量统计");
 		expect(html).toContain(">50</span>");
 		expect(html).toContain('aria-label="3.7K"');
 		expect(html).not.toContain("1.2K");
-		expect(html).not.toContain("Cache hit");
-		expect(html).not.toContain("Current call");
+		expect(html).not.toContain("缓存命中率");
+		expect(html).not.toContain("本次调用");
 	});
 
 	it("renders the real context percent when current size exceeds the max", () => {
@@ -333,7 +333,7 @@ describe("TopNav", () => {
 		const html = renderToStaticMarkup(React.createElement(TopNav));
 
 		expect(html).toContain(">--%</span>");
-		expect(html).toContain("Total: 200,000");
+		expect(html).toContain("总量: 200,000");
 		expect(html).toContain("--usage-context-percent:0%");
 	});
 
@@ -366,7 +366,7 @@ describe("TopNav", () => {
 
 		expect(html).toContain('aria-label="3.7K"');
 		expect(html).toContain(">50</span>");
-		expect(html).not.toContain('aria-label="Usage"');
+		expect(html).not.toContain(">用量<");
 	});
 
 	it("renders usage popover placeholders while waiting for the first streaming snapshot", () => {
@@ -412,15 +412,15 @@ describe("TopNav", () => {
 
 		const html = renderToStaticMarkup(React.createElement(TopNav));
 
-		expect(html).toContain("Usage stats");
-		expect(html).toContain("Ctx Window");
-		expect(html).toContain("Current call");
-		expect(html).toContain("Latest run");
-		expect(html).toContain("Chat total");
-		expect(html).toContain("<span>Cache hit:</span><strong>--%</strong>");
-		expect(html).toContain("<span>Total cost:</span><strong>--</strong>");
-		expect(html).toContain("<span class=\"usage-metric-label\">In</span><strong class=\"usage-metric-value\">-</strong>");
-		expect(html).not.toContain("Waiting for usage stats");
+		expect(html).toContain("用量统计");
+		expect(html).toContain("上下文窗口");
+		expect(html).toContain("本次调用");
+		expect(html).toContain("最新运行累计");
+		expect(html).toContain("对话累计");
+		expect(html).toContain("<span>缓存命中率:</span><strong>--%</strong>");
+		expect(html).toContain("<span>总花费:</span><strong>--</strong>");
+		expect(html).toContain("<span class=\"usage-metric-label\">输入</span><strong class=\"usage-metric-value\">-</strong>");
+		expect(html).not.toContain("等待用量统计事件");
 	});
 
 	it("renders the compact action after the context window value", () => {
@@ -445,7 +445,7 @@ describe("TopNav", () => {
 
 		const html = renderToStaticMarkup(React.createElement(TopNav));
 		const contextValueIndex = html.indexOf(">128,000</strong>");
-		const compactIndex = html.indexOf(">Comp.</span>");
+		const compactIndex = html.indexOf(">压缩</span>");
 
 		expect(html).toContain("usage-context-compact-btn");
 		expect(contextValueIndex).toBeGreaterThan(-1);
@@ -548,9 +548,9 @@ describe("TopNav", () => {
 		const html = renderToStaticMarkup(React.createElement(TopNav));
 
 		expect(html).toContain(">50%</span>");
-		expect(html).toContain('aria-label="Cache hit"');
-		expect(html).toContain("<span>Cache hit:</span><strong>--%</strong>");
-		expect(html).toContain("<span>Total cost:</span><strong>--</strong>");
+		expect(html).toContain('aria-label="缓存命中率"');
+		expect(html).toContain("<span>缓存命中率:</span><strong>--%</strong>");
+		expect(html).toContain("<span>总花费:</span><strong>--</strong>");
 
 		useAppState.mockReturnValue({
 			...state,
@@ -572,8 +572,8 @@ describe("TopNav", () => {
 		const missingHtml = renderToStaticMarkup(React.createElement(TopNav));
 
 		expect(missingHtml).toContain(">50%</span>");
-		expect(missingHtml).toContain('aria-label="Cache hit"');
-		expect(missingHtml).toContain("<span>Cache hit:</span><strong>--%</strong>");
+		expect(missingHtml).toContain('aria-label="缓存命中率"');
+		expect(missingHtml).toContain("<span>缓存命中率:</span><strong>--%</strong>");
 	});
 
 	it("calculates popover cache hit rate from chat totals instead of current call or run totals", () => {
@@ -602,7 +602,7 @@ describe("TopNav", () => {
 
 		const html = renderToStaticMarkup(React.createElement(TopNav));
 
-		expect(html).toContain("<span>Cache hit:</span><strong>25.00%</strong>");
+		expect(html).toContain("<span>缓存命中率:</span><strong>25.00%</strong>");
 		expect(html).not.toContain('aria-label="99%"');
 		expect(html).not.toContain('aria-label="90%"');
 	});
@@ -634,9 +634,9 @@ describe("TopNav", () => {
 
 		const html = renderToStaticMarkup(React.createElement(TopNav));
 
-		expect(html).toContain("<span>Cache hit:</span><strong>25.00%</strong>");
-		expect(html).toContain('aria-label="Total cost"');
-		expect(html).toContain("<span>Total cost:</span><strong>CN¥0.0003</strong>");
+		expect(html).toContain("<span>缓存命中率:</span><strong>25.00%</strong>");
+		expect(html).toContain('aria-label="总花费"');
+		expect(html).toContain("<span>总花费:</span><strong>¥0.0003</strong>");
 	});
 
 	it("renders chat estimated cost in yuan when it is over ten fen", () => {
@@ -660,7 +660,7 @@ describe("TopNav", () => {
 
 		const html = renderToStaticMarkup(React.createElement(TopNav));
 
-		expect(html).toContain("<span>Total cost:</span><strong>CN¥0.1234</strong>");
+		expect(html).toContain("<span>总花费:</span><strong>¥0.1234</strong>");
 	});
 
 	it("renders chat estimated cost with a dollar sign for USD", () => {
@@ -684,7 +684,7 @@ describe("TopNav", () => {
 
 		const html = renderToStaticMarkup(React.createElement(TopNav));
 
-		expect(html).toContain("<span>Total cost:</span><strong>$0.01</strong>");
+		expect(html).toContain("<span>总花费:</span><strong>US$0.01</strong>");
 	});
 
 	it("renders historical chat usage with an empty current call section", () => {
@@ -713,20 +713,20 @@ describe("TopNav", () => {
 
 		const html = renderToStaticMarkup(React.createElement(TopNav));
 
-		expect(html).toContain("<span>Cache hit:</span><strong>44.49%</strong>");
-		expect(html).not.toContain("1.2K tokens");
-		expect(html).toContain("Current call");
-		expect(html).toContain("Current call");
+		expect(html).toContain("<span>缓存命中率:</span><strong>44.49%</strong>");
+		expect(html).not.toContain("1.2K词元");
+		expect(html).toContain("本次调用");
+		expect(html).toContain("本次调用");
 		expect(html).toContain("usage-metric-grid");
-		expect(html).toContain("<span class=\"usage-metric-label\">In</span><strong class=\"usage-metric-value\">-</strong>");
-		expect(html).toContain("Chat total");
+		expect(html).toContain("<span class=\"usage-metric-label\">输入</span><strong class=\"usage-metric-value\">-</strong>");
+		expect(html).toContain("对话累计");
 		expect(html).toContain("1,200");
 		expect(html).toContain("400");
 		expect(html).toContain("499");
 		expect(html).toContain("33");
-		expect(html.match(/LLM calls/g)).toHaveLength(1);
-		expect(html.match(/Tool calls/g)).toHaveLength(1);
-		expect(html).not.toContain("Current call</h3><span");
+		expect(html.match(/LLM 调用/g)).toHaveLength(1);
+		expect(html.match(/工具调用/g)).toHaveLength(1);
+		expect(html).not.toContain("本次调用</h3><span");
 	});
 
 	it("renders compact usage tool call counts", () => {
@@ -754,12 +754,12 @@ describe("TopNav", () => {
 
 		const html = renderToStaticMarkup(React.createElement(TopNav));
 
-		expect(html).toContain("Context compaction");
-		expect(html).toContain("LLM calls");
-		expect(html).toContain("Tool calls");
+		expect(html).toContain("上下文压缩");
+		expect(html).toContain("LLM 调用");
+		expect(html).toContain("工具调用");
 		expect(html).toContain("<strong>2</strong>");
 		expect(html).toContain("<strong>4</strong>");
-		expect(html).not.toContain("Speed");
+		expect(html).not.toContain("速率");
 	});
 
 	it("derives live output speed and shows zero tool calls when tool count is missing", () => {
@@ -815,12 +815,12 @@ describe("TopNav", () => {
 		expect(html).toContain("<strong>21.0/s</strong>");
 		expect(html).toContain("<strong>20.0/s</strong>");
 		expect(html).toContain("<strong>30.0/s</strong>");
-		expect(html.match(/First/g)).toHaveLength(3);
-		expect(html.match(/Tool calls/g)).toHaveLength(3);
+		expect(html.match(/首字/g)).toHaveLength(3);
+		expect(html.match(/工具调用/g)).toHaveLength(3);
 		expect(html.match(/<strong>0<\/strong>/g)).toHaveLength(3);
-		const firstTokenIndex = html.indexOf("First");
-		const firstOutputSpeedIndex = html.indexOf("Speed");
-		const firstToolCallsIndex = html.indexOf("Tool calls");
+		const firstTokenIndex = html.indexOf("首字");
+		const firstOutputSpeedIndex = html.indexOf("速率");
+		const firstToolCallsIndex = html.indexOf("工具调用");
 		expect(firstTokenIndex).toBeGreaterThan(-1);
 		expect(firstTokenIndex).toBeLessThan(firstOutputSpeedIndex);
 		expect(firstOutputSpeedIndex).toBeLessThan(firstToolCallsIndex);
@@ -892,43 +892,43 @@ describe("TopNav", () => {
 
 		const html = renderToStaticMarkup(React.createElement(TopNav));
 
-		expect(html).toContain("Usage stats");
+		expect(html).toContain("用量统计");
 		expect(html).toContain("deepseek-chat");
-		expect(html).toContain("· High");
-		expect(html).toContain("Ctx Window");
+		expect(html).toContain("· 高");
+		expect(html).toContain("上下文窗口");
 		expect(html).toContain(">50%</span>");
 		expect(html).toContain("64,000");
 		expect(html).toContain("128,000");
-		expect(html).toContain("Used: 64,000; Total: 128,000; Percentage: 50.00%");
-		expect(html).toContain("Current call");
-		expect(html).toContain("Latest run");
-		expect(html).toContain("Chat total");
-		expect(html).toContain("Prompt");
-		expect(html).toContain("Completion");
-		expect(html).toContain("Total");
-		expect(html).toContain("Reasoning");
-		expect(html).toContain("Cache hit");
-		expect(html).toContain("Cache miss");
-		expect(html).toContain("First");
+		expect(html).toContain("已使用: 64,000; 总量: 128,000; 百分比: 50.00%");
+		expect(html).toContain("本次调用");
+		expect(html).toContain("最新运行累计");
+		expect(html).toContain("对话累计");
+		expect(html).toContain("输入");
+		expect(html).toContain("输出");
+		expect(html).toContain("总计");
+		expect(html).toContain("推理");
+		expect(html).toContain("缓存命中");
+		expect(html).toContain("缓存未命中");
+		expect(html).toContain("首字");
 		expect(html).toContain("<strong>820ms</strong>");
 		expect(html).toContain("<strong>780ms</strong>");
 		expect(html).toContain("<strong>900ms</strong>");
-		expect(html.match(/First/g)).toHaveLength(3);
-		expect(html.match(/Speed/g)).toHaveLength(3);
+		expect(html.match(/首字/g)).toHaveLength(3);
+		expect(html.match(/速率/g)).toHaveLength(3);
 		expect(html).toContain("<strong>21.0/s</strong>");
 		expect(html).toContain("<strong>18.0/s</strong>");
 		expect(html).toContain("<strong>9.9/s</strong>");
-		expect(html.match(/LLM calls/g)).toHaveLength(3);
-		expect(html.match(/Tool calls/g)).toHaveLength(3);
-		const firstTokenIndex = html.indexOf("First");
-		const firstOutputSpeedIndex = html.indexOf("Speed");
-		const firstLlmCallsIndex = html.indexOf("LLM calls");
-		const firstToolCallsIndex = html.indexOf("Tool calls");
+		expect(html.match(/LLM 调用/g)).toHaveLength(3);
+		expect(html.match(/工具调用/g)).toHaveLength(3);
+		const firstTokenIndex = html.indexOf("首字");
+		const firstOutputSpeedIndex = html.indexOf("速率");
+		const firstLlmCallsIndex = html.indexOf("LLM 调用");
+		const firstToolCallsIndex = html.indexOf("工具调用");
 		expect(firstTokenIndex).toBeGreaterThan(-1);
 		expect(firstTokenIndex).toBeLessThan(firstOutputSpeedIndex);
 		expect(firstOutputSpeedIndex).toBeLessThan(firstLlmCallsIndex);
 		expect(firstLlmCallsIndex).toBeLessThan(firstToolCallsIndex);
-		expect(html).toContain("Close usage stats");
+		expect(html).toContain("关闭用量统计");
 		expect(html).not.toContain(">close<");
 	});
 
@@ -941,7 +941,7 @@ describe("TopNav", () => {
 
 		const html = renderToStaticMarkup(React.createElement(TopNav));
 
-		expect(html).toContain(">error<");
+		expect(html).toContain(">运行异常<");
 		expect(html).toContain("is-error");
 	});
 
@@ -953,14 +953,14 @@ describe("TopNav", () => {
 
 		const html = renderToStaticMarkup(React.createElement(TopNav));
 
-		expect(html).toContain(">idle<");
+		expect(html).toContain(">待命<");
 		expect(html).toContain("is-idle");
 	});
 
 	it("does not render the debug panel button by default", () => {
 		const html = renderToStaticMarkup(React.createElement(TopNav));
 
-		expect(html).not.toContain("Open debug panel");
+		expect(html).not.toContain("打开调试面板");
 		expect(html).not.toContain("bug_report");
 	});
 
@@ -971,7 +971,7 @@ describe("TopNav", () => {
 
 		const html = renderToStaticMarkup(React.createElement(TopNav));
 
-		expect(html).toContain("Open debug panel");
+		expect(html).toContain("打开调试面板");
 		expect(html).toContain("bug_report");
 	});
 

@@ -194,11 +194,11 @@ describe("EventPopover collect controls", () => {
 
     const html = renderToStaticMarkup(React.createElement(EventPopover));
 
-    expect(html).toContain('aria-label="Collect event snapshot"');
-    expect(html).toContain('aria-label="Open copy menu"');
-    expect(html).toContain('aria-label="Close event details"');
+    expect(html).toContain('aria-label="收集事件快照"');
+    expect(html).toContain('aria-label="打开复制菜单"');
+    expect(html).toContain('aria-label="关闭事件详情"');
     expect(html).toContain(
-      `Time: ${formatReadableTimestamp(1776518171300)}`,
+      `时间: ${formatReadableTimestamp(1776518171300)}`,
     );
     expect(html).toContain("reasoning.delta");
     expect(html).not.toContain("#0 reasoning.delta");
@@ -225,7 +225,7 @@ describe("EventPopover collect controls", () => {
 
     expect(html).toContain(">run.start</strong>");
     expect(html).toContain(
-      `Time: ${formatReadableTimestamp(1776518171300)}`,
+      `时间: ${formatReadableTimestamp(1776518171300)}`,
     );
     expect(html).not.toContain("#20 run.start");
     expect(html).not.toContain("runId: run_1");
@@ -257,7 +257,7 @@ describe("EventPopover collect controls", () => {
 
     expect(html).toContain("reasoning.delta");
     expect(html).not.toContain("reasoningId: r1");
-    expect(html).toContain('aria-label="Collect event snapshot"');
+    expect(html).toContain('aria-label="收集事件快照"');
     expect(html).not.toContain("other");
   });
 
@@ -277,9 +277,9 @@ describe("EventPopover collect controls", () => {
 
     const html = renderToStaticMarkup(React.createElement(EventPopover));
 
-    expect(html).toContain('aria-label="Open copy menu"');
-    expect(html).toContain('aria-label="Close event details"');
-    expect(html).not.toContain('aria-label="Collect event snapshot"');
+    expect(html).toContain('aria-label="打开复制菜单"');
+    expect(html).toContain('aria-label="关闭事件详情"');
+    expect(html).not.toContain('aria-label="收集事件快照"');
   });
 
   it("renders system prompt action for historical run.start without debug.llmChat", () => {
@@ -300,7 +300,7 @@ describe("EventPopover collect controls", () => {
 
     const html = renderToStaticMarkup(React.createElement(EventPopover));
 
-    expect(html).toContain('aria-label="System Prompt"');
+    expect(html).toContain('aria-label="系统提示词（System Prompt）"');
   });
 
   it("renders system prompt action for debug.llmChat without requiring a trace file", () => {
@@ -322,7 +322,7 @@ describe("EventPopover collect controls", () => {
 
     const html = renderToStaticMarkup(React.createElement(EventPopover));
 
-    expect(html).toContain('aria-label="System Prompt"');
+    expect(html).toContain('aria-label="系统提示词（System Prompt）"');
   });
 
   it("does not render system prompt action when the run identity is incomplete", () => {
@@ -343,7 +343,7 @@ describe("EventPopover collect controls", () => {
 
     const html = renderToStaticMarkup(React.createElement(EventPopover));
 
-    expect(html).not.toContain('aria-label="System Prompt"');
+    expect(html).not.toContain('aria-label="系统提示词（System Prompt）"');
   });
 
   it("renders raw JSONL copy button for chat.start events with chatId", () => {
@@ -362,7 +362,7 @@ describe("EventPopover collect controls", () => {
 
     const html = renderToStaticMarkup(React.createElement(EventPopover));
 
-    expect(html).toContain('aria-label="Copy chat JSONL"');
+    expect(html).toContain('aria-label="复制聊天 JSONL"');
   });
 
   it("renders raw JSONL copy button for run.start events with chatId", () => {
@@ -382,7 +382,7 @@ describe("EventPopover collect controls", () => {
 
     const html = renderToStaticMarkup(React.createElement(EventPopover));
 
-    expect(html).toContain('aria-label="Copy chat JSONL"');
+    expect(html).toContain('aria-label="复制聊天 JSONL"');
   });
 
   it("does not render raw JSONL copy button for non-chat/run events", () => {
@@ -402,7 +402,7 @@ describe("EventPopover collect controls", () => {
 
     const html = renderToStaticMarkup(React.createElement(EventPopover));
 
-    expect(html).not.toContain('aria-label="Copy chat JSONL"');
+    expect(html).not.toContain('aria-label="复制聊天 JSONL"');
   });
 
   it("does not render raw JSONL copy button when chatId is empty", () => {
@@ -421,7 +421,7 @@ describe("EventPopover collect controls", () => {
 
     const html = renderToStaticMarkup(React.createElement(EventPopover));
 
-    expect(html).not.toContain('aria-label="Copy chat JSONL"');
+    expect(html).not.toContain('aria-label="复制聊天 JSONL"');
   });
 });
 
