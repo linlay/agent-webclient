@@ -27,7 +27,7 @@ jest.mock("@/shared/ui/CodeEditor", () => ({
 }));
 jest.mock("@/shared/data", () => ({
   ApiError: jest.requireActual("@/shared/data/api/http").ApiError,
-  deleteConnector: jest.fn(), getAdminConnectors: jest.fn(), getAdminTools: jest.fn(), getConnectorDefinition: jest.fn(), updateConnectorDefinition: jest.fn(), importConnectorArchive: jest.fn(),
+  invalidateAgentDetail: jest.fn(), deleteConnector: jest.fn(), getAdminConnectors: jest.fn(), getAdminTools: jest.fn(), getConnectorDefinition: jest.fn(), updateConnectorDefinition: jest.fn(), importConnectorArchive: jest.fn(),
   getConnectorSkills: jest.fn(), getConnectorSkillDetail: jest.fn(),
   getConnectorAuthStatus: jest.fn(), startConnectorAuth: jest.fn(), cancelConnectorAuth: jest.fn(), logoutConnectorAuth: jest.fn(),
 }));
@@ -377,9 +377,10 @@ it("preserves connector order on save failure and reads remote pins when focused
 
 
 it.each([
-  { locale: "zh-CN" as const, more: "Demo connector 的更多操作", action: "删除", cleanup: "全部本地授权和 CLI 依赖、配置、缓存与数据", reinstall: "重新导入后需重新准备和登录", irreversible: "原状态无法恢复" },
-  { locale: "en-US" as const, more: "More actions for Demo connector", action: "Delete", cleanup: "all local credentials, and CLI dependencies, configuration, caches, and data", reinstall: "you must set it up and log in again", irreversible: "previous state cannot be restored" },
-])("explains local state deletion in one confirmation ($locale)", async ({ locale, more, action, cleanup, reinstall, irreversible }) => {
+  { locale: "zh-CN" as const, more: "Demo connector 的更多操作", action: "删除", countText: "3 个智能体", detachText: "自动移除挂载" },
+  { locale: "en-US" as const, more: "More actions for Demo connector", action: "Delete", countText: "3 Agents", detachText: "remove their mounts" },
+])("briefly confirms the mount count and automatic detachment ($locale)", async ({ locale, more, action, countText, detachText }) => {
+  jest.mocked(getAdminConnectors).mockResolvedValue({ code: 0, msg: "", data: { connectors: [{ ...item, mountedAgentCount: 3 }] } });
   await mount(locale);
   jest.spyOn(window, "confirm").mockReturnValue(false);
   const moreAction = container.querySelector<HTMLButtonElement>(`button[aria-label="${more}"]`);
@@ -389,10 +390,9 @@ it.each([
   expect(window.confirm).toHaveBeenCalledTimes(1);
   const prompt = jest.mocked(window.confirm).mock.calls[0][0];
   expect(prompt).toContain(item.name);
-  expect(prompt).toContain(item.id);
-  expect(prompt).toContain(cleanup);
-  expect(prompt).toContain(reinstall);
-  expect(prompt).toContain(irreversible);
+  expect(prompt).toContain(countText);
+  expect(prompt).toContain(detachText);
+  expect(prompt.length).toBeLessThan(150);
   expect(deleteConnector).not.toHaveBeenCalled();
 });
 
@@ -402,7 +402,6 @@ it("confirms the package identity before deleting and leaves the list usable aft
   await openMore("Demo connector");
   await clickMenu("删除");
   expect(window.confirm).toHaveBeenCalledWith(expect.stringContaining("Demo connector"));
-  expect(window.confirm).toHaveBeenCalledWith(expect.stringContaining("demo"));
   expect(deleteConnector).not.toHaveBeenCalled();
   jest.mocked(window.confirm).mockReturnValue(true);
   jest.mocked(deleteConnector).mockResolvedValueOnce({ code: 0, msg: "", data: { id: "demo", deleted: true } });
@@ -457,7 +456,7 @@ it.each([false, true])("displays blocking Agent names from an HTTP envelope (str
   await openMore("Demo connector");
   await clickMenu("删除");
   expect(detail().querySelector('[role="alert"]')?.textContent).toContain("researcher, coder");
-  expect(detail().textContent).toContain("取消挂载");
+  expect(detail().textContent).toContain("请结束后重试");
   expect(container.querySelector("aside strong")?.textContent).toBe(item.name);
 });
 

@@ -4,7 +4,7 @@ import { useBlocker } from "react-router-dom";
 import { usePushTransport } from "@/features/transport/hooks/useRealtimeTransport";
 import { fetchConnectorCatalog, isConnectorCatalogUpdate } from "@/features/connectors/lib/connectorCatalog";
 import { parseConnectorDefinition } from "@/features/connectors/lib/connectorDefinition";
-import { ApiError, deleteConnector, getConnectorDefinition, importConnectorArchive, importConnectorMCP, updateConnectorDefinition } from "@/shared/data";
+import { ApiError, invalidateAgentDetail, deleteConnector, getConnectorDefinition, importConnectorArchive, importConnectorMCP, updateConnectorDefinition } from "@/shared/data";
 import type { AdminToolSummary, ConnectorDefinition, ConnectorDefinitionFile, ConnectorSummary, ImportConnectorMCPRequest } from "@/shared/data";
 import { useI18n } from "@/shared/i18n";
 import { connectorNavigationPath, type ConnectorNavigationApproval } from "../lib/connectorNavigation";
@@ -248,7 +248,8 @@ export function useConnectorsRuntime(routeId: string, onRouteIdChange: (id: stri
     catalogRequest.current += 1;
     catalogBusy.current = false;
     try {
-      await deleteConnector(targetId);
+      try { await deleteConnector(targetId); }
+      finally { invalidateAgentDetail(); }
       if (isSelected) {
         detailRequest.current += 1;
         dirtyRef.current = false;
@@ -292,7 +293,7 @@ export function useConnectorsRuntime(routeId: string, onRouteIdChange: (id: stri
     const target = id ? items.find(item => item.id === id) : selected;
     if (!target || pendingDeletion || savingRef.current || importingRef.current || deletingRef.current) return null;
     if (target.canDelete === false || target.readOnly === true || target.builtin === true) return null;
-    const prompt = t("connectors.delete.confirm", { name: target.name, id: target.id })
+    const prompt = t((target.mountedAgentCount ?? 0) > 0 ? "connectors.delete.confirmMounted" : "connectors.delete.confirm", { name: target.name, id: target.id, count: target.mountedAgentCount ?? 0 })
       + (target.id === selectedId && dirtyRef.current ? "\n\n" + t("connectors.delete.unsaved") : "");
     if (!window.confirm(prompt)) return null;
     return deleteTarget(target);

@@ -167,3 +167,8 @@ Standalone 业务“去对话”在准备/挂载前确认未保存修改，确�
 ### 管理工具归属
 
 `GET /api/admin/connectors` 每项新增 `tools: ToolSummary[]`，包含原生连接器固定所属工具和该连接器各已挂载 MCP 实例的工具快照；MCP 工具保留 `serverKey/mcpToolName`，使用 `mcp[].agentKey` 隔离当前 Agent。`label/description` 从注册定义读取并按现有查看者语言规则解析，隐藏翻译表不回传。`catalogVisible:false` 不阻止所属连接器内展示，但不开放无归属的内部工具。前端连接器列表与详情不再请求 `/api/admin/tools`；该接口只用于独立工具配置，排除原生连接器工具与 MCP 工具。工具详情缺失不在前端硬编码补全。`bash/file_read` 等通用依赖不因被连接器使用而变成连接器所属工具。
+
+
+### 删除与自动解除挂载
+
+连接器目录的 `mountedAgentCount` 表示已保存挂载的智能体数量。删除确认框简短展示数量，确认后由 Platform 自动移除 agent.yml 中该连接器的挂载并删除包。活动 Run、子任务、终端或保留的运行租约仍占用时返回 409 `connector_in_use`；前端显示删除失败，不主动终止运行。确认期间新增运行同样由提交时校验拒绝。内置包与全局／mode 预置挂载继续受保护。删除完成或请求失败后使 Agent 详情缓存失效，避免继续使用旧挂载投影。

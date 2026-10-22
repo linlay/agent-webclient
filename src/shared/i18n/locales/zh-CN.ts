@@ -599,13 +599,14 @@ export const zhCNMessages = {
   "route.title.connectors": "连接器中心",
   "connectors.delete.action": "删除",
   "connectors.delete.confirm":
-    "确定删除连接器“{name}”（{id}）吗？将删除安装包、组件、技能，以及全部本地授权和 CLI 依赖、配置、缓存与数据。重新导入后需重新准备和登录，原状态无法恢复。",
+    "确定删除连接器“{name}”？",
+  "connectors.delete.confirmMounted": "当前有 {count} 个智能体挂载，删除将自动移除挂载。确定删除连接器“{name}”？",
   "connectors.delete.unsaved": "当前未保存的配置修改也会丢弃。",
   "connectors.delete.success": "连接器 {id} 已删除",
   "connectors.delete.cleanupPending": "连接器“{name}”（{id}）已卸载，本地状态清理未完成，请重试。",
   "connectors.delete.retryCleanup": "重试清理",
   "connectors.delete.inUse":
-    "连接器仍被以下 Agent 使用：{agents}。请先在 Agent 管理中取消挂载，并等待正在使用该连接器的运行或终端结束后重试。",
+    "删除失败：有运行或终端正在占用此连接器，请结束后重试。相关智能体：{agents}。",
   "connectors.action.refresh": "刷新列表",
   "connectors.action.retry": "重试",
   "connectors.action.reload": "重新加载配置",
