@@ -3,6 +3,7 @@ import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { ShareHtmlPreview } from "./ShareHtmlPreview";
 import type { SnapshotAttachmentV1 } from "./conversationSnapshotV1";
+import { buildShareAttachmentLinks } from "./shareAttachmentLinks";
 
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true, TextDecoder: require("util").TextDecoder });
 const html: SnapshotAttachmentV1 = { id: "1".repeat(24), sourceRef: "report.html", name: "report.html", mimeType: "text/html", mediaRefs: { "image.png": "2".repeat(24), "missing.png": "4".repeat(24) } };
@@ -13,7 +14,7 @@ const omissions = [{ id: "4".repeat(24), sourceRef: "missing.png", name: "missin
 let host: HTMLDivElement, root: Root;
 const originalFetch = globalThis.fetch;
 const response = (type: string, bytes = new ArrayBuffer(1)) => ({ ok: true, headers: new Headers({ "content-type": type }), arrayBuffer: async () => bytes });
-const preview = `/share/probe/attachments/${html.id}/preview`;
+const links = buildShareAttachmentLinks("/share/probe", html.id, window.location.origin);
 let fetchMock: jest.Mock;
 
 beforeEach(() => {
@@ -23,7 +24,7 @@ beforeEach(() => {
   globalThis.fetch = fetchMock;
 });
 afterEach(() => { act(() => root.unmount()); host.remove(); globalThis.fetch = originalFetch; });
-function render() { act(() => root.render(<ShareHtmlPreview attachment={html} attachments={files} omittedResources={omissions} preview={preview} locale="en-US" />)); return host.querySelector("iframe")!; }
+function render() { act(() => root.render(<ShareHtmlPreview attachment={html} attachments={files} omittedResources={omissions} links={links} locale="en-US" />)); return host.querySelector("iframe")!; }
 function ready(frame: HTMLIFrameElement, port: { postMessage: jest.Mock; close: jest.Mock }, origin = "null", source: Window | null = frame.contentWindow) {
   window.dispatchEvent(new MessageEvent("message", { origin, source, data: { type: "conversation-html-ready" }, ports: [port as unknown as MessagePort] }));
 }
@@ -61,6 +62,7 @@ it("aborts an in-flight delivery on navigation and does not deliver to the repla
   await act(async () => finish(response("text/html")));
   expect(port.postMessage).not.toHaveBeenCalled();
   expect(host.textContent).toContain("cannot be displayed");
+  expect(host.querySelector("a")?.getAttribute("href")).toBe(links.download);
 });
 
 it("removes its frame and cancels reads when closed", async () => {

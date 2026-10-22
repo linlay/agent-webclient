@@ -1,10 +1,10 @@
 import React, { useEffect, useRef, useState } from "react";
 import { conversationExportMessages, type ConversationExportLocale } from "@/shared/i18n/conversationExport";
 import type { SnapshotAttachmentV1, SnapshotOmittedResource } from "./conversationSnapshotV1";
-import { buildShareAttachmentLinks, conversationSharePath } from "./shareAttachmentLinks";
+import { buildShareAttachmentLinks, conversationSharePath, type ShareAttachmentLinks } from "./shareAttachmentLinks";
 import { shareMediaKind } from "./shareResources";
 import type { ShareHtmlPayload } from "./shareHtmlDocument";
-import styles from "./ShareAttachmentViewer.module.css";
+import styles from "./ShareAttachmentContent.module.css";
 
 async function readFile(file: SnapshotAttachmentV1, url: string, signal: AbortSignal): Promise<ArrayBuffer> {
   const response = await fetch(url, { credentials: "same-origin", redirect: "error", signal });
@@ -17,11 +17,11 @@ async function readFile(file: SnapshotAttachmentV1, url: string, signal: AbortSi
 }
 
 /** One frame, one document-bound channel, one fixed payload. No guest requests are serviced. */
-export function ShareHtmlPreview({ attachment, attachments, omittedResources, preview, locale }: {
+export function ShareHtmlPreview({ attachment, attachments, omittedResources, links: { preview, download }, locale }: {
   attachment: SnapshotAttachmentV1;
   attachments: SnapshotAttachmentV1[];
-  omittedResources: SnapshotOmittedResource[];
-  preview: string;
+  omittedResources?: SnapshotOmittedResource[];
+  links: ShareAttachmentLinks;
   locale: ConversationExportLocale;
 }) {
   const host = useRef<HTMLDivElement>(null);
@@ -61,7 +61,7 @@ export function ShareHtmlPreview({ attachment, attachments, omittedResources, pr
         const html = new TextDecoder("utf-8", { fatal: true }).decode(await readFile(attachment, links(attachment.id).download, controller.signal));
         const payload: ShareHtmlPayload = { html, mediaRefs: Object.entries(attachment.mediaRefs ?? {}), media: [], missing: [], unavailable: labels.loadFailed };
         const resources = new Map(attachments.map((file) => [file.id, file]));
-        const omitted = new Map(omittedResources.map((item) => [item.id, item]));
+        const omitted = new Map(omittedResources?.map((item) => [item.id, item]));
         for (const id of new Set(Object.values(attachment.mediaRefs ?? {}))) {
           if (controller.signal.aborted) return;
           const file = resources.get(id);
@@ -101,6 +101,6 @@ export function ShareHtmlPreview({ attachment, attachments, omittedResources, pr
     return close;
   }, [attachment, attachments, omittedResources, preview, labels]);
   return <div className={styles.htmlPreview} ref={host}>
-    {failed && <p role="status">{labels.loadFailed}</p>}
+    {failed && <p role="status">{labels.loadFailed} <a href={download}>{labels.download}</a></p>}
   </div>;
 }

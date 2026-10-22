@@ -1,16 +1,17 @@
 import React, { useState } from "react";
 import { shareMediaKind } from "./shareResources";
 import type { SnapshotAttachmentV1 } from "./conversationSnapshotV1";
-import styles from "./ShareAttachmentViewer.module.css";
+import styles from "./ShareAttachmentContent.module.css";
 
 /** Native read-only media; a decoding failure stays inside this resource. */
-export function ShareMediaPreview({ attachment, url, unavailable }: {
+export function ShareMediaPreview({ attachment, url, download, unavailable }: {
   attachment: SnapshotAttachmentV1;
   url: string;
+  download?: string;
   unavailable: string;
 }) {
   const [failedURL, setFailedURL] = useState<string | null>(null);
-  if (!url || failedURL === url) return <span role="status">{attachment.name} — {unavailable}</span>;
+  if (!url || failedURL === url) return <span role="status">{download ? <a href={download}>{attachment.name}</a> : attachment.name} — {unavailable}</span>;
   const onError = () => setFailedURL(url);
   switch (shareMediaKind(attachment.mimeType)) {
     case "image": return <img className={styles.image} src={url} alt={attachment.name} onError={onError} />;

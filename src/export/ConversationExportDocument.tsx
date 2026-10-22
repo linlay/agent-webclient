@@ -61,6 +61,8 @@ export const ConversationExportDocument: React.FC<ConversationExportDocumentProp
       ...(task.subAgentIconName ? { icon: { name: task.subAgentIconName } } : {}) }] : [])), [snapshot]);
   const attachments = useMemo(() => new Map(snapshot.attachments.map((attachment) =>
     [attachment.sourceRef, attachment])), [snapshot.attachments]);
+  const publishedAttachments = snapshot.attachments.filter((attachment) =>
+    /^artifacts\/[^/]+\/[^/]+$/u.test(attachment.sourceRef));
   const omissions = useMemo(() => new Map((snapshot.omittedResources ?? []).flatMap((item) =>
     item.sourceRef ? [[item.sourceRef, item] as const] : [])), [snapshot.omittedResources]);
   const findResource = (url: string | undefined) => attachments.get(canonicalChatSourceRef(url || "") || "");
@@ -124,22 +126,21 @@ export const ConversationExportDocument: React.FC<ConversationExportDocumentProp
             ? <ShareMediaPreview attachment={resource} url={attachmentLinks(resource.id).preview} unavailable={labels.loadFailed} />
             : resource.name);
         }} />
-      {snapshot.attachments.length > 0 && <section className={styles.attachments} aria-label={labels.attachments}>
+      {publishedAttachments.length > 0 && <section className={styles.attachments} aria-label={labels.attachments}>
         <h2>{labels.attachments}</h2>
-        {snapshot.attachments.map((attachment) => attachmentLink(attachment, attachment.name))}
+        {publishedAttachments.map((attachment) => attachmentLink(attachment, attachment.name))}
       </section>}
       {(snapshot.omittedResources?.length ?? 0) > 0 && <section className={styles.attachments} aria-label={labels.omitted}>
         <h2>{labels.omitted}</h2>
         <ul>{snapshot.omittedResources?.map((item, index) => <li key={item.id ?? index}>{item.name} — {labels.omission[item.reason]}</li>)}</ul>
       </section>}
-      <p className={styles.notice}>{labels.resourceScope}</p>
       <footer className={styles.footer}>{copy.readOnly}</footer>
     </div>
     {publicBrand && <PublicShareAppEntry brand={publicBrand} locale={snapshot.locale} />}
     {selected && <div className={styles.previewBackdrop} role="presentation" onClick={close}>
       <aside className={`${styles.previewPanel} ${expanded ? styles.previewExpanded : ""}`} role="dialog" aria-modal="true" aria-label={selected.name}
         onClick={(event) => event.stopPropagation()}>
-        <ShareAttachmentViewer attachments={snapshot.attachments} selectedId={selected.id}
+        <ShareAttachmentViewer attachments={snapshot.attachments} attachment={selected}
           omittedResources={snapshot.omittedResources} onSelect={setSelectedId} links={attachmentLinks(selected.id)} canReshare={canReshare} locale={snapshot.locale}>
           <Tooltip title={labels.openStandalone} trigger={["hover", "focus"]}>
             <a href={attachmentLinks(selected.id).page} target="_blank" rel="noopener noreferrer" aria-label={labels.openStandalone}>

@@ -70,8 +70,7 @@ try {
     <ExportErrorBoundary message={copy.failure}>
     <ConfigProvider csp={{ nonce }}>
       <I18nProvider locale={locale} persistLocale={false}>
-        {attachmentId !== null ? <ShareAttachmentPage snapshot={snapshot} initialAttachmentId={attachmentId}
-          sharePath={sharePath} origin={window.location.origin} canReshare={canReshare} /> :
+        {attachmentId !== null ? <ShareAttachmentPage snapshot={snapshot} attachmentId={attachmentId} sharePath={sharePath} /> :
           <ConversationExportDocument snapshot={snapshot} publicBrand={publicBrand} canReshare={canReshare} />}
       </I18nProvider>
     </ConfigProvider>

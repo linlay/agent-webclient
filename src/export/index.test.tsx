@@ -39,7 +39,7 @@ function boot(path: string, capability?: string) {
 it("selects the independent attachment page only for an online deep link", () => {
   const element = boot("/share/share-1?attachment=missing", "true");
   expect((element.type as React.FC).name).toBe("ShareAttachmentPage");
-  expect(element.props).toMatchObject({ initialAttachmentId: "missing", sharePath: "/share/share-1", canReshare: true });
+  expect(element.props).toEqual({ snapshot: expect.any(Object), attachmentId: "missing", sharePath: "/share/share-1" });
 });
 
 it.each([undefined, "", "false", "TRUE"])("does not enable resharing for capability %s", (capability) => {
@@ -55,5 +55,5 @@ it("keeps local export routing and disables online resharing even with an attach
 });
 
 it("routes an empty attachment parameter to the error-capable attachment page", () => {
-  expect(boot("/share/share-1?attachment=").props.initialAttachmentId).toBe("");
+  expect(boot("/share/share-1?attachment=").props.attachmentId).toBe("");
 });

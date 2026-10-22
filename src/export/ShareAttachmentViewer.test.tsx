@@ -38,7 +38,7 @@ afterEach(() => { act(() => root.unmount()); host.remove(); });
 
 function Viewer({ attachments = files, canReshare = true }: { attachments?: SnapshotAttachmentV1[]; canReshare?: boolean }) {
   const [id, setId] = React.useState(attachments[0].id);
-  return <ShareAttachmentViewer attachments={attachments} selectedId={id} onSelect={setId}
+  return <ShareAttachmentViewer attachments={attachments} attachment={attachments.find((item) => item.id === id)!} onSelect={setId}
     links={buildShareAttachmentLinks(sharePath, id, window.location.origin)} locale="zh-CN" canReshare={canReshare} />;
 }
 
@@ -184,30 +184,27 @@ it("does not display pending copy feedback after the viewer is closed", async ()
 const snapshot: ConversationSnapshotV1 = {
   version: 1, title: "Conversation", locale: "zh-CN", createdAt: 1, capturedAt: 1, turns: [], attachments: files,
 };
-const page = (id: string) => <ShareAttachmentPage snapshot={snapshot} initialAttachmentId={id}
-  sharePath={sharePath} origin={window.location.origin} canReshare />;
+const page = (attachmentId: string, data = snapshot) => <ShareAttachmentPage snapshot={data} attachmentId={attachmentId} sharePath={sharePath} />;
 
-it("opens the requested file, updates the URL without adding history, and restores it on reload", () => {
-  const historyLength = window.history.length;
-  act(() => root.render(page(files[1].id)));
+it.each(["text/html", "image/png", "audio/mpeg", "video/mp4"])("opens %s without a toolbar or history mutation and restores it on reload", (mimeType) => {
+  const data = { ...snapshot, attachments: [{ ...files[1], mimeType }] };
+  window.history.replaceState({}, "", `${sharePath}?attachment=${files[1].id}`);
+  const replaceState = jest.spyOn(window.history, "replaceState");
+  act(() => root.render(page(files[1].id, data)));
   expect(document.title).toBe(files[1].name);
-  expect(host.querySelector("iframe")?.title).toBe(files[1].name);
-  expect(button("展开")).toBeNull();
-  expect(host.querySelector('a[aria-label="独立打开"]')).toBeNull();
-  expect(button("关闭")).toBeNull();
-  selectFile(files[0].id);
-  expect(window.location.search).toBe(`?attachment=${files[0].id}`);
-  expect(window.history.length).toBe(historyLength);
-  expect(document.title).toBe(files[0].name);
+  expect(host.querySelector("iframe, img, audio, video")?.getAttribute("src")).toContain(`${files[1].id}/preview`);
+  expect(host.querySelector("header, button, a")).toBeNull();
+  expect(replaceState).not.toHaveBeenCalled();
+  replaceState.mockRestore();
   act(() => root.unmount());
   root = createRoot(host);
-  act(() => root.render(page(new URLSearchParams(window.location.search).get("attachment")!)));
-  expect(host.querySelector("iframe")?.title).toBe(files[0].name);
-  expect(host.querySelector('a[aria-label="返回对话"]')?.getAttribute("href")).toBe(sharePath);
+  act(() => root.render(page(new URLSearchParams(window.location.search).get("attachment")!, data)));
+  expect(host.querySelector("iframe, img, audio, video")?.getAttribute("src")).toContain(`${files[1].id}/preview`);
 });
 
 it.each(["", "missing", "../other"])("shows an error for invalid attachment %s without opening a fallback", (id) => {
   act(() => root.render(page(id)));
   expect(host.querySelector("iframe")).toBeNull();
   expect(host.querySelector('[role="alert"]')?.textContent).toContain("附件不存在或链接无效");
+  expect(host.querySelector("a")?.getAttribute("href")).toBe(sharePath);
 });

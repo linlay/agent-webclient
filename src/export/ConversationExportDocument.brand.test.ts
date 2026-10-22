@@ -25,7 +25,7 @@ jest.mock("@/features/conversation/components/ConversationPreview", () => {
   }) =>
     ReactRuntime.createElement("section", null,
       renderRunHeader({ runId: "run-one" }), renderRunHeader({ runId: "run-two" }),
-      renderMarkdown({ chatId: "", content: "[HTML](artifacts/run-1/page.html) [PDF](artifacts/run-1/report.pdf) [OLD](/api/resource?file=chat/artifacts/run-1/page.html) [NEW](<@chat/artifacts/run-1/报告 (1).pdf>) [MISSING](@chat/artifacts/run-1/absent.pdf)" })) };
+      renderMarkdown({ chatId: "", content: "[HTML](artifacts/run-1/page.html) [PDF](artifacts/run-1/report.pdf) [OLD](/api/resource?file=chat/artifacts/run-1/page.html) [NEW](<@chat/artifacts/run-1/报告 (1).pdf>) [MISSING](@chat/artifacts/run-1/absent.pdf) ![Generated](generated.png)" })) };
 });
 jest.mock("@/shared/ui/markdown-code/ConversationMarkdownCode", () => ({ ConversationMarkdownCode: () => null }));
 
@@ -79,6 +79,22 @@ it("previews HTML resources and offers other formal resources for download", () 
   expect(html).toContain('>PDF</a>');
   expect(html).not.toContain('>OLD</a>');
   expect(html).toContain("OLD — 附件不存在或链接无效");
+});
+
+it.each([false, true])("keeps inline media and lists only published files (published=%s)", (hasPublished) => {
+  window.history.replaceState({}, "", "/share/share-1");
+  const image = { id: "1".repeat(24), name: "generated.png", sourceRef: "generated.png", mimeType: "image/png" };
+  const published = hasPublished ? [{ id: "2".repeat(24), name: "page.html", sourceRef: "artifacts/run-1/page.html", mimeType: "text/html" }] : [];
+  const host = document.createElement("div");
+  host.innerHTML = renderToStaticMarkup(React.createElement(ConversationExportDocument, {
+    snapshot: { ...snapshot, attachments: [image, ...published] },
+  }));
+  const section = host.querySelector('section[aria-label="附件"]');
+  expect(Boolean(section)).toBe(hasPublished);
+  expect(Array.from(section?.querySelectorAll("a") ?? [], (link) => link.textContent))
+    .toEqual(published.map((item) => item.name));
+  expect(host.querySelector('img[alt="generated.png"]')?.getAttribute("src"))
+    .toBe(`/share/share-1/attachments/${image.id}/preview`);
 });
 
 // The body names a published file as "@chat/<literal path>", while the snapshot
