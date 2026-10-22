@@ -30,6 +30,8 @@ Document Surface 向 Desktop 宿主只提交当前可信 WorkPanel item 的 dirt
 
 ## 路由、标题与兼容
 
+Markdown 的 Chat 产物链接只从当前 Chat 的权威产物投影恢复来源身份。同一规范路径重复发布时，按发布时间选择最新产物；时间相同时使用投影中后出现的记录，不能因存在多个历史 artifactId 而改走另一套 Viewer。没有匹配记录时保留普通资源打开方式；路径规范化与 owner Chat 校验保持不变。
+
 `/file-viewer` 和 `/resource-viewer` 保留为历史入口，但内部都归一到 Document Surface。WorkPanel item 的稳定身份由来源决定，不因 Desktop native/WebClient renderer 变化而产生重复 Tab。
 
 File descriptor 标题固定使用“显式 title > path basename > `file`”。basename 同时识别 POSIX、Windows 和 UNC 分隔符，但不对路径做 URL decode；标题仍通过既有空白、控制字符和长度清理。

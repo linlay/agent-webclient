@@ -793,10 +793,42 @@ describe("published artifact resource links", () => {
     } }));
     expect(openDescriptor).not.toHaveBeenCalled();
   });
-  it("does not invent an identity for missing, ambiguous or other Chat artifacts", () => {
+  it.each([false, true])("opens the latest republication natively regardless of projection order (reverse=%s)", async (reverse) => {
+    const latest = { ...published, artifactId: "artifact-2", timestamp: 200, artifact: {
+      ...published.artifact, url: `@chat/${intent.file}`, name: "updated-dashboard.html", sizeBytes: 2,
+    } };
+    const unrelated = { ...published, artifactId: "artifact-other", timestamp: 300, artifact: {
+      ...published.artifact, url: "artifacts/run-2/dashboard.html",
+    } };
+    const artifacts = [published, latest, unrelated];
+    const resolved = resolvePublishedArtifactIntent(intent, "chat-1", reverse ? [...artifacts].reverse() : artifacts);
+    expect(resolved).toMatchObject({ kind: "artifact", artifactId: "artifact-2", resourceTarget: {
+      name: "updated-dashboard.html", mimeType: "text/html",
+    } });
+    const openNativeDocument = jest.fn().mockResolvedValue({ ok: true });
+    const openDescriptor = jest.fn();
+    openDesktopWorkPanelTarget({
+      intent: resolved,
+      workPanel: { openDescriptor, supportsNativeDocument: () => true, openNativeDocument },
+    });
+    await Promise.resolve();
+    expect(openNativeDocument).toHaveBeenCalledWith(expect.objectContaining({ source: {
+      kind: "artifact", chatId: "chat-1", agentKey: "agent-1", resourceId: "artifact-2", relativePath: intent.file,
+    } }));
+    expect(openDescriptor).not.toHaveBeenCalled();
+  });
+  it("resolves repeated identities and uses publication order when timestamps tie", () => {
+    expect(resolvePublishedArtifactIntent(intent, "chat-1", [published, published])).toMatchObject({
+      kind: "artifact", artifactId: "artifact-1",
+    });
+    expect(resolvePublishedArtifactIntent(intent, "chat-1", [published, { ...published, artifactId: "artifact-2" }])).toMatchObject({
+      kind: "artifact", artifactId: "artifact-2",
+    });
+  });
+  it("does not invent an identity for missing, invalid or other Chat artifacts", () => {
     expect(resolvePublishedArtifactIntent(intent, "chat-2", [published])).toBe(intent);
     expect(resolvePublishedArtifactIntent(intent, "chat-1", [])).toBe(intent);
-    expect(resolvePublishedArtifactIntent(intent, "chat-1", [published, published])).toBe(intent);
+    expect(resolvePublishedArtifactIntent(intent, "chat-1", [{ ...published, artifactId: "" }])).toBe(intent);
     const traversal = { ...intent, file: "artifacts/%252e%252e/dashboard.html" };
     expect(resolvePublishedArtifactIntent(traversal, "chat-1", [published])).toBe(traversal);
   });

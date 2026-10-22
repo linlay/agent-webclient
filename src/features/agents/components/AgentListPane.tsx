@@ -125,7 +125,6 @@ const SortableAgentListItem: React.FC<{
     id: sortableId,
     disabled: disabled || !agentKey,
   });
-  const isCoderMode = summary.mode.toUpperCase() === "CODER";
   const popoverContent = (
     <Flex vertical>
       <div className="agent-console-list-item-details">
@@ -230,17 +229,15 @@ const SortableAgentListItem: React.FC<{
       <span className="agent-console-list-item-main">
         <span className="agent-console-list-item-row agent-console-list-item-head">
           <strong>{name}</strong>
-          {invalid || !isCoderMode ? (
-            <span className="agent-console-list-item-head-meta">
-              {invalid ? (
-                <Tag color="error" style={{ marginRight: 0 }}>
-                  {t("agentConsole.status.invalid")}
-                </Tag>
-              ) : !isCoderMode ? (
-                agentKey || "--"
-              ) : null}
-            </span>
-          ) : null}
+          <span className="agent-console-list-item-head-meta">
+            {invalid ? (
+              <Tag color="error" style={{ marginRight: 0 }}>
+                {t("agentConsole.status.invalid")}
+              </Tag>
+            ) : (
+              agentKey || "--"
+            )}
+          </span>
         </span>
         <span className="agent-console-list-item-row agent-console-list-item-meta">
           <span>{summary.modelKey}</span>

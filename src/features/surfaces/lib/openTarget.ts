@@ -693,8 +693,11 @@ export function resolvePublishedArtifactIntent(
     return clean(entry.artifactId) && candidate.kind === "chat" &&
       decodeNativeResourceRelativePath(candidate.resourceKey, "artifact") === relativePath;
   });
-  if (matches.length !== 1) return intent;
-  const published = matches[0];
+  if (matches.length === 0) return intent;
+  // Re-publishing a path creates a new artifactId. Resolve the URL to its latest
+  // publication; equal timestamps follow the projection's publication order.
+  const published = matches.reduce((latest, entry) =>
+    entry.timestamp >= latest.timestamp ? entry : latest);
   const target = buildResourceViewerTargetFromUrl(published.artifact.url);
   if (!target) return intent;
   return {
