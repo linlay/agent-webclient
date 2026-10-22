@@ -91,7 +91,7 @@ export function shouldStartInitialWorkerRefresh(input: {
 }
 
 export function useWorkerData(input: {
-  loadChat: (chatId: string, options?: { focusComposerOnComplete?: boolean }) => Promise<void>;
+  loadChat: (chatId: string, options?: { focusComposerOnComplete?: boolean; forceReload?: boolean }) => Promise<void>;
   selectWorkerConversation: (workerKey: string, options?: {
     focusComposerOnComplete?: boolean;
     preferNewChat?: boolean;
@@ -333,7 +333,8 @@ export function useWorkerData(input: {
     const handler = (e: Event) => {
       const chatId = (e as CustomEvent).detail?.chatId;
       const focusComposerOnComplete = Boolean((e as CustomEvent).detail?.focusComposerOnComplete);
-      if (chatId) loadChat(chatId, { focusComposerOnComplete }).catch(() => undefined);
+      const forceReload = (e as CustomEvent).detail?.forceReload === true;
+      if (chatId) loadChat(chatId, { focusComposerOnComplete, ...(forceReload ? { forceReload } : {}) }).catch(() => undefined);
     };
     window.addEventListener('agent:load-chat', handler);
     return () => window.removeEventListener('agent:load-chat', handler);

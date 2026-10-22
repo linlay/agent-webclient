@@ -619,6 +619,29 @@ describe("createConversationPushHandler", () => {
 		expect(handleEvent).not.toHaveBeenCalled();
 	});
 
+	it("lets an awaiting.asking push run a pending attach cursor recovery now", async () => {
+		const state = createState({ accessToken: "token_local", chatId: "chat_active" });
+		const cursorRecovery = { nudge: jest.fn() };
+		const onPush = createConversationPushHandler({
+			dispatch,
+			stateRef: { current: state },
+			handleEvent,
+			cursorRecovery,
+		});
+		onPush(withPushContractTime({
+			frame: "push",
+			type: "awaiting.asking",
+			payload: { chatId: "chat_active", runId: "run_1", awaitingId: "await_1", createdAt: 1776830869957 },
+		}) as WsPushFrame);
+		onPush(withPushContractTime({
+			frame: "push",
+			type: "awaiting.answered",
+			payload: { chatId: "chat_active", runId: "run_1", awaitingId: "await_1", answeredAt: 1776830869958 },
+		}) as WsPushFrame);
+		expect(cursorRecovery.nudge).toHaveBeenCalledTimes(1);
+		expect(cursorRecovery.nudge).toHaveBeenCalledWith("chat_active");
+	});
+
 	it("upserts awaiting.asking push data into pending awaiting chat state", async () => {
 		const state = createState({ accessToken: "token_local", chatId: "chat_active" });
 
@@ -1020,7 +1043,7 @@ describe("registerAttachRunListener", () => {
 		restoreWindow();
 	});
 
-	function setupAttachTest(ensureClient?: () => Promise<PlatformFrameClient>) {
+	function setupAttachTest(ensureClient?: () => Promise<PlatformFrameClient>, cursorRecovery?: { expired: jest.Mock }) {
 		const streams: Array<{
 			options: Record<string, any>;
 			abort: jest.Mock;
@@ -1051,7 +1074,8 @@ describe("registerAttachRunListener", () => {
 			querySessionsRef,
 			chatQuerySessionIndexRef,
 			activeQuerySessionRequestIdRef,
-    runs: new PlatformRunTransport(ensureClient ?? (async () => wsClient as unknown as PlatformFrameClient))
+    runs: new PlatformRunTransport(ensureClient ?? (async () => wsClient as unknown as PlatformFrameClient)),
+			cursorRecovery,
 		});
 		return {
 			streams,
@@ -1409,6 +1433,35 @@ describe("registerAttachRunListener", () => {
 		expect(handleEvent).toHaveBeenCalledWith(event);
 		expect(streamMock).toHaveBeenCalledTimes(1);
 		expect(activeAttachRef.current).toBeNull();
+		cleanup();
+	});
+
+	it("schedules Chat recovery when Platform no longer retains the attach cursor", async () => {
+		const cursorRecovery = { expired: jest.fn() };
+		const { streams, activeAttachRef, cleanup } = setupAttachTest(undefined, cursorRecovery);
+		mockWindow.dispatchEvent(new MockCustomEvent("agent:attach-run", {
+    detail: { chatId: "chat_1", runId: "run_1", agentKey: "agent_alpha", lastSeq: 2 }
+		}));
+		await Promise.resolve();
+		streams[0].options.onError(Object.assign(new Error("SEQ_EXPIRED"), { code: "seq_expired" }));
+		await Promise.resolve();
+		await Promise.resolve();
+		expect(activeAttachRef.current).toBeNull();
+		expect(cursorRecovery.expired).toHaveBeenCalledWith("chat_1", "run_1");
+		cleanup();
+	});
+
+	it("does not schedule Chat recovery for other attach failures", async () => {
+		const cursorRecovery = { expired: jest.fn() };
+		const { streams, cleanup } = setupAttachTest(undefined, cursorRecovery);
+		mockWindow.dispatchEvent(new MockCustomEvent("agent:attach-run", {
+    detail: { chatId: "chat_1", runId: "run_1", agentKey: "agent_alpha" }
+		}));
+		await Promise.resolve();
+		streams[0].options.onError(new Error("WebSocket transport disconnected"));
+		await Promise.resolve();
+		await Promise.resolve();
+		expect(cursorRecovery.expired).not.toHaveBeenCalled();
 		cleanup();
 	});
 
