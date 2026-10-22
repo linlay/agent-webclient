@@ -235,16 +235,18 @@ it('does not cancel a sending entry while its run is active', async () => {
   expect(h.stateRef.current.pendingSteers['chat-a'][0].status).toBe('sending');
 });
 
-it('restores sending entries to the draft at run end', async () => {
+it('retains sending entries at run end and allows explicit recovery afterwards', async () => {
   mockSteer.mockRejectedValue(new Error('response lost'));
   const h = mount();
   await h.submit();
   const sendEvent = jest.spyOn(window, 'dispatchEvent');
   h.setState({ currentChatActiveRun: null, streaming: false });
   h.render(false);
+  expect(h.stateRef.current.pendingSteers['chat-a'][0].status).toBe('sending');
+  expect(sendEvent).not.toHaveBeenCalled();
+  h.cancel();
   expect(h.stateRef.current.pendingSteers['chat-a']).toBeUndefined();
   expect(h.stateRef.current.composerDraft).toBe('message from A');
-  expect(sendEvent).not.toHaveBeenCalled();
 });
 
 it('does not mistake switching from a running chat to an idle chat for run completion', () => {
@@ -260,7 +262,7 @@ it('does not mistake switching from a running chat to an idle chat for run compl
   expect(h.stateRef.current.pendingSteers['chat-a']).toHaveLength(1);
 });
 
-it('restores a queued message to the draft on actual run completion', () => {
+it('sends one queued message to its original chat on actual run completion', () => {
   const h = mount();
   const sendEvent = jest.spyOn(window, 'dispatchEvent');
   h.setState({
@@ -268,12 +270,12 @@ it('restores a queued message to the draft on actual run completion', () => {
     chatTransition: { seq: 1, targetChatId: 'chat-a', phase: 'ready', displayMode: 'background', error: '' },
   });
   h.render(false);
-  expect(sendEvent).not.toHaveBeenCalled();
+  expect(sendEvent).toHaveBeenCalledTimes(1);
+  expect((sendEvent.mock.calls[0][0] as CustomEvent).detail).toEqual({ chatId: 'chat-a', message: 'message from A', references: undefined });
   expect(h.stateRef.current.pendingSteers['chat-a']).toBeUndefined();
-  expect(h.stateRef.current.composerDraft).toBe('message from A');
 });
 
-it.each(['loading', 'applying', 'restoring', 'error'])('restores the draft regardless of the chat transition %s', phase => {
+it.each(['loading', 'applying', 'restoring', 'error'])('does not auto-send while the chat transition is %s', phase => {
   const h = mount();
   const sendEvent = jest.spyOn(window, 'dispatchEvent');
   h.setState({
@@ -282,11 +284,10 @@ it.each(['loading', 'applying', 'restoring', 'error'])('restores the draft regar
   });
   h.render(false);
   expect(sendEvent).not.toHaveBeenCalled();
-  expect(h.stateRef.current.pendingSteers['chat-a']).toBeUndefined();
-  expect(h.stateRef.current.composerDraft).toBe('message from A');
+  expect(h.stateRef.current.pendingSteers['chat-a']).toHaveLength(1);
 });
 
-it('does not restore if the observed run changed during the running-to-idle transition', () => {
+it('does not auto-send if the observed run changed during the running-to-idle transition', () => {
   const h = mount();
   const sendEvent = jest.spyOn(window, 'dispatchEvent');
   h.setState({ runId: 'another-run', currentChatActiveRun: null, streaming: false });
@@ -317,22 +318,22 @@ it('cancellation restores images once to their original chat', () => {
   expect(h.stateRef.current.restoredSteerReferencesByChatId['chat-b']).toBeUndefined();
 });
 
-it('restores queued images to the draft when the run completes', () => {
+it('carries queued images into a query when the run completes', () => {
   const h = mount();
   h.stateRef.current.pendingSteers['chat-a'][0].references = imageReferences;
   const sendEvent = jest.spyOn(window, 'dispatchEvent');
   h.setState({ currentChatActiveRun: null, streaming: false,
     chatTransition: { seq: 1, targetChatId: 'chat-a', phase: 'ready', displayMode: 'background', error: '' } });
   h.render(false);
-  expect(sendEvent).not.toHaveBeenCalled();
-  expect(h.stateRef.current.pendingSteers['chat-a']).toBeUndefined();
-  expect(h.stateRef.current.restoredSteerReferencesByChatId['chat-a']).toEqual(imageReferences);
+  expect((sendEvent.mock.calls[0][0] as CustomEvent).detail).toEqual(expect.objectContaining({
+    chatId: 'chat-a', references: imageReferences, attachments: [expect.objectContaining({ name: 'image.png', url: 'image.png' })],
+  }));
 });
 
 const selectionReferences = [{ id: 'selection-a', type: 'selection', name: 'Selected text',
   mimeType: 'text/plain', text: 'selected text', meta: { sourceKind: 'message' } }];
 
-it('restores rejected selections and restores them again when the queued steer is abandoned at run end', async () => {
+it('restores rejected selections and preserves them when the queued steer becomes a query', async () => {
   mockSteer.mockResolvedValue({ data: { accepted: false, status: 'invalid_reference' } });
   const h = mount();
   h.stateRef.current.pendingSteers['chat-a'][0].references = selectionReferences;
@@ -345,9 +346,9 @@ it('restores rejected selections and restores them again when the queued steer i
   next.setState({ currentChatActiveRun: null, streaming: false,
     chatTransition: { seq: 1, targetChatId: 'chat-a', phase: 'ready', displayMode: 'background', error: '' } });
   next.render(false);
-  expect(sendEvent).not.toHaveBeenCalled();
-  expect(next.stateRef.current.pendingSteers['chat-a']).toBeUndefined();
-  expect(next.stateRef.current.restoredSteerReferencesByChatId['chat-a']).toEqual(selectionReferences);
+  expect((sendEvent.mock.calls[0][0] as CustomEvent).detail).toMatchObject({
+    references: selectionReferences, attachments: [expect.objectContaining({ type: 'selection', meta: selectionReferences[0].meta })],
+  });
 });
 
 it('restores canceled selections once and projects accepted selections in the timeline', async () => {
@@ -388,6 +389,7 @@ it('restores file-only queued steers when the run ends without starting a query'
  expect(h.stateRef.current.pendingSteers['chat-a']).toBeUndefined();
  expect(h.stateRef.current.restoredSteerReferencesByChatId['chat-a']).toEqual(refs);
  expect(sendEvent.mock.calls.some(([event]) => event.type==='agent:send-message')).toBe(false);
+ expect(mockMessageApi.warning).toHaveBeenCalledWith('composer.steer.addText');
 });
 it('does not convert file-only input to a query if the active run has ended before send', () => {
  const h=mount({sendReferences:[{type:'file',name:'notes.md',url:'notes.md'}]});
@@ -398,7 +400,7 @@ it('does not convert file-only input to a query if the active run has ended befo
  expect(sendEvent.mock.calls.some(([event]) => event.type==='agent:send-message')).toBe(false);
 });
 
-it('restores file-only entries and text steers to the draft when the run ends', () => {
+it('restores file-only entries even behind a text steer when the run ends', () => {
  const h=mount();
  const refs=[{type:'file',name:'notes.md',url:'notes.md'}];
  h.stateRef.current.pendingSteers['chat-a'].push({steerId:'files',runId:'run-a',requestId:'files',message:'',references:refs,status:'queued',createdAt:1});
@@ -406,10 +408,10 @@ it('restores file-only entries and text steers to the draft when the run ends', 
  h.setState({currentChatActiveRun:null,streaming:false,
  chatTransition:{seq:1,targetChatId:'chat-a',phase:'ready',displayMode:'background',error:''}});
  h.render(false);
- expect(sendEvent.mock.calls.some(([event])=>event.type==='agent:send-message')).toBe(false);
- expect(h.stateRef.current.pendingSteers['chat-a']).toBeUndefined();
- expect(h.stateRef.current.composerDraft).toBe('message from A');
  expect(h.stateRef.current.restoredSteerReferencesByChatId['chat-a']).toEqual(refs);
+ const messages=sendEvent.mock.calls.filter(([event])=>event.type==='agent:send-message');
+ expect(messages).toHaveLength(1);
+ expect((messages[0][0] as CustomEvent).detail.message).toBe('message from A');
 });
 
 it('queues a selection-only steer and confirms it with its reference intact', () => {
@@ -449,16 +451,17 @@ it.each(['cancel', 'reject'] as const)('restores a selection-only steer after %s
   expect(h.stateRef.current.pendingSteers['chat-a']).toBeUndefined();
 });
 
-it.each([[imageReferences], [selectionReferences]])('restores queued references to the draft after a confirmed run', references => {
+it.each([[imageReferences], [selectionReferences]])('starts a follow-up query with queued references after a confirmed run', references => {
   const h = mount();
   h.stateRef.current.events = [{ type: 'request.query', chatId: 'chat-a', runId: 'run-a' }, { type: 'run.complete', chatId: 'chat-a', runId: 'run-a' }];
   Object.assign(h.stateRef.current.pendingSteers['chat-a'][0], { message: '', references });
   const sendEvent = jest.spyOn(window, 'dispatchEvent');
   h.setState({ currentChatActiveRun: null, streaming: false });
   h.render(false);
-  expect(sendEvent.mock.calls.some(([event]) => event.type === 'agent:send-message')).toBe(false);
-  expect(h.stateRef.current.pendingSteers['chat-a']).toBeUndefined();
-  expect(h.stateRef.current.restoredSteerReferencesByChatId['chat-a']).toEqual(references);
+  const messages = sendEvent.mock.calls.filter(([event]) => event.type === 'agent:send-message');
+  expect(messages).toHaveLength(1);
+  expect((messages[0][0] as CustomEvent).detail).toMatchObject({ message: '', references, chatId: 'chat-a' });
+  expect(h.stateRef.current.restoredSteerReferencesByChatId['chat-a']).toBeUndefined();
 });
 
 it('allows reference-only send after the active run ends, using persisted history', () => {
@@ -594,50 +597,86 @@ const readyTransition = {
   seq: 1, targetChatId: 'chat-a', phase: 'ready', displayMode: 'background', error: '',
 };
 
-it.each(['loading', 'applying', 'restoring'])('restores the draft at run end even before %s becomes ready', phase => {
+it.each(['loading', 'applying', 'restoring'])('resumes a queued query once after %s becomes ready', phase => {
   const h = mount();
   const spy = jest.spyOn(window, 'dispatchEvent');
   h.setState({
     currentChatActiveRun: null, streaming: false, chatTransition: { ...readyTransition, phase },
   });
   h.render(false);
-  expect(h.stateRef.current.pendingSteers['chat-a']).toBeUndefined();
-  expect(h.stateRef.current.composerDraft).toBe('message from A');
+  expect(h.stateRef.current.pendingSteers['chat-a']).toHaveLength(1);
   expect(spy).not.toHaveBeenCalled();
+  h.setState({ chatTransition: readyTransition });
+  h.render(false);
+  h.render(false);
+  expect(spy.mock.calls.filter(([event]) => event.type === 'agent:send-message')).toHaveLength(1);
+  expect(h.stateRef.current.pendingSteers['chat-a']).toBeUndefined();
 });
 
-it.each(['chat-switch', 'new-run'])('does not restore on a %s between the running and idle edges', change => {
+it.each(['chat-switch', 'new-run'])('invalidates delayed continuation after %s', change => {
   const h = mount();
   const spy = jest.spyOn(window, 'dispatchEvent');
+  h.setState({
+    currentChatActiveRun: null, streaming: false,
+    chatTransition: { ...readyTransition, phase: 'restoring' },
+  });
+  h.render(false);
   h.setState(change === 'chat-switch'
-    ? { chatId: 'chat-b', currentChatActiveRun: null, streaming: false }
-    : { runId: 'run-b', currentChatActiveRun: null, streaming: false });
+    ? { chatId: 'chat-b', chatTransition: null }
+    : { runId: 'run-b', chatTransition: readyTransition });
+  h.render(false);
+  // Returning to the old identity must not resurrect its consumed edge.
+  h.setState({ chatId: 'chat-a', runId: 'run-a', chatTransition: readyTransition });
   h.render(false);
   expect(spy).not.toHaveBeenCalled();
   expect(h.stateRef.current.pendingSteers['chat-a']).toHaveLength(1);
 });
 
-it('restores the queued message at run end regardless of the surface gate', () => {
+it('waits for the surface gate before removing the queued message', () => {
   const h = mount();
   const spy = jest.spyOn(window, 'dispatchEvent');
   h.setState({
     currentChatActiveRun: null, streaming: false, chatSurfaceBlocked: true,
   });
   h.render(false);
-  expect(h.stateRef.current.pendingSteers['chat-a']).toBeUndefined();
-  expect(h.stateRef.current.composerDraft).toBe('message from A');
+  expect(h.stateRef.current.pendingSteers['chat-a']).toHaveLength(1);
   expect(spy).not.toHaveBeenCalled();
+  h.setState({ chatSurfaceBlocked: false });
+  h.render(false);
+  expect(spy.mock.calls.filter(([event]) => event.type === 'agent:send-message')).toHaveLength(1);
 });
 
-it('restores all queued messages to the draft at run end instead of draining them as queries', () => {
-  const h = mount();
+it('starts one real query per completed run while draining multiple queued messages', async () => {
+  const completions: Array<() => void> = [];
+  mockStartQuery.mockImplementation(input => {
+    const runId = 'follow-up-' + mockStartQuery.mock.calls.length;
+    return {
+      identity: Promise.resolve({ chatId: 'chat-a', runId, owner: { kind: 'agent', agentKey: 'agent-a' } }),
+      completion: new Promise(resolve => completions.push(() => {
+        input.onEvent({ type: 'run.complete', chatId: 'chat-a', runId, timestamp: Date.now() });
+        resolve({ reason: 'done', lastSeq: 1 });
+      })),
+      detach: jest.fn(),
+    };
+  });
+  const h = mount({}, true);
   h.dispatch({ type: 'ENQUEUE_PENDING_STEER', chatId: 'chat-a', steer: {
     steerId: 'second', runId: 'run-a', requestId: 'second', message: 'second message', status: 'queued', createdAt: 2,
   } });
-  const spy = jest.spyOn(window, 'dispatchEvent');
-  h.setState({ currentChatActiveRun: null, streaming: false });
+  h.setState({ chatTransition: { ...readyTransition, phase: 'restoring' } });
+  h.event({ type: 'run.complete', chatId: 'chat-a', runId: 'run-a', timestamp: Date.now() });
   h.render(false);
-  expect(spy.mock.calls.some(([event]) => event.type === 'agent:send-message')).toBe(false);
+  expect(mockStartQuery).not.toHaveBeenCalled();
+  h.setState({ chatTransition: readyTransition });
+  await act(async () => { h.render(false); });
+  expect(mockStartQuery).toHaveBeenCalledTimes(1);
+  expect(mockStartQuery).toHaveBeenLastCalledWith(expect.objectContaining({ message: 'message from A', chatId: 'chat-a' }));
+  h.render(true);
+  expect(h.stateRef.current.pendingSteers['chat-a']).toHaveLength(1);
+  await act(async () => { completions[0](); });
+  await act(async () => { h.render(false); });
+  expect(mockStartQuery).toHaveBeenCalledTimes(2);
+  expect(mockStartQuery).toHaveBeenLastCalledWith(expect.objectContaining({ message: 'second message', chatId: 'chat-a' }));
   expect(h.stateRef.current.pendingSteers['chat-a']).toBeUndefined();
-  expect(h.stateRef.current.composerDraft).toBe('message from A\n\nsecond message');
+  await act(async () => { completions[1](); });
 });
