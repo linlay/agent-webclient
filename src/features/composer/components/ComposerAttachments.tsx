@@ -1,5 +1,7 @@
 import React from "react";
+import { useOpenTarget } from "@/features/surfaces/hooks/useOpenTarget";
 import { AttachmentCard } from "@/features/artifacts/components/AttachmentCard";
+import { SkillIcon } from "@/features/skills/components/SkillIcon";
 import { ReferenceCard } from "@/features/artifacts/components/ReferenceCard";
 import type { ComposerAttachment } from "@/features/composer/lib/composerAttachments";
 import { getComposerAttachmentSubtitle } from "@/features/composer/lib/composerAttachments";
@@ -54,6 +56,7 @@ export const ComposerAttachments: React.FC<ComposerAttachmentsProps> = ({
   onScroll,
 }) => {
   const { t } = useI18n();
+  const openTarget = useOpenTarget();
   const activeSkills = skills ?? [];
 
   return (
@@ -74,9 +77,10 @@ export const ComposerAttachments: React.FC<ComposerAttachmentsProps> = ({
                   type: attachment.type,
                   url: attachment.resourceUrl,
                 }}
+                openTarget={openTarget}
                 variant="composer"
                 density={useUnifiedComposerAttachmentRow ? "compact" : "default"}
-                skillIcon={attachment.type === "skill" ? resolveSkillIconUrl(activeSkills, String((attachment.references[0] as { id?: string } | undefined)?.id || attachment.id.split(":").slice(1).join(":"))) : undefined}
+                skillIcon={attachment.type === "skill" ? <SkillIcon icon={resolveSkillIconUrl(activeSkills, String((attachment.references[0] as { id?: string } | undefined)?.id || attachment.id.split(":").slice(1).join(":")))} size={34} glyphSize={19} fallback="build" /> : undefined}
                 onRemove={attachment.id.startsWith("forced:") ? undefined : () => onRemoveAttachment(attachment.id)}
               />
             ) : (

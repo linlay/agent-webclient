@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+const { checkExportModules } = require("./conversation-export-boundary");
 const crypto = require("node:crypto");
 const fs = require("node:fs");
 const path = require("node:path");
@@ -199,39 +200,11 @@ for (const match of externalAssets) {
   );
 }
 
-const auditedSources = [
-  "src/export/index.tsx",
-  "src/export/styleNonce.ts",
-  "src/export/ConversationExportDocument.tsx",
-  "src/export/conversationSnapshotV1.ts",
-  "src/features/conversation/components/ConversationPreview.tsx",
-  "src/features/timeline/components/ConversationStage.tsx",
-  "src/features/timeline/components/ContentBlock.tsx",
-  "src/features/timeline/components/UserBubble.tsx",
-  "src/features/timeline/components/ToolPill.tsx",
-  "src/shared/i18n/conversationExport.ts",
-  "src/shared/icons/agentIconAssets.ts",
-  "src/shared/ui/ConversationMarkdown.tsx",
-];
-for (const relativePath of auditedSources) {
-  const source = fs.readFileSync(path.join(repoRoot, relativePath), "utf8");
-  const permittedAttachmentProbe = relativePath === "src/export/ConversationExportDocument.tsx"
-    && source.includes('fetch(attachmentRoute(selected.id, "preview"), {')
-    && source.includes('method: "HEAD"');
-  assert(
-    !/\b(?:XMLHttpRequest|WebSocket|EventSource)\b/u.test(source)
-      && (!/\bfetch\b/u.test(source) ||
-        (permittedAttachmentProbe && (source.match(/\bfetch\b/gu) || []).length === 1)),
-    `${relativePath} contains a network API.`,
-  );
-  assert(
-    !/src\/app|ConnectedConversationStage|useOpenTarget|useAppMessage|useAppState/u.test(source),
-    `${relativePath} crosses the export boundary.`,
-  );
-  assert(!/useDesktopContextMenuTarget|registerDesktopContextMenuTarget/u.test(source),
-    `${relativePath} imports the Desktop context menu runtime.`);
-  assert(!source.includes("dangerouslySetInnerHTML"), `${relativePath} injects raw markup.`);
-}
+const graph = JSON.parse(fs.readFileSync(path.join(repoRoot, "dist/export-module-graph.json"), "utf8"));
+checkExportModules(repoRoot, graph.modules);
+assert(JSON.stringify(graph.assets) === JSON.stringify(manifestFiles), "Export assets differ from the audited webpack output.");
+assert(manifestFiles.includes("html-preview-bootstrap.js"), "HTML bootstrap must belong to the immutable asset set.");
+assert(fs.statSync(path.join(assetRoot, "runtime.js")).size <= 2 * 1024 * 1024, "Export runtime exceeds 2 MiB.");
 
 const configuredTunnelRoot = String(process.env.CONVERSATION_EXPORT_TUNNEL_ROOT || "").trim();
 const tunnelRoot = configuredTunnelRoot

@@ -4,7 +4,6 @@ import { Popover } from "antd";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { useI18n } from "@/shared/i18n";
 import type { SelectedTextFragment } from "@/features/selection/lib/selectedTextReference";
-import { locateSelectedTextReference } from "@/shared/data/desktop/selectedTextLocate";
 
 export function removeAllSelectedTextFragments(
   fragments: readonly SelectedTextFragment[],
@@ -33,7 +32,8 @@ export const SelectedTextFragmentsPill: React.FC<{
    * 但每行不再冒充"点了就跳回原文"的按钮。
    */
   locatable?: boolean;
-}> = ({ fragments, variant, onRemove, locatable = true }) => {
+  onLocate?: (referenceId: string, targetId: string) => void;
+}> = ({ fragments, variant, onRemove, locatable = true, onLocate }) => {
   const { t } = useI18n();
   const [open, setOpen] = React.useState(false);
   const handleDismissAnnotations = React.useCallback(
@@ -48,15 +48,15 @@ export const SelectedTextFragmentsPill: React.FC<{
   // 如果这条引用被折叠面板藏了起来，先让时间线展开面板，再等标记回来。
   const handleLocate = React.useCallback((fragment: SelectedTextFragment) => {
     setOpen(false);
-    locateSelectedTextReference(fragment.reference.id, fragment.targetId);
-  }, []);
+    onLocate?.(fragment.reference.id, fragment.targetId);
+  }, [onLocate]);
   const content = useMemo(
     () => (
       <div className={withModuleClasses("selected-text-fragments-popover")}>
         {fragments.map((fragment, index) => {
           const label = fragment.reference.annotationIndex ?? index + 1;
           // 定位收在同一处行属性里：不可定位时整行退回普通展示，连 role / title 都不再声明。
-          const locateProps: React.HTMLAttributes<HTMLDivElement> = locatable
+          const locateProps: React.HTMLAttributes<HTMLDivElement> = locatable && onLocate
             ? {
                 role: "button",
                 tabIndex: 0,
@@ -75,7 +75,7 @@ export const SelectedTextFragmentsPill: React.FC<{
             <div
               className={withModuleClasses(
                 "selected-text-fragment-row",
-                locatable ? "" : "selected-text-fragment-row-static",
+                locatable && onLocate ? "" : "selected-text-fragment-row-static",
               )}
               key={fragment.reference.id}
               {...locateProps}
@@ -124,7 +124,7 @@ export const SelectedTextFragmentsPill: React.FC<{
         })}
       </div>
     ),
-    [fragments, locatable, onRemove, handleLocate, t],
+    [fragments, locatable, onLocate, onRemove, handleLocate, t],
   );
 
   if (fragments.length === 0) return null;

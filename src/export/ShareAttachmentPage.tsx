@@ -1,44 +1,31 @@
-import React, { useEffect, useState } from "react";
-import { Tooltip } from "antd";
-import { MaterialIcon } from "@/shared/ui/MaterialIcon";
+import React, { useEffect } from "react";
 import { conversationExportMessages } from "@/shared/i18n/conversationExport";
 import type { ConversationSnapshotV1 } from "./conversationSnapshotV1";
 import { buildShareAttachmentLinks } from "./shareAttachmentLinks";
-import { ShareAttachmentViewer } from "./ShareAttachmentViewer";
+import { ShareAttachmentContent } from "./ShareAttachmentContent";
 import styles from "./ShareAttachmentPage.module.css";
 
 interface ShareAttachmentPageProps {
   snapshot: ConversationSnapshotV1;
-  initialAttachmentId: string;
+  attachmentId: string;
   sharePath: string;
-  origin: string;
-  canReshare: boolean;
 }
 
 export const ShareAttachmentPage: React.FC<ShareAttachmentPageProps> = ({
-  snapshot, initialAttachmentId, sharePath, origin, canReshare,
+  snapshot, attachmentId, sharePath,
 }) => {
-  const [selectedId, setSelectedId] = useState(initialAttachmentId);
-  const attachment = snapshot.attachments.find((item) => item.id === selectedId);
+  const attachment = snapshot.attachments.find((item) => item.id === attachmentId);
+  const omitted = snapshot.omittedResources?.find((item) => item.id === attachmentId);
   const labels = conversationExportMessages[snapshot.locale].attachments;
-  const links = buildShareAttachmentLinks(sharePath, selectedId, origin);
+  const links = buildShareAttachmentLinks(sharePath, attachmentId, window.location.origin);
   useEffect(() => {
-    if (attachment && links.page) {
-      window.history.replaceState(window.history.state, "", links.page);
-      document.title = attachment.name;
-    } else {
-      document.title = labels.notFound;
-    }
+    document.title = attachment && links.page ? attachment.name : labels.notFound;
   }, [attachment, links.page, labels.notFound]);
 
   return <main className={styles.page}>
-    {attachment && links.page ? <ShareAttachmentViewer attachments={snapshot.attachments}
-      selectedId={selectedId} onSelect={setSelectedId} links={links} canReshare={canReshare} locale={snapshot.locale}>
-      <Tooltip title={labels.backToConversation} trigger={["hover", "focus"]}>
-        <a href={sharePath} aria-label={labels.backToConversation}><MaterialIcon name="chevron_left" aria-hidden="true" /></a>
-      </Tooltip>
-    </ShareAttachmentViewer> : <div className={styles.error} role="alert">
-      <p>{labels.notFound}</p>{sharePath && <a href={sharePath}>{labels.backToConversation}</a>}
+    {attachment && links.page ? <ShareAttachmentContent attachment={attachment} attachments={snapshot.attachments}
+      omittedResources={snapshot.omittedResources} links={links} locale={snapshot.locale} /> : <div className={styles.error} role="alert">
+      <p>{omitted ? `${omitted.name} — ${labels.omission[omitted.reason]}` : labels.notFound}</p>{sharePath && <a href={sharePath}>{labels.backToConversation}</a>}
     </div>}
   </main>;
 };

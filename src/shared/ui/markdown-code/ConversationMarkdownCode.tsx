@@ -1,5 +1,7 @@
 import React, {
   useCallback,
+  useEffect,
+  useRef,
   useMemo,
   useState,
 } from "react";
@@ -83,13 +85,19 @@ export const ConversationMarkdownCode: React.FC<ConversationMarkdownCodeProps> =
   const autoPreviewHtml = canPreviewHtml && isCompleteHtmlDocument(text);
   const receivingHtml = htmlPreview && language === "html" && streamStatus === "loading" && isStreaming;
   const [activeKey, setActiveKey] = useState<string | string[] | null>(null);
-  const handleCopy = useCallback(
-    (event: React.MouseEvent): void => {
-      event.stopPropagation();
-      void Promise.resolve(copyCode ? copyCode(text) : copyWebText(text));
-    },
-    [copyCode, text],
-  );
+  const [copyStatus, setCopyStatus] = useState("");
+  const copyRequest = useRef(0);
+  useEffect(() => () => { copyRequest.current += 1; }, [text]);
+  const handleCopy = useCallback(async (event: React.MouseEvent) => {
+    event.stopPropagation();
+    const request = ++copyRequest.current;
+    try {
+      await (copyCode ? copyCode(text) : copyWebText(text));
+      if (!copyCode && request === copyRequest.current) setCopyStatus(t("timeline.toolPill.copy.copied"));
+    } catch {
+      if (!copyCode && request === copyRequest.current) setCopyStatus(t("timeline.toolPill.copy.failed"));
+    }
+  }, [copyCode, text, t]);
 
   if (!block) {
     return <code {...rest}>{children}</code>;
@@ -137,6 +145,7 @@ export const ConversationMarkdownCode: React.FC<ConversationMarkdownCodeProps> =
                     <MaterialIcon name="content_copy" />
                   </UiButton>
                 </Tooltip>
+                {!copyCode && copyStatus && <span role="status">{copyStatus}</span>}
                 {extraActions}
               </Flex>
             ),

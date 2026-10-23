@@ -4,7 +4,7 @@ import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { SelectedTextFragmentsPill } from "@/features/selection/components/SelectedTextFragmentsPill";
 import { createSelectedTextFragment, notifySelectedTextReferencesAccepted } from "@/features/selection/lib/selectedTextReference";
-import { SELECTED_TEXT_REFERENCE_FOCUS_EVENT } from "@/shared/data/desktop/selectedTextLocate";
+import { SELECTED_TEXT_REFERENCE_FOCUS_EVENT, locateSelectedTextReference } from "@/shared/data/desktop/selectedTextLocate";
 
 import { useSelectedTextFragments } from "@/features/selection/hooks/useSelectedTextFragments";
 
@@ -89,7 +89,7 @@ it("renders fragment copies with their annotations but without an editable input
   fragment.reference.annotation = "please simplify";
   try {
     act(() => root.render(React.createElement(SelectedTextFragmentsPill, {
-      fragments:[fragment], variant:"annotations", onRemove: jest.fn(),
+      fragments:[fragment], variant:"annotations", onRemove: jest.fn(), onLocate: locateSelectedTextReference,
     })));
     expect(container.querySelector("textarea")).toBeNull();
     expect(container.textContent).toContain("quoted passage");
@@ -166,7 +166,7 @@ it("locates the marker of a clicked quote row, falling back to its source node",
   window.addEventListener(SELECTED_TEXT_REFERENCE_FOCUS_EVENT, listener);
   try {
     act(() => root.render(React.createElement(SelectedTextFragmentsPill, {
-      fragments:[fragment], variant:"annotations", onRemove: jest.fn(),
+      fragments:[fragment], variant:"annotations", onRemove: jest.fn(), onLocate: locateSelectedTextReference,
     })));
     const row = container.querySelector<HTMLElement>(".selected-text-fragment-row")!;
     expect(row.getAttribute("role")).toBe("button");

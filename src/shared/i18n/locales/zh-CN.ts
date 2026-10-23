@@ -2801,6 +2801,8 @@ export const zhCNMessages = {
   "worker.history.searchFailed": "历史搜索失败，请稍后重试。",
   "worker.history.loadFailed": "历史对话加载失败，请稍后重试。",
   "markdown.downloading": "下载中…",
+  "markdown.mathLoadFailed": "公式组件加载失败，已保留原文。",
+  "markdown.echartsRenderFailed": "图表无法显示，可展开查看原始数据。",
   "markdown.echartsReceiving": "图表配置接收中…",
   "markdown.echartsParseFailed": "ECharts 配置解析失败：{detail}",
   "markdown.copySuccess": "复制成功",

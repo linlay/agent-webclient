@@ -5,6 +5,7 @@ import {
   type XMarkdownProps,
 } from "@ant-design/x-markdown";
 import { removeEmptyMarkdownTables } from "./markdownPreprocess";
+import { useI18n } from "@/shared/i18n";
 import styles from "./ConversationMarkdown.module.css";
 import { MarkdownStreamingContext } from "./MarkdownStreamingContext";
 import { markdownLocalMediaExtension } from "./markdownMedia";
@@ -21,7 +22,7 @@ function loadLatexExtensions(): Promise<LatexExtensions> {
   if (!latexExtensionsPromise) {
     latexExtensionsPromise = import("@ant-design/x-markdown/plugins/Latex").then(
       (mod) => mod.default(),
-    );
+    ).catch((error) => { latexExtensionsPromise = null; throw error; });
   }
   return latexExtensionsPromise;
 }
@@ -83,6 +84,8 @@ export const ConversationMarkdown: React.FC<ConversationMarkdownProps> = ({
   codeComponent,
   isStreaming = false,
 }) => {
+  const { t } = useI18n();
+  const [latexFailed, setLatexFailed] = useState(false);
   const processedContent = useMemo(
     () => removeEmptyMarkdownTables(content || ""),
     [content],
@@ -98,11 +101,12 @@ export const ConversationMarkdown: React.FC<ConversationMarkdownProps> = ({
   useEffect(() => {
     if (!needsLatex || latexExtensions) return;
     let cancelled = false;
+    setLatexFailed(false);
     void loadLatexExtensions().then((extensions) => {
       if (!cancelled) {
         setLatexExtensions(extensions);
       }
-    });
+    }).catch(() => { if (!cancelled) setLatexFailed(true); });
     return () => {
       cancelled = true;
     };
@@ -129,6 +133,7 @@ export const ConversationMarkdown: React.FC<ConversationMarkdownProps> = ({
 
   return (
     <MarkdownStreamingContext.Provider value={isStreaming}>
+      {latexFailed && <span role="status">{t("markdown.mathLoadFailed")}</span>}
       <Markdown
         className={[styles.root, className].filter(Boolean).join(" ")}
         config={markdownConfig}

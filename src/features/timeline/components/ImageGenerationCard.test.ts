@@ -1,6 +1,7 @@
 /** @jest-environment jsdom */
 import React, { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
+import { TimelineAttachmentView } from './TimelineAttachmentView';
 import { ImageGenerationCard } from './ImageGenerationCard';
 import { TimelineInteractionProvider } from './TimelineInteractionContext';
 import type { TimelineNode } from '../lib/timelineState';
@@ -18,7 +19,7 @@ let container: HTMLDivElement;
 let root: Root;
 const nodes: TimelineNode[] = ['a', 'b', 'c'].map(id => ({ id, toolId: id, kind: 'tool', toolName: 'image_generate', runId: 'run', ts: 1, argsText: '{"n":2}' }));
 function render(calls: TimelineNode[], active = true, chatId = 'owner') {
-  act(() => root.render(React.createElement(TimelineInteractionProvider, { value: { conversationActive: active, surfaceContext: { chatId } } }, React.createElement(ImageGenerationCard, { nodes: calls }))));
+  act(() => root.render(React.createElement(TimelineInteractionProvider, { value: { conversationActive: active, surfaceContext: { chatId }, renderAttachment: (attachment, options) => React.createElement(TimelineAttachmentView, { attachment, options, surfaceContext: { chatId }, openTarget: mockOpen }) } }, React.createElement(ImageGenerationCard, { nodes: calls }))));
 }
 beforeEach(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -116,4 +117,15 @@ it.each([
     kind, chatId: 'owner', agentKey: 'agent-1', resourceId: 'generated-1', relativePath: url,
   } }));
   expect(openDescriptor).not.toHaveBeenCalled();
+});
+
+it('preserves skill reference activation through the application attachment host', () => {
+  act(() => root.render(React.createElement(TimelineAttachmentView, {
+    attachment: { type: 'skill', id: 'skill-1', name: 'Skill' }, options: {},
+    surfaceContext: { chatId: 'owner' }, openTarget: mockOpen,
+  })));
+  const card = container.querySelector<HTMLElement>('[data-reference-type="skill"]')!;
+  expect(card).not.toBeNull();
+  act(() => card.click());
+  expect(mockOpen).toHaveBeenCalledWith(expect.objectContaining({ kind: 'skill', id: 'skill-1' }));
 });

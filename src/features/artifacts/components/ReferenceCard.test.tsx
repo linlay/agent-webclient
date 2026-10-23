@@ -16,7 +16,7 @@ it("renders skill references through the skill-center icon slot", () => {
     <ReferenceCard
       reference={skillReference}
       variant="composer"
-      skillIcon="/api/skills/icon?agentKey=demo&id=skill-creator"
+      skillIcon={<span style={{ width: 34 }} data-material-icon="build" />}
     />,
   );
   expect(html).toContain('data-reference-type="skill"');
@@ -40,10 +40,17 @@ it("ignores the skill icon for non-skill references", () => {
     <ReferenceCard
       reference={{ id: "lib-a", name: "资料库", type: "kbase" }}
       variant="timeline"
-      skillIcon="/api/skills/icon?agentKey=demo&id=skill-creator"
+      skillIcon={<span style={{ width: 34 }} data-material-icon="build" />}
     />,
   );
   expect(html).toContain('data-reference-type="kbase"');
   expect(html).toContain('data-material-icon="book_2"');
   expect(html).not.toContain("width:34px");
+});
+
+it("offers skill opening only when its host supplies an action", () => {
+  const standalone = renderToStaticMarkup(<ReferenceCard reference={skillReference} variant="timeline" />);
+  expect(standalone).not.toContain('role="button"');
+  const hosted = renderToStaticMarkup(<ReferenceCard reference={skillReference} variant="timeline" openTarget={() => undefined} />);
+  expect(hosted).toContain('role="button"');
 });

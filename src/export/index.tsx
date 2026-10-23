@@ -36,6 +36,14 @@ function showFailure(root: HTMLElement): void {
   root.append(message);
 }
 
+class ExportErrorBoundary extends React.Component<{ children: React.ReactNode; message: string }, { failed: boolean }> {
+  state = { failed: false };
+  static getDerivedStateFromError() { return { failed: true }; }
+  render() {
+    return this.state.failed ? <p className="export-error" role="alert">{this.props.message}</p> : this.props.children;
+  }
+}
+
 const rootElement = document.getElementById(ROOT_ELEMENT_ID);
 if (!rootElement) throw new Error("export_root_missing");
 
@@ -59,13 +67,14 @@ try {
     document.querySelector<HTMLMetaElement>('meta[name="conversation-export-can-reshare"]')?.content === "true";
   applyConversationExportFavicon(publicBrand?.id || readLocalExportBrandId());
   createRoot(rootElement).render(
+    <ExportErrorBoundary message={copy.failure}>
     <ConfigProvider csp={{ nonce }}>
       <I18nProvider locale={locale} persistLocale={false}>
-        {attachmentId !== null ? <ShareAttachmentPage snapshot={snapshot} initialAttachmentId={attachmentId}
-          sharePath={sharePath} origin={window.location.origin} canReshare={canReshare} /> :
+        {attachmentId !== null ? <ShareAttachmentPage snapshot={snapshot} attachmentId={attachmentId} sharePath={sharePath} /> :
           <ConversationExportDocument snapshot={snapshot} publicBrand={publicBrand} canReshare={canReshare} />}
       </I18nProvider>
-    </ConfigProvider>,
+    </ConfigProvider>
+    </ExportErrorBoundary>,
   );
 } catch {
   showFailure(rootElement);

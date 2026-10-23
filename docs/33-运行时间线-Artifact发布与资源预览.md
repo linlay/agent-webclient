@@ -71,6 +71,8 @@ Standalone 右侧栏独立预览标签不显示内容工具栏，iframe 直接�
 本地联调统一 `127.0.0.1`，document-hub 配置 `EDITOR_EMBED_ORIGINS` 并发布浏览器可达的 ONLYOFFICE 地址。跨站 Cookie 受限时在 Platform 配置 `open-mode: external`。上传/只读链接及副本回收由 Platform 完成，下载保持现有鉴权链路。
 
 ## 边界与非目标
+- 对话分享附件的独立页 `/share/{id}?attachment={rid}` 仅展示当前文件内容，铺满窗口，不显示产品头部和文件切换操作。独立页与对话内 Viewer 共用 `ShareAttachmentContent`；工具栏仅归 Viewer，HTML 隔离加载和分享权限继续复用现有链路，异常时保留必要提示与下载或返回入口。
+- 对话分享页的“附件”栏只列出当前 Chat manifest 中已发布的产物。上传、引用、图片生成输出和 HTML 直接媒体依赖仍保留在 Snapshot 资源清单中供正文和预览使用，不因被引用而列入底部附件栏；没有已发布产物时隐藏附件栏。
 - Artifact 不负责用户上传；用户上传属于 Composer 附件链路。
 - Resource URL 的权限、ticket 和文件存储由后端负责。
 - 前端只校验 Viewer 必填字段、受支持的 URL 类型和路由编码；真实 `/api/resource` 链接、外部 URL 与 inline URL 不伪装为受保护 Resource Surface。ChatScope、Workspace、canonical path、symlink、Team Chat 与越界访问均由 Platform 的 `/api/resource` 最终判定，前端不按本地 Worker 元数据或聊天类型提前授权。

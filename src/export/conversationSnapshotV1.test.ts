@@ -90,7 +90,7 @@ describe("parseConversationSnapshotV1 attachments", () => {
       }),
     );
     expect(parsed?.attachments).toEqual([{
-      id: resource.id, name: resource.name, mimeType: resource.mimeType, sourceRef: resource.sourceRef,
+      ...resource,
     }]);
   });
 
@@ -105,7 +105,7 @@ describe("parseConversationSnapshotV1 attachments", () => {
     expect(parsed?.attachments[0]?.sourceRef).toBe(sourceRef);
   });
 
-  it("keeps the first valid resource and omits invalid optional metadata", () => {
+  it("rejects conflicting resource identities instead of dropping invalid relationships", () => {
     const parsed = parseConversationSnapshotV1(JSON.stringify({
       ...buildSnapshot([buildTurn("run-1", 1)]),
       attachments: [
@@ -114,9 +114,33 @@ describe("parseConversationSnapshotV1 attachments", () => {
         { ...resource, id: "abcdef0123456789abcdef01", name: "", sourceRef: "bad" },
       ],
     }));
-    expect(parsed?.attachments).toEqual([{
-      id: resource.id, name: resource.name, mimeType: "text/html", sourceRef: resource.sourceRef,
-    }]);
-    expect(parsed?.turns).toHaveLength(1);
+    expect(parsed).toBeNull();
   });
+});
+
+it("preserves the resource graph and projects only supported safe display fields", () => {
+  const image = { id: "1".repeat(24), name: "query.png", sourceRef: "query.png", mimeType: "image/png", size: 2, sha256: "a".repeat(64) };
+  const omitted = { id: "2".repeat(24), name: "missing.png", sourceRef: "missing.png", reason: "not_found" };
+  const html = { id: "3".repeat(24), name: "report.html", sourceRef: "artifacts/run-1/report.html", mimeType: "text/html", mediaRefs: { "@chat/query.png": image.id, "missing.png": omitted.id } };
+  const turn = buildTurn("run-1", 1);
+  const input = { ...buildSnapshot([turn]), attachments: [image, html], omittedResources: [omitted] };
+  Object.assign(turn.nodes[0], { attachmentIds: [image.id, omitted.id], steerId: "steer-1", origin: { type: "user", raw: { token: "secret" } }, view: { html: "unsafe" }, attachments: [{ meta: { token: "secret" } }] });
+  const snapshot = parseConversationSnapshotV1(JSON.stringify(input));
+  expect(snapshot?.attachments).toEqual([image, html]);
+  expect(snapshot?.omittedResources).toEqual([omitted]);
+  expect(snapshot?.turns[0].nodes[0]).not.toHaveProperty("view");
+  expect(snapshot?.turns[0].nodes[0]).not.toHaveProperty("attachments");
+  expect(snapshot?.turns[0].nodes[0].origin).toEqual({ type: "user" });
+  for (const mutation of [
+    () => { html.mediaRefs["missing.png"] = "f".repeat(24); },
+    () => { html.mediaRefs["missing.png"] = html.id; },
+    () => { input.omittedResources[0].id = image.id; },
+  ]) {
+    mutation();
+    expect(parseConversationSnapshotV1(JSON.stringify(input))).toBeNull();
+  }
+});
+
+it.each(["/absolute.png", "../escape.png", "x/%252e%252e/file.png", "C%3A/file.png", "x/%2F/file.png", ".tools/data.png", "https://example.test/i.png"])("rejects invalid resource reference %s", (sourceRef) => {
+  expect(parseConversationSnapshotV1(JSON.stringify({ ...buildSnapshot([buildTurn("run-1", 1)]), attachments: [{ id: "1".repeat(24), name: "x", mimeType: "image/png", sourceRef }] }))).toBeNull();
 });

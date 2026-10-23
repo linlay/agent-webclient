@@ -11,6 +11,9 @@ export const conversationExportMessages = {
       linkCopied: "链接已复制", copyFailed: "复制失败，请手动复制以下链接",
       unsupported: "此类型暂不支持在线预览，请下载查看", notFound: "附件不存在或链接无效",
       backToConversation: "返回对话",
+      loadFailed: "资源无法显示，请尝试下载原文件",
+      omitted: "未包含的文件",
+      omission: { not_found: "文件不存在", forbidden: "无权读取", unsupported: "不支持的文件类型", too_large: "超出分享容量", timeout: "读取超时", changed: "文件已变化", invalid: "文件信息无效", read_failed: "文件读取失败" },
     },
     appEntry: {
       opening: "正在打开 {productName}",
@@ -68,6 +71,9 @@ export const conversationExportMessages = {
       linkCopied: "Link copied", copyFailed: "Copy failed. Copy the link below manually.",
       unsupported: "Preview is unavailable for this file type. Download it to view.", notFound: "Attachment not found or link invalid",
       backToConversation: "Back to conversation",
+      loadFailed: "This resource cannot be displayed. Try downloading the original file.",
+      omitted: "Files not included",
+      omission: { not_found: "File not found", forbidden: "Access denied", unsupported: "Unsupported file type", too_large: "Share size limit exceeded", timeout: "Read timed out", changed: "File changed", invalid: "Invalid file information", read_failed: "Unable to read file" },
     },
     appEntry: {
       opening: "Opening {productName}",

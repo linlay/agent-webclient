@@ -1,3 +1,4 @@
+import { copyWebText } from "@/shared/utils/webClipboard";
 import React, { createContext, useContext } from "react";
 import type { TimelineAttachment, TimelineNode, TimelineSource } from "@/features/timeline/lib/timelineState";
 import type { OpenTargetIntent } from "@/features/surfaces/lib/openTarget";
@@ -7,6 +8,10 @@ import type { DesktopContextMenuTargetDescriptor } from "@/shared/data/desktop/d
 
 export interface TimelineInteractionValue {
   conversationActive?: boolean;
+  copyText?: (text: string) => Promise<void>;
+  getRunStatus?: (node: TimelineNode) => import("../lib/imageGenerationDisplay").ImageGenerationRuntime;
+  getChatHref?: (chat: import("../lib/timelineState").RelatedChat) => string;
+  onCopyResult?: (success: boolean, message?: string) => void;
   openChat?: (chat: import("../lib/timelineState").RelatedChat) => void;
   /** Ends a root-Run wait early with a blank steer; resolves false when not accepted. */
   continueWait?: (runId: string) => Promise<boolean>;
@@ -31,6 +36,9 @@ export interface TimelineInteractionValue {
     density?: "default" | "compact";
     displayMode?: "auto" | "file" | "preview";
     subtitle?: string;
+    skillIcon?: string;
+    /** Preserve the generated artifact identity for the host image tile. */
+    generatedImage?: import("../lib/imageGenerationDisplay").GeneratedImage;
   }) => React.ReactNode;
   registerContextMenuTarget?: (element: Element, descriptor: DesktopContextMenuTargetDescriptor) => () => void;
 }
@@ -56,4 +64,8 @@ export function useTimelineContextMenuTarget<T extends Element>(
     cleanup.current?.();
     cleanup.current = element && register ? register(element, descriptor) : null;
   }, [descriptor, register]);
+}
+
+export function useTimelineCopy(): (text: string) => Promise<void> {
+  return useTimelineInteraction()?.copyText ?? copyWebText;
 }

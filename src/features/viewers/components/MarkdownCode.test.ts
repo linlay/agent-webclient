@@ -32,6 +32,7 @@ jest.mock("@/app/state/AppContext", () => ({
 }));
 
 jest.mock("antd", () => ({
+  ConfigProvider: jest.requireActual("antd").ConfigProvider,
   App: {
     useApp: () => ({
       message: {

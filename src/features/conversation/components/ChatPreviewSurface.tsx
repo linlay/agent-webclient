@@ -1,11 +1,12 @@
 import React from "react";
+import { copyText } from "@/shared/utils/copy";
 import { useChatPreview } from "@/features/conversation/hooks/useChatPreview";
 import { ConversationPreview } from "./ConversationPreview";
 import { conversationPreviewDataFromReplay } from "../lib/conversationPreviewData";
 import { useOpenTarget } from "@/features/surfaces/hooks/useOpenTarget";
 import { useAppMessage } from "@/shared/ui/useAppMessage";
 import { MarkdownContent } from "@/features/viewers/components/MarkdownContent";
-import { AttachmentCard } from "@/features/artifacts/components/AttachmentCard";
+import { TimelineAttachmentView } from "@/features/timeline/components/TimelineAttachmentView";
 import type { MarkdownContentProps } from "@/features/viewers/components/MarkdownContent";
 import { UiButton } from "@/shared/ui/UiButton";
 import { useI18n } from "@/shared/i18n";
@@ -36,15 +37,16 @@ export function ChatPreviewSurface({ chatId, live }: { chatId: string; live: boo
         agents={agentKey ? [{ key: agentKey, name: snapshot.chat.firstAgentName || agentKey }] : []}
         agentKey={agentKey} teamChat={false} startAtBottom
         ariaLabel={t("chatPreview.title")} emptyLabel={t("chatPreview.empty")}
-        openTarget={openTarget}
-        onCopyResult={(success) => success
-          ? message.success(t("timeline.toolPill.copy.copied"))
-          : message.error(t("timeline.toolPill.copy.failed"))}
+        getChatHref={(chat) => `/?${new URLSearchParams({ chatId: chat.chatId })}`}
+        openTarget={openTarget} copyText={copyText}
+        onCopyResult={(success, text) => success
+          ? message.success(text ?? t("timeline.toolPill.copy.copied"))
+          : message.error(text ?? t("timeline.toolPill.copy.failed"))}
         renderMarkdown={renderAppMarkdown}
-        renderAttachment={(attachment, options) => <AttachmentCard
-          attachment={attachment} variant="timeline" thumbnailMode="inline"
+        renderAttachment={(attachment, options) => <TimelineAttachmentView
+          attachment={attachment}
           surfaceContext={{ chatId: snapshot.chat.chatId, agentKey, teamChat: false }}
-          {...options} />}
+          options={options} openTarget={openTarget} />}
       />}
     </section>
   </main>;
