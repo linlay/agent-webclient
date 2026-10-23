@@ -63,6 +63,7 @@ const MODE_LABEL: Record<string, string> = {
   REACT: "GENERAL",
   CODER: "CODER",
   KBASE: "KBASE",
+  EXECUTOR: "EXECUTOR",
   PLAN_EXECUTE: "P-E",
   PROXY: "PROXY",
 };

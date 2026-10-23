@@ -1,8 +1,44 @@
 import { buildChatReplayProjection } from "@/features/conversation/lib/chatReplayProjection";
+import { buildRunRenderEntries } from "@/features/timeline/lib/timelineDisplay";
+import { formatToolPillTitle } from "@/features/timeline/components/ToolPill";
 
 const EPOCH = 1_710_000_000_000;
 
 describe("buildChatReplayProjection", () => {
+  it("preserves the file_read snapshot label through results and grouped tool titles", () => {
+    const snapshot = {
+      seq: 73,
+      type: "tool.snapshot",
+      toolId: "call_00_WE3Gndud3RdHJUnSsgk90779",
+      timestamp: 1792763820728,
+      arguments: '{"filePath": "@connectors/builtin.task-control/skills/task-control/SKILL.md"}',
+      toolName: "file_read",
+      toolLabel: "读取文件",
+      runId: "mvl1adcs",
+    };
+    const { state } = buildChatReplayProjection("chat_1", {
+      events: [snapshot, { ...snapshot, toolId: "second_read", seq: 74 },
+        ...[snapshot.toolId, "second_read"].map((toolId, index) => ({
+          type: "tool.result", toolId, toolName: "file_read", runId: snapshot.runId,
+          timestamp: snapshot.timestamp + index + 1, result: "file contents",
+        })),
+      ],
+    });
+    const nodes = Array.from(state.timelineNodes.values()).filter((node) => node.kind === "tool");
+    expect(nodes).toHaveLength(2);
+    for (const node of nodes) {
+      expect(node.toolLabel).toBe("读取文件");
+      expect(formatToolPillTitle(node)).toBe("读取文件");
+    }
+    const entries = buildRunRenderEntries(nodes);
+    expect(entries).toHaveLength(1);
+    expect(entries[0].kind).toBe("tool-group");
+    if (entries[0].kind === "tool-group") {
+      expect(formatToolPillTitle(entries[0])).toContain("读取文件");
+      expect(formatToolPillTitle(entries[0])).not.toContain("file_read");
+    }
+  });
+
   it("builds the standalone surface projection from the canonical chat replay", () => {
     const replay = buildChatReplayProjection("chat_1", {
       events: [

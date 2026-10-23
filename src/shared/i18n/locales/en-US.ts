@@ -755,6 +755,8 @@ export const enUSMessages = {
   "agentConsole.mode.coder.description": "Work with code and project files.",
   "agentConsole.mode.kbase.label": "Knowledge base",
   "agentConsole.mode.kbase.description": "Browse and edit a knowledge base.",
+  "agentConsole.mode.executor.label": "Executor",
+  "agentConsole.mode.executor.description": "Runs one task through /api/execute and submits a checked result.",
   "agentConsole.mode.channel.label": "CHANNEL",
   "agentConsole.mode.channel.description": "For external channels and messages.",
   "agentConsole.mode.proxy.label": "PROXY",

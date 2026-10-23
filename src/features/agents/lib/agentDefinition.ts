@@ -464,6 +464,8 @@ export function modePresentation(
       return { icon: "person", label: t("agentConsole.mode.team.label"), description: t("agentConsole.mode.team.description") };
     case "KBASE":
       return { icon: "book_2", label: t("agentConsole.mode.kbase.label"), description: t("agentConsole.mode.kbase.description") };
+    case "EXECUTOR":
+      return { icon: "bolt", label: t("agentConsole.mode.executor.label"), description: t("agentConsole.mode.executor.description") };
     default:
       return { icon: "settings", label: fallbackLabel || mode, description: t("agentConsole.mode.custom.description") };
   }

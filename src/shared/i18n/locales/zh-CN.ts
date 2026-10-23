@@ -815,6 +815,8 @@ export const zhCNMessages = {
   "agentConsole.mode.coder.description": "处理代码与项目文件。",
   "agentConsole.mode.kbase.label": "知识库",
   "agentConsole.mode.kbase.description": "浏览和编辑知识库。",
+  "agentConsole.mode.executor.label": "执行器",
+  "agentConsole.mode.executor.description": "通过 /api/execute 执行单次任务并提交经过校验的结果。",
   "agentConsole.mode.channel.label": "CHANNEL",
   "agentConsole.mode.channel.description": "面向外部渠道与消息处理",
   "agentConsole.mode.proxy.label": "PROXY",
