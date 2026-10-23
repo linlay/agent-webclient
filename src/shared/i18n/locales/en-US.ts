@@ -2583,6 +2583,7 @@ export const enUSMessages = {
   "conversationStage.scrollToBottom": "Scroll to bottom",
   "view.loading": "Loading view...",
   "view.loadFailed": "Failed to load view: {detail}",
+  "view.rawData": "Raw data",
   "frontendTool.loadFailed": "Failed to load frontend tool: {detail}",
   "frontendTool.submitting": "Submitting...",
   "frontendTool.agentKeyRequired": "Submission failed: agentKey is required",

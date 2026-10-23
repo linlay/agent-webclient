@@ -4,16 +4,22 @@
 
 ## 数据接入
 
-- `GET /api/view` 和同名 WS route 接受 `source/ chatId/connectorId/key/hash?/usage?`，usage 为 `display | form`。沿用统一响应包裹与鉴权。
+- `GET /api/view` 和同名 WS route 接受 `source/chatId/connectorId/key/hash/usage?`，usage 为 `display | form`；connector 必须带 hash，缺失时平台返回 `view_snapshot_required`。沿用统一响应包裹与鉴权。
 - data 为 `{view,entry?,html?,qlc?,assets?}`；view 含 `source/connectorId/key/version/hash/renderer`，asset 含 `path/mediaType/data(base64)`。客户端不提供 Agent、路径或远端 URL。
 - `tool.result.view` 展示原始 result；`awaiting.ask(mode=form).view` 决定模板。`viewError` 表示服务端冻结失败，不重试成另一个版本；保留原结果和表单拒绝入口。
-- hash 是服务端在发事件前保存的 Chat 快照。回放和归档继续使用同一 hash，不能把它换成当前模板；Team 的连接器引用必须有 hash。
+- hash 是服务端在发事件前保存的 Chat 快照。回放和归档继续使用同一 hash，不能把它换成当前模板；客户端不发起无 hash 的连接器请求。
 
 ## 展示协议
 
 `ViewEmbed` 发送 `{type:"view_init" | "view_update",data:{view,payload}}`。没有执行或提交消息处理器。`viewDocumentHTML` 只内联声明资源并注入 CSP；所有新 VIEW 使用 `sandbox="allow-scripts"`，不授予同源或宿主桥接权限。应安装可信模板包。
 
-Markdown 支持完整 `view` fence，JSON 内容为 `{"view":{"connectorId":"crm","key":"card","hash":"<snapshot>"},"payload":{}}`。普通 Agent 可省略 hash，此时读取当前挂载，Markdown 原文不回写 hash；需要固定历史时必须显式保存 hash。Team 不允许无 hash。
+display 文档在 head 最前注入宿主适配脚本 `window.zenmindView`（不属于快照）：`onData((payload, view) => …)` 接收 init/update（晚注册也会收到最近一次数据），`resize()` 手动上报；默认 ResizeObserver 发送 `{type:"view_resize",height}`。`ViewEmbed` 只接受来自自身 iframe 的尺寸消息，限定 48–1600px，首次上报前 320px。表单文档不注入。
+
+### Markdown VIEW 块
+
+助手正文写作 ` ```view key=<connectorId>/<viewKey> `，正文只放一个 JSON 对象或数组。`contentSegments.parseContentSegments` 按逐行语法分段：栅栏须在行首、恰好三个反引号，属性只接受 key，其他代码块内的 view 栅栏保持为代码；VIEW segment 带 `index`（已闭合 VIEW 块序号）、`key`、`payloadRaw`、原始块 `text` 与 `closed`。语法与平台 `internal/view.ParseMarkdownBlocks` 共用 golden 用例 `events/lib/__fixtures__/view_markdown_cases.json`，修改须两边同步。
+
+模板只由平台绑定：`content.view` 与 `content.snapshot.views` 写入内容节点的 `viewBindings[index]`，后续 delta/end 保留。`ContentBlock` 对已绑定块调用 `renderContentView(segment, chatId, binding)`；流式中尚未绑定显示加载中；内容结束仍无绑定（ACP/PROXY、历史旧 JSON 信封）按原始代码块显示；`viewError` 显示错误并可展开原始数据。
 
 ## HITL
 

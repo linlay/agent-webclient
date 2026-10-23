@@ -2,6 +2,56 @@ import type { ViewDocument } from "@/shared/contracts/view";
 
 const VIEW_CSP = "default-src 'none'; script-src 'unsafe-inline' data:; style-src 'unsafe-inline' data:; img-src data: blob:; font-src data:; connect-src 'none'; frame-src 'none'; form-action 'none'; base-uri 'none'; object-src 'none'";
 
+/**
+ * Host adapter injected first into every display view. It is not part of the
+ * frozen snapshot, so it always matches the host protocol:
+ *   zenmindView.onData((payload, view) => …)  — receives view_init/view_update
+ *   zenmindView.resize()                      — re-reports the content height
+ * Height is reported as {type:"view_resize",height}; the host clamps it.
+ */
+export const VIEW_DISPLAY_SDK = `(() => {
+  'use strict';
+  const handlers = [];
+  let last = null, pending = 0, lastHeight = 0;
+  function measure() {
+    pending = 0;
+    const body = document.body;
+    if (!body) return;
+    const marginBottom = parseFloat(getComputedStyle(body).marginBottom) || 0;
+    const height = Math.ceil(body.getBoundingClientRect().bottom + scrollY + marginBottom);
+    if (height <= 0 || height === lastHeight) return;
+    lastHeight = height;
+    parent.postMessage({ type: 'view_resize', height }, '*');
+  }
+  function schedule() { if (!pending) pending = requestAnimationFrame(measure); }
+  function deliver(handler) {
+    try { handler(last.payload, last.view); } catch (error) { console.error(error); }
+  }
+  addEventListener('message', event => {
+    if (event.source !== parent) return;
+    const message = event.data;
+    if (message?.type !== 'view_init' && message?.type !== 'view_update') return;
+    last = message.data || {};
+    handlers.forEach(deliver);
+    schedule();
+  });
+  function observe() {
+    if (!document.body) { addEventListener('DOMContentLoaded', observe, { once: true }); return; }
+    if (typeof ResizeObserver === 'function') new ResizeObserver(schedule).observe(document.body);
+    schedule();
+  }
+  observe();
+  addEventListener('resize', schedule);
+  window.zenmindView = Object.freeze({
+    onData(handler) {
+      if (typeof handler !== 'function') return;
+      handlers.push(handler);
+      if (last) deliver(handler);
+    },
+    resize() { lastHeight = 0; schedule(); },
+  });
+})();`;
+
 function escapeHTML(value: string): string {
   return value.replace(/[&<>"']/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char]!));
 }
@@ -61,6 +111,13 @@ export function viewDocumentHTML(document: ViewDocument, usage: "display" | "for
   parsed.querySelectorAll("[srcset]").forEach(node => node.removeAttribute("srcset"));
   parsed.querySelectorAll("style").forEach(node => { node.textContent = css(node.textContent || "", entry); });
   parsed.querySelectorAll("[style]").forEach(node => node.setAttribute("style", css(node.getAttribute("style") || "", entry)));
+  // The SDK runs before template scripts so they can register onData.
+  if (usage === "display") {
+    const sdk = parsed.createElement("script");
+    sdk.setAttribute("data-zenmind-view", "");
+    sdk.textContent = VIEW_DISPLAY_SDK;
+    parsed.head.prepend(sdk);
+  }
   const policy = parsed.createElement("meta");
   policy.httpEquiv = "Content-Security-Policy";
   policy.content = VIEW_CSP;

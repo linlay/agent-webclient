@@ -34,6 +34,7 @@ export enum AIContentEventTypeEnum {
   Delta = "content.delta",
   Snapshot = "content.snapshot",
   End = "content.end",
+  View = "content.view",
 }
 
 export enum AIReasoningEventTypeEnum {

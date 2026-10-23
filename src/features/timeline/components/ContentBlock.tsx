@@ -169,7 +169,23 @@ export const ContentBlock: React.FC<ContentBlockProps> = ({ node }) => {
 					);
 				}
 
-					if (segment.kind === "view" && segment.view) return <React.Fragment key={segment.signature}>{interaction?.renderContentView?.(segment, chatId)}</React.Fragment>;
+				if (segment.kind === "view") {
+					// Only the platform binding names the frozen snapshot. Without one,
+					// wait while the content streams, then fall back to the raw block.
+					const binding = segment.closed && segment.index !== undefined ? node.viewBindings?.[segment.index] : undefined;
+					const settled = node.status === "completed" || node.status === "failed";
+					if (binding && interaction?.renderContentView) {
+						return <React.Fragment key={segment.signature}>{interaction.renderContentView(segment, chatId, binding)}</React.Fragment>;
+					}
+					if (!settled && interaction?.renderContentView && interaction.conversationActive) {
+						return <div key={segment.signature} role="status" className="tw:my-2 tw:text-sm tw:opacity-70">{t("view.loading")}</div>;
+					}
+					return (
+						<div key={segment.signature || idx} className={markdownClassName}>
+							{renderMarkdown({ content: segment.text || "", chatId, teamChat })}
+						</div>
+					);
+				}
 
 				if (segment.kind === "ttsVoice") {
 					if (interaction?.readOnly) {

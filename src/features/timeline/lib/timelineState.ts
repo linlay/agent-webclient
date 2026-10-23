@@ -1,4 +1,4 @@
-import type { ContentSegment } from "@/shared/contracts/contentSegments";
+import type { ContentSegment, ContentViewBinding } from "@/shared/contracts/contentSegments";
 import type { UiTimerHandle } from "@/shared/contracts/ui";
 
 import { MODEL_RETRY_NODE_ID } from "@/shared/ui/modelRetry";
@@ -179,6 +179,8 @@ export interface TimelineNode {
 	durationMs?: number;
 	contentId?: string;
 	segments?: ContentSegment[];
+	/** Platform bindings of Markdown VIEW blocks, keyed by block index. */
+	viewBindings?: Record<number, ContentViewBinding>;
 	sourcePublishId?: string;
 	sourceKind?: string;
 	sourceQuery?: string;

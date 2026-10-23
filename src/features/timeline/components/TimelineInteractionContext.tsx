@@ -1,7 +1,7 @@
 import React, { createContext, useContext } from "react";
 import type { TimelineAttachment, TimelineNode, TimelineSource } from "@/features/timeline/lib/timelineState";
 import type { OpenTargetIntent } from "@/features/surfaces/lib/openTarget";
-import type { ContentSegment } from "@/shared/contracts/contentSegments";
+import type { ContentSegment, ContentViewBinding } from "@/shared/contracts/contentSegments";
 import type { MarkdownContentProps } from "@/features/viewers/components/MarkdownContent";
 import type { DesktopContextMenuTargetDescriptor } from "@/shared/data/desktop/desktopContextMenu";
 
@@ -24,7 +24,8 @@ export interface TimelineInteractionValue {
   replayVoice?: (node: TimelineNode, signature: string, text: string) => void;
   renderToolView?: (view: NonNullable<TimelineNode["view"]>, chatId: string, error: string | undefined, payloadRaw: string) => React.ReactNode;
   renderToolOutput?: (output: NonNullable<TimelineNode["toolOutput"]>) => React.ReactNode;
-  renderContentView?: (segment: ContentSegment, chatId: string) => React.ReactNode;
+  /** Renders a Markdown VIEW block after the platform bound it to a snapshot. */
+  renderContentView?: (segment: ContentSegment, chatId: string, binding: ContentViewBinding) => React.ReactNode;
   renderMarkdown?: (props: MarkdownContentProps) => React.ReactNode;
   renderAttachment?: (attachment: TimelineAttachment, options: {
     density?: "default" | "compact";

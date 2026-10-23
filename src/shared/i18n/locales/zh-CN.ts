@@ -2759,6 +2759,7 @@ export const zhCNMessages = {
   "conversationStage.scrollToBottom": "滚动到底部",
   "view.loading": "加载视图中...",
   "view.loadFailed": "视图加载失败：{detail}",
+  "view.rawData": "原始数据",
   "frontendTool.loadFailed": "前端工具加载失败：{detail}",
   "frontendTool.submitting": "提交中...",
   "frontendTool.agentKeyRequired": "提交失败：agentKey 是必填参数",

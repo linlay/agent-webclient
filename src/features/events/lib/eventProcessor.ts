@@ -65,6 +65,7 @@ function routeStreamEvent(
 		type === "content.delta" ||
 		type === "content.end" ||
 		type === "content.snapshot" ||
+		type === "content.view" ||
 		isAwaitingAnswerStreamEvent(type)
 	) {
 		return processContentEvent(event, state);
