@@ -54,3 +54,37 @@ test("SDK delivers host data to late and early handlers and reports height", () 
     window.postMessage = original;
   }
 });
+
+test("SDK query round-trips through the host and applies host theme", async () => {
+  const posted: Array<Record<string, unknown>> = [];
+  const original = window.postMessage;
+  window.postMessage = ((message: Record<string, unknown>) => { posted.push(message); }) as typeof window.postMessage;
+  window.requestAnimationFrame = ((callback: FrameRequestCallback) => { callback(0); return 1; }) as typeof window.requestAnimationFrame;
+  try {
+    new Function(VIEW_DISPLAY_SDK)();
+    const sdk = (window as unknown as { zenmindView: {
+      onData: (fn: (payload: unknown, view: unknown, context: Record<string, unknown>) => void) => void;
+      query: (name: string, params?: Record<string, unknown>) => Promise<unknown>;
+    } }).zenmindView;
+    const contexts: Array<Record<string, unknown>> = [];
+    sdk.onData((_payload, _view, context) => contexts.push(context));
+    window.dispatchEvent(new MessageEvent("message", { source: window, data: { type: "view_init", data: { view, payload: null, context: { queryable: true, colorScheme: "dark", locale: "zh-CN", query: { name: "list", params: { limit: 5 } } } } } }));
+    expect(contexts[0]).toMatchObject({ queryable: true, query: { name: "list", params: { limit: 5 } } });
+    expect(document.documentElement.dataset.colorScheme).toBe("dark");
+    expect(document.documentElement.lang).toBe("zh-CN");
+
+    const ok = sdk.query("list", { offset: 20 });
+    const request = posted.find((message) => message.type === "view_query") as { id: string; query: string; params: unknown };
+    expect(request).toMatchObject({ query: "list", params: { offset: 20 } });
+    window.dispatchEvent(new MessageEvent("message", { source: null, data: { type: "view_query_result", id: request.id, ok: true, result: "forged" } }));
+    window.dispatchEvent(new MessageEvent("message", { source: window, data: { type: "view_query_result", id: request.id, ok: true, result: { items: [1] } } }));
+    await expect(ok).resolves.toEqual({ items: [1] });
+
+    const failed = sdk.query("list");
+    const second = posted.filter((message) => message.type === "view_query").pop() as { id: string };
+    window.dispatchEvent(new MessageEvent("message", { source: window, data: { type: "view_query_result", id: second.id, ok: false, error: "view_query_failed" } }));
+    await expect(failed).rejects.toThrow("view_query_failed");
+  } finally {
+    window.postMessage = original;
+  }
+});

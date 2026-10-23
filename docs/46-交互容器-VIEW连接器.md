@@ -13,13 +13,17 @@
 
 `ViewEmbed` 发送 `{type:"view_init" | "view_update",data:{view,payload}}`。没有执行或提交消息处理器。`viewDocumentHTML` 只内联声明资源并注入 CSP；所有新 VIEW 使用 `sandbox="allow-scripts"`，不授予同源或宿主桥接权限。应安装可信模板包。
 
-display 文档在 head 最前注入宿主适配脚本 `window.zenmindView`（不属于快照）：`onData((payload, view) => …)` 接收 init/update（晚注册也会收到最近一次数据），`resize()` 手动上报；默认 ResizeObserver 发送 `{type:"view_resize",height}`。`ViewEmbed` 只接受来自自身 iframe 的尺寸消息，限定 48–1600px，首次上报前 320px。表单文档不注入。
+display 文档在 head 最前注入宿主适配脚本 `window.zenmindView`（不属于快照）：
+
+- `onData((payload, view, context) => …)` 接收 init/update（晚注册也会收到最近一次数据）；`context` 含 `queryable`、`locale`、`colorScheme`（应用主题，而非系统主题；脚本写入 `<html data-color-scheme>`），查询块另含 `query:{name,params}`，首次查询失败时含 `error`。
+- `query(name, params)` 发送 `view_query`，`ViewEmbed` 只对自身 iframe、快照 `queries` 声明的查询调用 `queryView`（`POST /api/view/query`，带内容节点的 `runId`），回复 `view_query_result`。没有 runId 的工具结果 VIEW 不可查询。
+- `resize()` 手动上报；默认 ResizeObserver 发送 `{type:"view_resize",height}`。`ViewEmbed` 只接受来自自身 iframe 的尺寸消息，限定 48–1600px，首次上报前 320px。表单文档不注入。
 
 ### Markdown VIEW 块
 
-助手正文写作 ` ```view key=<connectorId>/<viewKey> `，正文只放一个 JSON 对象或数组。`contentSegments.parseContentSegments` 按逐行语法分段：栅栏须在行首、恰好三个反引号，属性只接受 key，其他代码块内的 view 栅栏保持为代码；VIEW segment 带 `index`（已闭合 VIEW 块序号）、`key`、`payloadRaw`、原始块 `text` 与 `closed`。语法与平台 `internal/view.ParseMarkdownBlocks` 共用 golden 用例 `events/lib/__fixtures__/view_markdown_cases.json`，修改须两边同步。
+助手正文写作 ` ```view key=<connectorId>/<viewKey> `，正文只放一个 JSON 对象或数组；带 `query=<name>` 时正文是该查询的参数对象，`ViewEmbed` 以它执行首次查询后再发送 `view_init`。`contentSegments.parseContentSegments` 按逐行语法分段：栅栏须在行首、恰好三个反引号，属性只接受 key，其他代码块内的 view 栅栏保持为代码；VIEW segment 带 `index`（已闭合 VIEW 块序号）、`key`、可选 `query`、`payloadRaw`、原始块 `text` 与 `closed`。语法与平台 `internal/view.ParseMarkdownBlocks` 共用 golden 用例 `events/lib/__fixtures__/view_markdown_cases.json`，修改须两边同步。
 
-模板只由平台绑定：`content.view` 与 `content.snapshot.views` 写入内容节点的 `viewBindings[index]`，后续 delta/end 保留。`ContentBlock` 对已绑定块调用 `renderContentView(segment, chatId, binding)`；流式中尚未绑定显示加载中；内容结束仍无绑定（ACP/PROXY、历史旧 JSON 信封）按原始代码块显示；`viewError` 显示错误并可展开原始数据。
+模板只由平台绑定：`content.view` 与 `content.snapshot.views` 写入内容节点的 `viewBindings[index]`，后续 delta/end 保留。`ContentBlock` 对已绑定块调用 `renderContentView(segment, chatId, binding, node.runId)`；流式中尚未绑定显示加载中；内容结束仍无绑定（ACP/PROXY、历史旧 JSON 信封）按原始代码块显示；`viewError` 显示错误并可展开原始数据。
 
 ## HITL
 

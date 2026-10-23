@@ -5,16 +5,19 @@ const VIEW_CSP = "default-src 'none'; script-src 'unsafe-inline' data:; style-sr
 /**
  * Host adapter injected first into every display view. It is not part of the
  * frozen snapshot, so it always matches the host protocol:
- *   zenmindView.onData((payload, view) => …)  — receives view_init/view_update
- *   zenmindView.resize()                      — re-reports the content height
+ *   zenmindView.onData((payload, view, context) => …)  — view_init/view_update;
+ *     context = { query?: {name, params}, queryable, error?, locale, colorScheme }
+ *   zenmindView.query(name, params) → Promise<result>  — declared queries only
+ *   zenmindView.resize()                               — re-reports the height
  * Height is reported as {type:"view_resize",height}; the host clamps it.
  */
 export const VIEW_DISPLAY_SDK = `(() => {
   'use strict';
   const handlers = [];
-  let last = null, pending = 0, lastHeight = 0;
+  const pending = new Map();
+  let last = null, frame = 0, lastHeight = 0, sequence = 0;
   function measure() {
-    pending = 0;
+    frame = 0;
     const body = document.body;
     if (!body) return;
     const marginBottom = parseFloat(getComputedStyle(body).marginBottom) || 0;
@@ -23,15 +26,32 @@ export const VIEW_DISPLAY_SDK = `(() => {
     lastHeight = height;
     parent.postMessage({ type: 'view_resize', height }, '*');
   }
-  function schedule() { if (!pending) pending = requestAnimationFrame(measure); }
+  function schedule() { if (!frame) frame = requestAnimationFrame(measure); }
   function deliver(handler) {
-    try { handler(last.payload, last.view); } catch (error) { console.error(error); }
+    try { handler(last.payload, last.view, last.context || {}); } catch (error) { console.error(error); }
+  }
+  function applyContext(context) {
+    const root = document.documentElement;
+    if (context.colorScheme === 'dark' || context.colorScheme === 'light') {
+      root.dataset.colorScheme = context.colorScheme;
+      root.style.colorScheme = context.colorScheme;
+    }
+    if (typeof context.locale === 'string' && context.locale) root.lang = context.locale;
   }
   addEventListener('message', event => {
     if (event.source !== parent) return;
     const message = event.data;
+    if (message?.type === 'view_query_result') {
+      const request = pending.get(message.id);
+      if (!request) return;
+      pending.delete(message.id);
+      if (message.ok) request.resolve(message.result);
+      else request.reject(new Error(String(message.error || 'view_query_failed')));
+      return;
+    }
     if (message?.type !== 'view_init' && message?.type !== 'view_update') return;
     last = message.data || {};
+    applyContext(last.context || {});
     handlers.forEach(deliver);
     schedule();
   });
@@ -47,6 +67,13 @@ export const VIEW_DISPLAY_SDK = `(() => {
       if (typeof handler !== 'function') return;
       handlers.push(handler);
       if (last) deliver(handler);
+    },
+    query(name, params) {
+      const id = 'q' + (++sequence);
+      return new Promise((resolve, reject) => {
+        pending.set(id, { resolve, reject });
+        parent.postMessage({ type: 'view_query', id, query: String(name), params: params || {} }, '*');
+      });
     },
     resize() { lastHeight = 0; schedule(); },
   });

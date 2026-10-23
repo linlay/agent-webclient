@@ -95,13 +95,15 @@ export function useBtwTimelineInteraction({
       renderToolOutput: (output) => (
         <ToolOutputTerminal output={output} themeMode={themeMode} />
       ),
-      renderContentView: (segment, chatId, binding) => (
+      renderContentView: (segment, chatId, binding, runId) => (
         <ViewEmbed
           chatId={chatId}
           view={binding.view}
           viewError={binding.viewError}
           payloadRaw={segment.payloadRaw || "{}"}
           rawData={segment.payloadRaw}
+          runId={runId}
+          query={segment.query}
         />
       ),
       renderMarkdown: (props) => <MarkdownContent {...props} />,

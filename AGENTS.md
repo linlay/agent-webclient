@@ -197,7 +197,7 @@ Git 提交与推送规范：
 - [91-交付运维-版本化打包与部署](docs/91-交付运维-版本化打包与部署.md)
 - [92-质量验证-手工测试用例](docs/92-质量验证-手工测试用例.md)
 
-VIEW 使用 `/api/view` 与 `view: {source,key,connectorId?,version?,hash?,renderer?}`；HTTP/WS 共享契约，连接器只按事件 hash 读取快照。Markdown VIEW 块为 ` ```view key=<connectorId>/<viewKey> ` 加 JSON 数据，只渲染平台 `content.view`/`content.snapshot.views` 绑定的块，语法与平台共用 golden 用例。新 VIEW iframe 仅 `allow-scripts`，表单只能响应宿主收集，结果 VIEW 无提交能力。QLC 当前为 JSON 兜底，旧 viewport 接口与字段已移除；详见 [VIEW连接器](docs/46-交互容器-VIEW连接器.md)。
+VIEW 使用 `/api/view` 与 `view: {source,key,connectorId?,version?,hash?,renderer?}`；HTTP/WS 共享契约，连接器只按事件 hash 读取快照。Markdown VIEW 块为 ` ```view key=<connectorId>/<viewKey> ` 加 JSON 数据，只渲染平台 `content.view`/`content.snapshot.views` 绑定的块，语法与平台共用 golden 用例；带 `query=<name>` 的块正文是参数，`ViewEmbed` 经 `/api/view/query`（带内容节点 runId）执行快照声明的查询，模板用 `zenmindView.query()` 重新查询。新 VIEW iframe 仅 `allow-scripts`，表单只能响应宿主收集，结果 VIEW 无提交能力。QLC 当前为 JSON 兜底，旧 viewport 接口与字段已移除；详见 [VIEW连接器](docs/46-交互容器-VIEW连接器.md)。
 
 运行中附件 steer 复用 `/api/upload` 与 `references`：支持纯图片、HTML/MD 等普通文件与混合附件；待发送队列、取消/拒绝恢复、实时与历史时间线均保留附件。同一主 Chat 的首次 query 要求非空正文，后续 query 可只带有效文件或选区引用；空正文且无引用的 query 仅在已有主 query 历史、服务端 Chat 明确 `canContinue:true` 且无活动 Run 或待处理 awaiting 时允许；Run 结束后，已有主 query 历史的纯引用排队项也可转为后续 query；缺少历史确认时恢复输入区等待正文。详见 [消息发送路由与运行控制](docs/22-对话输入-消息发送路由与运行控制.md)。
 

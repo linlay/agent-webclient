@@ -15,8 +15,23 @@ export interface ViewRequest {
   hash?: string;
   usage?: "display" | "form";
 }
+export interface ViewQueryDeclaration {
+  description?: string;
+  adapter: "native";
+  operation: string;
+  paramsSchema?: Record<string, unknown>;
+}
+/** POST /api/view/query: runs a query declared by the frozen snapshot. */
+export interface ViewQueryRequest {
+  chatId: string;
+  runId: string;
+  view: { connectorId: string; key: string; hash: string };
+  query: string;
+  params: Record<string, unknown>;
+}
 export interface ViewDocument {
   view: ViewReference;
+  queries?: Record<string, ViewQueryDeclaration>;
   entry?: string;
   html?: string;
   qlc?: Record<string, unknown>;

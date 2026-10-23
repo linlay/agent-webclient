@@ -59,7 +59,7 @@ import {
 } from "@/shared/data/api/resources";
 import { ensureAccessToken, getCurrentAccessToken, setAccessToken } from "@/shared/data/api/http";
 import { getAgentFile as getAgentFileHttp } from "@/shared/data/api/requests/projects";
-import { getView as getViewHttp } from "@/shared/data/api/requests/views";
+import { getView as getViewHttp, queryView as queryViewHttp } from "@/shared/data/api/requests/views";
 import { uploadFile } from "@/shared/data/api/requests/uploads";
 import type {
 	AgentDetailResponse,
@@ -529,6 +529,10 @@ export function restoreArchives(params: {
 
 export function getView(params: import("@/shared/contracts/view").ViewRequest): Promise<ApiResponse<import("@/shared/contracts/view").ViewDocument>> {
   return routeEndpoint(dataEndpoints.view, params, () => getViewHttp(params));
+}
+
+export function queryView(params: import("@/shared/contracts/view").ViewQueryRequest): Promise<ApiResponse<{ result: unknown }>> {
+  return routeEndpoint(dataEndpoints.viewQuery, params, () => queryViewHttp(params));
 }
 
 export function getBuiltinView(viewKey: string, runId?: string): Promise<ApiResponse> {

@@ -1,65 +1,289 @@
 {
   "comment": "Shared Markdown VIEW grammar cases. Keep identical with agent-webclient src/features/events/lib/__fixtures__/view_markdown_cases.json and agent-platform internal/view/testdata/markdown_cases.json.",
   "cases": [
-    {"name": "data block", "final": true,
-     "text": "Intro\n```view key=crm/orders\n{\"items\":[1]}\n```\nAfter",
-     "blocks": [{"index": 0, "key": "crm/orders", "data": {"items": [1]}}]},
-    {"name": "array body and trailing spaces on close", "final": true,
-     "text": "```view key=crm/orders\n[1,2]\n```  \n",
-     "blocks": [{"index": 0, "key": "crm/orders", "data": [1, 2]}]},
-    {"name": "uppercase word and tab separator", "final": true,
-     "text": "```VIEW\tkey=crm/orders\n{}\n```",
-     "blocks": [{"index": 0, "key": "crm/orders", "data": {}}]},
-    {"name": "two blocks keep order", "final": true,
-     "text": "```view key=a/one\n{}\n```\ntext\n```view key=b/two\n{\"x\":1}\n```\n",
-     "blocks": [{"index": 0, "key": "a/one", "data": {}}, {"index": 1, "key": "b/two", "data": {"x": 1}}]},
-    {"name": "invalid header still takes an index", "final": true,
-     "text": "```view key=card\n{}\n```\n```view key=a/b\n{}\n```\n",
-     "blocks": [{"index": 0, "error": "invalid_view"}, {"index": 1, "key": "a/b", "data": {}}]},
-    {"name": "unknown attribute", "final": true,
-     "text": "```view key=a/b query=list\n{}\n```",
-     "blocks": [{"index": 0, "error": "invalid_view"}]},
-    {"name": "duplicate key", "final": true,
-     "text": "```view key=a/b key=a/c\n{}\n```",
-     "blocks": [{"index": 0, "error": "invalid_view"}]},
-    {"name": "legacy envelope has no key", "final": true,
-     "text": "```view\n{\"view\":{\"connectorId\":\"a\",\"key\":\"b\"},\"payload\":{}}\n```",
-     "blocks": [{"index": 0, "error": "invalid_view"}]},
-    {"name": "scalar body", "final": true,
-     "text": "```view key=a/b\n42\n```",
-     "blocks": [{"index": 0, "key": "a/b", "error": "view_data_invalid"}]},
-    {"name": "broken json", "final": true,
-     "text": "```view key=a/b\n{\"x\":\n```",
-     "blocks": [{"index": 0, "key": "a/b", "error": "view_data_invalid"}]},
-    {"name": "empty body", "final": true,
-     "text": "```view key=a/b\n```",
-     "blocks": [{"index": 0, "key": "a/b", "error": "view_data_invalid"}]},
-    {"name": "viewer is not view", "final": true,
-     "text": "```viewer key=a/b\n{}\n```",
-     "blocks": []},
-    {"name": "four backticks are not a view fence", "final": true,
-     "text": "````view key=a/b\n{}\n````",
-     "blocks": []},
-    {"name": "indented fence is not a view", "final": true,
-     "text": "  ```view key=a/b\n{}\n```",
-     "blocks": []},
-    {"name": "view inside another fence is code", "final": true,
-     "text": "````markdown\n```view key=a/b\n{}\n```\n````\n```view key=c/d\n{}\n```",
-     "blocks": [{"index": 0, "key": "c/d", "data": {}}]},
-    {"name": "view inside tilde fence is code", "final": true,
-     "text": "~~~\n```view key=a/b\n{}\n```\n~~~",
-     "blocks": []},
-    {"name": "unclosed fence", "final": true,
-     "text": "```view key=a/b\n{}\n",
-     "blocks": []},
-    {"name": "streaming close without newline waits", "final": false,
-     "text": "```view key=a/b\n{}\n```",
-     "blocks": []},
-    {"name": "streaming close with newline binds", "final": false,
-     "text": "```view key=a/b\n{}\n```\n",
-     "blocks": [{"index": 0, "key": "a/b", "data": {}}]},
-    {"name": "crlf line endings", "final": true,
-     "text": "```view key=a/b\r\n{\"x\":1}\r\n```\r\n",
-     "blocks": [{"index": 0, "key": "a/b", "data": {"x": 1}}]}
+    {
+      "name": "data block",
+      "final": true,
+      "text": "Intro\n```view key=crm/orders\n{\"items\":[1]}\n```\nAfter",
+      "blocks": [
+        {
+          "index": 0,
+          "key": "crm/orders",
+          "data": {
+            "items": [
+              1
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "array body and trailing spaces on close",
+      "final": true,
+      "text": "```view key=crm/orders\n[1,2]\n```  \n",
+      "blocks": [
+        {
+          "index": 0,
+          "key": "crm/orders",
+          "data": [
+            1,
+            2
+          ]
+        }
+      ]
+    },
+    {
+      "name": "uppercase word and tab separator",
+      "final": true,
+      "text": "```VIEW\tkey=crm/orders\n{}\n```",
+      "blocks": [
+        {
+          "index": 0,
+          "key": "crm/orders",
+          "data": {}
+        }
+      ]
+    },
+    {
+      "name": "two blocks keep order",
+      "final": true,
+      "text": "```view key=a/one\n{}\n```\ntext\n```view key=b/two\n{\"x\":1}\n```\n",
+      "blocks": [
+        {
+          "index": 0,
+          "key": "a/one",
+          "data": {}
+        },
+        {
+          "index": 1,
+          "key": "b/two",
+          "data": {
+            "x": 1
+          }
+        }
+      ]
+    },
+    {
+      "name": "invalid header still takes an index",
+      "final": true,
+      "text": "```view key=card\n{}\n```\n```view key=a/b\n{}\n```\n",
+      "blocks": [
+        {
+          "index": 0,
+          "error": "invalid_view"
+        },
+        {
+          "index": 1,
+          "key": "a/b",
+          "data": {}
+        }
+      ]
+    },
+    {
+      "name": "unknown attribute",
+      "final": true,
+      "text": "```view key=a/b mode=list\n{}\n```",
+      "blocks": [
+        {
+          "index": 0,
+          "error": "invalid_view"
+        }
+      ]
+    },
+    {
+      "name": "duplicate key",
+      "final": true,
+      "text": "```view key=a/b key=a/c\n{}\n```",
+      "blocks": [
+        {
+          "index": 0,
+          "error": "invalid_view"
+        }
+      ]
+    },
+    {
+      "name": "legacy envelope has no key",
+      "final": true,
+      "text": "```view\n{\"view\":{\"connectorId\":\"a\",\"key\":\"b\"},\"payload\":{}}\n```",
+      "blocks": [
+        {
+          "index": 0,
+          "error": "invalid_view"
+        }
+      ]
+    },
+    {
+      "name": "scalar body",
+      "final": true,
+      "text": "```view key=a/b\n42\n```",
+      "blocks": [
+        {
+          "index": 0,
+          "key": "a/b",
+          "error": "view_data_invalid"
+        }
+      ]
+    },
+    {
+      "name": "broken json",
+      "final": true,
+      "text": "```view key=a/b\n{\"x\":\n```",
+      "blocks": [
+        {
+          "index": 0,
+          "key": "a/b",
+          "error": "view_data_invalid"
+        }
+      ]
+    },
+    {
+      "name": "empty body",
+      "final": true,
+      "text": "```view key=a/b\n```",
+      "blocks": [
+        {
+          "index": 0,
+          "key": "a/b",
+          "error": "view_data_invalid"
+        }
+      ]
+    },
+    {
+      "name": "viewer is not view",
+      "final": true,
+      "text": "```viewer key=a/b\n{}\n```",
+      "blocks": []
+    },
+    {
+      "name": "four backticks are not a view fence",
+      "final": true,
+      "text": "````view key=a/b\n{}\n````",
+      "blocks": []
+    },
+    {
+      "name": "indented fence is not a view",
+      "final": true,
+      "text": "  ```view key=a/b\n{}\n```",
+      "blocks": []
+    },
+    {
+      "name": "view inside another fence is code",
+      "final": true,
+      "text": "````markdown\n```view key=a/b\n{}\n```\n````\n```view key=c/d\n{}\n```",
+      "blocks": [
+        {
+          "index": 0,
+          "key": "c/d",
+          "data": {}
+        }
+      ]
+    },
+    {
+      "name": "view inside tilde fence is code",
+      "final": true,
+      "text": "~~~\n```view key=a/b\n{}\n```\n~~~",
+      "blocks": []
+    },
+    {
+      "name": "unclosed fence",
+      "final": true,
+      "text": "```view key=a/b\n{}\n",
+      "blocks": []
+    },
+    {
+      "name": "streaming close without newline waits",
+      "final": false,
+      "text": "```view key=a/b\n{}\n```",
+      "blocks": []
+    },
+    {
+      "name": "streaming close with newline binds",
+      "final": false,
+      "text": "```view key=a/b\n{}\n```\n",
+      "blocks": [
+        {
+          "index": 0,
+          "key": "a/b",
+          "data": {}
+        }
+      ]
+    },
+    {
+      "name": "crlf line endings",
+      "final": true,
+      "text": "```view key=a/b\r\n{\"x\":1}\r\n```\r\n",
+      "blocks": [
+        {
+          "index": 0,
+          "key": "a/b",
+          "data": {
+            "x": 1
+          }
+        }
+      ]
+    },
+    {
+      "name": "query block carries params",
+      "final": true,
+      "text": "```view key=builtin.task-control/automations query=list\n{\"limit\":5}\n```",
+      "blocks": [
+        {
+          "index": 0,
+          "key": "builtin.task-control/automations",
+          "query": "list",
+          "data": {
+            "limit": 5
+          }
+        }
+      ]
+    },
+    {
+      "name": "query attribute order is free",
+      "final": true,
+      "text": "```view query=list key=a/b\n{}\n```",
+      "blocks": [
+        {
+          "index": 0,
+          "key": "a/b",
+          "query": "list",
+          "data": {}
+        }
+      ]
+    },
+    {
+      "name": "query body must be an object",
+      "final": true,
+      "text": "```view key=a/b query=list\n[1]\n```",
+      "blocks": [
+        {
+          "index": 0,
+          "key": "a/b",
+          "query": "list",
+          "error": "view_data_invalid"
+        }
+      ]
+    },
+    {
+      "name": "duplicate query",
+      "final": true,
+      "text": "```view key=a/b query=list query=get\n{}\n```",
+      "blocks": [
+        {
+          "index": 0,
+          "error": "invalid_view"
+        }
+      ]
+    },
+    {
+      "name": "invalid query name",
+      "final": true,
+      "text": "```view key=a/b query=List\n{}\n```",
+      "blocks": [
+        {
+          "index": 0,
+          "error": "invalid_view"
+        }
+      ]
+    }
   ]
 }

@@ -1105,6 +1105,14 @@ export const dataEndpoints = createEndpointRegistry({
     wsBackends: PLATFORM_AND_GATEWAY_WS_BACKENDS,
     payload: (params) => ({ ...params }),
   }),
+  viewQuery: defineEndpoint<import("@/shared/contracts/view").ViewQueryRequest, import("@/shared/contracts/view").ViewQueryRequest>({
+    key: "view.query",
+    path: "/api/view/query",
+    method: "POST",
+    transport: "auto",
+    wsBackends: PLATFORM_WS_BACKENDS,
+    payload: (params) => params,
+  }),
   voiceCapabilities: defineEndpoint({
     key: "voice.capabilities",
     path: "/api/voice/capabilities",

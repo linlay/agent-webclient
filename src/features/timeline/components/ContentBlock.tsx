@@ -175,7 +175,7 @@ export const ContentBlock: React.FC<ContentBlockProps> = ({ node }) => {
 					const binding = segment.closed && segment.index !== undefined ? node.viewBindings?.[segment.index] : undefined;
 					const settled = node.status === "completed" || node.status === "failed";
 					if (binding && interaction?.renderContentView) {
-						return <React.Fragment key={segment.signature}>{interaction.renderContentView(segment, chatId, binding)}</React.Fragment>;
+						return <React.Fragment key={segment.signature}>{interaction.renderContentView(segment, chatId, binding, node.runId)}</React.Fragment>;
 					}
 					if (!settled && interaction?.renderContentView && interaction.conversationActive) {
 						return <div key={segment.signature} role="status" className="tw:my-2 tw:text-sm tw:opacity-70">{t("view.loading")}</div>;
