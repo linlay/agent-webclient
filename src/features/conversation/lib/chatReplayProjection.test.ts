@@ -5,7 +5,7 @@ import { formatToolPillTitle } from "@/features/timeline/components/ToolPill";
 const EPOCH = 1_710_000_000_000;
 
 describe("buildChatReplayProjection", () => {
-  it("preserves the file_read snapshot label through results and grouped tool titles", () => {
+  it.each([undefined, "读取文件"])("preserves the file_read snapshot label through results (label=%s) and grouped tool titles", (toolLabel) => {
     const snapshot = {
       seq: 73,
       type: "tool.snapshot",
@@ -19,7 +19,7 @@ describe("buildChatReplayProjection", () => {
     const { state } = buildChatReplayProjection("chat_1", {
       events: [snapshot, { ...snapshot, toolId: "second_read", seq: 74 },
         ...[snapshot.toolId, "second_read"].map((toolId, index) => ({
-          type: "tool.result", toolId, toolName: "file_read", runId: snapshot.runId,
+          type: "tool.result", toolId, toolName: "file_read", toolLabel, runId: snapshot.runId,
           timestamp: snapshot.timestamp + index + 1, result: "file contents",
         })),
       ],
