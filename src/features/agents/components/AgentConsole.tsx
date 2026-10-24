@@ -1,3 +1,4 @@
+import { ExecuteAgentModal } from "@/features/execute/components/ExecuteAgentModal";
 import { skillDisplayName } from "@/shared/utils/skillDisplayName";
 import { EditMenuButton } from "@/shared/ui/EditMenuButton";
 import { useResourceAssistant } from "@/features/resource-assistant/hooks/useResourceAssistant";
@@ -221,6 +222,7 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
   const [editorMode, setEditorMode] = useState<AgentEditorMode>("structured");
   const [iconEditorOpen, setIconEditorOpen] = useState(false);
   const [form, setForm] = useState<AgentFormState>(createEmptyAgentForm);
+  const [executeAgentKey, setExecuteAgentKey] = useState("");
   const [detail, setDetail] = useState<EditableAgentDetail | null>(null);
   const [loadingList, setLoadingList] = useState(false);
   const [loadingDetail, setLoadingDetail] = useState(false);
@@ -1419,6 +1421,33 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
                 </div>
               )}
               <div className={AGENT_SECTION_NAV_ACTIONS_CLASS_NAME}>
+                {effectiveSelectedKey && formMode === "edit" && (
+                  <UiButton
+                    size="sm"
+                    variant="ghost"
+                    disabled={
+                      loadingDetail || savingForm || deleting || !detail ||
+                      isInvalidAdminAgent(detail) ||
+                      !(
+                        ("toolBindings" in detail && detail.toolBindings?.some(
+                          tool => tool.name === "result_submit" && tool.active && !tool.excluded,
+                        )) ||
+                        ("tools" in detail && detail.tools?.includes("result_submit"))
+                      )
+                    }
+                    onClick={() => setExecuteAgentKey(effectiveSelectedKey)}
+                  >
+                    <MaterialIcon name="play_circle" />{t("execute.title")}
+                  </UiButton>
+                )}
+                {executeAgentKey && (
+                  <ExecuteAgentModal
+                    key={executeAgentKey}
+                    agentKey={executeAgentKey}
+                    agentName={detail?.name}
+                    onClose={() => setExecuteAgentKey("")}
+                  />
+                )}
 
                 {effectiveSelectedKey && (
                   <EditMenuButton

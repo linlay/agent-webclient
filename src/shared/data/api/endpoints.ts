@@ -175,6 +175,9 @@ const PLATFORM_WS_BACKENDS = ["platform"] as const;
 const PLATFORM_AND_GATEWAY_WS_BACKENDS = ["platform", "gateway"] as const;
 
 export const dataEndpoints = createEndpointRegistry({
+  execute: defineEndpoint<import("./dto/execute").ExecuteRequest>({
+    key: "agents.execute", path: "/api/execute", method: "POST", transport: "http",
+  }),
   accessLevelUpdate: defineEndpoint<AccessLevelUpdateParams, Record<string, unknown>>({
     key: "accessLevel.update",
     path: "/api/access-level",
