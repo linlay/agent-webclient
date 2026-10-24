@@ -531,7 +531,7 @@ export function getView(params: import("@/shared/contracts/view").ViewRequest): 
   return routeEndpoint(dataEndpoints.view, params, () => getViewHttp(params));
 }
 
-export function queryView(params: import("@/shared/contracts/view").ViewQueryRequest): Promise<ApiResponse<{ result: unknown }>> {
+export function queryView(params: import("@/shared/contracts/view").ViewQueryRequest): Promise<ApiResponse<import("@/shared/contracts/view").ViewQueryResult>> {
   return routeEndpoint(dataEndpoints.viewQuery, params, () => queryViewHttp(params));
 }
 

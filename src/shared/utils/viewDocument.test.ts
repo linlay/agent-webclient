@@ -40,7 +40,7 @@ test("SDK delivers host data to late and early handlers and reports height", () 
   window.requestAnimationFrame = ((callback: FrameRequestCallback) => { callback(0); return 1; }) as typeof window.requestAnimationFrame;
   try {
     new Function(VIEW_DISPLAY_SDK)();
-    const sdk = (window as unknown as { zenmindView: { onData: (fn: (payload: unknown, view: unknown) => void) => void } }).zenmindView;
+    const sdk = (window as unknown as { viewHost: { onData: (fn: (payload: unknown, view: unknown) => void) => void } }).viewHost;
     const early: unknown[] = [];
     sdk.onData((payload) => early.push(payload));
     window.dispatchEvent(new MessageEvent("message", { source: window, data: { type: "view_init", data: { view, payload: { count: 1 } } } }));
@@ -62,10 +62,10 @@ test("SDK query round-trips through the host and applies host theme", async () =
   window.requestAnimationFrame = ((callback: FrameRequestCallback) => { callback(0); return 1; }) as typeof window.requestAnimationFrame;
   try {
     new Function(VIEW_DISPLAY_SDK)();
-    const sdk = (window as unknown as { zenmindView: {
+    const sdk = (window as unknown as { viewHost: {
       onData: (fn: (payload: unknown, view: unknown, context: Record<string, unknown>) => void) => void;
       query: (name: string, params?: Record<string, unknown>) => Promise<unknown>;
-    } }).zenmindView;
+    } }).viewHost;
     const contexts: Array<Record<string, unknown>> = [];
     sdk.onData((_payload, _view, context) => contexts.push(context));
     window.dispatchEvent(new MessageEvent("message", { source: window, data: { type: "view_init", data: { view, payload: null, context: { queryable: true, colorScheme: "dark", locale: "zh-CN", query: { name: "list", params: { limit: 5 } } } } } }));
@@ -76,9 +76,9 @@ test("SDK query round-trips through the host and applies host theme", async () =
     const ok = sdk.query("list", { offset: 20 });
     const request = posted.find((message) => message.type === "view_query") as { id: string; query: string; params: unknown };
     expect(request).toMatchObject({ query: "list", params: { offset: 20 } });
-    window.dispatchEvent(new MessageEvent("message", { source: null, data: { type: "view_query_result", id: request.id, ok: true, result: "forged" } }));
-    window.dispatchEvent(new MessageEvent("message", { source: window, data: { type: "view_query_result", id: request.id, ok: true, result: { items: [1] } } }));
-    await expect(ok).resolves.toEqual({ items: [1] });
+    window.dispatchEvent(new MessageEvent("message", { source: null, data: { type: "view_query_result", id: request.id, ok: true, data: "forged", executedAt: 1 } }));
+    window.dispatchEvent(new MessageEvent("message", { source: window, data: { type: "view_query_result", id: request.id, ok: true, data: { items: [1] }, executedAt: 1700000000000 } }));
+    await expect(ok).resolves.toEqual({ data: { items: [1] }, executedAt: 1700000000000 });
 
     const failed = sdk.query("list");
     const second = posted.filter((message) => message.type === "view_query").pop() as { id: string };
@@ -87,4 +87,34 @@ test("SDK query round-trips through the host and applies host theme", async () =
   } finally {
     window.postMessage = original;
   }
+});
+
+
+test("frozen legacy templates retain onData and raw query results alongside the new SDK", async () => {
+  const posted: Array<Record<string, unknown>> = [];
+  const original = window.postMessage;
+  window.postMessage = ((message: Record<string, unknown>) => { posted.push(message); }) as typeof window.postMessage;
+  window.requestAnimationFrame = ((callback: FrameRequestCallback) => { callback(0); return 1; }) as typeof window.requestAnimationFrame;
+  try {
+    new Function(VIEW_DISPLAY_SDK)();
+    type SDK = { onData: (fn: (payload: unknown) => void) => void; query: (name: string, params?: Record<string, unknown>) => Promise<unknown>; resize: () => void };
+    const { zenmindView: legacy, viewHost: modern } = window as unknown as { zenmindView: SDK; viewHost: SDK };
+    const received: unknown[] = [];
+    legacy.onData(payload => received.push(payload));
+    window.dispatchEvent(new MessageEvent("message", { source: window, data: { type: "view_init", data: { view, payload: { items: ["saved"] } } } }));
+    expect(received).toEqual([{ items: ["saved"] }]);
+    const oldResult = legacy.query("list", { offset: 0 });
+    const newResult = modern.query("list", { offset: 20 });
+    const requests = posted.filter(message => message.type === "view_query");
+    for (const [index, request] of requests.entries()) {
+      window.dispatchEvent(new MessageEvent("message", { source: window, data: { type: "view_query_result", id: request.id, ok: true, data: { items: [index] }, executedAt: 1700000000000 } }));
+    }
+    await expect(oldResult).resolves.toEqual({ items: [0] });
+    await expect(newResult).resolves.toEqual({ data: { items: [1] }, executedAt: 1700000000000 });
+    const failure = legacy.query("list");
+    const request = posted.filter(message => message.type === "view_query").at(-1)!;
+    window.dispatchEvent(new MessageEvent("message", { source: window, data: { type: "view_query_result", id: request.id, ok: false, error: "connector_auth_required" } }));
+    await expect(failure).rejects.toThrow("connector_auth_required");
+    expect(legacy.resize).toBe(modern.resize);
+  } finally { window.postMessage = original; }
 });

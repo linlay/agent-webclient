@@ -13,10 +13,11 @@
 
 `ViewEmbed` 发送 `{type:"view_init" | "view_update",data:{view,payload}}`。没有执行或提交消息处理器。`viewDocumentHTML` 只内联声明资源并注入 CSP；所有新 VIEW 使用 `sandbox="allow-scripts"`，不授予同源或宿主桥接权限。应安装可信模板包。
 
-display 文档在 head 最前注入宿主适配脚本 `window.zenmindView`（不属于快照）：
+display 文档在 head 最前注入宿主适配脚本 `window.viewHost`（不属于快照；内置与外部连接器的 VIEW 共用同一接口，查询来源 native/cli/mcp 对模板透明）：
 
-- `onData((payload, view, context) => …)` 接收 init/update（晚注册也会收到最近一次数据）；`context` 含 `queryable`、`locale`、`colorScheme`（应用主题，而非系统主题；脚本写入 `<html data-color-scheme>`），查询块另含 `query:{name,params}`，首次查询失败时含 `error`。
-- `query(name, params)` 发送 `view_query`，`ViewEmbed` 只对自身 iframe、快照 `queries` 声明的查询调用 `queryView`（`POST /api/view/query`，带内容节点的 `runId`），回复 `view_query_result`。没有 runId 的工具结果 VIEW 不可查询。
+- `onData((payload, view, context) => …)` 接收 init/update（晚注册也会收到最近一次数据）；`context` 含 `queryable`、`locale`、`colorScheme`（应用主题，而非系统主题；脚本写入 `<html data-color-scheme>`），查询块另含 `query:{name,params}` 与首次查询完成时间 `executedAt`（Unix 毫秒），首次查询失败时含 `error`。
+- `query(name, params)` 返回 Promise，成功时为 `{data, executedAt}`。它发送 `view_query`，`ViewEmbed` 只对自身 iframe、快照 `queries` 声明的查询调用 `queryView`（`POST /api/view/query`，带内容节点的 `runId`，响应 `{data,executedAt}`），回复 `view_query_result`（`{id,ok,data,executedAt}` 或 `{id,ok:false,error}`）。同一 iframe 内同名查询以最后一次为准：较早请求的结果被丢弃并以 `view_query_superseded` 拒绝（不中断平台执行，模板可忽略该错误）；不同查询名互不影响。连接器失败保留 `connector_auth_required` 等错误码交给模板提示。没有 runId 的工具结果 VIEW 不可查询。
+- 历史快照兼容：宿主同时保留 `window.zenmindView`，复用同一套 `onData/resize` 和查询桥；旧 `query()` 仍直接返回业务数据，新 `viewHost.query()` 返回 `{data, executedAt}`。不改写历史模板或快照 hash，新模板使用 `viewHost`。
 - `resize()` 手动上报；默认 ResizeObserver 发送 `{type:"view_resize",height}`。`ViewEmbed` 只接受来自自身 iframe 的尺寸消息，高度由 HTML 内容决定，仅设 48px 下限、不设上限（内容不应按 vh 定高，否则会随 iframe 循环增高），首次上报前 320px；HITL 表单宿主仍按原规则限高。表单文档不注入。
 
 ### Markdown VIEW 块
@@ -32,7 +33,7 @@ display 文档在 head 最前注入宿主适配脚本 `window.zenmindView`（不
 - 正文直接携带数据时显示“视图 · 静态数据”，说明初始内容来自消息保存的数据；声明 `query=` 时显示“视图 · 动态查询”，说明结果可能与消息生成时不同。
 - header 右侧提供“放大查看”按钮，模板就绪后可用；以最大 1280px、随视口收缩的 Dialog 展示同一 Chat/Run/hash、正文与查询参数的 VIEW，正文在 Dialog 内滚动，可用关闭按钮、Escape 或遮罩关闭。动态查询在 Dialog 打开时重新执行，独立显示查询状态与时间，Dialog 内不提供重复放大入口，关闭不改写原消息或内联视图状态。
 - 查询时间靠右展示，点击或键盘激活时间可弹出带感叹号的说明；模式文字也可点击查看说明。Dialog 移除独立标题栏，由同一行 header 合并标题、模式、查询状态、时间与关闭按钮，并缩小顶部留白；样式沿用主题的次级文字、分隔线，动态查询使用主题强调色。
-- 初始查询和 iframe 发起的查询共用状态：查询中、查询失败、更新失败、静态数据已查询更新。成功后显示当前访问期间收到查询结果的本地时间，跨日带日期，不作为业务记录的更新时间或持久化历史。
+- 初始查询和 iframe 发起的查询共用状态：查询中、查询失败、更新失败、静态数据已查询更新。成功后按平台返回的 `executedAt`（查询完成时间）显示本地时间，跨日带日期，不作为业务记录的更新时间或持久化历史；被同名新查询取代的请求不计为失败。
 - 正文数据视图也可调用已声明的 query，成功后仍标识其初始来源并追加“已查询更新”。多个并发查询全部结束前保持查询中，失败保留上次成功时间；具体内容保留与错误呈现由模板负责。切换 Chat、Run、模板或查询参数时清除旧状态，旧请求不会写入新 header。
 
 ## HITL

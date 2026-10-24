@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Modal } from "antd";
-import type { ViewDocument, ViewReference } from "@/shared/contracts/view";
+import type { ViewDocument, ViewQueryResult, ViewReference } from "@/shared/contracts/view";
 import { getView, queryView } from "@/shared/data";
 import { viewDocumentHTML } from "@/shared/utils/viewDocument";
 import { safeJsonParse } from "@/shared/utils/safeJsonParse";
@@ -9,6 +9,7 @@ import { useOptionalAppContext } from "@/app/state/provider";
 import { ViewHeader, type ViewQueryStatus } from "./ViewHeader";
 
 const DEFAULT_HEIGHT = 320;
+const SUPERSEDED = "view_query_superseded";
 const MIN_HEIGHT = 48;
 
 // Display views size to their content with no upper bound; the timeline
@@ -64,19 +65,27 @@ export function ViewEmbed({ chatId, view, payloadRaw, viewError, rawData, runId,
     runId && chatId && view?.source === "connector" && view.connectorId && view.hash
     && Object.keys(documentRef.current?.queries || {}).length,
   );
-  const runQuery = async (name: string, params: Record<string, unknown>) => {
+  // Per query name, only the latest request may answer; older ones are dropped.
+  const latestQuery = useRef(new Map<string, number>());
+  const querySequence = useRef(0);
+  const runQuery = async (name: string, params: Record<string, unknown>): Promise<ViewQueryResult> => {
     const current = generation.current;
+    const ticket = ++querySequence.current;
+    latestQuery.current.set(name, ticket);
+    const latest = () => generation.current === current && latestQuery.current.get(name) === ticket;
     setQueryStatus(previous => ({ ...previous, pending: previous.pending + 1, failed: false }));
     try {
       if (!queryable() || !view?.connectorId || !view.hash || !documentRef.current?.queries?.[name]) {
         throw new Error("view_query_unavailable");
       }
       const response = await queryView({ chatId, runId: runId as string, view: { connectorId: view.connectorId, key: view.key, hash: view.hash }, query: name, params });
-      const result = response.data.result;
-      if (generation.current === current) setQueryStatus(previous => ({ ...previous, updatedAt: Date.now(), failed: false }));
+      if (!latest()) throw new Error(SUPERSEDED);
+      const result = response.data;
+      setQueryStatus(previous => ({ ...previous, updatedAt: result.executedAt || Date.now(), failed: false }));
       return result;
     } catch (error) {
-      if (generation.current === current) setQueryStatus(previous => ({ ...previous, failed: true }));
+      if (latest()) setQueryStatus(previous => ({ ...previous, failed: true }));
+      if (generation.current === current && latestQuery.current.get(name) !== ticket) throw new Error(SUPERSEDED);
       throw error;
     } finally {
       if (generation.current === current) setQueryStatus(previous => ({ ...previous, pending: Math.max(0, previous.pending - 1) }));
@@ -88,6 +97,7 @@ export function ViewEmbed({ chatId, view, payloadRaw, viewError, rawData, runId,
     generation.current += 1;
     setExpanded(false);
     setQueryStatus({ pending: 0, failed: false });
+    latestQuery.current.clear();
     ready.current = false;
     documentRef.current = null;
     setHTML(""); setError(""); setHeight(DEFAULT_HEIGHT);
@@ -117,12 +127,12 @@ export function ViewEmbed({ chatId, view, payloadRaw, viewError, rawData, runId,
       }
       if (message?.type !== "view_query" || typeof message.id !== "string" || typeof message.query !== "string") return;
       const current = generation.current;
-      const reply = (result: { ok: boolean; result?: unknown; error?: string }) => {
+      const reply = (result: { ok: boolean; data?: unknown; executedAt?: number; error?: string }) => {
         if (generation.current === current) target.postMessage({ type: "view_query_result", id: message.id, ...result }, "*");
       };
       if (!isObject(message.params)) { reply({ ok: false, error: "view_query_params_invalid" }); return; }
       runQuery(message.query, message.params)
-        .then((result) => reply({ ok: true, result }))
+        .then((result) => reply({ ok: true, data: result.data, executedAt: result.executedAt }))
         .catch((error) => reply({ ok: false, error: errorCode(error) }));
     };
     window.addEventListener("message", onMessage);
@@ -151,7 +161,7 @@ export function ViewEmbed({ chatId, view, payloadRaw, viewError, rawData, runId,
     const queryContext = { query: { name: query, params: isObject(params) ? params : {} } };
     const current = generation.current;
     runQuery(query, queryContext.query.params)
-      .then((result) => { if (generation.current === current) { lastPayload.current = result; lastQueryContext.current = queryContext; } })
+      .then((result) => { if (generation.current === current) { lastPayload.current = result.data; lastQueryContext.current = { ...queryContext, executedAt: result.executedAt }; } })
       .catch((error) => { if (generation.current === current) { lastPayload.current = null; lastQueryContext.current = { ...queryContext, error: errorCode(error) }; } })
       .finally(() => { if (ready.current && generation.current === current) post("view_init"); });
   };

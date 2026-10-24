@@ -5,10 +5,13 @@ const VIEW_CSP = "default-src 'none'; script-src 'unsafe-inline' data:; style-sr
 /**
  * Host adapter injected first into every display view. It is not part of the
  * frozen snapshot, so it always matches the host protocol:
- *   zenmindView.onData((payload, view, context) => …)  — view_init/view_update;
- *     context = { query?: {name, params}, queryable, error?, locale, colorScheme }
- *   zenmindView.query(name, params) → Promise<result>  — declared queries only
- *   zenmindView.resize()                               — re-reports the height
+ *   viewHost.onData((payload, view, context) => …)  — view_init/view_update;
+ *     context = { query?: {name, params}, executedAt?, queryable, error?, locale, colorScheme }
+ *   viewHost.query(name, params) → Promise<{data, executedAt}>  — declared queries only;
+ *     a newer call with the same name rejects the older one with view_query_superseded
+ *   viewHost.resize()                               — re-reports the height
+ * Frozen legacy templates retain zenmindView with query() returning raw data.
+ * Native, CLI and MCP queries share this interface for every connector.
  * Height is reported as {type:"view_resize",height}; the host applies it with
  * a 48px floor and no ceiling, so content must not size itself by vh units.
  */
@@ -46,7 +49,7 @@ export const VIEW_DISPLAY_SDK = `(() => {
       const request = pending.get(message.id);
       if (!request) return;
       pending.delete(message.id);
-      if (message.ok) request.resolve(message.result);
+      if (message.ok) request.resolve({ data: message.data, executedAt: message.executedAt });
       else request.reject(new Error(String(message.error || 'view_query_failed')));
       return;
     }
@@ -63,7 +66,7 @@ export const VIEW_DISPLAY_SDK = `(() => {
   }
   observe();
   addEventListener('resize', schedule);
-  window.zenmindView = Object.freeze({
+  window.viewHost = Object.freeze({
     onData(handler) {
       if (typeof handler !== 'function') return;
       handlers.push(handler);
@@ -77,6 +80,12 @@ export const VIEW_DISPLAY_SDK = `(() => {
       });
     },
     resize() { lastHeight = 0; schedule(); },
+  });
+  // Historical snapshots keep their original scripts and return-value contract.
+  window.zenmindView = Object.freeze({
+    onData: window.viewHost.onData,
+    query(name, params) { return window.viewHost.query(name, params).then(result => result.data); },
+    resize: window.viewHost.resize,
   });
 })();`;
 

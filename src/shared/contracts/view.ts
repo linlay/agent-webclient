@@ -15,10 +15,15 @@ export interface ViewRequest {
   hash?: string;
   usage?: "display" | "form";
 }
+/** One declared read query; adapters share the same host bridge and result. */
 export interface ViewQueryDeclaration {
   description?: string;
-  adapter: "native";
-  operation: string;
+  adapter: "native" | "cli" | "mcp";
+  operation?: string;
+  args?: Array<string | { param: string; opt?: string; flag?: string }>;
+  component?: string;
+  toolName?: string;
+  arguments?: Record<string, unknown>;
   paramsSchema?: Record<string, unknown>;
 }
 /** POST /api/view/query: runs a query declared by the frozen snapshot. */
@@ -28,6 +33,11 @@ export interface ViewQueryRequest {
   view: { connectorId: string; key: string; hash: string };
   query: string;
   params: Record<string, unknown>;
+}
+/** Query outcome; executedAt is Unix milliseconds when the query completed. */
+export interface ViewQueryResult {
+  data: unknown;
+  executedAt: number;
 }
 export interface ViewDocument {
   view: ViewReference;

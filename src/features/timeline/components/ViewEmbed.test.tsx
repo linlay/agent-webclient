@@ -42,16 +42,16 @@ async function mount(props: Partial<React.ComponentProps<typeof ViewEmbed>>) {
 afterEach(() => { mockGetView.mockReset(); mockQueryView.mockReset(); });
 
 test("query blocks run the initial query with the publishing Run and pass host context", async () => {
-  mockQueryView.mockResolvedValue({ data: { result: { items: [{ id: "daily" }] } } });
+  mockQueryView.mockResolvedValue({ data: { data: { items: [{ id: "daily" }] }, executedAt: 1700000000000 } });
   const { posted, cleanup } = await mount({ runId: "run-1", query: "list" });
   try {
     expect(mockQueryView).toHaveBeenCalledWith({ chatId: "chat", runId: "run-1", view: { connectorId: "builtin.task-control", key: "automations", hash }, query: "list", params: { limit: 5 } });
-    expect(posted[0]).toMatchObject({ type: "view_init", data: { payload: { items: [{ id: "daily" }] }, context: { queryable: true, colorScheme: "dark", locale: "zh-CN", query: { name: "list", params: { limit: 5 } } } } });
+    expect(posted[0]).toMatchObject({ type: "view_init", data: { payload: { items: [{ id: "daily" }] }, context: { queryable: true, colorScheme: "dark", locale: "zh-CN", executedAt: 1700000000000, query: { name: "list", params: { limit: 5 } } } } });
   } finally { cleanup(); }
 });
 
 test("frame queries are answered only for the own frame and declared queries", async () => {
-  mockQueryView.mockResolvedValue({ data: { result: { items: [] } } });
+  mockQueryView.mockResolvedValue({ data: { data: { items: [] }, executedAt: 1700000000000 } });
   const { frame, posted, cleanup } = await mount({ runId: "run-1", payloadRaw: '{"items":[]}' });
   try {
     expect(mockQueryView).not.toHaveBeenCalled();
@@ -62,7 +62,27 @@ test("frame queries are answered only for the own frame and declared queries", a
     expect(mockQueryView).toHaveBeenCalledTimes(1);
     expect(posted).toEqual(expect.arrayContaining([
       { type: "view_query_result", id: "q1", ok: false, error: "view_query_unavailable" },
-      { type: "view_query_result", id: "q2", ok: true, result: { items: [] } },
+      { type: "view_query_result", id: "q2", ok: true, data: { items: [] }, executedAt: 1700000000000 },
+    ]));
+  } finally { cleanup(); }
+});
+
+test("a newer query with the same name supersedes the older one", async () => {
+  const pending: Array<(value: unknown) => void> = [];
+  mockQueryView.mockImplementation(() => new Promise((resolve) => pending.push(resolve)));
+  const { frame, posted, cleanup } = await mount({ runId: "run-1", payloadRaw: '{"items":[]}' });
+  try {
+    const ask = (id: string, query: string, offset: number) => act(async () => {
+      window.dispatchEvent(new MessageEvent("message", { source: frame.contentWindow, data: { type: "view_query", id, query, params: { offset } } }));
+    });
+    await ask("old", "list", 0);
+    await ask("new", "list", 20);
+    expect(pending).toHaveLength(2);
+    await act(async () => { pending[1]({ data: { data: { page: 2 }, executedAt: 2 } }); });
+    await act(async () => { pending[0]({ data: { data: { page: 1 }, executedAt: 1 } }); });
+    expect(posted).toEqual(expect.arrayContaining([
+      { type: "view_query_result", id: "new", ok: true, data: { page: 2 }, executedAt: 2 },
+      { type: "view_query_result", id: "old", ok: false, error: "view_query_superseded" },
     ]));
   } finally { cleanup(); }
 });
@@ -87,7 +107,7 @@ async function request(frame: HTMLIFrameElement, id: string) {
 }
 
 test("message data has an accessible header and records later query success and failure", async () => {
-  mockQueryView.mockResolvedValueOnce({ data: { result: { items: [] } } });
+  mockQueryView.mockResolvedValueOnce({ data: { data: { items: [] }, executedAt: 1700000000000 } });
   const { host, frame, cleanup } = await mount({ runId: "run-1" });
   try {
     const header = host.querySelector(".view-header")!;
@@ -102,7 +122,7 @@ test("message data has an accessible header and records later query success and 
     expect(header.textContent).toContain("view.header.updateFailed");
     expect(header.textContent).toContain("view.header.lastSuccess");
     expect(header.textContent).toContain("view.header.message");
-    mockQueryView.mockResolvedValueOnce({ data: { result: { items: [] } } });
+    mockQueryView.mockResolvedValueOnce({ data: { data: { items: [] }, executedAt: 1700000000000 } });
     await request(frame, "q3");
     expect(header.textContent).toContain("view.header.updated");
     expect(header.textContent).not.toContain("view.header.updateFailed");
@@ -120,7 +140,7 @@ test("dynamic queries show pending and failed states, then a successful retry", 
     await act(async () => { reject(new Error("offline")); });
     expect(header.textContent).toContain("view.header.queryFailed");
     expect(header.querySelector("time")).toBeNull();
-    mockQueryView.mockResolvedValueOnce({ data: { result: { items: [] } } });
+    mockQueryView.mockResolvedValueOnce({ data: { data: { items: [] }, executedAt: 1700000000000 } });
     await request(frame, "retry");
     expect(header.querySelector("time")).not.toBeNull();
     expect(header.textContent).not.toContain("view.header.queryFailed");
@@ -136,9 +156,9 @@ test("concurrent queries keep the pending indicator until all requests settle", 
   try {
     await request(frame, "q1");
     await request(frame, "q2");
-    await act(async () => { resolveSecond({ data: { result: {} } }); });
+    await act(async () => { resolveSecond({ data: { data: {}, executedAt: 1700000000000 } }); });
     expect(host.querySelector(".view-header")?.textContent).toContain("view.header.querying");
-    await act(async () => { resolveFirst({ data: { result: {} } }); });
+    await act(async () => { resolveFirst({ data: { data: {}, executedAt: 1700000000000 } }); });
     expect(host.querySelector(".view-header")?.textContent).not.toContain("view.header.querying");
     expect(host.querySelector(".view-header")?.textContent).toContain("view.header.updated");
   } finally { cleanup(); }
@@ -167,7 +187,7 @@ test("switching Chats clears query state and ignores the previous Chat's respons
   try {
     expect(host.querySelector(".view-header")?.textContent).toContain("view.header.querying");
     await act(async () => root.render(<ViewEmbed chatId="second" view={view} payloadRaw="{}" runId="run-2" />));
-    await act(async () => { resolve({ data: { result: { items: ["old"] } } }); });
+    await act(async () => { resolve({ data: { data: { items: ["old"] }, executedAt: 1700000000000 } }); });
     expect(host.querySelector(".view-header")?.textContent).toContain("view.header.message");
     expect(host.querySelector(".view-header")?.textContent).not.toContain("view.header.querying");
     expect(host.querySelector("time")).toBeNull();
@@ -198,7 +218,7 @@ test("expand opens a larger dialog with the same frozen view and saved data", as
 });
 
 test("expanded dynamic views query with the same Run and initial parameters", async () => {
-  mockQueryView.mockResolvedValue({ data: { result: { items: [] } } });
+  mockQueryView.mockResolvedValue({ data: { data: { items: [] }, executedAt: 1700000000000 } });
   const { host, cleanup } = await mount({ runId: "run-1", query: "list" });
   try {
     const initialCalls = mockQueryView.mock.calls.length;
@@ -213,7 +233,7 @@ test("expanded dynamic views query with the same Run and initial parameters", as
 
 
 test("query time opens the explanation in a popover without a separate information row", async () => {
-  mockQueryView.mockResolvedValue({ data: { result: { items: [] } } });
+  mockQueryView.mockResolvedValue({ data: { data: { items: [] }, executedAt: 1700000000000 } });
   const { host, cleanup } = await mount({ runId: "run-1", query: "list" });
   try {
     const header = host.querySelector(".view-header")!;

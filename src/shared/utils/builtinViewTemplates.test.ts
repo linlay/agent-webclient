@@ -3,13 +3,14 @@ import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { VIEW_DISPLAY_SDK } from "./viewDocument";
 
-// Platform-owned builtin VIEW templates, exercised against the host SDK.
+// Platform-owned builtin VIEW templates, exercised against the host SDK. The
+// split catalog views use shared assets and are covered by Platform's own
+// jsdom test (internal/view/testdata/catalog_lists.cjs).
 const platform = process.env.AGENT_PLATFORM_SOURCE || path.resolve(__dirname, "../../../../agent-platform");
 const templates = {
   automations: path.join(platform, "internal/resources/connectors/builtin.task-control/views/automations.html"),
-  catalog: path.join(platform, "internal/resources/connectors/builtin.platform-control/views/catalog.html"),
 };
-const available = existsSync(templates.automations) && existsSync(templates.catalog);
+const available = existsSync(templates.automations);
 const maybe = available ? describe : describe.skip;
 
 function load(file: string) {
@@ -24,7 +25,7 @@ function load(file: string) {
   const send = (data: unknown) => window.dispatchEvent(new MessageEvent("message", { source: window, data }));
   const answer = (result: unknown) => {
     const request = posted.filter((message) => message.type === "view_query").pop()!;
-    send({ type: "view_query_result", id: request.id, ok: true, result });
+    send({ type: "view_query_result", id: request.id, ok: true, data: result, executedAt: 1700000000000 });
     return request;
   };
   return { posted, send, answer };
@@ -58,20 +59,5 @@ maybe("builtin VIEW templates", () => {
     (document.getElementById("refresh") as HTMLButtonElement).click();
     expect(posted.some((message) => message.type === "view_query")).toBe(false);
     expect(document.body.textContent).toContain("暂无自动化");
-  });
-
-  test("catalog switches resource type and pages by cursor", async () => {
-    const { send, answer } = load(templates.catalog);
-    send({ type: "view_init", data: { payload: { items: [{ resourceKey: "writer", resourceType: "agent", valid: true, name: "Writer", mode: "GENERAL", invocable: true }], total: 1, hasMore: false, nextCursor: "" }, context: { queryable: true, locale: "en", query: { name: "list", params: { resourceType: "agent" } } } } });
-    expect(document.body.textContent).toContain("Writer");
-    (document.querySelector('[data-type="connector"]') as HTMLButtonElement).click();
-    const request = answer({ items: [{ resourceKey: "crm", resourceType: "connector", valid: false, hasMcp: true, diagnostics: [{ message: "bad manifest" }] }], total: 2, hasMore: true, nextCursor: "crm" });
-    expect(request.params).toMatchObject({ resourceType: "connector", status: "all" });
-    expect(request.params.cursor).toBeUndefined();
-    await flush();
-    expect(document.body.textContent).toContain("bad manifest");
-    (document.getElementById("next") as HTMLButtonElement).click();
-    const next = answer({ items: [], total: 2, hasMore: false, nextCursor: "" });
-    expect(next.params).toMatchObject({ resourceType: "connector", cursor: "crm" });
   });
 });
