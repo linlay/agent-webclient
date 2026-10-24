@@ -21,9 +21,19 @@ display 文档在 head 最前注入宿主适配脚本 `window.zenmindView`（不
 
 ### Markdown VIEW 块
 
-助手正文写作 ` ```view key=<connectorId>/<viewKey> `，正文只放一个 JSON 对象或数组；带 `query=<name>` 时正文是该查询的参数对象，`ViewEmbed` 以它执行首次查询后再发送 `view_init`。`contentSegments.parseContentSegments` 按逐行语法分段：栅栏须在行首、恰好三个反引号，属性只接受 key，其他代码块内的 view 栅栏保持为代码；VIEW segment 带 `index`（已闭合 VIEW 块序号）、`key`、可选 `query`、`payloadRaw`、原始块 `text` 与 `closed`。语法与平台 `internal/view.ParseMarkdownBlocks` 共用 golden 用例 `events/lib/__fixtures__/view_markdown_cases.json`，修改须两边同步。
+助手正文写作 ` ```view key=<connectorId>/<viewKey> `，正文只放一个 JSON 对象或数组；带 `query=<name>` 时正文是该查询的参数对象，`ViewEmbed` 以它执行首次查询后再发送 `view_init`。`contentSegments.parseContentSegments` 按逐行语法分段：栅栏须在行首、恰好三个反引号，属性接受 key 与可选 query，其他代码块内的 view 栅栏保持为代码；VIEW segment 带 `index`（已闭合 VIEW 块序号）、`key`、可选 `query`、`payloadRaw`、原始块 `text` 与 `closed`。语法与平台 `internal/view.ParseMarkdownBlocks` 共用 golden 用例 `events/lib/__fixtures__/view_markdown_cases.json`，修改须两边同步。
 
 模板只由平台绑定：`content.view` 与 `content.snapshot.views` 写入内容节点的 `viewBindings[index]`，后续 delta/end 保留。`ContentBlock` 对已绑定块调用 `renderContentView(segment, chatId, binding, node.runId)`；流式中尚未绑定显示加载中；内容结束仍无绑定（ACP/PROXY、历史旧 JSON 信封）按原始代码块显示；`viewError` 显示错误并可展开原始数据。
+
+### 数据来源 header
+
+所有展示类 VIEW 在 iframe 外显示统一的轻量 header，包括加载、失败与无绑定的原始块兜底；HITL 表单保持独立展示。
+
+- 正文直接携带数据时显示“消息数据”，说明初始内容来自消息保存的数据；声明 `query=` 时显示“动态查询”，说明结果可能与消息生成时不同。
+- header 右侧提供“放大查看”按钮，模板就绪后可用；以最大 1280px、随视口收缩的 Dialog 展示同一 Chat/Run/hash、正文与查询参数的 VIEW，正文在 Dialog 内滚动，可用关闭按钮、Escape 或遮罩关闭。动态查询在 Dialog 打开时重新执行，独立显示查询状态与时间，Dialog 内不提供重复放大入口，关闭不改写原消息或内联视图状态。
+- 点击或键盘展开 header 可查看说明；样式沿用主题的次级文字、分隔线，动态查询使用主题强调色。
+- 初始查询和 iframe 发起的查询共用状态：查询中、查询失败、更新失败、消息数据已查询更新。成功后显示当前访问期间收到查询结果的本地时间，跨日带日期，不作为业务记录的更新时间或持久化历史。
+- 正文数据视图也可调用已声明的 query，成功后仍标识其初始来源并追加“已查询更新”。多个并发查询全部结束前保持查询中，失败保留上次成功时间；具体内容保留与错误呈现由模板负责。切换 Chat、Run、模板或查询参数时清除旧状态，旧请求不会写入新 header。
 
 ## HITL
 

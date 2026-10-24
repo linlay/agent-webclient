@@ -19,6 +19,7 @@ import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
 import { useI18n } from "@/shared/i18n";
 import { useTimelineInteraction, useTimelineContextMenuTarget } from "./TimelineInteractionContext";
+import { ViewHeader } from "./ViewHeader";
 import { copyText } from "@/shared/utils/copy";
 const presentationClasses = bindCssModuleClasses({ ...timelinePresentation });
 
@@ -178,10 +179,11 @@ export const ContentBlock: React.FC<ContentBlockProps> = ({ node }) => {
 						return <React.Fragment key={segment.signature}>{interaction.renderContentView(segment, chatId, binding, node.runId)}</React.Fragment>;
 					}
 					if (!settled && interaction?.renderContentView && interaction.conversationActive) {
-						return <div key={segment.signature} role="status" className="tw:my-2 tw:text-sm tw:opacity-70">{t("view.loading")}</div>;
+						return <div key={segment.signature} className="tw:my-2"><ViewHeader query={segment.query} /><div role="status" className="tw:text-sm tw:opacity-70">{t("view.loading")}</div></div>;
 					}
 					return (
 						<div key={segment.signature || idx} className={markdownClassName}>
+							<ViewHeader query={segment.query} />
 							{renderMarkdown({ content: segment.text || "", chatId, teamChat })}
 						</div>
 					);
