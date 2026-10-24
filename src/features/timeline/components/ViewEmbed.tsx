@@ -174,8 +174,11 @@ export function ViewEmbed({ chatId, view, payloadRaw, viewError, rawData, runId,
   }, [payloadRaw]);
   useEffect(() => { if (ready.current) post("view_update"); }, [locale, colorScheme]);
 
-  return <div className={onClose ? "tw:m-0" : "tw:my-2"}>
+  return <div className={onClose ? "tw:m-0 tw:flex tw:h-full tw:min-h-0 tw:flex-col" : "tw:my-2"}>
+    <div className={onClose ? "tw:shrink-0" : undefined}>
     <ViewHeader query={query} status={queryStatus} onExpand={allowExpand ? () => setExpanded(true) : undefined} canExpand={Boolean(html) && !error} onClose={onClose} />
+    </div>
+    <div className={onClose ? "view-dialog-scroll tw:min-h-0 tw:flex-1 tw:overflow-auto" : undefined}>
     {error && <div role="alert">{t("view.loadFailed", { detail: error })}</div>}
     {error && rawData && <details className="tw:mt-1 tw:text-sm">
       <summary>{t("view.rawData")}</summary>
@@ -185,9 +188,10 @@ export function ViewEmbed({ chatId, view, payloadRaw, viewError, rawData, runId,
     {html && <iframe key={identity} ref={frame} title={`view-${resolvedView?.connectorId || resolvedView?.source}-${resolvedView?.key}`} srcDoc={html}
       sandbox="allow-scripts" className="tw:w-full tw:border-0" style={{ height, colorScheme }}
       onLoad={initialize} />}
+    </div>
     {allowExpand && <Modal open={expanded} title={null} closable={false} aria-label={t("view.header.title")}
-      width="min(1280px, calc(100vw - 32px))" style={{ top: 24 }}
-      styles={{ content: { padding: "10px 16px 16px" }, body: { maxHeight: "calc(100dvh - 80px)", overflow: "auto" } }}
+      width="min(1280px, calc(100vw - 32px))" centered style={{ paddingBottom: 0 }}
+      styles={{ content: { height: "80dvh", boxSizing: "border-box", display: "flex", flexDirection: "column", padding: "10px 16px 16px" }, body: { flex: 1, minHeight: 0, overflow: "hidden" } }}
       footer={null} destroyOnHidden onCancel={() => setExpanded(false)}>
       {expanded && <ViewEmbed chatId={chatId} view={view} payloadRaw={payloadRaw}
         viewError={viewError} rawData={rawData} runId={runId} query={query} allowExpand={false} onClose={() => setExpanded(false)} />}
