@@ -1399,6 +1399,16 @@ describe('appReducer conversation reset behavior', () => {
     expect(next.rightSidebarOpenTab).toBeNull();
   });
 
+  it.each(['RESET_CONVERSATION', 'RESET_ACTIVE_CONVERSATION'] as const)('clears VIEW tabs on %s', (type) => {
+    const state = appReducer(createInitialState(), { type: 'OPEN_VIEW_PREVIEW', preview: {
+      key: 'view', chatId: 'owner', payloadRaw: '{}',
+    } });
+    const next = appReducer(state, { type });
+    expect(next.viewPreviews).toEqual([]);
+    expect(next.activeViewPreviewKey).toBe('');
+    expect(next.rightSidebarOpenTab).toBeNull();
+  });
+
   it.each(['overview', 'debug'] as const)(
     'preserves the stable %s sidebar selection during conversation reset',
     (rightSidebarOpenTab) => {

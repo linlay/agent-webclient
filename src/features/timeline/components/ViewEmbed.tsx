@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { Modal } from "antd";
 import type { ViewDocument, ViewQueryResult, ViewReference } from "@/shared/contracts/view";
 import { getView, queryView } from "@/shared/data";
@@ -30,7 +30,7 @@ function isObject(value: unknown): value is Record<string, unknown> {
 // Display views have no submit/action listener. Only HITL's host may submit.
 // Connector views load only frozen Chat snapshots named by an event hash, and
 // may run only queries their snapshot declares, as the viewing user.
-export function ViewEmbed({ chatId, view, payloadRaw, viewError, rawData, runId, query, allowExpand = true, onClose }: {
+export function ViewEmbed({ chatId, view, payloadRaw, viewError, rawData, runId, query, allowExpand = true, allowSidebar = false, onClose }: {
   chatId: string;
   view?: ViewReference;
   payloadRaw: string;
@@ -41,13 +41,24 @@ export function ViewEmbed({ chatId, view, payloadRaw, viewError, rawData, runId,
   runId?: string;
   /** Markdown query block: payloadRaw holds the params of this declared query. */
   query?: string;
-  /** Expanded hosts keep metadata but cannot open nested dialogs. */
+  /** Expanded hosts keep metadata without nested presentation controls. */
   allowExpand?: boolean;
-  /** Dialog hosts merge the close action into the single VIEW header. */
+  /** Only surfaces with the existing right sidebar expose this action. */
+  allowSidebar?: boolean;
+  /** Expanded hosts merge the close action into the single VIEW header. */
   onClose?: () => void;
 }) {
   const { t, locale } = useI18n();
-  const colorScheme = useOptionalAppContext()?.state.themeMode;
+  const app = useOptionalAppContext();
+  const sidebarId = useId();
+  const preview = useMemo(() => ({ key: sidebarId, chatId, view, payloadRaw, viewError, rawData, runId, query }),
+    [sidebarId, chatId, view?.source, view?.connectorId, view?.key, view?.hash, view?.version, view?.renderer, payloadRaw, viewError, rawData, runId, query]);
+  const previewOpen = Boolean(app?.state.viewPreviews?.some(item => item.key === sidebarId));
+  const dispatch = app?.dispatch;
+  useEffect(() => {
+    if (previewOpen) dispatch?.({ type: "UPDATE_VIEW_PREVIEW", preview });
+  }, [previewOpen, dispatch, preview]);
+  const colorScheme = app?.state.themeMode;
   const frame = useRef<HTMLIFrameElement>(null);
   const ready = useRef(false);
   const documentRef = useRef<ViewDocument | null>(null);
@@ -176,7 +187,10 @@ export function ViewEmbed({ chatId, view, payloadRaw, viewError, rawData, runId,
 
   return <div className={onClose ? "tw:m-0 tw:flex tw:h-full tw:min-h-0 tw:flex-col" : "tw:my-2"}>
     <div className={onClose ? "tw:shrink-0" : undefined}>
-    <ViewHeader query={query} status={queryStatus} onExpand={allowExpand ? () => setExpanded(true) : undefined} canExpand={Boolean(html) && !error} onClose={onClose} />
+    <ViewHeader query={query} status={queryStatus}
+      onExpand={allowExpand ? () => setExpanded(true) : undefined}
+      onOpenSidebar={allowExpand && allowSidebar && dispatch ? () => dispatch({ type: "OPEN_VIEW_PREVIEW", preview }) : undefined}
+      canExpand={Boolean(html) && !error} onClose={onClose} />
     </div>
     <div className={onClose ? "view-dialog-scroll tw:min-h-0 tw:flex-1 tw:overflow-auto" : undefined}>
     {error && <div role="alert">{t("view.loadFailed", { detail: error })}</div>}

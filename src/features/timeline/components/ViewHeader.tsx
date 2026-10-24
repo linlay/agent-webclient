@@ -9,10 +9,11 @@ export interface ViewQueryStatus {
 }
 
 /** Host-owned metadata stays outside the frozen connector template. */
-export function ViewHeader({ query, status, onExpand, canExpand = true, onClose }: {
+export function ViewHeader({ query, status, onExpand, onOpenSidebar, canExpand = true, onClose }: {
   query?: string;
   status?: ViewQueryStatus;
   onExpand?: () => void;
+  onOpenSidebar?: () => void;
   canExpand?: boolean;
   onClose?: () => void;
 }) {
@@ -58,6 +59,13 @@ export function ViewHeader({ query, status, onExpand, canExpand = true, onClose 
         onClick={onExpand} className="tw:!h-6 tw:!w-6 tw:shrink-0 tw:!text-ink-muted">
         <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
           <path d="M8 3H3v5M16 3h5v5M21 16v5h-5M3 16v5h5M3 3l6 6M21 3l-6 6M21 21l-6-6M3 21l6-6" />
+        </svg>
+      </UiButton>}
+      {onOpenSidebar && <UiButton variant="ghost" size="mini" iconOnly disabled={!canExpand}
+        aria-label={t("view.header.openSidebar")} title={t("view.header.openSidebar")}
+        onClick={onOpenSidebar} className="tw:!h-6 tw:!w-6 tw:shrink-0 tw:!text-ink-muted">
+        <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="3" y="3" width="18" height="18" rx="2" /><path d="M9 3v18m4-12 3 3-3 3" />
         </svg>
       </UiButton>}
       {onClose && <UiButton variant="ghost" size="mini" iconOnly onClick={onClose}

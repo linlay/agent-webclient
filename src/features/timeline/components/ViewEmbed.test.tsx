@@ -11,12 +11,16 @@ jest.mock("@/shared/data", () => ({
   queryView: (...args: unknown[]) => mockQueryView(...args),
 }));
 jest.mock("@/shared/i18n", () => ({ useI18n: () => ({ locale: "zh-CN", t: (key: string) => key }) }));
-jest.mock("@/app/state/provider", () => ({ useOptionalAppContext: () => ({ state: { themeMode: "dark" } }) }));
+const mockDispatch = jest.fn();
+let mockViewPreviews: any[] = [];
+jest.mock("@/app/state/provider", () => ({ useOptionalAppContext: () => ({
+  state: { themeMode: "dark", viewPreviews: mockViewPreviews }, dispatch: mockDispatch,
+}) }));
 
 const hash = "a".repeat(64);
 const view = { source: "connector" as const, connectorId: "builtin.task-control", key: "automations", hash, renderer: "html" as const };
 
-async function mount(props: Partial<React.ComponentProps<typeof ViewEmbed>>) {
+async function mount(props: Partial<React.ComponentProps<typeof ViewEmbed>>, workspace = false) {
   mockGetView.mockResolvedValue({ data: { view, html: "<p>x</p>", queries: { list: { adapter: "native", operation: "automation.list" } } } });
   const host = document.createElement("div");
   document.body.append(host);
@@ -33,13 +37,16 @@ async function mount(props: Partial<React.ComponentProps<typeof ViewEmbed>>) {
     }
     return target;
   });
-  await act(async () => root.render(<ViewEmbed chatId="chat" view={view} payloadRaw='{"limit":5}' {...props} />));
+  const render = (next = props) => {
+    root.render(<ViewEmbed chatId="chat" view={view} payloadRaw='{"limit":5}' allowSidebar={workspace} {...next} />);
+  };
+  await act(async () => render());
   const frame = host.querySelector("iframe")!;
   await act(async () => { frame.dispatchEvent(new Event("load")); });
-  return { host, frame, posted, cleanup: () => { act(() => root.unmount()); windowGetter.mockRestore(); host.remove(); } };
+  return { host, frame, posted, render, cleanup: () => { act(() => root.unmount()); windowGetter.mockRestore(); host.remove(); } };
 }
 
-afterEach(() => { mockGetView.mockReset(); mockQueryView.mockReset(); });
+afterEach(() => { mockGetView.mockReset(); mockQueryView.mockReset(); mockDispatch.mockReset(); mockViewPreviews = []; });
 
 test("query blocks run the initial query with the publishing Run and pass host context", async () => {
   mockQueryView.mockResolvedValue({ data: { data: { items: [{ id: "daily" }] }, executedAt: 1700000000000 } });
@@ -245,5 +252,22 @@ test("query time opens the explanation in a popover without a separate informati
     expect(time.parentElement).toBe(header.lastElementChild);
     await act(async () => { time.click(); });
     expect(document.querySelector(".ant-popover")?.textContent).toContain("view.header.dynamicHelp");
+  } finally { cleanup(); }
+});
+
+test("sidebar action opens a tab with the same frozen view, after the dialog button", async () => {
+  const { host, render, cleanup } = await mount({ runId: "run-1", query: "list" }, true);
+  try {
+    const dialog = host.querySelector('button[aria-haspopup="dialog"]')!;
+    const sidebar = host.querySelector('button[aria-label="view.header.openSidebar"]') as HTMLButtonElement;
+    expect(dialog.nextElementSibling).toBe(sidebar);
+    await act(async () => sidebar.click());
+    expect(mockDispatch).toHaveBeenLastCalledWith({ type: "OPEN_VIEW_PREVIEW", preview: expect.objectContaining({
+      chatId: "chat", runId: "run-1", view, query: "list", payloadRaw: '{"limit":5}',
+    }) });
+    expect(document.querySelector("aside")).toBeNull();
+    mockViewPreviews = [mockDispatch.mock.calls.at(-1)[0].preview];
+    await act(async () => render({ runId: "run-1", query: "list", payloadRaw: '{"limit":10}' }));
+    expect(mockDispatch).toHaveBeenLastCalledWith({ type: "UPDATE_VIEW_PREVIEW", preview: expect.objectContaining({ payloadRaw: '{"limit":10}' }) });
   } finally { cleanup(); }
 });

@@ -85,7 +85,7 @@ export function useBtwTimelineInteraction({
           .catch(() => undefined);
       },
       renderToolView: (view, chatId, error, payloadRaw) => (
-        <ViewEmbed
+        <ViewEmbed allowSidebar
           chatId={chatId}
           view={view}
           viewError={error}
@@ -96,7 +96,7 @@ export function useBtwTimelineInteraction({
         <ToolOutputTerminal output={output} themeMode={themeMode} />
       ),
       renderContentView: (segment, chatId, binding, runId) => (
-        <ViewEmbed
+        <ViewEmbed allowSidebar
           chatId={chatId}
           view={binding.view}
           viewError={binding.viewError}

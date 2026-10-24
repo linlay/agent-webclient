@@ -69,6 +69,8 @@ export function buildConversationResetState(
 		webPreviews: [],
 		webPreviewRefreshRevisionByUrl: new Map(),
 		activeWebPreviewUrl: "",
+		viewPreviews: [],
+		activeViewPreviewKey: "",
 		viewerTabs: [],
 		documentPreviewTabs: [],
 		activeDocumentPreviewKey: "",

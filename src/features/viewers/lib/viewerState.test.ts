@@ -43,3 +43,23 @@ test("preview selection and closing preserve other tabs and return to overview w
   expect(lastClosed.rightSidebarOpenTab).toBe("overview");
   expect(lastClosed.activeDocumentPreviewKey).toBe("");
 });
+
+test("VIEW tabs coexist with files, reuse their identity, and update without stealing selection", () => {
+  const original = reduceViewersState(createInitialViewersState(), { type: "OPEN_RIGHT_SIDEBAR", tab: "viewer", viewerTarget: target });
+  const preview = { key: "view-1", chatId: "chat", runId: "run", payloadRaw: "{}" };
+  const opened = reduceViewersState(original, { type: "OPEN_VIEW_PREVIEW", preview });
+  expect(opened.viewerTabs).toEqual([target]);
+  expect(opened.rightSidebarOpenTab).toBe("viewPreview");
+  const reopened = reduceViewersState(opened, { type: "OPEN_VIEW_PREVIEW", preview });
+  expect(reopened.viewPreviews).toEqual([preview]);
+  const second = reduceViewersState(reopened, { type: "OPEN_VIEW_PREVIEW", preview: { ...preview, key: "view-2" } });
+  const selected = reduceViewersState(second, { type: "ACTIVATE_VIEW_PREVIEW", key: "view-1" });
+  const updated = reduceViewersState(selected, { type: "UPDATE_VIEW_PREVIEW", preview: { ...preview, key: "view-2", payloadRaw: "new" } });
+  expect(updated.activeViewPreviewKey).toBe("view-1");
+  const closedInactive = reduceViewersState(updated, { type: "CLOSE_VIEW_PREVIEW", key: "view-2" });
+  expect(closedInactive.activeViewPreviewKey).toBe("view-1");
+  const closed = reduceViewersState(closedInactive, { type: "CLOSE_VIEW_PREVIEW", key: "view-1" });
+  expect(closed.rightSidebarOpenTab).toBe("overview");
+  expect(closed.viewerTabs).toEqual([target]);
+  expect(reduceViewersState(closed, { type: "UPDATE_VIEW_PREVIEW", preview })).toBe(closed);
+});

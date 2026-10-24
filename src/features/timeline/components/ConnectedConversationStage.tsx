@@ -1661,11 +1661,11 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
         .catch(() => undefined);
     },
     renderToolView: (view, chatId, error, payloadRaw) =>
-      <ViewEmbed chatId={chatId} view={view} viewError={error} payloadRaw={payloadRaw} />,
+      <ViewEmbed allowSidebar={surfaceMode === "main"} chatId={chatId} view={view} viewError={error} payloadRaw={payloadRaw} />,
     renderToolOutput: (output) =>
       <ToolOutputTerminal output={output} themeMode={state.themeMode} />,
     renderContentView: (segment, chatId, binding, runId) =>
-      <ViewEmbed chatId={chatId} view={binding.view} viewError={binding.viewError} payloadRaw={segment.payloadRaw || "{}"} rawData={segment.payloadRaw} runId={runId} query={segment.query} />,
+      <ViewEmbed allowSidebar={surfaceMode === "main"} chatId={chatId} view={binding.view} viewError={binding.viewError} payloadRaw={segment.payloadRaw || "{}"} rawData={segment.payloadRaw} runId={runId} query={segment.query} />,
     renderMarkdown: (props) => <MarkdownContent {...props} htmlPreview />,
     renderAttachment: (attachment, options) => <AttachmentCard
       attachment={attachment} variant="timeline" thumbnailMode="inline"

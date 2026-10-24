@@ -58,6 +58,10 @@ jest.mock("antd", () => {
   };
 });
 
+jest.mock("@/features/timeline/components/ViewEmbed", () => ({
+  ViewEmbed: (props: any) => React.createElement("div", { "data-view-hash": props.view?.hash, "data-view-payload": props.payloadRaw }, "VIEW tab"),
+}));
+
 jest.mock("@/features/overview/components/OverviewTab", () => ({
   OverviewTab: () => React.createElement("div", null, "overview tab"),
 }));
@@ -220,10 +224,27 @@ describe("RightSidebar", () => {
     expect(dispatch).toHaveBeenLastCalledWith({ type: "CLOSE_DOCUMENT_PREVIEW", key: preview.key });
   });
 
+  it("opens VIEW alongside existing tabs and uses the shared selection and close controls", () => {
+    useAppState.mockReturnValue({
+      ...createInitialState(), rightSidebarOpen: true, rightSidebarOpenTab: "viewPreview",
+      activeViewPreviewKey: "view-1",
+      viewPreviews: [{ key: "view-1", chatId: "chat", payloadRaw: '{"items":[]}', view: { source: "connector", connectorId: "demo", key: "report", hash: "frozen" } }],
+    });
+    const html = renderRightSidebar();
+    expect(html).toContain('data-active-key="viewPreview:view-1"');
+    expect(html).toContain('data-tab-key="overview"');
+    expect(html).toContain('data-view-hash="frozen"');
+    const tabs = mockTabsState.current;
+    tabs.onChange("viewPreview:view-1");
+    expect(dispatch).toHaveBeenLastCalledWith({ type: "ACTIVATE_VIEW_PREVIEW", key: "view-1" });
+    tabs.onEdit("viewPreview:view-1", "remove");
+    expect(dispatch).toHaveBeenLastCalledWith({ type: "CLOSE_VIEW_PREVIEW", key: "view-1" });
+  });
+
   it("only reserves the minimum main-content width when sizing the sidebar", () => {
     const html = renderRightSidebar();
 
-    expect(html).toContain('aria-valuemax="860"');
+    expect(html).toContain('aria-valuemax="1274"');
   });
 
   it("renders the debug panel outside the tab list when enabled by env", () => {
