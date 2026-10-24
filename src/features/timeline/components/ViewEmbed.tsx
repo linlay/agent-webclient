@@ -8,11 +8,12 @@ import { useOptionalAppContext } from "@/app/state/provider";
 
 const DEFAULT_HEIGHT = 320;
 const MIN_HEIGHT = 48;
-const MAX_HEIGHT = 1600;
 
+// Display views size to their content with no upper bound; the timeline
+// scrolls. HITL form hosts keep their own capped height.
 export function clampViewHeight(value: unknown): number | undefined {
   if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) return undefined;
-  return Math.min(MAX_HEIGHT, Math.max(MIN_HEIGHT, Math.ceil(value)));
+  return Math.max(MIN_HEIGHT, Math.ceil(value));
 }
 
 function errorCode(error: unknown): string {

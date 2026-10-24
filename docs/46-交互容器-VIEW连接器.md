@@ -17,7 +17,7 @@ display 文档在 head 最前注入宿主适配脚本 `window.zenmindView`（不
 
 - `onData((payload, view, context) => …)` 接收 init/update（晚注册也会收到最近一次数据）；`context` 含 `queryable`、`locale`、`colorScheme`（应用主题，而非系统主题；脚本写入 `<html data-color-scheme>`），查询块另含 `query:{name,params}`，首次查询失败时含 `error`。
 - `query(name, params)` 发送 `view_query`，`ViewEmbed` 只对自身 iframe、快照 `queries` 声明的查询调用 `queryView`（`POST /api/view/query`，带内容节点的 `runId`），回复 `view_query_result`。没有 runId 的工具结果 VIEW 不可查询。
-- `resize()` 手动上报；默认 ResizeObserver 发送 `{type:"view_resize",height}`。`ViewEmbed` 只接受来自自身 iframe 的尺寸消息，限定 48–1600px，首次上报前 320px。表单文档不注入。
+- `resize()` 手动上报；默认 ResizeObserver 发送 `{type:"view_resize",height}`。`ViewEmbed` 只接受来自自身 iframe 的尺寸消息，高度由 HTML 内容决定，仅设 48px 下限、不设上限（内容不应按 vh 定高，否则会随 iframe 循环增高），首次上报前 320px；HITL 表单宿主仍按原规则限高。表单文档不注入。
 
 ### Markdown VIEW 块
 

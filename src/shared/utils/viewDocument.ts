@@ -9,7 +9,8 @@ const VIEW_CSP = "default-src 'none'; script-src 'unsafe-inline' data:; style-sr
  *     context = { query?: {name, params}, queryable, error?, locale, colorScheme }
  *   zenmindView.query(name, params) → Promise<result>  — declared queries only
  *   zenmindView.resize()                               — re-reports the height
- * Height is reported as {type:"view_resize",height}; the host clamps it.
+ * Height is reported as {type:"view_resize",height}; the host applies it with
+ * a 48px floor and no ceiling, so content must not size itself by vh units.
  */
 export const VIEW_DISPLAY_SDK = `(() => {
   'use strict';

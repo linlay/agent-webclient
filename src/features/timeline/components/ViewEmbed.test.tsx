@@ -64,8 +64,8 @@ test("without a Run the view is not queryable", async () => {
   } finally { cleanup(); }
 });
 
-test("height is clamped", () => {
+test("height has a floor but no ceiling", () => {
   expect(clampViewHeight(10)).toBe(48);
-  expect(clampViewHeight(5000)).toBe(1600);
+  expect(clampViewHeight(5000.2)).toBe(5001);
   expect(clampViewHeight("x")).toBeUndefined();
 });
