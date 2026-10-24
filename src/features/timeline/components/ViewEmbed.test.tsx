@@ -91,8 +91,8 @@ test("message data has an accessible header and records later query success and 
   const { host, frame, cleanup } = await mount({ runId: "run-1" });
   try {
     const header = host.querySelector(".view-header")!;
-    expect(header.querySelector("summary")?.textContent).toContain("view.header.message");
-    expect(header.textContent).toContain("view.header.messageHelp");
+    expect(header.textContent).toContain("view.header.message");
+    expect(header.querySelector("details")).toBeNull();
     expect(header.querySelector("time")).toBeNull();
     await request(frame, "q1");
     expect(header.textContent).toContain("view.header.updated");
@@ -101,7 +101,7 @@ test("message data has an accessible header and records later query success and 
     await request(frame, "q2");
     expect(header.textContent).toContain("view.header.updateFailed");
     expect(header.textContent).toContain("view.header.lastSuccess");
-    expect(header.querySelector("summary")?.textContent).toContain("view.header.message");
+    expect(header.textContent).toContain("view.header.message");
     mockQueryView.mockResolvedValueOnce({ data: { result: { items: [] } } });
     await request(frame, "q3");
     expect(header.textContent).toContain("view.header.updated");
@@ -115,7 +115,7 @@ test("dynamic queries show pending and failed states, then a successful retry", 
   const { host, frame, cleanup } = await mount({ runId: "run-1", query: "list" });
   try {
     const header = host.querySelector(".view-header")!;
-    expect(header.querySelector("summary")?.textContent).toContain("view.header.dynamic");
+    expect(header.textContent).toContain("view.header.dynamic");
     expect(header.textContent).toContain("view.header.querying");
     await act(async () => { reject(new Error("offline")); });
     expect(header.textContent).toContain("view.header.queryFailed");
@@ -137,10 +137,10 @@ test("concurrent queries keep the pending indicator until all requests settle", 
     await request(frame, "q1");
     await request(frame, "q2");
     await act(async () => { resolveSecond({ data: { result: {} } }); });
-    expect(host.querySelector("summary")?.textContent).toContain("view.header.querying");
+    expect(host.querySelector(".view-header")?.textContent).toContain("view.header.querying");
     await act(async () => { resolveFirst({ data: { result: {} } }); });
-    expect(host.querySelector("summary")?.textContent).not.toContain("view.header.querying");
-    expect(host.querySelector("summary")?.textContent).toContain("view.header.updated");
+    expect(host.querySelector(".view-header")?.textContent).not.toContain("view.header.querying");
+    expect(host.querySelector(".view-header")?.textContent).toContain("view.header.updated");
   } finally { cleanup(); }
 });
 
@@ -149,7 +149,7 @@ test("template errors still have a header and raw data fallback", async () => {
   const root = createRoot(host);
   await act(async () => root.render(<ViewEmbed chatId="chat" view={view} payloadRaw="{}" rawData="original" query="list" viewError="view_not_found" />));
   try {
-    expect(host.querySelector(".view-header summary")?.textContent).toContain("view.header.dynamic");
+    expect(host.querySelector(".view-header")?.textContent).toContain("view.header.dynamic");
     expect(host.querySelector('[role="alert"]')).not.toBeNull();
     expect(host.querySelector("pre")?.textContent).toBe("original");
   } finally { act(() => root.unmount()); }
@@ -165,11 +165,11 @@ test("switching Chats clears query state and ignores the previous Chat's respons
   await act(async () => root.render(<ViewEmbed chatId="first" view={view} payloadRaw="{}" runId="run-1" query="list" />));
   await act(async () => { host.querySelector("iframe")!.dispatchEvent(new Event("load")); });
   try {
-    expect(host.querySelector("summary")?.textContent).toContain("view.header.querying");
+    expect(host.querySelector(".view-header")?.textContent).toContain("view.header.querying");
     await act(async () => root.render(<ViewEmbed chatId="second" view={view} payloadRaw="{}" runId="run-2" />));
     await act(async () => { resolve({ data: { result: { items: ["old"] } } }); });
-    expect(host.querySelector("summary")?.textContent).toContain("view.header.message");
-    expect(host.querySelector("summary")?.textContent).not.toContain("view.header.querying");
+    expect(host.querySelector(".view-header")?.textContent).toContain("view.header.message");
+    expect(host.querySelector(".view-header")?.textContent).not.toContain("view.header.querying");
     expect(host.querySelector("time")).toBeNull();
   } finally { act(() => root.unmount()); host.remove(); }
 });
@@ -182,14 +182,16 @@ test("expand opens a larger dialog with the same frozen view and saved data", as
     await act(async () => { button.click(); });
     const dialog = document.querySelector('[role="dialog"]')!;
     expect(dialog).not.toBeNull();
-    expect(dialog.textContent).toContain("view.header.dialogTitle");
+    expect(dialog.textContent).toContain("view.header.title");
+    expect(dialog.querySelector(".ant-modal-header")).toBeNull();
+    expect(dialog.querySelectorAll(".view-header")).toHaveLength(1);
     expect(dialog.querySelector("iframe")).not.toBeNull();
     expect(dialog.querySelector('button[aria-haspopup="dialog"]')).toBeNull();
     expect(mockGetView).toHaveBeenCalledTimes(2);
     expect(mockGetView.mock.calls[1][0]).toMatchObject({ chatId: "chat", connectorId: view.connectorId, key: view.key, hash });
     expect(mockQueryView).not.toHaveBeenCalled();
     expect(host.querySelector("iframe")).not.toBeNull();
-    await act(async () => { (dialog.querySelector(".ant-modal-close") as HTMLButtonElement).click(); });
+    await act(async () => { (dialog.querySelector('button[aria-label="view.header.close"]') as HTMLButtonElement).click(); });
     expect(document.querySelector('[role="dialog"] iframe')).toBeNull();
     expect(host.querySelector("iframe")).not.toBeNull();
   } finally { cleanup(); }
@@ -206,5 +208,22 @@ test("expanded dynamic views query with the same Run and initial parameters", as
     expect(mockQueryView).toHaveBeenCalledTimes(initialCalls + 1);
     expect(mockQueryView.mock.calls.at(-1)[0]).toMatchObject({ chatId: "chat", runId: "run-1", view: { hash }, query: "list", params: { limit: 5 } });
     expect(document.querySelector('[role="dialog"] time')).not.toBeNull();
+  } finally { cleanup(); }
+});
+
+
+test("query time opens the explanation in a popover without a separate information row", async () => {
+  mockQueryView.mockResolvedValue({ data: { result: { items: [] } } });
+  const { host, cleanup } = await mount({ runId: "run-1", query: "list" });
+  try {
+    const header = host.querySelector(".view-header")!;
+    expect(header.textContent).toContain("view.header.title");
+    expect(header.querySelector("details")).toBeNull();
+    expect(document.body.textContent).not.toContain("view.header.dynamicHelp");
+    const time = header.querySelector(".view-query-time") as HTMLButtonElement;
+    expect(time.querySelector("time")).not.toBeNull();
+    expect(time.parentElement).toBe(header.lastElementChild);
+    await act(async () => { time.click(); });
+    expect(document.querySelector(".ant-popover")?.textContent).toContain("view.header.dynamicHelp");
   } finally { cleanup(); }
 });

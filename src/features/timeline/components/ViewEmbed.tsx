@@ -29,7 +29,7 @@ function isObject(value: unknown): value is Record<string, unknown> {
 // Display views have no submit/action listener. Only HITL's host may submit.
 // Connector views load only frozen Chat snapshots named by an event hash, and
 // may run only queries their snapshot declares, as the viewing user.
-export function ViewEmbed({ chatId, view, payloadRaw, viewError, rawData, runId, query, allowExpand = true }: {
+export function ViewEmbed({ chatId, view, payloadRaw, viewError, rawData, runId, query, allowExpand = true, onClose }: {
   chatId: string;
   view?: ViewReference;
   payloadRaw: string;
@@ -42,6 +42,8 @@ export function ViewEmbed({ chatId, view, payloadRaw, viewError, rawData, runId,
   query?: string;
   /** Expanded hosts keep metadata but cannot open nested dialogs. */
   allowExpand?: boolean;
+  /** Dialog hosts merge the close action into the single VIEW header. */
+  onClose?: () => void;
 }) {
   const { t, locale } = useI18n();
   const colorScheme = useOptionalAppContext()?.state.themeMode;
@@ -162,8 +164,8 @@ export function ViewEmbed({ chatId, view, payloadRaw, viewError, rawData, runId,
   }, [payloadRaw]);
   useEffect(() => { if (ready.current) post("view_update"); }, [locale, colorScheme]);
 
-  return <div className="tw:my-2">
-    <ViewHeader query={query} status={queryStatus} onExpand={allowExpand ? () => setExpanded(true) : undefined} canExpand={Boolean(html) && !error} />
+  return <div className={onClose ? "tw:m-0" : "tw:my-2"}>
+    <ViewHeader query={query} status={queryStatus} onExpand={allowExpand ? () => setExpanded(true) : undefined} canExpand={Boolean(html) && !error} onClose={onClose} />
     {error && <div role="alert">{t("view.loadFailed", { detail: error })}</div>}
     {error && rawData && <details className="tw:mt-1 tw:text-sm">
       <summary>{t("view.rawData")}</summary>
@@ -173,12 +175,12 @@ export function ViewEmbed({ chatId, view, payloadRaw, viewError, rawData, runId,
     {html && <iframe key={identity} ref={frame} title={`view-${resolvedView?.connectorId || resolvedView?.source}-${resolvedView?.key}`} srcDoc={html}
       sandbox="allow-scripts" className="tw:w-full tw:border-0" style={{ height, colorScheme }}
       onLoad={initialize} />}
-    {allowExpand && <Modal open={expanded} title={t("view.header.dialogTitle")}
+    {allowExpand && <Modal open={expanded} title={null} closable={false} aria-label={t("view.header.title")}
       width="min(1280px, calc(100vw - 32px))" style={{ top: 24 }}
-      styles={{ body: { maxHeight: "calc(100dvh - 144px)", overflow: "auto" } }}
+      styles={{ content: { padding: "10px 16px 16px" }, body: { maxHeight: "calc(100dvh - 80px)", overflow: "auto" } }}
       footer={null} destroyOnHidden onCancel={() => setExpanded(false)}>
       {expanded && <ViewEmbed chatId={chatId} view={view} payloadRaw={payloadRaw}
-        viewError={viewError} rawData={rawData} runId={runId} query={query} allowExpand={false} />}
+        viewError={viewError} rawData={rawData} runId={runId} query={query} allowExpand={false} onClose={() => setExpanded(false)} />}
     </Modal>}
   </div>;
 }
