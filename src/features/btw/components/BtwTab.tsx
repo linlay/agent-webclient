@@ -1,3 +1,4 @@
+import { useRunActivityTimeline } from "@/features/timeline/hooks/useRunActivityTimeline";
 import { chatDetailLevel } from "@/features/chats/lib/chatDetailLevel";
 import React, { useCallback, useEffect, useMemo, useRef } from "react";
 import { App as AntdApp, Flex, Input, Popconfirm, Tooltip } from "antd";
@@ -100,12 +101,18 @@ export const BtwTabView: React.FC<BtwTabViewProps> = ({
   const interruptReady = Boolean(session?.interruptReady);
   const interruptPending = Boolean(session?.interruptPending);
 
-  const timelineEntries = useMemo(() => {
-    if (!session) return [];
-    return nodesForDetailLevel(session.projection.timelineOrder
-      .map((id) => session.projection.timelineNodes.get(id))
-      .filter((node): node is TimelineNode => Boolean(node)), detailLevel);
-  }, [session, detailLevel]);
+  const rawTimelineNodes = useMemo(() => session ? session.projection.timelineOrder
+    .map(id => session.projection.timelineNodes.get(id))
+    .filter((node): node is TimelineNode => Boolean(node)) : [], [session]);
+  const activityTimelineNodes = useRunActivityTimeline(rawTimelineNodes, {
+    scopeKey: JSON.stringify([parentChatId, session?.btwId, session?.runId]),
+    runId: session?.runId || "",
+    active: running,
+    detailLevel,
+    events: session?.projection.events || [],
+  });
+  const timelineEntries = useMemo(() => nodesForDetailLevel(activityTimelineNodes, detailLevel),
+    [activityTimelineNodes, detailLevel]);
   const displayItems = useMemo(
     () =>
       session

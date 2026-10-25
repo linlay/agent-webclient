@@ -1,3 +1,4 @@
+import { useRunActivityTimeline } from "../hooks/useRunActivityTimeline";
 import { chatDetailLevel } from "@/features/chats/lib/chatDetailLevel";
 import { referenceIds } from "@/shared/contracts/references";
 import { bindCssModuleClasses } from "@/shared/utils/cssModuleClasses";
@@ -551,11 +552,20 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
     );
 
   const detailLevel = chatDetailLevel(state);
-  const timelineEntries = useMemo(() => {
-    return nodesForDetailLevel(state.timelineOrder
-      .map((id) => state.timelineNodes.get(id))
-      .filter((node): node is NonNullable<typeof node> => Boolean(node)), detailLevel);
-  }, [state.timelineOrder, state.timelineNodes, detailLevel]);
+  const activityRunId = mainChatRuntime?.runId || state.currentChatActiveRun?.runId || state.runId;
+  const activityChatId = expectedChatId || state.chatTransition?.targetChatId || state.chatId;
+  const rawTimelineNodes = useMemo(() => state.timelineOrder
+    .map(id => state.timelineNodes.get(id))
+    .filter((node): node is TimelineNode => Boolean(node)), [state.timelineOrder, state.timelineNodes]);
+  const activityTimelineNodes = useRunActivityTimeline(rawTimelineNodes, {
+    scopeKey: JSON.stringify([activityChatId, activityRunId]),
+    runId: activityRunId,
+    active: activityChatId === state.chatId && Boolean(isMainChatRunning || state.streaming || state.currentChatActiveRun),
+    detailLevel,
+    events: state.events,
+  });
+  const timelineEntries = useMemo(() => nodesForDetailLevel(activityTimelineNodes, detailLevel),
+    [activityTimelineNodes, detailLevel]);
   const currentAgentKey =
     currentWorker?.type === "agent"
       ? String(currentWorker.sourceId || "").trim()
