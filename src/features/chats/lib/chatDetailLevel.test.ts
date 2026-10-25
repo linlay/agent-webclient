@@ -1,5 +1,3 @@
-import { isDesktopAppMode } from "@/shared/utils/routing";
-jest.mock("@/shared/utils/routing", () => ({...jest.requireActual("@/shared/utils/routing"),isDesktopAppMode:jest.fn(() => true)}));
 import { chatDetailLevel } from "./chatDetailLevel";
 import { createInitialState } from "@/app/state/state";
 import { appReducer } from "@/app/state/reducer";
@@ -19,9 +17,11 @@ it("uses the selected Agent default and never infers detail from mode", () => {
   expect(chatDetailLevel(state)).toBe("summary");
   expect(chatDetailLevel({...state, agents:[{...state.agents[0], interactionConfig:{defaultDetail:"full"}}]})).toBe("full");
 });
-it("uses loaded Chat metadata before Agent hydration and ignores broker full delivery", () => {
-  const state = {...initialState, chatId:"old", chats:[{chatId:"old", agentKey:"deleted", display:{defaultDetail:"summary" as const, effectiveDetail:"full" as const}}], agents:[]};
+it("uses loaded Chat metadata before Agent hydration, rendering what was delivered", () => {
+  const state = {...initialState, chatId:"old", chats:[{chatId:"old", agentKey:"deleted", display:{defaultDetail:"summary" as const, effectiveDetail:"summary" as const}}], agents:[]};
   expect(chatDetailLevel(state)).toBe("summary");
+  const quiet = {...state, chats:[{...state.chats[0], display:{defaultDetail:"none" as const, effectiveDetail:"none" as const}}]};
+  expect(chatDetailLevel(quiet)).toBe("none");
   const detailed = {...state, chats:[{...state.chats[0], display:{defaultDetail:"full" as const, effectiveDetail:"full" as const}}]};
   expect(chatDetailLevel(detailed)).toBe("full");
   const refreshed = appReducer(detailed, {type:"SET_CHATS", chats:[{chatId:"old", agentKey:"deleted"}]});
@@ -32,7 +32,6 @@ it("keeps an existing Chat's owner separate from New Chat selection", () => {
  expect(chatDetailLevel(state)).toBe("summary");
 });
 
-it("uses explicit delivery overrides in standalone viewers", () => {
- jest.mocked(isDesktopAppMode).mockReturnValueOnce(false);
+it("uses an explicit delivery override, in Desktop as well", () => {
  expect(chatDetailLevel({...initialState,chatId:"old",chats:[{chatId:"old",display:{defaultDetail:"summary",effectiveDetail:"full"}}]})).toBe("full");
 });

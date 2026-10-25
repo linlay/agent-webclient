@@ -601,6 +601,9 @@ describe('nodesForDetailLevel', () => {
   it('summary shows content and the activity line only', () => {
     expect(nodesForDetailLevel(nodes, 'summary').map((node) => node.id)).toEqual(['c', 'run_activity_current']);
   });
+  it('none renders like summary; Platform already left only announcements', () => {
+    expect(nodesForDetailLevel(nodes, 'none').map((node) => node.id)).toEqual(['c', 'run_activity_current']);
+  });
   it('full shows details and hides the activity line', () => {
     expect(nodesForDetailLevel(nodes, 'full').map((node) => node.id)).toEqual(['c', 'r', 't', 'model_retry_current']);
   });

@@ -25,7 +25,7 @@ export function useRunActivityTimeline(nodes: TimelineNode[], options: {
   const { scopeKey, runId, detailLevel, events } = options;
   const ended = events.some(event => !event.taskId && event.runId === runId &&
     (event.type === "run.complete" || event.type === "run.cancel" || event.type === "run.error"));
-  const active = options.active && detailLevel === "summary" && !ended;
+  const active = options.active && detailLevel !== "full" && !ended;
   const activityIndex = nodes.findIndex(node => node.id === RUN_ACTIVITY_NODE_ID);
   const activity = activityIndex >= 0 ? nodes[activityIndex] : null;
   // Content starts rendering immediately. Only the progress line's removal waits.
@@ -50,10 +50,7 @@ export function useRunActivityTimeline(nodes: TimelineNode[], options: {
     }
     const remaining = MIN_ACTIVITY_DWELL_MS - (Date.now() - display.shownAt);
     const applyLatest = () => setDisplay({ scopeKey, node: next, shownAt: Date.now() });
-    // A more specific sentence about the tool on screen (its description
-    // after "preparing") replaces it at once and starts its own dwell.
-    const refinesTool = Boolean(next?.toolId) && next?.toolId === display.node.toolId;
-    if (remaining <= 0 || refinesTool) {
+    if (remaining <= 0) {
       applyLatest();
       return;
     }

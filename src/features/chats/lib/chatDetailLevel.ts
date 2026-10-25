@@ -1,4 +1,3 @@
-import { isDesktopAppMode } from "@/shared/utils/routing";
 import type { ChatsState } from "./chatState";
 import type { AgentsState } from "@/features/agents/lib/agentState";
 import type { ConversationState } from "@/features/conversation/lib/conversationState";
@@ -13,9 +12,7 @@ type DetailState = Pick<ChatsState, "chats"> & Pick<AgentsState, "agents"> &
  * the selected Agent's resolved configuration, with no client mode defaults. */
 export function chatDetailLevel(state: DetailState): EventDetailLevel {
   const chat = state.chatId ? state.chats.find(item => item.chatId === state.chatId) : undefined;
-  if (chat?.display) return normalizeEventDetailLevel(
-    isDesktopAppMode() ? chat.display.defaultDetail : chat.display.effectiveDetail,
-  );
+  if (chat?.display) return normalizeEventDetailLevel(chat.display.effectiveDetail);
   const worker = state.workerIndexByKey.get(state.workerSelectionKey);
   const agentKey = chat?.agentKey || chat?.firstAgentKey ||
     (state.chatId ? state.chatAgentById.get(state.chatId) : "") ||

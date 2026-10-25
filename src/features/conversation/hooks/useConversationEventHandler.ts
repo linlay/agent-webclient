@@ -1,3 +1,4 @@
+import { normalizeEventDetailLevel } from "@/shared/data/eventDetailLevel";
 import { recordRenderBreadcrumb } from "@/shared/utils/renderDiagnostics";
 import { useCallback, useEffect, useRef } from "react";
 import { useAppContext } from "@/app/state/AppContext";
@@ -555,10 +556,10 @@ export function useConversationEventHandler(): {
       if (type === "run.start") {
         const runStartChatId = toText(event.chatId);
         const display = event.display as { defaultDetail?: unknown; effectiveDetail?: unknown } | undefined;
-        if (runStartChatId && display && (display.defaultDetail === "summary" || display.defaultDetail === "full")) {
+        if (runStartChatId && display && (display.defaultDetail === "summary" || display.defaultDetail === "full" || display.defaultDetail === "none")) {
           dispatch({ type: "UPSERT_CHAT", chat: { chatId: runStartChatId, display: {
             defaultDetail: display.defaultDetail,
-            effectiveDetail: display.effectiveDetail === "full" ? "full" : "summary",
+            effectiveDetail: normalizeEventDetailLevel(display.effectiveDetail),
           } } });
         }
         if (runStartChatId && toText(state.chatId) !== runStartChatId) {

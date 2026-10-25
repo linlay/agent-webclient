@@ -87,7 +87,7 @@ function normalizeToolGroupValue(value: unknown): string {
  */
 export function nodesForDetailLevel(nodes: TimelineNode[], level: EventDetailLevel): TimelineNode[] {
   return nodes.filter((node) => {
-    if (node.id === RUN_ACTIVITY_NODE_ID) return level === "summary";
+    if (node.id === RUN_ACTIVITY_NODE_ID) return level !== "full";
     if (level === "full") return true;
     return node.kind !== "thinking" && node.kind !== "tool" && node.id !== MODEL_RETRY_NODE_ID;
   });

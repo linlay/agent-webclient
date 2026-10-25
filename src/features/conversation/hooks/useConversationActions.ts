@@ -1,3 +1,4 @@
+import { normalizeEventDetailLevel } from "@/shared/data/eventDetailLevel";
 import { queryReferences } from "@/shared/contracts/references";
 import { resolveChatModel } from "@/features/runs/lib/modelSelection";
 import { useCallback, useEffect, useRef } from "react";
@@ -190,8 +191,8 @@ export function buildLoadedChatSummary(
     chatId: normalizedChatId || String(chatId || "").trim(),
     chatName: String(data.chatName || "").trim() || undefined,
     ...(isObjectRecord(data.display) ? { display: {
-      defaultDetail: data.display.defaultDetail === "full" ? "full" as const : "summary" as const,
-      effectiveDetail: data.display.effectiveDetail === "full" ? "full" as const : "summary" as const,
+      defaultDetail: normalizeEventDetailLevel(data.display.defaultDetail),
+      effectiveDetail: normalizeEventDetailLevel(data.display.effectiveDetail),
     } } : {}),
     ...(owner?.kind === "agent"
       ? { agentKey: owner.agentKey, firstAgentKey: owner.agentKey }

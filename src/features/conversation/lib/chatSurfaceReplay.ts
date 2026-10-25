@@ -40,7 +40,7 @@ export function classifyChatSurfaceEvent(input: {
   if (seq && seq <= input.lastSeq) {
     return { action: "ignore", nextSeq: input.lastSeq };
   }
-  if (seq && input.lastSeq && seq > input.lastSeq + 1 && input.detailLevel !== "summary") {
+  if (seq && input.lastSeq && seq > input.lastSeq + 1 && input.detailLevel !== "summary" && input.detailLevel !== "none") {
     return { action: "reload", nextSeq: input.lastSeq };
   }
   return { action: "apply", nextSeq: seq || input.lastSeq };

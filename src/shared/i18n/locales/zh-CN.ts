@@ -1945,9 +1945,10 @@ export const zhCNMessages = {
   "settings.close": "关闭",
   "agents.interaction.defaultDetail": "过程展示",
   "agents.interaction.defaultDetail.inherit": "继承模式配置",
-  "agents.interaction.defaultDetail.description": "默认继承 agent-settings.yml 对应模式的配置；在此选择精简或详细，仅覆盖当前 Agent。",
+  "agents.interaction.defaultDetail.description": "默认继承 agent-settings.yml 对应模式的配置；在此选择精简、详细或仅公示，仅覆盖当前 Agent。",
   "agents.interaction.defaultDetail.full": "详细",
   "agents.interaction.defaultDetail.summary": "精简",
+  "agents.interaction.defaultDetail.none": "仅公示",
   "settings.language.enUS": "英文（English）",
   "settings.language.hint":
     "选择默认界面语言。地址栏 lang 参数只临时覆盖当前页面。",
