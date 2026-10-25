@@ -1920,6 +1920,13 @@ describe("run progress activity", () => {
       processAndApply(state, {...event, runId: "r", timestamp: 2} as AgentEvent, "live", false);
       expect(state.timelineOrder).not.toContain("run_activity_current");
     });
+  it("keeps the toolId of a tool activity", () => {
+    const state = createState();
+    processAndApply(state, activity("执行命令：列出桌面", {toolId: "t1"}), "live", false);
+    expect(state.timelineNodes.get("run_activity_current")).toMatchObject({toolId: "t1"});
+    processAndApply(state, activity("正在思考"), "live", false);
+    expect(state.timelineNodes.get("run_activity_current")?.toolId).toBeUndefined();
+  });
   it("hides the line when the activity message is empty", () => {
     const state = createState();
     processAndApply(state, activity("正在思考"), "live", false);

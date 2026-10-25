@@ -63,6 +63,20 @@ it("holds the current sentence for one second and jumps to the latest pending up
   advance(1); expect(progress()).toBe("D");
   advance(10_000); expect(progress()).toBe("D");
 });
+it("shows the same tool's description at once and holds it for its own second", () => {
+  render([activity("正在准备「执行命令」", {toolId: "t1"})]);
+  advance(300); render([activity("执行命令：列出桌面", {toolId: "t1"})]);
+  expect(progress()).toBe("执行命令：列出桌面");
+  advance(10); render([activity("正在思考")]);
+  advance(989); expect(progress()).toBe("执行命令：列出桌面");
+  advance(1); expect(progress()).toBe("正在思考");
+});
+it("still holds a sentence about another tool", () => {
+  render([activity("正在准备「执行命令」", {toolId: "t1"})]);
+  advance(300); render([activity("正在准备「读取文件」", {toolId: "t2"})]);
+  expect(progress()).toBe("正在准备「执行命令」");
+  advance(700); expect(progress()).toBe("正在准备「读取文件」");
+});
 it("does not restart the deadline for duplicate text or newer metadata", () => {
   render([activity("A")]);
   advance(800); render([activity("A", {ts: 999, taskId: "task"})]);

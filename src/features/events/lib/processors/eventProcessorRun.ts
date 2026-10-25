@@ -27,7 +27,9 @@ export function processRunEvent(
     if (!retry) {
       // A progress activity replaces the previous one; it is live only. An
       // empty message means the user is reading output, so the line goes.
+      // A tool's activities share its toolId.
       const text = toText(event.message);
+      const toolId = toText(event.toolId);
       if (config.mode === "replay") return commands;
       if (!text) {
         commands.push({cmd: "SET_RUN_ACTIVITY"});
@@ -36,6 +38,7 @@ export function processRunEvent(
       commands.push({cmd: "SET_RUN_ACTIVITY", node: {
         id: RUN_ACTIVITY_NODE_ID, kind: "message", role: "system", systemMessageLevel: "activity",
         runId: toText(event.runId) || state.runId, taskId: toText(event.taskId), ts: timestamp, text,
+        ...(toolId ? {toolId} : {}),
       }});
       return commands;
     }

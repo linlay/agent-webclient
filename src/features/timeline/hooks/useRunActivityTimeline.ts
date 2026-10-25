@@ -50,7 +50,10 @@ export function useRunActivityTimeline(nodes: TimelineNode[], options: {
     }
     const remaining = MIN_ACTIVITY_DWELL_MS - (Date.now() - display.shownAt);
     const applyLatest = () => setDisplay({ scopeKey, node: next, shownAt: Date.now() });
-    if (remaining <= 0) {
+    // A more specific sentence about the tool on screen (its description
+    // after "preparing") replaces it at once and starts its own dwell.
+    const refinesTool = Boolean(next?.toolId) && next?.toolId === display.node.toolId;
+    if (remaining <= 0 || refinesTool) {
       applyLatest();
       return;
     }
