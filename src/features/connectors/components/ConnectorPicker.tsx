@@ -7,7 +7,7 @@ import { UiButton } from "@/shared/ui/UiButton";
 import pickerTypography from "@/shared/ui/PickerTypography.module.css";
 import { ApiError, type ConnectorOption } from "@/shared/data";
 import { useConnectorPickerCatalog } from "../hooks/useConnectorPickerCatalog";
-import { filterConnectorOptions, findConnectorSelectionConflict, connectorSelectionConflictFromError, connectorSelectionConflictNames, connectorOptionStatus } from "../lib/connectorSelection";
+import { filterConnectorOptions, findConnectorSelectionConflict, connectorSelectionConflictFromError, connectorSelectionConflictNames, connectorOptionStatus, orderConnectorsBuiltinLast } from "../lib/connectorSelection";
 import { ConnectorIcon } from "./ConnectorIcon";
 import { ConnectorChatError } from "../lib/connectorChat";
 import styles from "./ConnectorPicker.module.css";
@@ -65,8 +65,9 @@ export function ConnectorPicker({ agentKey, search, onSearchChange, selectedIds,
     const timer = window.setTimeout(() => searchRef.current?.focus(), 50);
     return () => window.clearTimeout(timer);
   }, []);
-  const items = filterConnectorOptions(catalog.items, search)
-    .sort((a, b) => Number(mountedIdsAtOpen.has(b.id)) - Number(mountedIdsAtOpen.has(a.id)));
+  // 内置始终沉底；各组内仍按打开时的已挂载状态排序，切换开关不跳行。
+  const items = orderConnectorsBuiltinLast(filterConnectorOptions(catalog.items, search)
+    .sort((a, b) => Number(mountedIdsAtOpen.has(b.id)) - Number(mountedIdsAtOpen.has(a.id))));
   const catalogErrorLabel = catalog.error instanceof ApiError && [401, 403, 404, 405].includes(catalog.error.status || 0)
     ? t(`connectors.auth.error.${catalog.error.status}`) : t("composer.addMenu.connectors.loadFailed");
 

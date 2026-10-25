@@ -91,6 +91,18 @@ it("filters by name/id and keeps the selected switch state when the filter is cl
   expect(getConnectorAuthStatus).not.toHaveBeenCalled();
 });
 
+it("keeps builtin connectors behind even unmounted external connectors and preserves rows when toggling", async () => {
+  jest.mocked(getConnectors).mockResolvedValue({ code: 0, msg: "", data: { connectors: [
+    connector("builtin.kanban-control", "Kanban"), connector("builtin.kbase-control", "Knowledge"),
+    connector("datascope", "DataScope"), connector("jira", "Jira"), connector("other", "Other"),
+  ] } });
+  await mount({ initialIds: ["builtin.kanban-control", "builtin.kbase-control", "datascope", "jira"] });
+  const names = () => [...container.querySelectorAll('[role="switch"]')].map(toggle => toggle.parentElement?.textContent);
+  expect(names()).toEqual(["DataScope", "Jira", "Other", "Kanban", "Knowledge"]);
+  await act(async () => container.querySelectorAll<HTMLButtonElement>('[role="switch"]')[0].click());
+  expect(names()).toEqual(["DataScope", "Jira", "Other", "Kanban", "Knowledge"]);
+});
+
 it("ranks mounted connectors first on opening and keeps row positions and focus while switching and filtering", async () => {
   const catalog = [connector("a", "Alpha"), connector("b", "Bravo", "mcp"), connector("c", "Charlie"), connector("d", "Delta")];
   jest.mocked(getConnectors).mockResolvedValue({ code: 0, msg: "", data: { connectors: catalog } });
@@ -227,9 +239,9 @@ it("allows mounting builtin and delegated or identity-token packages without wai
   await mount({ initialIds: ["builtin.dbx"] });
   const switches = container.querySelectorAll<HTMLButtonElement>('[role="switch"]');
   expect(switches).toHaveLength(2);
-  expect(switches[0].getAttribute("aria-checked")).toBe("true");
-  expect(switches[1].getAttribute("aria-checked")).toBe("false");
-  await act(async () => switches[0].click());
+  expect(switches[1].getAttribute("aria-checked")).toBe("true");
+  expect(switches[0].getAttribute("aria-checked")).toBe("false");
+  await act(async () => switches[1].click());
   expect(onSelectionChange).toHaveBeenCalledWith("builtin.dbx", false);
   expect(getConnectorAuthStatus).not.toHaveBeenCalled();
   expect(startConnectorAuth).not.toHaveBeenCalled();
@@ -403,17 +415,17 @@ it("turns disconnected WeCom off while retaining saved ranking and other connect
   await mount({ initialIds, availableIds: initialIds });
   const switches = [...container.querySelectorAll<HTMLButtonElement>('[role="switch"]')];
   expect(switches.map(toggle => toggle.getAttribute("aria-checked"))).toEqual(["true", "true", "true"]);
-  switches[2].focus();
+  switches[0].focus();
   await mount({ initialIds, availableIds: ["builtin.dbx", "builtin.httpx"] });
   expect([...container.querySelectorAll('[role="switch"]')]).toEqual(switches);
-  expect(switches.map(toggle => toggle.getAttribute("aria-checked"))).toEqual(["true", "true", "false"]);
-  expect(document.activeElement).toBe(switches[2]);
+  expect(switches.map(toggle => toggle.getAttribute("aria-checked"))).toEqual(["false", "true", "true"]);
+  expect(document.activeElement).toBe(switches[0]);
   expect(onSelectionChange).not.toHaveBeenCalled();
-  await act(async () => switches[2].click());
+  await act(async () => switches[0].click());
   expect(onSelectionChange).toHaveBeenCalledWith("wecom", true);
-  expect(switches[2].getAttribute("aria-checked")).toBe("false");
+  expect(switches[0].getAttribute("aria-checked")).toBe("false");
   await mount({ initialIds, availableIds: initialIds });
-  expect(switches[2].getAttribute("aria-checked")).toBe("true");
+  expect(switches[0].getAttribute("aria-checked")).toBe("true");
 });
 
 it("explains that a disconnected connector must be connected before enabling it", async () => {

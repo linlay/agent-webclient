@@ -1,5 +1,23 @@
 import type { ConnectorOption } from "@/shared/data";
 
+// Composer 内外共用的固定内置清单；只控制展示顺序，不影响挂载与可用性。
+const BUILTIN_CONNECTOR_IDS = new Set([
+  "builtin.web-control",
+  "builtin.platform-control",
+  "builtin.kanban-control",
+  "builtin.kbase-control",
+  "builtin.task-control",
+  "builtin.dbx",
+  "builtin.httpx",
+]);
+
+export function orderConnectorsBuiltinLast<T extends { id: string }>(items: readonly T[]): T[] {
+  return [
+    ...items.filter(item => !BUILTIN_CONNECTOR_IDS.has(item.id)),
+    ...items.filter(item => BUILTIN_CONNECTOR_IDS.has(item.id)),
+  ];
+}
+
 export interface ConnectorSelectionConflict {
   connectorId: string;
   conflictingConnectorIds: string[];
