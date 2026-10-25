@@ -31,5 +31,10 @@ export async function requestPlatformData<T>(
 ): Promise<ApiResponse<T>> {
   const client = await resolveDataRequestClient();
   await client.connect(options?.signal);
-  return client.request<T>({ type, payload, ...(options?.signal ? { signal: options.signal } : {}) });
+  return client.request<T>({
+    type,
+    payload,
+    ...(options?.signal ? { signal: options.signal } : {}),
+    ...(options?.detail ? { detail: options.detail } : {}),
+  });
 }

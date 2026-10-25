@@ -1,4 +1,5 @@
 import { getKBaseOptionsHttp } from "./requests/kbases";
+import type { EventDetailLevel } from "@/shared/data/eventDetailLevel";
 import {
   getProjectGit as getProjectGitHttp,
   getProjectGitBranches as getProjectGitBranchesHttp,
@@ -172,8 +173,10 @@ function routeEndpoint<T, TInput>(
 	input: TInput,
 	fallback: () => Promise<ApiResponse<T>>,
 	signal?: AbortSignal,
+	detail?: EventDetailLevel,
 ): Promise<ApiResponse<T>> {
 	const payload = emptyPayloadAsUndefined(resolveEndpointPayload(endpoint, input));
+	const frameOptions = { ...(signal ? { signal } : {}), ...(detail ? { detail } : {}) };
 	const backend = getBackendMode();
 	const useWebSocket = endpoint.transport === "ws"
 		|| (
@@ -181,8 +184,8 @@ function routeEndpoint<T, TInput>(
 			&& endpoint.wsBackends?.includes(backend) === true
 		);
 	const request = useWebSocket
-		? () => signal
-			? requestDataThroughExecutor<T>(endpoint.path, payload, { signal })
+		? () => signal || detail
+			? requestDataThroughExecutor<T>(endpoint.path, payload, frameOptions)
 			: requestDataThroughExecutor<T>(endpoint.path, payload)
 		: fallback;
 	const cache = endpoint.method === "GET" ? endpoint.cache : undefined;
@@ -190,7 +193,7 @@ function routeEndpoint<T, TInput>(
 		return request();
 	}
 	return dataQueryCache.fetch(
-		createRouteCacheKey(endpoint, payload),
+		createRouteCacheKey(endpoint, payload) + (detail ? `:detail=${detail}` : ""),
 		request,
 		{
 			ttlMs: cache.ttlMs,
@@ -372,9 +375,12 @@ export async function getChats(options: GetChatsOptions = {}): Promise<ApiRespon
 	};
 }
 
+/** detail reads a Chat with no active Run at that level; while a Run is
+ * active Platform delivers the Run's own level. Omitted follows the Agent. */
 export function getChat(
 	chatId: string,
 	includeRawMessages = false,
+	detail?: EventDetailLevel,
 ): Promise<ApiResponse<ChatDetailResponse>> {
 	return routeEndpoint(
 		dataEndpoints.chat,
@@ -382,7 +388,9 @@ export function getChat(
 			chatId,
 			includeRawMessages,
 		},
-		() => getChatHttp(chatId, includeRawMessages),
+		() => getChatHttp(chatId, includeRawMessages, detail),
+		undefined,
+		detail,
 	);
 }
 

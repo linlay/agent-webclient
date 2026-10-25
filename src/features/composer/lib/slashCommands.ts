@@ -5,6 +5,7 @@ import { packageMembers, skillIdentity } from './skillPackages';
 import { isDebugPanelEnabled, isSettingsMenuEnabled, isVoiceEnabled } from '@/shared/config/featureFlags';
 import { t } from '@/shared/i18n';
 import type { MaterialIconName } from '@/shared/ui/MaterialIcon';
+import type { EventDetailLevel } from '@/shared/data/eventDetailLevel';
 
 export type SlashCommandId =
   | 'btw'
@@ -15,7 +16,8 @@ export type SlashCommandId =
   | 'settings'
   | 'plan'
   | 'editing'
-  | 'usage';
+  | 'usage'
+  | 'detail';
 
 export interface SlashCommandDefinition {
   id: SlashCommandId;
@@ -139,6 +141,14 @@ export const SLASH_COMMANDS: SlashCommandDefinition[] = [
     labelKey: 'slash.command.usage.label',
     descriptionKey: 'slash.command.usage.description',
     keywords: ['usage', 'tokens', 'cost', 'token', 'spend'],
+  },
+  {
+    id: 'detail',
+    icon: 'visibility',
+    command: '/detail',
+    labelKey: 'slash.command.detail.label',
+    descriptionKey: 'slash.command.detail.description',
+    keywords: ['detail', 'full', 'summary', 'none', 'announce', 'events'],
   },
   {
     id: 'plan',
@@ -297,7 +307,20 @@ export function isSlashCommandDisabled(
   if (commandId === 'usage') {
     return !availability.canShowUsage;
   }
+  if (commandId === 'detail') {
+    // A running Chat is delivered at its Run's level; only an idle Chat can switch.
+    return !availability.hasActiveChat || availability.streaming || availability.commandOverlayOpen;
+  }
   return false;
+}
+
+export type DetailSlashAction = "chooser" | EventDetailLevel;
+
+/** `/detail` opens the chooser; `/detail full|summary|none` applies directly. */
+export function parseDetailSlashInput(input: string): DetailSlashAction | null {
+  const match = String(input || "").match(/^\/detail(?:\s+(full|summary|none))?\s*$/i);
+  if (!match) return null;
+  return match[1] ? match[1].toLowerCase() as EventDetailLevel : "chooser";
 }
 
 export function parseBTWSlashInput(input: string): string | null {

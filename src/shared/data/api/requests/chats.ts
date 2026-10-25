@@ -1,4 +1,5 @@
 import { getView } from "./views";
+import type { EventDetailLevel } from "@/shared/data/eventDetailLevel";
 import {
   isObjectRecord,
   requestJson,
@@ -85,9 +86,11 @@ export function getChats(options: GetChatsOptions = {}): Promise<ApiResponse> {
 export function getChat(
   chatId: string,
   includeRawMessages = false,
+  detail?: EventDetailLevel,
 ): Promise<ApiResponse<ChatDetailResponse>> {
   const query = endpointQuery(dataEndpoints.chat, { chatId, includeRawMessages });
-	return requestJson(withQuery(dataEndpoints.chat.path, query));
+  const detailQuery = detail ? `detail=${encodeURIComponent(detail)}` : "";
+	return requestJson(withQuery(dataEndpoints.chat.path, [query, detailQuery].filter(Boolean).join("&")));
 }
 
 export function getChatSystemPrompt(

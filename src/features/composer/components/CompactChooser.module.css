@@ -77,6 +77,10 @@
     outline-offset: 3px;
 }
 
+.option[aria-pressed="true"] {
+    border-color: var(--accent-electric);
+}
+
 .badge {
     display: grid;
     flex: 0 0 40px;

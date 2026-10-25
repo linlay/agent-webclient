@@ -1,7 +1,10 @@
 import type { ApiResponse } from "@/shared/data/api/dto/common";
+import type { EventDetailLevel } from "@/shared/data/eventDetailLevel";
 
 export interface DataRequestOptions {
   signal?: AbortSignal;
+  /** Frame-level delivery level; only /api/query and /api/chat accept it. */
+  detail?: EventDetailLevel;
 }
 
 export type DataRequestExecutor = <T>(

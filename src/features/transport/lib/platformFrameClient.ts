@@ -23,6 +23,8 @@ export type PlatformRequestOptions = {
   type: string;
   payload?: unknown;
   signal?: AbortSignal;
+  /** Frame-level delivery level; omitted follows the Agent default. */
+  detail?: "summary" | "full" | "none";
 };
 
 export type PlatformStreamOptions = {
@@ -147,6 +149,7 @@ export abstract class PlatformFrameClient {
           frame: "request",
           type: options.type,
           id,
+          ...(options.detail ? { detail: options.detail } : {}),
           ...(options.payload === undefined ? {} : { payload: options.payload }),
         });
       } catch (error) {

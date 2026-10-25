@@ -334,7 +334,9 @@ export function useWorkerData(input: {
       const chatId = (e as CustomEvent).detail?.chatId;
       const focusComposerOnComplete = Boolean((e as CustomEvent).detail?.focusComposerOnComplete);
       const forceReload = (e as CustomEvent).detail?.forceReload === true;
-      if (chatId) loadChat(chatId, { focusComposerOnComplete, ...(forceReload ? { forceReload } : {}) }).catch(() => undefined);
+      const detail = (e as CustomEvent).detail?.detail;
+      const level = detail === 'summary' || detail === 'full' || detail === 'none' ? detail : undefined;
+      if (chatId) loadChat(chatId, { focusComposerOnComplete, ...(forceReload ? { forceReload } : {}), ...(level ? { detail: level } : {}) }).catch(() => undefined);
     };
     window.addEventListener('agent:load-chat', handler);
     return () => window.removeEventListener('agent:load-chat', handler);
