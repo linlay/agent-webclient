@@ -1,4 +1,5 @@
 import type { AppState } from "@/app/state/types";
+import { readEventDetailLevel } from "@/shared/data/eventDetailLevel";
 import { getAppAccessToken } from "@/shared/data/auth/appAuth";
 import { readStoredAccessToken } from "@/shared/data/auth/accessTokenStorage";
 import { isAppMode } from "@/shared/utils/routing";
@@ -55,6 +56,7 @@ export function createInitialState(): AppState {
       themeMode: resolveInitialThemeMode(),
       accessToken,
       terminalDockOpen: restoreTerminalDockOpen(),
+      eventDetailLevel: readEventDetailLevel(),
     }),
     composerDraft: restoredDrafts?.composerDraft || "",
     composerDraftByChatId: restoredDrafts?.composerDraftByChatId || {},

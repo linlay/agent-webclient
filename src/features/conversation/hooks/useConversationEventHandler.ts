@@ -429,6 +429,24 @@ export function useConversationEventHandler(): {
         return;
       }
 
+      // The summary level has no usage.snapshot; a Run terminal event carries
+      // the final run and chat totals in the same shape.
+      if ((type === "run.complete" || type === "run.cancel" || type === "run.error") && !event.taskId) {
+        const terminalUsage = event.usage as AIUsageSnapshotEvent["usage"] | undefined;
+        if (terminalUsage && (terminalUsage.run || terminalUsage.chat)) {
+          const previous = state.usageSnapshot;
+          dispatch({
+            type: "SET_USAGE_SNAPSHOT",
+            snapshot: {
+              ...previous, type: "usage.snapshot" as AIUsageSnapshotEvent["type"],
+              chatId: eventChatId, runId: toText(event.runId) || previous?.runId || "",
+              timestamp: event.timestamp, seq: event.seq,
+              usage: { ...previous?.usage, ...terminalUsage },
+            },
+          });
+        }
+      }
+
       const awaitingFallbackAgentKey = resolveRunAgentKey({
         runId: toText(event.runId) || cache.runId || state.runId,
         runAgentById: state.runAgentById,

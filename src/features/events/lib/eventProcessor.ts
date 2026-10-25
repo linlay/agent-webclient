@@ -1,4 +1,4 @@
-import { MODEL_RETRY_NODE_ID } from "@/shared/ui/modelRetry";
+import { MODEL_RETRY_NODE_ID, RUN_ACTIVITY_NODE_ID } from "@/shared/ui/modelRetry";
 import { isAwaitingAnswerStreamEvent } from "@/shared/contracts/agentEvents";
 import type { AgentEvent } from "@/shared/contracts/agentEvents";
 import type {
@@ -24,13 +24,18 @@ export type {
 
 export function processStreamEvent(event: AgentEvent, state: EventProcessorState, config: EventProcessorConfig): EventCommand[] {
   const commands = routeStreamEvent(event, state, config);
+  const type = toText(event.type);
+  const terminal = ["run.complete", "run.cancel", "run.error"].includes(type);
+  const activity = state.getTimelineNode(RUN_ACTIVITY_NODE_ID);
+  if (activity && (type === "run.start" || (terminal && (!event.runId || event.runId === activity.runId)))) {
+    commands.unshift({cmd: "SET_RUN_ACTIVITY"});
+  }
   const current = state.getTimelineNode(MODEL_RETRY_NODE_ID);
   if (!current) return commands;
-  const type = toText(event.type);
   const sameRun = !event.runId || event.runId === current.runId;
   const sameTask = toText(event.taskId) === toText(current.taskId);
-  const terminal = ["run.complete", "run.cancel", "run.error"].includes(type);
-  const resumed = (type === "run.activity" && event.phase === "model_call" && ["running", "completed"].includes(toText(event.status))) ||
+  // Any later activity or output of the same scope means the retry is over.
+  const resumed = (type === "run.activity" && !event.retry) ||
     ["content.delta", "reasoning.delta", "tool.args"].includes(type);
   if (type === "run.start" || (sameRun && (terminal || (sameTask && resumed)))) {
     return [{cmd: "SET_MODEL_RETRY"}, ...commands];

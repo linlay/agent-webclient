@@ -1,3 +1,5 @@
+import type { EventDetailLevel } from "@/shared/data/eventDetailLevel";
+import { MODEL_RETRY_NODE_ID, RUN_ACTIVITY_NODE_ID } from "@/shared/ui/modelRetry";
 import { isImageGenerationTool } from "./imageGenerationDisplay";
 import type { AgentEvent } from "@/shared/contracts/agentEvents";
 import type { TaskItemMeta } from "@/features/tasks/lib/tasksState";
@@ -75,6 +77,20 @@ function readRunTerminalType(value: unknown): RunTerminalType | null {
 
 function normalizeToolGroupValue(value: unknown): string {
   return String(value || "").trim();
+}
+
+/**
+ * The nodes a viewer sees at its detail level. summary hides reasoning, tool
+ * calls and the retry notice and shows the progress activity line; full shows
+ * the details and hides that line. Desktop always receives full events, so
+ * this also applies the level there.
+ */
+export function nodesForDetailLevel(nodes: TimelineNode[], level: EventDetailLevel): TimelineNode[] {
+  return nodes.filter((node) => {
+    if (node.id === RUN_ACTIVITY_NODE_ID) return level === "summary";
+    if (level === "full") return true;
+    return node.kind !== "thinking" && node.kind !== "tool" && node.id !== MODEL_RETRY_NODE_ID;
+  });
 }
 
 export function buildRunRenderEntries(

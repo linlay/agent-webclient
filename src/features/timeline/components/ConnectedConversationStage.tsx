@@ -40,6 +40,7 @@ import {
 } from "@/shared/data/desktop/selectedTextLocate";
 import {
   buildTimelineDisplayItems,
+  nodesForDetailLevel,
   type TimelineDisplayItem,
 } from "@/features/timeline/lib/timelineDisplay";
 import {
@@ -549,10 +550,10 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
     );
 
   const timelineEntries = useMemo(() => {
-    return state.timelineOrder
+    return nodesForDetailLevel(state.timelineOrder
       .map((id) => state.timelineNodes.get(id))
-      .filter((node): node is NonNullable<typeof node> => Boolean(node));
-  }, [state.timelineOrder, state.timelineNodes]);
+      .filter((node): node is NonNullable<typeof node> => Boolean(node)), state.eventDetailLevel);
+  }, [state.timelineOrder, state.timelineNodes, state.eventDetailLevel]);
   const currentAgentKey =
     currentWorker?.type === "agent"
       ? String(currentWorker.sourceId || "").trim()

@@ -1943,6 +1943,10 @@ export const zhCNMessages = {
     "当前配置仅保留在本页对话内，ASR Debug 会立即使用；进行中的语聊会立即更新本地门限；下次 ASR 启动也会继续沿用该配置。",
   "settings.clientGate.label": "前端语音门限（Client Gate）",
   "settings.close": "关闭",
+  "settings.eventDetail.full": "详细",
+  "settings.eventDetail.hint": "精简只显示回答和一行当前进度；详细还显示思考过程、工具调用和重试。新的运行和重新打开的对话按此设置显示。",
+  "settings.eventDetail.label": "过程展示",
+  "settings.eventDetail.summary": "精简",
   "settings.language.enUS": "英文（English）",
   "settings.language.hint":
     "选择默认界面语言。地址栏 lang 参数只临时覆盖当前页面。",

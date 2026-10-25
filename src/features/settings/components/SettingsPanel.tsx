@@ -262,6 +262,31 @@ export const SettingsPanel: React.FC<SettingsSurfaceProps & {
           </div>
           <p className="settings-hint">{t("settings.language.hint")}</p>
         </div>
+
+        <div className="field-group">
+          <label>{t("settings.eventDetail.label")}</label>
+          <div
+            className="settings-segmented"
+            role="tablist"
+            aria-label={t("settings.eventDetail.label")}
+          >
+            {(["summary", "full"] as const).map((level) => (
+              <UiButton
+                key={level}
+                variant="ghost"
+                size="sm"
+                className={`settings-segmented-btn ${state.eventDetailLevel === level ? "is-active" : ""}`}
+                role="tab"
+                aria-selected={state.eventDetailLevel === level}
+                active={state.eventDetailLevel === level}
+                onClick={() => dispatch({ type: "SET_EVENT_DETAIL_LEVEL", level })}
+              >
+                {t(level === "summary" ? "settings.eventDetail.summary" : "settings.eventDetail.full")}
+              </UiButton>
+            ))}
+          </div>
+          <p className="settings-hint">{t("settings.eventDetail.hint")}</p>
+        </div>
       </div>
 
       <SettingsToken

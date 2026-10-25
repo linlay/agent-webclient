@@ -1,6 +1,6 @@
 import type { AppAction } from "@/app/state/AppContext";
 import type { AppState } from "@/app/state/AppContext";
-import { MODEL_RETRY_NODE_ID } from "@/shared/ui/modelRetry";
+import { MODEL_RETRY_NODE_ID, RUN_ACTIVITY_NODE_ID } from "@/shared/ui/modelRetry";
 import type { TimelineNode } from "@/features/timeline/lib/timelineState";
 import type { EventCommand } from "@/features/events/lib/eventProcessorTypes";
 import {
@@ -26,6 +26,15 @@ export function applyLiveEventCommand(input: {
         cache.nodeText.set(MODEL_RETRY_NODE_ID, command.node.text || "");
       }
       dispatch({type: "SET_MODEL_RETRY", node: command.node});
+      return;
+    case "SET_RUN_ACTIVITY":
+      cache.nodeById.delete(RUN_ACTIVITY_NODE_ID);
+      cache.nodeText.delete(RUN_ACTIVITY_NODE_ID);
+      if (command.node) {
+        cache.nodeById.set(RUN_ACTIVITY_NODE_ID, command.node);
+        cache.nodeText.set(RUN_ACTIVITY_NODE_ID, command.node.text || "");
+      }
+      dispatch({type: "SET_RUN_ACTIVITY", node: command.node});
       return;
 		case "SET_CHAT_ID":
 			cache.chatId = command.chatId;

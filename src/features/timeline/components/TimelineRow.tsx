@@ -24,6 +24,7 @@ import { ToolPill } from "@/features/timeline/components/ToolPill";
 import { ContentBlock } from "@/features/timeline/components/ContentBlock";
 import { SourceBlock } from "@/features/timeline/components/SourceBlock";
 import { SystemAlert } from "@/features/timeline/components/SystemAlert";
+import { Skeleton } from "@/shared/components/skeleton";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import type { MaterialIconName } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
@@ -402,6 +403,25 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
             variant={node.messageVariant}
           />
           {timeNode}
+        </div>
+      </div>
+    );
+  }
+
+  /* Progress activity: one line saying what the Run is doing now */
+  if (node && node.kind === "message" && node.role === "system" && node.systemMessageLevel === "activity") {
+    return (
+      <div
+        className={TIMELINE_ROW_FLOW_CLASS_NAME}
+        data-kind="activity"
+        data-node-id={anchorNodeId}
+        data-task-id={taskID || undefined}
+      >
+        <div className={TIMELINE_MARKER_CLASS_NAME}>
+          <NodeIcon kind="thinking" />
+        </div>
+        <div className={`${TIMELINE_FLOW_CONTENT_CLASS_NAME} tw:text-[13px]`} role="status" aria-live="polite">
+          <Skeleton active={true} text={node.text || ""} />
         </div>
       </div>
     );

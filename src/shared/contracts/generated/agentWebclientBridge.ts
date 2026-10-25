@@ -1,6 +1,6 @@
 // Generated from src/shared/contracts/agent-webclient-bridge.ts.
 // Do not edit this mirror directly.
-// sha256:f068b56e8e57b50387bc50754a663e2e6eba033378cc7fadc41c857852d1b11c
+// sha256:3dad86b0f6add5abdf3ee71496334080fb26fbf6fa3369d8b0c95e9d14de3d03
 
 /**
  * Canonical Desktop <-> Agent WebClient bridge contract.
@@ -320,6 +320,8 @@ export type AgentPlatformRequestFrame = {
   frame: "request";
   type: string;
   id: string;
+  /** Platform event detail level of /api/query, /api/attach and /api/chat. Desktop always forwards "full". */
+  detail?: "summary" | "full";
   payload?: unknown;
 };
 

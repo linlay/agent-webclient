@@ -39,6 +39,7 @@ jest.mock("@/features/timeline/components/TimelineRow", () => {
 
 jest.mock("@/features/timeline/lib/timelineDisplay", () => ({
   buildTimelineDisplayItems: jest.fn(() => []),
+  nodesForDetailLevel: jest.fn((nodes: unknown[]) => nodes),
 }));
 
 jest.mock("@/shared/ui/MaterialIcon", () => {

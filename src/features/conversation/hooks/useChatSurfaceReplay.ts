@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { readEventDetailLevel } from "@/shared/data/eventDetailLevel";
 import type { ChatDetailResponse } from "@/shared/data";
 import { getChat } from "@/shared/data";
 import type { RunOwner } from "@/shared/data/runOwner";
@@ -189,7 +190,7 @@ export function useChatSurfaceReplay(input: {
       role: input.liveRole,
       onEvent: (event) => {
         if (bindingEpochRef.current !== epoch) return;
-        const decision = classifyChatSurfaceEvent({ event, chatId, runId, lastSeq });
+        const decision = classifyChatSurfaceEvent({ event, chatId, runId, lastSeq, detailLevel: readEventDetailLevel() });
         if (decision.action === "ignore") return;
         if (decision.action === "reload") {
           recover(new RealtimeTransportError(

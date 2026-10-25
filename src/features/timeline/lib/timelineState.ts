@@ -1,7 +1,7 @@
 import type { ContentSegment, ContentViewBinding } from "@/shared/contracts/contentSegments";
 import type { UiTimerHandle } from "@/shared/contracts/ui";
 
-import { MODEL_RETRY_NODE_ID } from "@/shared/ui/modelRetry";
+import { MODEL_RETRY_NODE_ID, RUN_ACTIVITY_NODE_ID } from "@/shared/ui/modelRetry";
 
 // Retry is transient UI state, shared by all attempts in the current chat.
 export function setModelRetryTimeline<S extends Pick<TimelineState, "timelineNodes" | "timelineOrder">>(state: S, node?: TimelineNode): S {
@@ -12,6 +12,18 @@ export function setModelRetryTimeline<S extends Pick<TimelineState, "timelineNod
   if (node) {
     timelineNodes.set(MODEL_RETRY_NODE_ID, {...node, id: MODEL_RETRY_NODE_ID});
     timelineOrder.push(MODEL_RETRY_NODE_ID);
+  }
+  return {...state, timelineNodes, timelineOrder};
+}
+
+/** Replaces the progress activity line; it always sits at the timeline end. */
+export function setRunActivityTimeline<S extends Pick<TimelineState, "timelineNodes" | "timelineOrder">>(state: S, node?: TimelineNode): S {
+  const timelineNodes = new Map(state.timelineNodes);
+  timelineNodes.delete(RUN_ACTIVITY_NODE_ID);
+  const timelineOrder = state.timelineOrder.filter(id => id !== RUN_ACTIVITY_NODE_ID);
+  if (node) {
+    timelineNodes.set(RUN_ACTIVITY_NODE_ID, {...node, id: RUN_ACTIVITY_NODE_ID});
+    timelineOrder.push(RUN_ACTIVITY_NODE_ID);
   }
   return {...state, timelineNodes, timelineOrder};
 }
@@ -144,7 +156,7 @@ export interface TimelineNode {
 	runId?: string;
 	role?: TimelineRole;
 	messageVariant?: "default" | "steer" | "remember" | "learn" | "compact";
-	systemMessageLevel?: "info" | "error";
+	systemMessageLevel?: "info" | "error" | "activity";
 	steerId?: string;
 	awaitingId?: string;
 	reasoningLabel?: string;
@@ -216,6 +228,7 @@ export interface TimelineState {
 
 export type TimelineAction =
   | { type: "SET_MODEL_RETRY"; node?: TimelineNode }
+  | { type: "SET_RUN_ACTIVITY"; node?: TimelineNode }
   | { type: "SET_TIMELINE_NODE"; id: string; node: TimelineNode }
   | { type: "PATCH_CONTENT_TTS_VOICE_BLOCK"; nodeId: string; signature: string; patch: Partial<TtsVoiceBlock> }
   | { type: "REMOVE_INACTIVE_CONTENT_TTS_VOICE_BLOCKS"; nodeId: string; activeSignatures: Set<string> }
@@ -245,6 +258,8 @@ export function reduceTimelineState<S extends TimelineState>(state: S, input: { 
   switch (action.type) {
     case "SET_MODEL_RETRY":
       return setModelRetryTimeline(state, action.node);
+    case "SET_RUN_ACTIVITY":
+      return setRunActivityTimeline(state, action.node);
     case "SET_TIMELINE_NODE":
       return { ...state, timelineNodes: new Map(state.timelineNodes).set(action.id, action.node) };
     case "APPEND_TIMELINE_ORDER":
