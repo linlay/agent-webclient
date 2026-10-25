@@ -25,9 +25,14 @@ export function processRunEvent(
   if (type === "run.activity") {
     const retry = event.retry as Record<string, unknown> | undefined;
     if (!retry) {
-      // A progress activity replaces the previous one; it is live only.
+      // A progress activity replaces the previous one; it is live only. An
+      // empty message means the user is reading output, so the line goes.
       const text = toText(event.message);
-      if (config.mode === "replay" || !text) return commands;
+      if (config.mode === "replay") return commands;
+      if (!text) {
+        commands.push({cmd: "SET_RUN_ACTIVITY"});
+        return commands;
+      }
       commands.push({cmd: "SET_RUN_ACTIVITY", node: {
         id: RUN_ACTIVITY_NODE_ID, kind: "message", role: "system", systemMessageLevel: "activity",
         runId: toText(event.runId) || state.runId, taskId: toText(event.taskId), ts: timestamp, text,

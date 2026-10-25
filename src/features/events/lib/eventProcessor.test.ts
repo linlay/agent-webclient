@@ -1836,8 +1836,8 @@ describe("model retry activity", () => {
       expect((commands[0] as {node: {text: string}}).node.text).toContain("1/5");
     }
   });
-  it("does not turn normal activity into timeline messages", () => {
-    expect(processStreamEvent({type: "run.activity", phase: "model_call", status: "running"}, buildProcessorState(createState()), {mode: "live", reasoningExpandedDefault: false})).toEqual([]);
+  it("does not turn an empty activity into a timeline message", () => {
+    expect(processStreamEvent({type: "run.activity", runId: "r"}, buildProcessorState(createState()), {mode: "live", reasoningExpandedDefault: false})).toEqual([{cmd: "SET_RUN_ACTIVITY"}]);
   });
 });
 
@@ -1920,6 +1920,12 @@ describe("run progress activity", () => {
       processAndApply(state, {...event, runId: "r", timestamp: 2} as AgentEvent, "live", false);
       expect(state.timelineOrder).not.toContain("run_activity_current");
     });
+  it("hides the line when the activity message is empty", () => {
+    const state = createState();
+    processAndApply(state, activity("正在思考"), "live", false);
+    processAndApply(state, activity(""), "live", false);
+    expect(state.timelineOrder).not.toContain("run_activity_current");
+  });
   it("is not rebuilt from history and does not become the retry notice", () => {
     const state = createState();
     processAndApply(state, activity("正在思考"), "replay", false);
