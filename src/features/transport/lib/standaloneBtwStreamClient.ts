@@ -7,7 +7,6 @@ import {
 import { isGatewayBackendMode } from "@/shared/config/backendMode";
 import type { ApiResponse } from "@/shared/data/api/dto/common";
 import { dataEndpoints } from "@/shared/data/api/endpoints";
-import { readEventDetailLevel } from "@/shared/data/eventDetailLevel";
 import { t } from "@/shared/i18n/runtime";
 import { RealtimeTransportError } from "@/features/transport/contracts/realtimeTransportErrors";
 import { decodePlatformAgentEvent } from "@/features/transport/lib/platformFrameCodec";
@@ -158,7 +157,7 @@ export class StandaloneBtwStreamClient implements Pick<PlatformFrameClient, "str
         if (isGatewayBackendMode()) {
           throw new RealtimeTransportError("unsupported_request_type", t("btw.gatewayUnsupported"));
         }
-        const response = await requestWithAuth(`${dataEndpoints.query.path}?detail=${readEventDetailLevel()}`, {
+        const response = await requestWithAuth(dataEndpoints.query.path, {
           method: "POST",
           headers: { Accept: "text/event-stream" },
           body: JSON.stringify({ ...options.payload, lane: "btw", stream: true }),

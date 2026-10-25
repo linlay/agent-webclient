@@ -118,7 +118,7 @@ describe("Standalone BTW HTTP/SSE transport", () => {
     expect(onEvent.mock.calls[1][0].delta).toBe("春天🌷");
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const [url, options] = fetchMock.mock.calls[0] as [string, RequestInit];
-    expect(url).toBe("/api/query?detail=summary");
+    expect(url).toBe("/api/query");
     expect(options).toMatchObject({ method: "POST", credentials: "same-origin" });
     expect(options.headers).toMatchObject({ Accept: "text/event-stream", "Content-Type": "application/json", Authorization: "Bearer test-only-platform-token" });
     expect(JSON.parse(String(options.body))).toMatchObject({ requestId: "request-1", chatId: "chat-1", lane: "btw", stream: true, references: [{ type: "selection", text: "source text" }] });

@@ -189,6 +189,10 @@ export function buildLoadedChatSummary(
   return {
     chatId: normalizedChatId || String(chatId || "").trim(),
     chatName: String(data.chatName || "").trim() || undefined,
+    ...(isObjectRecord(data.display) ? { display: {
+      defaultDetail: data.display.defaultDetail === "full" ? "full" as const : "summary" as const,
+      effectiveDetail: data.display.effectiveDetail === "full" ? "full" as const : "summary" as const,
+    } } : {}),
     ...(owner?.kind === "agent"
       ? { agentKey: owner.agentKey, firstAgentKey: owner.agentKey }
       : {}),

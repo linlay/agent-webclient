@@ -75,16 +75,23 @@ export function reduceNavigationState(
 	action: AppAction,
 ): AppState | null {
 	switch (action.type) {
-		case "SET_CHATS":
+		case "SET_CHATS": {
+			// Directory previews do not carry the display metadata loaded by /api/chat.
+			const displayByChat = new Map(state.chats.map(chat => [chat.chatId, chat.display]));
+			const chats = action.chats.map(chat => {
+			  const display = chat.display ?? displayByChat.get(chat.chatId);
+			  return display ? { ...chat, display } : chat;
+			});
 			return {
 				...state,
-				chats: applyChatPinnedOrder(action.chats, state.chatPinnedOrder),
+				chats: applyChatPinnedOrder(chats, state.chatPinnedOrder),
 				temporaryPinnedAgentKey: clearTemporaryPinForChats(state, action.chats),
 				chatAgentById: syncChatAgentBindings(
 					state.chatAgentById,
 					action.chats,
 				),
 			};
+		}
 		case "UPSERT_CHAT": {
 			const chats = applyChatPinnedOrder(upsertChatSummary(state.chats, action.chat), state.chatPinnedOrder);
 			return {

@@ -111,6 +111,7 @@ export interface ChatSummaryResponse {
 }
 
 export interface ChatDetailResponse extends ChatSummaryResponse {
+  display?: import("@/shared/data/eventDetailLevel").EventDisplay;
   firstAgentKey?: string;
   firstAgentName?: string;
   activeRun?: ActiveRunInfo | null;

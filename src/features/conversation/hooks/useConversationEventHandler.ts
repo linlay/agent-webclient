@@ -554,6 +554,13 @@ export function useConversationEventHandler(): {
 
       if (type === "run.start") {
         const runStartChatId = toText(event.chatId);
+        const display = event.display as { defaultDetail?: unknown; effectiveDetail?: unknown } | undefined;
+        if (runStartChatId && display && (display.defaultDetail === "summary" || display.defaultDetail === "full")) {
+          dispatch({ type: "UPSERT_CHAT", chat: { chatId: runStartChatId, display: {
+            defaultDetail: display.defaultDetail,
+            effectiveDetail: display.effectiveDetail === "full" ? "full" : "summary",
+          } } });
+        }
         if (runStartChatId && toText(state.chatId) !== runStartChatId) {
           dispatch({ type: "SET_CHAT_ID", chatId: runStartChatId });
         }

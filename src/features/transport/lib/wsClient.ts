@@ -1,5 +1,4 @@
 import { t } from "@/shared/i18n";
-import { EVENT_DETAIL_REQUEST_TYPES, readEventDetailLevel } from "@/shared/data/eventDetailLevel";
 import { getI18nRuntimeConfig } from "@/shared/i18n/runtime";
 import { createCompactId } from "@/shared/utils/compactId";
 import { getClientDeviceId } from "@/shared/data/clientDeviceId";
@@ -1146,10 +1145,8 @@ export class StandaloneSocketDriver extends PlatformFrameClient {
 	}
 
 	protected sendRequestFrame(frame: AgentPlatformRequestFrame): void {
-		// Platform filters these streams and histories by the viewer's detail level.
-		this.sendOutboundFrame(EVENT_DETAIL_REQUEST_TYPES.has(frame.type)
-			? { ...frame, detail: readEventDetailLevel() }
-			: frame);
+		// Omitted detail follows the Agent's Platform-resolved display default.
+		this.sendOutboundFrame(frame);
 	}
 
 	private trySendOutboundFrame(frame: WsOutboundFrame): boolean {

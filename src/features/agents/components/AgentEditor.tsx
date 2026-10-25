@@ -475,6 +475,25 @@ export const AgentEditor: React.FC<AgentEditorProps> = (props) => {
         title={t("agents.interaction.title")}
       >
         <p>{t("agents.interaction.description")}</p>
+        <div className="field-group">
+          <label htmlFor="agent-default-detail">{t("agents.interaction.defaultDetail")}</label>
+          <Select
+            id="agent-default-detail"
+            value={form.interactionConfig?.defaultDetail || "inherit"}
+            options={[
+              { value: "inherit", label: t("agents.interaction.defaultDetail.inherit") },
+              { value: "summary", label: t("agents.interaction.defaultDetail.summary") },
+              { value: "full", label: t("agents.interaction.defaultDetail.full") },
+            ]}
+            onChange={(value: "inherit" | "summary" | "full") => {
+              const overrides = { ...form.interactionConfig };
+              if (value === "inherit") delete overrides.defaultDetail;
+              else overrides.defaultDetail = value;
+              updateForm({ interactionConfig: Object.keys(overrides).length ? overrides : undefined });
+            }}
+          />
+          <p>{t("agents.interaction.defaultDetail.description")}</p>
+        </div>
         <div
           className="agent-choice-grid agent-interaction-choice-grid"
           role="group"

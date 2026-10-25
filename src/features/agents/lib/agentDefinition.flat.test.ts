@@ -75,3 +75,15 @@ it("supports connector selections during creation and leaves effective presets o
  const detail = { key: "demo", name: "Demo", status: "ready", definition: { key: "demo" }, connectorBindings: [{ id: "web", source: "preset" as const, active: true }] };
  expect(formFromDetail(detail).connectors).toEqual([]);
 });
+
+it("persists only the explicit detail override and supports restoring mode inheritance", () => {
+ const definition = {key:"demo", mode:"CODER"};
+ const detail = {key:"demo",name:"Demo",definition,interactionConfig:{defaultDetail:"full"},status:"ready"};
+ const form = formFromDetail(detail as Parameters<typeof formFromDetail>[0]);
+ const translate = ((key:string) => key) as Parameters<typeof buildDefinition>[2];
+ expect(buildDefinition(form,definition,translate)).not.toHaveProperty("interactionConfig");
+ form.interactionConfig = {defaultDetail:"summary",showTerminal:false};
+ expect(buildDefinition(form,definition,translate).interactionConfig).toEqual({defaultDetail:"summary",showTerminal:false});
+ delete form.interactionConfig.defaultDetail;
+ expect(buildDefinition(form,definition,translate).interactionConfig).toEqual({showTerminal:false});
+});

@@ -1,3 +1,4 @@
+import { chatDetailLevel } from "@/features/chats/lib/chatDetailLevel";
 import React, { useCallback, useEffect, useMemo, useRef } from "react";
 import { App as AntdApp, Flex, Input, Popconfirm, Tooltip } from "antd";
 import type { TextAreaRef } from "antd/es/input/TextArea";
@@ -14,7 +15,7 @@ import {
   nodesForDetailLevel,
   type TimelineRenderEntry,
 } from "@/features/timeline/lib/timelineDisplay";
-import { readEventDetailLevel, type EventDetailLevel } from "@/shared/data/eventDetailLevel";
+import { type EventDetailLevel } from "@/shared/data/eventDetailLevel";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
 import { useI18n } from "@/shared/i18n";
@@ -88,7 +89,7 @@ export const BtwTabView: React.FC<BtwTabViewProps> = ({
   onPatchTimelineNode,
   onOpenStandalone,
   onOpenSource,
-  detailLevel = readEventDetailLevel(),
+  detailLevel = "summary",
 }) => {
   const { t } = useI18n();
   const { message } = AntdApp.useApp();
@@ -331,7 +332,7 @@ export const BtwTab: React.FC = () => {
     <BtwTabView
       parentChatId={parentChatId}
       session={session}
-      detailLevel={state.eventDetailLevel}
+      detailLevel={chatDetailLevel(state)}
       onSend={() => {
         const message = resolveBTWSendMessage(
           session?.draft || "",

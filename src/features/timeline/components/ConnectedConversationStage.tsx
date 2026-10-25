@@ -1,3 +1,4 @@
+import { chatDetailLevel } from "@/features/chats/lib/chatDetailLevel";
 import { referenceIds } from "@/shared/contracts/references";
 import { bindCssModuleClasses } from "@/shared/utils/cssModuleClasses";
 import timelinePresentation from "@/features/timeline/components/TimelinePresentation.module.css";
@@ -549,11 +550,12 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
       (option) => option.key !== currentWorker.sourceId,
     );
 
+  const detailLevel = chatDetailLevel(state);
   const timelineEntries = useMemo(() => {
     return nodesForDetailLevel(state.timelineOrder
       .map((id) => state.timelineNodes.get(id))
-      .filter((node): node is NonNullable<typeof node> => Boolean(node)), state.eventDetailLevel);
-  }, [state.timelineOrder, state.timelineNodes, state.eventDetailLevel]);
+      .filter((node): node is NonNullable<typeof node> => Boolean(node)), detailLevel);
+  }, [state.timelineOrder, state.timelineNodes, detailLevel]);
   const currentAgentKey =
     currentWorker?.type === "agent"
       ? String(currentWorker.sourceId || "").trim()

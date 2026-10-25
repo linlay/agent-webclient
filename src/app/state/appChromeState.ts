@@ -1,6 +1,5 @@
 import { normalizeThemeMode } from "@/shared/styles/theme";
 import { persistTerminalDockOpen } from "@/features/terminal/lib/terminalDockPersistence";
-import { persistEventDetailLevel, type EventDetailLevel } from "@/shared/data/eventDetailLevel";
 import type { ThemeMode } from "@/shared/styles/theme";
 import type { AgentEvent } from "@/shared/contracts/agentEvents";
 import type { UiTimerHandle } from "@/shared/contracts/ui";
@@ -19,7 +18,6 @@ export interface CommandStatusOverlayState {
 export interface AppChromeState {
   leftDrawerOpen: boolean;
   terminalDockOpen: boolean;
-  eventDetailLevel: EventDetailLevel;
   themeMode: ThemeMode;
   accessToken: string;
   eventPopoverIndex: number;
@@ -31,7 +29,6 @@ export interface AppChromeState {
 export type AppChromeAction =
   | { type: "SET_LEFT_DRAWER_OPEN"; open: boolean }
   | { type: "SET_TERMINAL_DOCK_OPEN"; open: boolean }
-  | { type: "SET_EVENT_DETAIL_LEVEL"; level: EventDetailLevel }
   | { type: "SET_THEME_MODE"; themeMode: ThemeMode }
   | { type: "SET_ACCESS_TOKEN"; token: string }
   | { type: "SET_EVENT_POPOVER"; index: number; event: AgentEvent | null; anchor?: { x: number; y: number } | null }
@@ -43,12 +40,10 @@ export function createInitialAppChromeState(input: {
   themeMode: ThemeMode;
   accessToken: string;
   terminalDockOpen: boolean;
-  eventDetailLevel: EventDetailLevel;
 }): AppChromeState {
   return {
     leftDrawerOpen: true,
     terminalDockOpen: input.terminalDockOpen,
-    eventDetailLevel: input.eventDetailLevel,
     themeMode: input.themeMode,
     accessToken: input.accessToken,
     eventPopoverIndex: -1,
@@ -68,9 +63,6 @@ export function reduceAppChromeState<S extends AppChromeState>(state: S, input: 
     case "SET_TERMINAL_DOCK_OPEN":
       persistTerminalDockOpen(action.open);
       return { ...state, terminalDockOpen: action.open };
-    case "SET_EVENT_DETAIL_LEVEL":
-      persistEventDetailLevel(action.level);
-      return { ...state, eventDetailLevel: action.level };
     case "SET_THEME_MODE":
       return { ...state, themeMode: normalizeThemeMode(action.themeMode) };
     case "SET_ACCESS_TOKEN":

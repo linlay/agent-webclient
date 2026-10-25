@@ -1,4 +1,5 @@
 export interface InteractionConfig {
+  defaultDetail?: import("@/shared/data/eventDetailLevel").EventDetailLevel;
   model: boolean;
   accessLevel: boolean;
   connectors: boolean;

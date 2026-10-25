@@ -233,3 +233,5 @@ TEAM 与普通 Agent 共用 agentKey 身份、目录、管理和运行控制。�
 Agent 管理表单支持 `interactionConfig.showPlanningMode/showEditingMode/showTerminal` 三个入口开关，只保存显式覆盖（包括 false）；未配置字段与恢复默认值仍交由 Platform 解析。
 
 当前语音统一开关 isVoiceEnabled() 固定关闭；宿主 VOICE_ENABLED 不改变入口，useVoiceRuntime 跳过初始化和事件监听。保留语音实现，测试通过显式输入或模块注入验证启用路径。
+
+过程展示由 Platform 解析的 interactionConfig.defaultDetail 决定（agent.yml 覆盖 agent-settings.yml mode 配置，兜底 summary）；WebClient 普通 query/attach/chat 不发送 detail，不读取旧全局 detail 偏好。历史 /api/chat.display 与下发 run.start.display 区分 defaultDetail/effectiveDetail，Desktop full 订阅按 defaultDetail 展示；Agent 管理表单只保存显式覆盖，删除 defaultDetail 恢复继承。详见界面基础专题。
