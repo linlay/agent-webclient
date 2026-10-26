@@ -61,3 +61,12 @@ QLC 当前提供 JSON 展示和 JSON 表单兜底，尚未解释专有控件。�
 请求由宿主绑定 Chat、发布 Run 和 VIEW hash；平台检查在线 Chat 所有权、Run 归属、当前 Agent 连接器挂载和当前安装包中的同名动作。动作变更或撤销时拒绝旧快照写入。CLI 使用结构化 argv 和可选 JSON stdin，MCP 只调用包自身组件；凭据仅服务端注入。宿主对同一会话 VIEW、动作和规范化参数复用 sessionStorage 请求 ID，平台收据在调用前持久化；请求不会自动重试或切换传输重放。取消不调用 API；超时或未知结果应回查，不重发。
 
 `invoke` 返回 `{data,executedAt,invocationId,exitCode}`，业务错误保留原 JSON 结果供模板识别 outcome。模板应把写入结果与后续回读失败分开展示，不将回读失败解释为写入失败。归档和旧宿主可能无法操作，以平台校验为准；旧快照不会自动增加动作。
+
+
+## Desktop WorkPanel 承载
+
+Desktop 的侧栏入口打开独立 View Surface，Dialog 和普通浏览器侧栏保持原交互。View Surface 与内嵌、Dialog 共用 ViewEmbed，所以 viewHost 查询、写入确认、CSP、错误和幂等语义一致；执行仍归 Agent Platform，HTML 不获得本机命令接口。
+
+标签使用 Chat、Run、协议 contentId/toolId 和块序号定位。URL/descriptor 不传 HTML 或大 payload，独立页面按 Chat 回放恢复绑定的快照和原始数据。同源 BroadcastChannel 只同步当前聊天中已绑定实例的数据，并按每次页面请求身份、发布者 generation 和序号丢弃迟到内容；源页面重建时重新握手，关闭时释放，不增开 live Run 订阅。通道不构成执行授权，Platform 继续验证模板与声明。时间线渲染计数器和 React useId 不能用于 Desktop 恢复。
+
+宿主须声明 workpanel.view 能力；能力缺失时显示升级提示，Desktop 不回退 WebClient 侧栏。View 子页面只取得所属 Chat 回放、display 模板和同一发布 Run 的查询/操作能力，不取得 query/attach 或新建标签权限。双方 generated contract 配套更新。

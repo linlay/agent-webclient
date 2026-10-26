@@ -66,6 +66,7 @@ const BtwViewerPage = lazyPage(() => import("./pages/surfaces/BtwViewerPage"), (
 const DebugViewerPage = lazyPage(() => import("./pages/surfaces/DebugViewerPage"), (m) => m.DebugViewerPage);
 const FileViewerPage = lazyPage(() => import("./pages/surfaces/FileViewerPage"), (m) => m.FileViewerPage);
 const OverviewViewerPage = lazyPage(() => import("./pages/surfaces/OverviewViewerPage"), (m) => m.OverviewViewerPage);
+const ViewViewerPage = lazyPage(() => import("./pages/surfaces/ViewViewerPage"), (m) => m.ViewViewerPage);
 const PlanningViewerPage = lazyPage(() => import("./pages/surfaces/PlanningViewerPage"), (m) => m.PlanningViewerPage);
 const ResourceViewerPage = lazyPage(() => import("./pages/surfaces/ResourceViewerPage"), (m) => m.ResourceViewerPage);
 const SelectionExplainPage = lazyPage(() => import("./pages/surfaces/SelectionExplainPage"), (m) => m.SelectionExplainPage);
@@ -326,6 +327,10 @@ const router = createBrowserRouter(
               <SourceViewerPage />
             </DocumentTitleRoute>
           ),
+        },
+        {
+          path: SURFACE_ROUTE_PATHS.view,
+          element: <DocumentTitleRoute titleKey="view.header.title"><ViewViewerPage /></DocumentTitleRoute>,
         },
         {
           path: SURFACE_ROUTE_PATHS.planning,

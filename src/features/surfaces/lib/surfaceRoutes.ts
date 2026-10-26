@@ -11,6 +11,7 @@ export const SURFACE_ROUTE_PATHS = {
   selectionExplain: "/explain/:chatId",
   source: "/source-viewer/:sourceId",
   planning: "/planning-viewer/:planningId",
+  view: "/view-viewer/:sourceId",
   resource: "/resource-viewer/:agentKey",
   file: "/file-viewer/:agentKey",
   web: "/web-viewer",
@@ -31,6 +32,7 @@ export type SurfaceRouteIntent =
       selectionTransferTarget?: string;
     }
   | { kind: "source"; sourceId: string; chatId: string; libraryId?: string; chunkId?: string }
+  | { kind: "view"; chatId: string; runId: string; sourceId: string; viewIndex: string }
   | { kind: "planning"; planningId: string; chatId: string }
   | {
       kind: "resource";
@@ -143,6 +145,13 @@ export function buildSurfaceRoute(
     params.set("chatId", clean(intent.chatId));
     set(params, "chunkId", intent.chunkId);
     set(params, "libraryId", intent.libraryId);
+  } else if (intent.kind === "view") {
+    const sourceId = pathSegment(intent.sourceId);
+    if (!sourceId || !clean(intent.chatId) || !clean(intent.runId) || !/^(?:tool|0|[1-9]\d{0,5})$/.test(intent.viewIndex)) return "";
+    pathname = `/view-viewer/${sourceId}`;
+    params.set("chatId", clean(intent.chatId));
+    params.set("runId", clean(intent.runId));
+    params.set("viewIndex", intent.viewIndex);
   } else if (intent.kind === "planning") {
     const planningId = pathSegment(intent.planningId);
     if (!planningId || !clean(intent.chatId)) return "";

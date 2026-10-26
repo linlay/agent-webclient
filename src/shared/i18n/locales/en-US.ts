@@ -2770,6 +2770,7 @@ export const enUSMessages = {
   "display.error.invalidKind": "kind must be effect",
   "display.error.invalidEffect": "effect must be fireworks, snowfall, or nationalDay",
   "display.error.invalidDuration": "durationMs must be an integer from {min} to {max}",
+  "workPanel.error.viewUnsupported": "This Desktop version does not support View panels. Please upgrade Desktop.",
   "workPanel.error.openDenied": "The current Desktop surface cannot open WorkPanel items",
 
 } satisfies I18nMessages;

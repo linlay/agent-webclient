@@ -23,6 +23,7 @@ import {
 type AgentIntent = { agentKey?: string };
 
 export type OpenTargetIntent =
+  | ({ version: 1; kind: "view"; chatId: string; runId: string; sourceId: string; viewIndex: string; title?: string } & AgentIntent)
   | ({ version: 1; kind: "overview" | "debug"; chatId: string; toggle?: boolean } & AgentIntent)
   | ({
       version: 1;
@@ -179,6 +180,7 @@ export function toSurfaceRouteIntent(intent: OpenTargetIntent): SurfaceRouteInte
       chunkId: intent.chunkId,
     };
   }
+  if (intent.kind === "view") return { kind: "view", chatId: intent.chatId, runId: intent.runId, sourceId: intent.sourceId, viewIndex: intent.viewIndex };
   if (intent.kind === "planning") {
     return { kind: "planning", chatId: intent.chatId, planningId: intent.planningId };
   }
@@ -319,6 +321,11 @@ export function buildDesktopWorkPanelDescriptor(
     };
   }
 
+  if (intent.kind === "view") {
+    return { kind: "webclient", module: "view", route,
+      context: { chatId: intent.chatId, runId: intent.runId, sourceId: intent.sourceId, viewIndex: intent.viewIndex },
+      title: intent.title || "VIEW" };
+  }
   if (intent.kind === "planning") {
     const chatId = clean(intent.chatId);
     const planningId = clean(intent.planningId);

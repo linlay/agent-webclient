@@ -2954,5 +2954,6 @@ export const zhCNMessages = {
     "effect 必须为 fireworks、snowfall 或 nationalDay",
   "display.error.invalidDuration":
     "durationMs 必须是 {min} 到 {max} 之间的整数",
+  "workPanel.error.viewUnsupported": "当前 Desktop 版本不支持 View 工作面板，请升级 Desktop",
   "workPanel.error.openDenied": "当前 Desktop 页面无法打开 WorkPanel 项目",
 } satisfies I18nMessages;

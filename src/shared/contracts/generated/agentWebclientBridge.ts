@@ -1,6 +1,6 @@
 // Generated from src/shared/contracts/agent-webclient-bridge.ts.
 // Do not edit this mirror directly.
-// sha256:4b4da843fc13dae31fd6425ae1aa08cf00369d44622e68ad3b3047c138610edb
+// sha256:5a61518808bc7cf00c7abcd7ae2d567fa6339d6f3280c8ee4b9a545c69a8c556
 
 /**
  * Canonical Desktop <-> Agent WebClient bridge contract.
@@ -426,6 +426,7 @@ export type WorkPanelSourceContext = WorkPanelChatContext & {
   publishId: string;
   sourceId: string;
 };
+export type WorkPanelViewContext = { chatId: string; runId: string; sourceId: string; viewIndex: string };
 export type WorkPanelPlanningContext = { chatId: string; planningId: string };
 export type WorkPanelArtifactContext = WorkPanelChatContext & { artifactId: string; relativePath?: string };
 export type WorkPanelReferenceContext = WorkPanelChatContext & { referenceId: string; relativePath?: string };
@@ -464,6 +465,7 @@ export type WorkPanelWebclientModule =
   | "reference"
   | "file"
   | "planning"
+  | "view"
   | "agent"
   | "copilot"
   | "skill";
@@ -486,6 +488,7 @@ export type WorkPanelWebclientDescriptor = WorkPanelWebclientDescriptorBase & (
   | { module: "reference"; context: WorkPanelReferenceContext }
   | { module: "file"; context: WorkPanelFileContext }
   | { module: "planning"; context: WorkPanelPlanningContext }
+  | { module: "view"; context: WorkPanelViewContext }
   | { module: "agent" | "copilot"; context: WorkPanelAgentContext }
   | { module: "skill"; context: WorkPanelSkillContext }
 );
@@ -628,6 +631,7 @@ export type WorkPanelBridgeResult =
   | AgentWebclientBridgeFailure;
 
 export type WorkPanelCapability =
+  | "workpanel.view"
   | "workpanel.open"
   | "workpanel.document.open-local"
   | "workpanel.document.open-local-direct"

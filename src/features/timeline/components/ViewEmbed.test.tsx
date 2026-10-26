@@ -14,6 +14,12 @@ jest.mock("@/shared/data", () => ({
   createRequestId: () => "view-write-0001",
 }));
 jest.mock("@/shared/i18n", () => ({ useI18n: () => ({ locale: "zh-CN", t: (key: string) => key }) }));
+let mockDesktop = false;
+const mockOpenDescriptor = jest.fn();
+jest.mock("@/shared/utils/routing", () => ({ isDesktopAppMode: () => mockDesktop }));
+jest.mock("@/features/transport/components/RealtimeTransportProvider", () => ({
+  useOptionalWorkPanelTransport: () => ({ openDescriptor: mockOpenDescriptor }),
+}));
 const mockDispatch = jest.fn();
 let mockViewPreviews: any[] = [];
 jest.mock("@/app/state/provider", () => ({ useOptionalAppContext: () => ({
@@ -49,7 +55,7 @@ async function mount(props: Partial<React.ComponentProps<typeof ViewEmbed>>, wor
   return { host, frame, posted, render, cleanup: () => { act(() => root.unmount()); windowGetter.mockRestore(); host.remove(); } };
 }
 
-afterEach(() => { mockGetView.mockReset(); mockQueryView.mockReset(); mockInvokeView.mockReset(); mockDispatch.mockReset(); mockViewPreviews = []; });
+afterEach(() => { mockGetView.mockReset(); mockQueryView.mockReset(); mockInvokeView.mockReset(); mockDispatch.mockReset(); mockViewPreviews = []; mockDesktop = false; mockOpenDescriptor.mockReset(); });
 
 test("Markdown blocks pass their input to the template, which runs its own queries", async () => {
   const { posted, cleanup } = await mount({ runId: "run-1" });
@@ -308,5 +314,30 @@ test("viewer writes require own frame, declaration and trusted host confirmation
     expect(mockInvokeView).toHaveBeenCalledTimes(1);
     expect(posted).toContainEqual(expect.objectContaining({ id: "a2", error: "view_action_canceled" }));
     expect(frame.getAttribute("sandbox")).toBe("allow-scripts");
+  } finally { cleanup(); }
+});
+
+
+test("Desktop sidebar opens a semantic View WorkPanel tab and leaves the browser sidebar untouched", async () => {
+  mockDesktop = true;
+  mockOpenDescriptor.mockResolvedValue({ ok: true });
+  const { host, cleanup } = await mount({ runId: "run-1", sourceId: "content-id", viewIndex: "0" }, true);
+  try {
+    await act(async () => (host.querySelector('button[aria-label="view.header.openSidebar"]') as HTMLButtonElement).click());
+    expect(mockOpenDescriptor).toHaveBeenCalledWith({ kind: "webclient", module: "view", title: view.key,
+      route: "/view-viewer/content-id?chatId=chat&runId=run-1&viewIndex=0",
+      context: { chatId: "chat", runId: "run-1", sourceId: "content-id", viewIndex: "0" } });
+    expect(mockDispatch).not.toHaveBeenCalledWith(expect.objectContaining({ type: "OPEN_VIEW_PREVIEW" }));
+  } finally { cleanup(); }
+});
+
+test("a Desktop open failure is shown inline without falling back to the browser sidebar", async () => {
+  mockDesktop = true;
+  mockOpenDescriptor.mockRejectedValue(new Error("Upgrade Desktop"));
+  const { host, cleanup } = await mount({ runId: "run-1", sourceId: "content-id", viewIndex: "0" }, true);
+  try {
+    await act(async () => (host.querySelector('button[aria-label="view.header.openSidebar"]') as HTMLButtonElement).click());
+    expect(host.querySelector('[role="alert"]')?.textContent).toContain("Upgrade Desktop");
+    expect(mockDispatch).not.toHaveBeenCalled();
   } finally { cleanup(); }
 });

@@ -65,6 +65,7 @@ import { resolveCurrentWorkerSummary } from "@/features/workers/lib/currentWorke
 import { resolvePreferredAgentKey } from "@/features/workers/lib/queryRouting";
 import { getVoiceRuntime } from "@/features/voice/lib/voiceRuntime";
 import { ToolOutputTerminal } from "@/features/terminal/components/ToolOutputTerminal";
+import { useViewPreviewPublisher } from "@/features/viewers/hooks/useViewPreviewTransfer";
 import { ViewEmbed } from "@/features/timeline/components/ViewEmbed";
 import { MarkdownContent } from "@/features/viewers/components/MarkdownContent";
 import { AttachmentCard } from "@/features/artifacts/components/AttachmentCard";
@@ -487,6 +488,7 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
   const { t } = useI18n();
   const message = useAppMessage();
   const state = useAppState();
+  useViewPreviewPublisher(surfaceMode === "main" ? state.chatId : "", state.timelineNodes);
   const dispatch = useAppDispatch();
   const appContext = useOptionalAppContext();
   const openTarget = useOpenTarget();
@@ -1673,12 +1675,12 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
       void getVoiceRuntime()?.replayTtsVoiceBlock(node.contentId || "", signature, text)
         .catch(() => undefined);
     },
-    renderToolView: (view, chatId, error, payloadRaw) =>
-      <ViewEmbed allowSidebar={surfaceMode === "main"} chatId={chatId} view={view} viewError={error} payloadRaw={payloadRaw} />,
+    renderToolView: (view, chatId, error, payloadRaw, node) =>
+      <ViewEmbed allowSidebar={surfaceMode === "main"} chatId={chatId} view={view} viewError={error} payloadRaw={payloadRaw} runId={node?.runId} sourceId={node?.id} viewIndex="tool" />,
     renderToolOutput: (output) =>
       <ToolOutputTerminal output={output} themeMode={state.themeMode} />,
-    renderContentView: (segment, chatId, binding, runId) =>
-      <ViewEmbed allowSidebar={surfaceMode === "main"} chatId={chatId} view={binding.view} viewError={binding.viewError} payloadRaw={segment.payloadRaw || "{}"} rawData={segment.payloadRaw} runId={runId} />,
+    renderContentView: (segment, chatId, binding, runId, sourceId) =>
+      <ViewEmbed allowSidebar={surfaceMode === "main"} chatId={chatId} view={binding.view} viewError={binding.viewError} payloadRaw={segment.payloadRaw || "{}"} rawData={segment.payloadRaw} runId={runId} sourceId={sourceId} viewIndex={String(segment.index)} />,
     renderMarkdown: (props) => <MarkdownContent {...props} htmlPreview />,
     renderAttachment: (attachment, options) => <AttachmentCard
       attachment={attachment} variant="timeline" thumbnailMode="inline"

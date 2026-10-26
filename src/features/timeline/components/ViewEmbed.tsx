@@ -6,6 +6,9 @@ import { viewDocumentHTML } from "@/shared/utils/viewDocument";
 import { safeJsonParse } from "@/shared/utils/safeJsonParse";
 import { useI18n } from "@/shared/i18n";
 import { useOptionalAppContext } from "@/app/state/provider";
+import { useOptionalWorkPanelTransport } from "@/features/transport/components/RealtimeTransportProvider";
+import { isDesktopAppMode } from "@/shared/utils/routing";
+import { buildDesktopWorkPanelDescriptor } from "@/features/surfaces/lib/openTarget";
 import { ViewHeader, type ViewQueryStatus } from "./ViewHeader";
 
 const DEFAULT_HEIGHT = 320;
@@ -30,7 +33,7 @@ function isObject(value: unknown): value is Record<string, unknown> {
 // Display writes require an explicit declaration and trusted host confirmation.
 // Connector views load only frozen Chat snapshots named by an event hash, and
 // may run only queries their snapshot declares, as the viewing user.
-export function ViewEmbed({ chatId, view, payloadRaw, viewError, rawData, runId, allowExpand = true, allowSidebar = false, onClose }: {
+export function ViewEmbed({ chatId, view, payloadRaw, viewError, rawData, runId, sourceId, viewIndex, fill = false, allowExpand = true, allowSidebar = false, onClose }: {
   chatId: string;
   view?: ViewReference;
   payloadRaw: string;
@@ -39,6 +42,9 @@ export function ViewEmbed({ chatId, view, payloadRaw, viewError, rawData, runId,
   rawData?: string;
   /** Run whose content published the view; required for view queries. */
   runId?: string;
+  sourceId?: string;
+  viewIndex?: string;
+  fill?: boolean;
   /** Expanded hosts keep metadata without nested presentation controls. */
   allowExpand?: boolean;
   /** Only surfaces with the existing right sidebar expose this action. */
@@ -48,7 +54,27 @@ export function ViewEmbed({ chatId, view, payloadRaw, viewError, rawData, runId,
 }) {
   const { t, locale } = useI18n();
   const app = useOptionalAppContext();
-  const sidebarId = useId();
+  const mountId = useId();
+  const sidebarId = sourceId ? JSON.stringify([chatId, runId, sourceId, viewIndex]) : mountId;
+  const workPanel = useOptionalWorkPanelTransport();
+  const desktop = isDesktopAppMode();
+  const [openError, setOpenError] = useState("");
+  const [opening, setOpening] = useState(false);
+  const openGeneration = useRef(0);
+  useEffect(() => { openGeneration.current += 1; setOpenError(""); setOpening(false); return () => { openGeneration.current += 1; }; }, [sidebarId]);
+  const openSidebar = async () => {
+    if (!desktop) { dispatch?.({ type: "OPEN_VIEW_PREVIEW", preview }); return; }
+    const epoch = openGeneration.current;
+    setOpenError(""); setOpening(true);
+    try {
+      const descriptor = sourceId && runId && viewIndex !== undefined ? buildDesktopWorkPanelDescriptor({
+        version: 1, kind: "view", chatId, runId, sourceId, viewIndex, title: view?.key,
+      }) : null;
+      if (!workPanel || !descriptor) throw new Error(t("workPanel.error.openDenied"));
+      await workPanel.openDescriptor(descriptor);
+    } catch (cause) { if (epoch === openGeneration.current) setOpenError(errorCode(cause)); }
+    finally { if (epoch === openGeneration.current) setOpening(false); }
+  };
   const preview = useMemo(() => ({ key: sidebarId, chatId, view, payloadRaw, viewError, rawData, runId }),
     [sidebarId, chatId, view?.source, view?.connectorId, view?.key, view?.hash, view?.version, view?.renderer, payloadRaw, viewError, rawData, runId]);
   const previewOpen = Boolean(app?.state.viewPreviews?.some(item => item.key === sidebarId));
@@ -84,7 +110,7 @@ export function ViewEmbed({ chatId, view, payloadRaw, viewError, rawData, runId,
     try { sessionStorage.setItem(key, id); } catch { /* memory fallback */ }
     return id;
   };
-  const identity = JSON.stringify([chatId, view?.source, view?.connectorId, view?.key, view?.hash, viewError, runId]);
+  const identity = JSON.stringify([chatId, view?.source, view?.connectorId, view?.key, view?.hash, viewError, runId, sourceId, viewIndex]);
   const queryable = () => Boolean(
     runId && chatId && view?.source === "connector" && view.connectorId && view.hash
     && Object.keys(documentRef.current?.queries || {}).length,
@@ -218,14 +244,15 @@ export function ViewEmbed({ chatId, view, payloadRaw, viewError, rawData, runId,
   }, [payloadRaw]);
   useEffect(() => { if (ready.current) post("view_update"); }, [locale, colorScheme]);
 
-  return <div className={onClose ? "tw:m-0 tw:flex tw:h-full tw:min-h-0 tw:flex-col" : "tw:my-2"}>
-    <div className={onClose ? "tw:shrink-0" : undefined}>
+  return <div className={onClose || fill ? "tw:m-0 tw:flex tw:h-full tw:min-h-0 tw:flex-col" : "tw:my-2"}>
+    <div className={onClose || fill ? "tw:shrink-0" : undefined}>
     <ViewHeader dynamic={Boolean(runId && view?.source === "connector")} status={queryStatus}
       onExpand={allowExpand ? () => setExpanded(true) : undefined}
-      onOpenSidebar={allowExpand && allowSidebar && dispatch ? () => dispatch({ type: "OPEN_VIEW_PREVIEW", preview }) : undefined}
+      onOpenSidebar={allowExpand && allowSidebar && (desktop || dispatch) ? () => { if (!opening) void openSidebar(); } : undefined}
       canExpand={Boolean(html) && !error} onClose={onClose} />
     </div>
-    <div className={onClose ? "view-dialog-scroll tw:min-h-0 tw:flex-1 tw:overflow-auto" : undefined}>
+    <div className={onClose || fill ? "view-dialog-scroll tw:min-h-0 tw:flex-1 tw:overflow-auto" : undefined}>
+    {openError && <div role="alert">{openError}</div>}
     {error && <div role="alert">{t("view.loadFailed", { detail: error })}</div>}
     {error && rawData && <details className="tw:mt-1 tw:text-sm">
       <summary>{t("view.rawData")}</summary>
