@@ -11,8 +11,8 @@
 }
 
 :global(.layout-copilot) :global(.timeline-empty) {
-    max-width: 260px;
-    font-size: 17px;
+    max-width: 364px;
+    font-size: 23.8px;
     line-height: 1.35;
 }
 

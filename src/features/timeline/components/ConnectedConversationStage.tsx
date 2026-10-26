@@ -129,7 +129,7 @@ type VirtualListItem =
 const QUERY_ANCHOR_MIN_SCROLL_WIDTH = 960;
 
 const TIMELINE_EMPTY_CLASS_NAME =
-  "timeline-empty tw:relative tw:break-words tw:whitespace-pre-line tw:text-center tw:text-xl tw:font-bold tw:leading-[1.35]";
+  "timeline-empty tw:relative tw:break-words tw:whitespace-pre-line tw:text-center tw:text-[28px] tw:font-bold tw:leading-[1.35]";
 const CONVERSATION_STAGE_CLASS_NAME =
   "conversation-stage tw:relative tw:min-h-0 tw:flex-1 tw:overflow-hidden tw:animate-fade-slide-in";
 const CONVERSATION_STAGE_SCROLL_TO_BOTTOM_CLASS_NAME =

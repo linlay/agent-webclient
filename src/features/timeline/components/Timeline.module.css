@@ -190,7 +190,7 @@
 
 :global(.timeline-empty) {
     position: relative;
-    font-size: 20px;
+    font-size: 28px;
     font-weight: bold;
     line-height: 1.35;
     text-align: center;
