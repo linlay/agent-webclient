@@ -39,11 +39,14 @@ export function useConnectorsRuntime(routeId: string, onRouteIdChange: (id: stri
   const selected = currentItem || (dirty && selectionRef.current?.id === requestedId ? selectionRef.current : !routeId ? items[0] : undefined);
   selectionRef.current = selected;
   const selectedId = selected?.id || "";
+  const invalid = selected?.status === "invalid";
+  const validationError = invalid ? selected?.error || "" : "";
   const readOnly = selected?.readOnly === true || selected?.builtin === true;
   const canDelete = !!selected && selected.canDelete !== false && !readOnly;
   const activeFile = dirty && detail?.id === selectedId ? detail.file : (file === "mcp.json" && !selected?.hasMcp) || (file === "cli.json" && !selected?.hasCli) || (file === "view.json" && !selected?.hasView) || (file === "native.json" && !selected?.hasNative) ? "connector.json" : file;
   const catalogRequest = useRef(0);
   const detailRequest = useRef(0);
+  const detailLoadScope = useRef("");
   const catalogBusy = useRef(false);
   const savingRef = useRef(false);
   const importingRef = useRef(false);
@@ -136,25 +139,39 @@ export function useConnectorsRuntime(routeId: string, onRouteIdChange: (id: stri
   }, [push, refreshCatalog]);
 
   useEffect(() => {
+    const scope = JSON.stringify([selectedId, activeFile, revision]);
+    const preserveDraft = detailLoadScope.current === scope && dirtyRef.current;
+    detailLoadScope.current = scope;
     const request = ++detailRequest.current;
+    if (preserveDraft) {
+      setError(invalid ? t("connectors.status.invalid") : "");
+      if (invalid) setErrorDetails(connectorErrorDetails(new Error(validationError)));
+      return;
+    }
     setDetail(null);
     setDraft("");
     setError("");
     setMessage("");
-    setDetailLoading(!!selectedId);
-    if (selectedId) {
+    setDetailLoading(!!selectedId && !invalid);
+    if (invalid) {
+      setError(t("connectors.status.invalid"));
+      setErrorDetails(connectorErrorDetails(new Error(validationError)));
+    } else if (selectedId) {
       void getConnectorDefinition({ id: selectedId, file: activeFile }).then(response => {
         if (request !== detailRequest.current) return;
         setDetail(response.data);
         setDraft(response.data.content);
       }).catch(cause => {
-        if (request === detailRequest.current) setError(cause instanceof Error ? cause.message : String(cause));
+        if (request === detailRequest.current) {
+          setError(cause instanceof Error ? cause.message : String(cause));
+          setErrorDetails(connectorErrorDetails(cause));
+        }
       }).finally(() => {
         if (request === detailRequest.current) setDetailLoading(false);
       });
     }
     return () => { detailRequest.current += 1; };
-  }, [selectedId, activeFile, revision]);
+  }, [selectedId, activeFile, revision, invalid, validationError]);
 
   useEffect(() => {
     const beforeUnload = (event: BeforeUnloadEvent) => {

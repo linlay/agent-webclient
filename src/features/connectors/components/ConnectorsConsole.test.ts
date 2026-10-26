@@ -70,6 +70,38 @@ beforeEach(() => {
 afterEach(async () => { await act(async () => root.unmount()); container.remove(); jest.restoreAllMocks(); });
 const mount = async (locale: "zh-CN" | "en-US" = "zh-CN") => { await act(async () => root.render(React.createElement(Harness, { locale }))); };
 
+it("shows invalid package diagnostics without authorization checks and allows deletion", async () => {
+  // Invalid admin entries have no validated manifest or capability metadata.
+  const invalid = { id: "demo", name: "jira-cli", status: "invalid", error: "view.json: unexpected end of JSON input", canDelete: true, readOnly: false, builtin: false, skills: [] } as unknown as ConnectorSummary;
+  jest.mocked(getAdminConnectors).mockResolvedValue({ code: 0, msg: "", data: { connectors: [invalid] } });
+  await mount();
+  expect(container.textContent).toContain("连接器校验失败");
+  expect(container.textContent).toContain(invalid.error);
+  expect(container.textContent).not.toContain("检查中");
+  expect(container.querySelector('[aria-label="账号授权"]')).toBeNull();
+  expect(getConnectorAuthStatus).not.toHaveBeenCalled();
+  expect(getConnectorDefinition).not.toHaveBeenCalled();
+  jest.spyOn(window, "confirm").mockReturnValue(true);
+  jest.mocked(deleteConnector).mockResolvedValueOnce({ code: 0, msg: "", data: { id: "demo", deleted: true } });
+  jest.mocked(getAdminConnectors).mockResolvedValue({ code: 0, msg: "", data: { connectors: [] } });
+  await openMore("jira-cli");
+  await clickMenu("删除");
+  expect(deleteConnector).toHaveBeenCalledWith("demo");
+  expect(container.querySelectorAll("aside strong")).toHaveLength(0);
+});
+
+it("loads the definition and authorization when an invalid package is repaired", async () => {
+  jest.mocked(getAdminConnectors).mockResolvedValueOnce({ code: 0, msg: "", data: { connectors: [{ ...item, status: "invalid", error: "invalid view.json", canDelete: true }] } });
+  await mount();
+  expect(getConnectorDefinition).not.toHaveBeenCalled();
+  expect(getConnectorAuthStatus).not.toHaveBeenCalled();
+  await act(async () => document.dispatchEvent(new Event("visibilitychange")));
+  expect(getConnectorDefinition).toHaveBeenCalledTimes(1);
+  expect(getConnectorAuthStatus).toHaveBeenCalledTimes(1);
+  expect(container.textContent).not.toContain("连接器校验失败");
+  expect(container.textContent).not.toContain("invalid view.json");
+});
+
 it("resolves canonical null CLI auth in both catalog rows and the selected overview", async () => {
   const connectors = [
     { ...item, authMode: "self", name: "企业微信" },

@@ -525,6 +525,7 @@ export const enUSMessages = {
   "connectors.auth.logout": "Sign out",
   "connectors.auth.checkFailed": "Check failed",
   "connectors.auth.checkFailedHint": "Authorization status is unavailable. Check again to retry.",
+  "connectors.status.invalid": "Connector validation failed",
   "connectors.auth.checkingHint": "Checking authorization status…",
   "connectors.auth.checkFailedWithStatus": "{status} · Check failed",
   "connectors.auth.configuredCredentials": "Credential configuration",

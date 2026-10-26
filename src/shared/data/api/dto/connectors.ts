@@ -16,6 +16,9 @@ export interface ConnectorMcpStatus {
 export type ConnectorAuthMode = "none" | "self" | "token" | "mcp" | "oneid";
 
 export interface ConnectorSummary {
+  /** Invalid packages remain in the admin catalog for diagnosis and deletion. */
+  status?: string;
+  error?: string;
   tools?: AdminToolSummary[];
   id: string;
   name: string;

@@ -556,6 +556,7 @@ export const zhCNMessages = {
   "connectors.auth.logout": "退出登录",
   "connectors.auth.checkFailed": "检查失败",
   "connectors.auth.checkFailedHint": "暂时无法获取授权状态，请重新检查。",
+  "connectors.status.invalid": "连接器校验失败",
   "connectors.auth.checkingHint": "正在获取授权状态…",
   "connectors.auth.checkFailedWithStatus": "{status} · 检查失败",
   "connectors.auth.configuredCredentials": "凭据配置",

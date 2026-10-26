@@ -173,7 +173,8 @@ export function ConnectorsConsole({
       authStatus && authStatus !== "unknown"
         ? t(`connectors.auth.status.${authStatus}`)
         : "";
-    const authLabel = item.authMode === "none" ? t("connectors.auth.status.no_auth")
+    const authLabel = item.status === "invalid" ? t("connectors.status.invalid")
+        : item.authMode === "none" ? t("connectors.auth.status.no_auth")
         : auth?.error
             ? knownStatus
               ? t("connectors.auth.checkFailedWithStatus", {
@@ -281,7 +282,7 @@ export function ConnectorsConsole({
                 <UiTag
                   title={authLabel}
                   tone={
-                    auth?.error
+                    item.status === "invalid" || auth?.error
                       ? "danger"
                       : authStatus === "authorized"
                         ? "accent"
@@ -340,7 +341,7 @@ export function ConnectorsConsole({
           )}
         </div>
       )}
-      {runtime.items.map((item) => (
+      {runtime.items.filter((item) => item.status !== "invalid").map((item) => (
         <ConnectorAuthObserver
           key={connectorAuthIdentity(item)}
           item={item}
@@ -590,7 +591,7 @@ export function ConnectorsConsole({
                 <ConnectorSkills key={selected.id} item={selected} />
               ) : (
                 <>
-                  {view === "overview" && selectedAuth && (
+                  {view === "overview" && selected.status !== "invalid" && selectedAuth && (
                     <ConnectorAuthPanel
                       key={connectorAuthIdentity(selected)}
                       item={selected}

@@ -91,6 +91,21 @@ it("keeps the selected draft when a background catalog update removes its packag
   expect(current.detail?.sha256).toBe("sha-1");
 });
 
+it("preserves an unsaved draft across package validation failure and recovery", async () => {
+  await mount();
+  await act(async () => current.updateDraft('{"name":"Unsaved"}'));
+  jest.mocked(getAdminConnectors).mockResolvedValueOnce({ code: 0, msg: "", data: { connectors: [{ ...item, status: "invalid", error: "view.json: EOF", canDelete: true }] } });
+  await act(async () => current.refreshCatalog(true));
+  expect(current.draft).toBe('{"name":"Unsaved"}');
+  expect(current.errorDetails).toContain("view.json: EOF");
+  await act(async () => current.refreshCatalog(true));
+  expect(current.draft).toBe('{"name":"Unsaved"}');
+  expect(current.detail?.sha256).toBe("sha-1");
+  expect(current.dirty).toBe(true);
+  expect(current.error).toBe("");
+  expect(getConnectorDefinition).toHaveBeenCalledTimes(1);
+});
+
 it("preserves a dirty draft when ZIP import fails or the discard confirmation is cancelled", async () => {
   await mount();
   await act(async () => current.updateDraft('{"name":"Unsaved"}'));
