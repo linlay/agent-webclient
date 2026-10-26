@@ -60,7 +60,7 @@ import {
 } from "@/shared/data/api/resources";
 import { ensureAccessToken, getCurrentAccessToken, setAccessToken } from "@/shared/data/api/http";
 import { getAgentFile as getAgentFileHttp } from "@/shared/data/api/requests/projects";
-import { getView as getViewHttp, queryView as queryViewHttp } from "@/shared/data/api/requests/views";
+import { getView as getViewHttp, queryView as queryViewHttp, invokeView as invokeViewHttp } from "@/shared/data/api/requests/views";
 import { uploadFile } from "@/shared/data/api/requests/uploads";
 import type {
 	AgentDetailResponse,
@@ -675,4 +675,8 @@ export function changeProjectGitBranch(request: ProjectGitBranchRequest) {
 
 export function getKBaseOptions(agentKey: string, signal?: AbortSignal) {
  return routeEndpoint(dataEndpoints.kbases, { agentKey }, () => getKBaseOptionsHttp(agentKey, signal), signal);
+}
+
+export function invokeView(params: import("@/shared/contracts/view").ViewActionRequest): Promise<ApiResponse<import("@/shared/contracts/view").ViewActionResult>> {
+  return routeEndpoint(dataEndpoints.viewInvoke, params, () => invokeViewHttp(params));
 }

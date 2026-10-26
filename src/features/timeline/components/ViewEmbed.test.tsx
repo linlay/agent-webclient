@@ -6,9 +6,12 @@ import { ViewEmbed, clampViewHeight } from "./ViewEmbed";
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
 const mockGetView = jest.fn();
 const mockQueryView = jest.fn();
+const mockInvokeView = jest.fn();
 jest.mock("@/shared/data", () => ({
   getView: (...args: unknown[]) => mockGetView(...args),
   queryView: (...args: unknown[]) => mockQueryView(...args),
+  invokeView: (...args: unknown[]) => mockInvokeView(...args),
+  createRequestId: () => "view-write-0001",
 }));
 jest.mock("@/shared/i18n", () => ({ useI18n: () => ({ locale: "zh-CN", t: (key: string) => key }) }));
 const mockDispatch = jest.fn();
@@ -21,7 +24,7 @@ const hash = "a".repeat(64);
 const view = { source: "connector" as const, connectorId: "builtin.task-control", key: "automations", hash, renderer: "html" as const };
 
 async function mount(props: Partial<React.ComponentProps<typeof ViewEmbed>>, workspace = false) {
-  mockGetView.mockResolvedValue({ data: { view, html: "<p>x</p>", queries: { list: { adapter: "native", operation: "automation.list" } } } });
+  mockGetView.mockResolvedValue({ data: { view, html: "<p>x</p>", queries: { list: { adapter: "native", operation: "automation.list" } }, actions: { update: { adapter: "cli", description: "Update issue", args: ["update"] } } } });
   const host = document.createElement("div");
   document.body.append(host);
   const root = createRoot(host);
@@ -46,7 +49,7 @@ async function mount(props: Partial<React.ComponentProps<typeof ViewEmbed>>, wor
   return { host, frame, posted, render, cleanup: () => { act(() => root.unmount()); windowGetter.mockRestore(); host.remove(); } };
 }
 
-afterEach(() => { mockGetView.mockReset(); mockQueryView.mockReset(); mockDispatch.mockReset(); mockViewPreviews = []; });
+afterEach(() => { mockGetView.mockReset(); mockQueryView.mockReset(); mockInvokeView.mockReset(); mockDispatch.mockReset(); mockViewPreviews = []; });
 
 test("query blocks run the initial query with the publishing Run and pass host context", async () => {
   mockQueryView.mockResolvedValue({ data: { data: { items: [{ id: "daily" }] }, executedAt: 1700000000000 } });
@@ -185,7 +188,7 @@ test("template errors still have a header and raw data fallback", async () => {
 test("switching Chats clears query state and ignores the previous Chat's response", async () => {
   let resolve!: (value: unknown) => void;
   mockQueryView.mockImplementationOnce(() => new Promise(done => { resolve = done; }));
-  mockGetView.mockResolvedValue({ data: { view, html: "<p>x</p>", queries: { list: { adapter: "native", operation: "automation.list" } } } });
+  mockGetView.mockResolvedValue({ data: { view, html: "<p>x</p>", queries: { list: { adapter: "native", operation: "automation.list" } }, actions: { update: { adapter: "cli", description: "Update issue", args: ["update"] } } } });
   const host = document.createElement("div");
   document.body.append(host);
   const root = createRoot(host);
@@ -269,5 +272,32 @@ test("sidebar action opens a tab with the same frozen view, after the dialog but
     mockViewPreviews = [mockDispatch.mock.calls.at(-1)[0].preview];
     await act(async () => render({ runId: "run-1", query: "list", payloadRaw: '{"limit":10}' }));
     expect(mockDispatch).toHaveBeenLastCalledWith({ type: "UPDATE_VIEW_PREVIEW", preview: expect.objectContaining({ payloadRaw: '{"limit":10}' }) });
+  } finally { cleanup(); }
+});
+
+
+test("viewer writes require own frame, declaration and trusted host confirmation", async () => {
+  mockInvokeView.mockResolvedValue({ data: { data: { applied: true }, executedAt: 42, invocationId: "call-1", exitCode: 0 } });
+  const { frame, posted, cleanup } = await mount({ runId: "run-1", payloadRaw: '{}' });
+  const send = async (source: Window | null, action = "update", id = "a1") => {
+    await act(async () => { window.dispatchEvent(new MessageEvent("message", { source, data: { type: "view_invoke", id, action, params: { key: "DEMO-1" } } })); });
+  };
+  try {
+    await send(window); expect(mockInvokeView).not.toHaveBeenCalled();
+    await send(frame.contentWindow, "delete", "bad"); expect(posted).toContainEqual(expect.objectContaining({ type: "view_invoke_result", id: "bad", error: "view_action_unavailable" }));
+    await send(frame.contentWindow);
+    expect(mockInvokeView).not.toHaveBeenCalled();
+    expect(document.querySelector('[role="dialog"]')?.textContent).toContain("DEMO-1");
+    const button = [...document.querySelectorAll('button')].find(b => b.textContent === "view.action.submit")!;
+    await act(async () => button.click());
+    expect(mockInvokeView).toHaveBeenCalledTimes(1);
+    expect(mockInvokeView).toHaveBeenCalledWith({ chatId: "chat", runId: "run-1", view: { connectorId: view.connectorId, key: view.key, hash }, action: "update", params: { key: "DEMO-1" }, requestId: "view-write-0001" });
+    expect(posted).toContainEqual(expect.objectContaining({ type: "view_invoke_result", id: "a1", ok: true, exitCode: 0, invocationId: "call-1" }));
+    await send(frame.contentWindow, "update", "a2");
+    const cancel = [...document.querySelectorAll('button')].find(b => b.textContent === "view.action.cancel")!;
+    await act(async () => cancel.click());
+    expect(mockInvokeView).toHaveBeenCalledTimes(1);
+    expect(posted).toContainEqual(expect.objectContaining({ id: "a2", error: "view_action_canceled" }));
+    expect(frame.getAttribute("sandbox")).toBe("allow-scripts");
   } finally { cleanup(); }
 });

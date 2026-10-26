@@ -39,9 +39,20 @@ export interface ViewQueryResult {
   data: unknown;
   executedAt: number;
 }
+export interface ViewActionDeclaration extends ViewQueryDeclaration { stdinParam?: string; }
+export interface ViewActionRequest {
+  chatId: string;
+  runId: string;
+  view: { connectorId: string; key: string; hash: string };
+  action: string;
+  params: Record<string, unknown>;
+  requestId: string;
+}
+export interface ViewActionResult extends ViewQueryResult { invocationId: string; exitCode: number; }
 export interface ViewDocument {
   view: ViewReference;
   queries?: Record<string, ViewQueryDeclaration>;
+  actions?: Record<string, ViewActionDeclaration>;
   entry?: string;
   html?: string;
   qlc?: Record<string, unknown>;

@@ -1116,6 +1116,10 @@ export const dataEndpoints = createEndpointRegistry({
     wsBackends: PLATFORM_WS_BACKENDS,
     payload: (params) => params,
   }),
+  viewInvoke: defineEndpoint<import("@/shared/contracts/view").ViewActionRequest, import("@/shared/contracts/view").ViewActionRequest>({
+    key: "view.invoke", path: "/api/view/invoke", method: "POST", transport: "auto",
+    wsBackends: PLATFORM_WS_BACKENDS, payload: params => params,
+  }),
   voiceCapabilities: defineEndpoint({
     key: "voice.capabilities",
     path: "/api/voice/capabilities",

@@ -53,3 +53,11 @@ QLC 当前提供 JSON 展示和 JSON 表单兜底，尚未解释专有控件。�
 包结构、远端模板协议、凭据、错误码和迁移步骤以相邻 Platform 的 `docs/VIEW连接器.md` 为完整契约。
 
 内置请求使用 `source=builtin&key=...`，无需连接器；连接器使用 `source=connector` 并沿用 Chat/hash 授权。HTTP/WS 同形，source 必填。
+
+## 用户操作与写入
+
+连接器 display VIEW 可声明独立的 actions，模板通过 `viewHost.invoke(name, params)` 提交结构化参数。WebClient 只接收当前 iframe 的消息，按声明展示可信宿主确认框，确认后调用 `/api/view/invoke`（Platform HTTP/WS；Gateway 暂用 HTTP 路由）。浏览器继续使用 `sandbox=allow-scripts` 和 `form-action/connect-src 'none'`。
+
+请求由宿主绑定 Chat、发布 Run 和 VIEW hash；平台检查在线 Chat 所有权、Run 归属、当前 Agent 连接器挂载和当前安装包中的同名动作。动作变更或撤销时拒绝旧快照写入。CLI 使用结构化 argv 和可选 JSON stdin，MCP 只调用包自身组件；凭据仅服务端注入。宿主对同一会话 VIEW、动作和规范化参数复用 sessionStorage 请求 ID，平台收据在调用前持久化；请求不会自动重试或切换传输重放。取消不调用 API；超时或未知结果应回查，不重发。
+
+`invoke` 返回 `{data,executedAt,invocationId,exitCode}`，业务错误保留原 JSON 结果供模板识别 outcome。模板应把写入结果与后续回读失败分开展示，不将回读失败解释为写入失败。归档和旧宿主可能无法操作，以平台校验为准；旧快照不会自动增加动作。

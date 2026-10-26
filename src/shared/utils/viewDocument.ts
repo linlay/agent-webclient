@@ -45,11 +45,11 @@ export const VIEW_DISPLAY_SDK = `(() => {
   addEventListener('message', event => {
     if (event.source !== parent) return;
     const message = event.data;
-    if (message?.type === 'view_query_result') {
+    if ((message?.type === 'view_query_result' || message?.type === 'view_invoke_result')) {
       const request = pending.get(message.id);
       if (!request) return;
       pending.delete(message.id);
-      if (message.ok) request.resolve({ data: message.data, executedAt: message.executedAt });
+      if (message.ok) request.resolve({ data: message.data, executedAt: message.executedAt, ...(message.type === "view_invoke_result" ? { invocationId: message.invocationId, exitCode: message.exitCode } : {}) });
       else request.reject(new Error(String(message.error || 'view_query_failed')));
       return;
     }
@@ -77,6 +77,13 @@ export const VIEW_DISPLAY_SDK = `(() => {
       return new Promise((resolve, reject) => {
         pending.set(id, { resolve, reject });
         parent.postMessage({ type: 'view_query', id, query: String(name), params: params || {} }, '*');
+      });
+    },
+    invoke(name, params) {
+      const id = 'a' + (++sequence);
+      return new Promise((resolve, reject) => {
+        pending.set(id, { resolve, reject });
+        parent.postMessage({ type: 'view_invoke', id, action: String(name), params: params || {} }, '*');
       });
     },
     resize() { lastHeight = 0; schedule(); },

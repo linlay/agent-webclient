@@ -12,3 +12,8 @@ export function getView(params: ViewRequest): Promise<ApiResponse<ViewDocument>>
 export function queryView(params: ViewQueryRequest): Promise<ApiResponse<ViewQueryResult>> {
   return postJson<ViewQueryResult>(dataEndpoints.viewQuery.path, params);
 }
+
+/** Viewer write; never automatically retry or fall back to another transport. */
+export function invokeView(params: import("@/shared/contracts/view").ViewActionRequest): Promise<ApiResponse<import("@/shared/contracts/view").ViewActionResult>> {
+  return postJson(dataEndpoints.viewInvoke.path, params);
+}

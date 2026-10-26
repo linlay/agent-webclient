@@ -1,7 +1,7 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { Modal } from "antd";
-import type { ViewDocument, ViewQueryResult, ViewReference } from "@/shared/contracts/view";
-import { getView, queryView } from "@/shared/data";
+import type { ViewDocument, ViewQueryResult, ViewReference, ViewActionResult } from "@/shared/contracts/view";
+import { getView, queryView, invokeView, createRequestId } from "@/shared/data";
 import { viewDocumentHTML } from "@/shared/utils/viewDocument";
 import { safeJsonParse } from "@/shared/utils/safeJsonParse";
 import { useI18n } from "@/shared/i18n";
@@ -27,7 +27,7 @@ function isObject(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 
-// Display views have no submit/action listener. Only HITL's host may submit.
+// Display writes require an explicit declaration and trusted host confirmation.
 // Connector views load only frozen Chat snapshots named by an event hash, and
 // may run only queries their snapshot declares, as the viewing user.
 export function ViewEmbed({ chatId, view, payloadRaw, viewError, rawData, runId, query, allowExpand = true, allowSidebar = false, onClose }: {
@@ -71,6 +71,22 @@ export function ViewEmbed({ chatId, view, payloadRaw, viewError, rawData, runId,
   const [expanded, setExpanded] = useState(false);
   const [queryStatus, setQueryStatus] = useState<ViewQueryStatus>({ pending: 0, failed: false });
   const generation = useRef(0);
+  const [pendingAction, setPendingAction] = useState<{ name: string; params: Record<string, unknown>; confirm: () => void; cancel: () => void } | null>(null);
+  const [actionBusy, setActionBusy] = useState(false);
+  const actionPending = useRef(false);
+  const actionRequestIDs = useRef(new Map<string, string>());
+  const actionable = () => Boolean(runId && chatId && view?.source === "connector" && view.connectorId && view.hash && Object.keys(documentRef.current?.actions || {}).length);
+  const actionRequestID = (name: string, params: Record<string, unknown>) => {
+    // Canonical keys let remount/reload reuse the same durable write receipt.
+    const canonical = (value: unknown): unknown => Array.isArray(value) ? value.map(canonical) : isObject(value) ? Object.fromEntries(Object.keys(value).sort().map(key => [key, canonical(value[key])])) : value;
+    const key = "view-write:" + JSON.stringify([chatId, runId, view?.connectorId, view?.key, view?.hash, name, canonical(params)]);
+    let id = actionRequestIDs.current.get(key);
+    try { id = id || sessionStorage.getItem(key) || undefined; } catch { /* memory fallback */ }
+    if (!id) id = createRequestId();
+    actionRequestIDs.current.set(key, id);
+    try { sessionStorage.setItem(key, id); } catch { /* memory fallback */ }
+    return id;
+  };
   const identity = JSON.stringify([chatId, view?.source, view?.connectorId, view?.key, view?.hash, viewError, runId, query, query ? payloadRaw : undefined]);
   const queryable = () => Boolean(
     runId && chatId && view?.source === "connector" && view.connectorId && view.hash
@@ -106,6 +122,7 @@ export function ViewEmbed({ chatId, view, payloadRaw, viewError, rawData, runId,
   useEffect(() => {
     let active = true;
     generation.current += 1;
+    setPendingAction(null); actionPending.current = false; setActionBusy(false);
     setExpanded(false);
     setQueryStatus({ pending: 0, failed: false });
     latestQuery.current.clear();
@@ -136,6 +153,34 @@ export function ViewEmbed({ chatId, view, payloadRaw, viewError, rawData, runId,
         if (next !== undefined) setHeight(next);
         return;
       }
+      if (message?.type === "view_invoke" && typeof message.id === "string") {
+        const current = generation.current;
+        const reply = (result: { ok: boolean; error?: string } & Partial<ViewActionResult>) => {
+          if (generation.current === current) target.postMessage({ type: "view_invoke_result", id: message.id, ...result }, "*");
+        };
+        if (!actionable() || typeof message.action !== "string" || !documentRef.current?.actions?.[message.action]) { reply({ ok: false, error: "view_action_unavailable" }); return; }
+        if (!isObject(message.params)) { reply({ ok: false, error: "view_action_params_invalid" }); return; }
+        if (actionPending.current) { reply({ ok: false, error: "view_action_busy" }); return; }
+        // Copy the message before asking the user; the frame cannot change it.
+        const name: string = message.action;
+        let params: Record<string, unknown>;
+        try {
+          const raw = JSON.stringify(message.params);
+          if (raw.length > 65536) throw new Error("too large");
+          params = JSON.parse(raw);
+        } catch { reply({ ok: false, error: "view_action_params_invalid" }); return; }
+        actionPending.current = true;
+        const cancel = () => { actionPending.current = false; setPendingAction(null); reply({ ok: false, error: "view_action_canceled" }); };
+        setPendingAction({ name, params, cancel, confirm: () => {
+          if (generation.current !== current) return;
+          setActionBusy(true);
+          invokeView({ chatId, runId: runId!, view: { connectorId: view!.connectorId!, key: view!.key, hash: view!.hash! }, action: name, params, requestId: actionRequestID(name, params) })
+            .then(result => reply({ ok: true, ...result.data }))
+            .catch(error => reply({ ok: false, error: errorCode(error) }))
+            .finally(() => { if (generation.current === current) { actionPending.current = false; setPendingAction(null); setActionBusy(false); } });
+        } });
+        return;
+      }
       if (message?.type !== "view_query" || typeof message.id !== "string" || typeof message.query !== "string") return;
       const current = generation.current;
       const reply = (result: { ok: boolean; data?: unknown; executedAt?: number; error?: string }) => {
@@ -155,7 +200,7 @@ export function ViewEmbed({ chatId, view, payloadRaw, viewError, rawData, runId,
     data: {
       view: resolvedView,
       payload: lastPayload.current,
-      context: { ...lastQueryContext.current, queryable: queryable(), locale, colorScheme },
+      context: { ...lastQueryContext.current, queryable: queryable(), actionable: actionable(), locale, colorScheme },
     },
   }, "*");
 
@@ -203,6 +248,14 @@ export function ViewEmbed({ chatId, view, payloadRaw, viewError, rawData, runId,
       sandbox="allow-scripts" className="tw:w-full tw:border-0" style={{ height, colorScheme }}
       onLoad={initialize} />}
     </div>
+    <Modal open={Boolean(pendingAction)} title={t("view.action.title")} okText={t("view.action.submit")} cancelText={t("view.action.cancel")}
+      confirmLoading={actionBusy} closable={!actionBusy} maskClosable={false} keyboard={!actionBusy} cancelButtonProps={{ disabled: actionBusy }}
+      onOk={() => { if (!actionBusy) pendingAction?.confirm(); }} onCancel={() => { if (!actionBusy) pendingAction?.cancel(); }}>
+      <p>{t("view.action.notice")}</p>
+      <p>{resolvedView?.connectorId} / {resolvedView?.key} · {pendingAction?.name}</p>
+      <p>{pendingAction && documentRef.current?.actions?.[pendingAction.name]?.description}</p>
+      <pre className="tw:max-h-80 tw:overflow-auto tw:whitespace-pre-wrap">{JSON.stringify(pendingAction?.params, null, 2)}</pre>
+    </Modal>
     {allowExpand && <Modal open={expanded} title={null} closable={false} aria-label={t("view.header.title")}
       width="min(1280px, calc(100vw - 32px))" centered style={{ paddingBottom: 0 }}
       styles={{ content: { height: "80dvh", boxSizing: "border-box", display: "flex", flexDirection: "column", padding: "10px 16px 16px" }, body: { flex: 1, minHeight: 0, overflow: "hidden" } }}

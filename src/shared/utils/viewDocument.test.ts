@@ -118,3 +118,18 @@ test("frozen legacy templates retain onData and raw query results alongside the 
     expect(legacy.resize).toBe(modern.resize);
   } finally { window.postMessage = original; }
 });
+
+
+test("write SDK uses only the parent bridge and preserves invocation receipts", async () => {
+  const posted: any[] = [];
+  const original = window.postMessage;
+  window.postMessage = ((message: unknown) => { posted.push(message); }) as typeof window.postMessage;
+  try {
+    new Function(VIEW_DISPLAY_SDK)();
+    const promise = (window as any).viewHost.invoke("worklog.add", { key: "DEMO-1" });
+    const request = posted.find(message => message.type === "view_invoke");
+    expect(request).toMatchObject({ action: "worklog.add", params: { key: "DEMO-1" } });
+    window.dispatchEvent(new MessageEvent("message", { source: window, data: { type: "view_invoke_result", id: request.id, ok: true, data: { applied: true }, executedAt: 42, invocationId: "once", exitCode: 0 } }));
+    await expect(promise).resolves.toEqual({ data: { applied: true }, executedAt: 42, invocationId: "once", exitCode: 0 });
+  } finally { window.postMessage = original; }
+});
