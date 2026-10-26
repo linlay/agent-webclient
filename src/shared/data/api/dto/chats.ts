@@ -87,6 +87,7 @@ export interface ActiveRunInfo {
 }
 
 export interface ChatSummaryResponse {
+  primary?: boolean;
   pinned?: boolean;
   chatId: string;
   chatName?: string;

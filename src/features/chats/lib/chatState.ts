@@ -31,6 +31,7 @@ export interface ChatReadState {
 export interface Chat {
   display?: import("@/shared/data/eventDetailLevel").EventDisplay;
   pinned?: boolean;
+  primary?: boolean;
   chatId: string;
   chatName?: string;
   firstAgentName?: string;

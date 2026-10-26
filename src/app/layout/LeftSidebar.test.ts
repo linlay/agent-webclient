@@ -1833,6 +1833,33 @@ describe("LeftSidebar", () => {
     expect(renderSidebar()).toContain('data-material-icon="progress_activity"');
   });
 
+  it("switches primary navigation from the search toolbar without creating a chat", () => {
+    const state = createWorkerState(); state.leftDrawerOpen = true;
+    mockState(state);
+    const html = renderSidebar();
+    expect(html).toContain('aria-label="主要对话模式"');
+    const toggle = uiButtonProps.find(props => props["aria-label"] === "主要对话模式");
+    (toggle?.onClick as () => void)();
+    expect(useAppContext().dispatch).toHaveBeenCalledWith({ type: "SET_PRIMARY_NAVIGATION", enabled: true });
+    expect(dispatchedEvents("agent:start-new-conversation")).toHaveLength(0);
+  });
+
+  it("shows only each Agent's primary conversation and keeps utilities without new conversation", () => {
+    const state = createWorkerState(); state.leftDrawerOpen = true; state.primaryNavigation = true;
+    state.agents[0].primaryChat = { chatId: "primary-old", lastRunContent: "主要对话摘要" };
+    globalWithStorage.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = { QUICK_ACTIONS_ENABLED: true };
+    mockState(state);
+    const html = renderSidebar();
+    expect(html).toContain("主要对话摘要");
+    expect(html).not.toContain("Latest reply 6");
+    expect(html).not.toContain('data-material-icon="edit_square"');
+    expect(html).toContain('aria-pressed="true"');
+    expect(html).toContain("自动化");
+    expect(html).toContain("知识库");
+    expect(html).toContain("记忆");
+    expect(html).toContain("显示历史");
+  });
+
   it("keeps unread and more actions while omitting leading chat icons", () => {
     const state = createWorkerState();
     state.leftDrawerOpen = true;
@@ -1841,7 +1868,7 @@ describe("LeftSidebar", () => {
     expect(html).toContain('aria-label="未读"');
     expect(html).toContain('aria-label="更多操作"');
     expect(html).toContain('data-material-icon="more_horiz"');
-    expect(html).not.toContain('data-material-icon="question_answer"');
+    expect(html.slice(html.indexOf('id="chat-list"'))).not.toContain('data-material-icon="question_answer"');
     expect(html).not.toContain("tw:flex-[0_0_44px]");
   });
 

@@ -863,7 +863,7 @@ export function createConversationPushHandler(
 			return;
 		}
 
-		if (type === "chats.order.changed") {
+		if (type === "chats.order.changed" || type === "chat.primary.changed") {
 			invalidateChatNavigationCache();
 			if (typeof window !== "undefined") {
 				window.dispatchEvent(new CustomEvent("agent:refresh-worker-data"));
@@ -900,6 +900,9 @@ export function createConversationPushHandler(
 		}
 
 		if (type === "chat.deleted") {
+			if (typeof window !== "undefined") {
+				window.dispatchEvent(new CustomEvent("agent:refresh-worker-data"));
+			}
 			const deletedChatId = String(liveEvent.chatId || "").trim();
 			if (deletedChatId) {
 				options.dispatch({ type: "CHAT_DELETED", chatId: deletedChatId });
@@ -915,6 +918,9 @@ export function createConversationPushHandler(
 		}
 
 		if (type === "chat.archived") {
+			if (typeof window !== "undefined") {
+				window.dispatchEvent(new CustomEvent("agent:refresh-worker-data"));
+			}
 			const archivedChatId = String(liveEvent.chatId || "").trim();
 			if (archivedChatId) {
 				options.dispatch({ type: "CHAT_ARCHIVED", chatId: archivedChatId });

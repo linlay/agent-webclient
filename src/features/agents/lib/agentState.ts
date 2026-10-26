@@ -48,6 +48,7 @@ export interface Agent {
   modelOptions?: Record<string, unknown>;
   stats?: AgentStats;
   chats?: Chat[];
+  primaryChat?: Chat;
   icon?: string | { color?: string; name?: string };
   [key: string]: unknown;
 }

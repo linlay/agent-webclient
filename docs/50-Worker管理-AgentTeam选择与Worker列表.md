@@ -45,6 +45,14 @@ Worker 是对话选择和历史归属的内部模型，继续兼容 Agent 与 Te
 - `../src/features/workers/lib/workerState.ts`
 - `../src/app/layout/sidebar/SidebarSettingsMenu.tsx`
 
+## 主要对话模式
+
+独立导航的放大镜右侧提供「主要对话模式」切换按钮，按下态和本地偏好记录当前视图。模式切换只改变导航，不修改 Chat owner、主要对话指针或当前已打开的对话。主要模式下每个 Agent 一行，沿用自有 `AgentIcon`，显示名称、主要对话最近回复，以及运行、HITL 或未读状态；收起侧栏后仍直接打开同一个主要对话。自动化、知识库、记忆等原有工具入口保留，不显示「新建对话」或项目内的新建按钮。
+
+主要对话身份只取 `/api/agents` 的 `primaryChat`，不由最近会话、置顶或预览列表推断，不受 `includeChats=5` 和 `chatsPinned=false` 限制；摘要合入共享 Chat 状态，实时 Push 更新回复和运行状态。普通导航仍按原预览顺序展示。`chat.primary.changed` 会失效导航缓存并刷新目录，归档、删除也重新对账指针。
+
+已有 Primary 的 Agent 点击名称只触发 `agent:load-chat` 加载其 `primaryChat.chatId`，沿用该 Chat 继续聊天，不进入 New Chat，也不修改 Primary 指针。没有 Primary 的 Agent 显示「暂无对话」，点击可进入 New Chat；仅这类 Agent 在主要模式首次 query 时发送 `primary:true`，包含上传占位 Chat 的首次发送。已有 Chat 的后续 query 不重复携带该字段，活动 Run 与指针争用仍由 Platform 校验。通过「显示历史」仍可查看全部会话，切回完整导航恢复 Pinned、普通对话与项目分组。
+
 ## 统一 Chat 置顶
 
 独立侧栏顶部的 Pinned 共用一组顺序，接纳普通 Agent、CODER、KBASE 和 Team 对话。展开时显示会话标题、所属 Agent/Team、运行/HITL/未读状态；收起时由置顶图标打开列表。会话右键菜单或 hover/focus 时显示的更多按钮支持置顶与取消置顶，更多按钮覆盖行尾、不占固定列宽；键盘 Shift+F10 也可打开菜单。拖动手柄或空格、方向键、空格完成组内排序。所有智能体图标继续使用 `AgentIcon` 和原始彩色 SVG 资源。

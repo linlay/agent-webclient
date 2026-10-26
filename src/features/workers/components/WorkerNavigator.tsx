@@ -59,6 +59,8 @@ import {
 } from "@/features/agents/lib/agentOperations";
 import { WorkerQuickActions } from "./WorkerQuickActions";
 import { PinnedChatSection } from "./PinnedChatSection";
+import { PrimaryChatNavigation } from "./PrimaryChatNavigation";
+import primaryStyles from "./PrimaryChatNavigation.module.css";
 import { SidebarAgentNavigation } from "./SidebarAgentNavigation";
 import { splitSidebarWorkers } from "../lib/sidebarNavigation";
 import "./WorkerNavigator.module.css";
@@ -185,6 +187,18 @@ export const WorkerNavigator: React.FC<WorkerNavigatorProps> = ({
   const quickActionsEnabled = isQuickActionsEnabled();
   const navigation = selectNavigationState(state);
   const isSidebarLoading = navigation.sidebarPendingRequestCount > 0;
+  useEffect(() => {
+    try {
+      if (window.localStorage.getItem("agent:primary-navigation") === "true") {
+        dispatch({ type: "SET_PRIMARY_NAVIGATION", enabled: true });
+      }
+    } catch { /* Navigation remains available without storage. */ }
+  }, [dispatch]);
+  const togglePrimaryNavigation = () => {
+    const enabled = !state.primaryNavigation;
+    dispatch({ type: "SET_PRIMARY_NAVIGATION", enabled });
+    try { window.localStorage.setItem("agent:primary-navigation", String(enabled)); } catch { /* Optional preference. */ }
+  };
   const [generalAgentKey, setGeneralAgentKey] = useState("");
   const [historyAgentKey, setHistoryAgentKey] = useState("");
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -639,6 +653,12 @@ export const WorkerNavigator: React.FC<WorkerNavigatorProps> = ({
                 <UiButton size="sm" variant="ghost" iconOnly className="ui-icon-hover-24"
                   aria-label={t("leftSidebar.navigation.search")} title={t("leftSidebar.navigation.search")}
                   onClick={onOpenSearch}><MaterialIcon name="search" /></UiButton>
+                <UiButton size="sm" variant="ghost" iconOnly
+                  className={`ui-icon-hover-24 ${state.primaryNavigation ? primaryStyles.modeActive : ""}`}
+                  aria-label={t("leftSidebar.navigation.primaryMode")}
+                  title={t(state.primaryNavigation ? "leftSidebar.navigation.standardMode" : "leftSidebar.navigation.primaryMode")}
+                  aria-pressed={state.primaryNavigation}
+                  onClick={togglePrimaryNavigation}><MaterialIcon name="question_answer" /></UiButton>
                 <UiButton
                   size="sm"
                   variant="ghost"
@@ -661,12 +681,18 @@ export const WorkerNavigator: React.FC<WorkerNavigatorProps> = ({
         <div className={CHAT_LIST_CLASS} id="chat-list">
           {state.leftDrawerOpen && quickActionsEnabled && (
             <WorkerQuickActions onOpenCommand={onOpenCommand} onOpenMemory={onOpenMemory}
+              hideNewChat={state.primaryNavigation}
               newChatDisabled={!currentGeneralKey}
               onNewChat={() => startNewConversationForWorker(currentGeneralKey, { focusComposerOnComplete: true })} />
           )}
           <Spin spinning={isSidebarLoading} tip={t("leftSidebar.loading")}>
             {state.leftDrawerOpen ? (
-              <>
+              state.primaryNavigation ? <PrimaryChatNavigation
+                onSelectChat={handleSelectChat}
+                onStartPrimary={(key) => startNewConversationForWorker(key, { focusComposerOnComplete: true })}
+                onOpenHistory={openHistory}
+                getChatLoading={getWorkerChatLoading}
+              /> : <>
                 <PinnedChatSection
                   collapsed={false}
                   onSelectChat={handleSelectChat}
@@ -703,6 +729,12 @@ export const WorkerNavigator: React.FC<WorkerNavigatorProps> = ({
                   >
                     <MaterialIcon name="dock_to_right" />
                   </UiButton>
+                  {state.primaryNavigation ? <PrimaryChatNavigation collapsed
+                    onSelectChat={handleSelectChat}
+                    onStartPrimary={(key) => startNewConversationForWorker(key, { focusComposerOnComplete: true })}
+                    onOpenHistory={openHistory}
+                    getChatLoading={getWorkerChatLoading}
+                  /> : <>
                   <PinnedChatSection
                     collapsed
                     onSelectChat={handleSelectChat}
@@ -783,6 +815,7 @@ export const WorkerNavigator: React.FC<WorkerNavigatorProps> = ({
                       </Popover>
                     );
                   })}
+                  </>}
                 </Flex>
                 {filteredWorkerRows.length === 0 && (
                   <div className={presentationClasses("status-line")}>{t("leftSidebar.noWorkers")}</div>

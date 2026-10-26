@@ -774,6 +774,23 @@ describe("required libraries through message actions", () => {
   renderToStaticMarkup(React.createElement(Probe));
   return {stateRef, dispatch, actions};
  }
+ it.each([
+  [true, "", false, true],
+  [false, "", false, false],
+  [true, "existing", true, false],
+  [true, "", true, false],
+ ])("primary mode %s, current chat %s, existing primary %s requests initial creation only: %s", async (mode, chatId, hasPrimary, expected) => {
+  const { stateRef, actions } = harness();
+  stateRef.current.primaryNavigation = mode;
+  stateRef.current.chatId = chatId;
+  if (chatId) stateRef.current.chats = [{ chatId, agentKey: "general" }];
+  if (hasPrimary) stateRef.current.agents[0].primaryChat = { chatId: "existing" };
+  await actions.sendMessage("继续");
+  expect(startQuery).toHaveBeenCalled();
+  const input = startQuery.mock.calls[0][0];
+  if (expected) expect(input.primary).toBe(true);
+  else expect(input).not.toHaveProperty("primary");
+ });
  it("keeps knowledge library names in the live timeline while sending ID-only references", async () => {
   const {stateRef, actions} = harness();
   let finish!: (result: {reason: string; lastSeq: number}) => void;

@@ -108,6 +108,8 @@ export function buildQueryPayload(options: QueryStreamParams): Record<string, un
     message: options.message,
   };
 
+  if (options.primary === true) body.primary = true;
+
   // Omitted means false on the Platform; the entry decides whether it is set.
   if (options.planningMode === true) {
     body.planningMode = true;

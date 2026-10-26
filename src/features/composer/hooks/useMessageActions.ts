@@ -398,6 +398,8 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
       }
 
       const selectedAgentKey = selectedOwner?.kind === "agent" ? selectedOwner.agentKey : "";
+      const primary = isNewChatQuery && stateRef.current.primaryNavigation === true &&
+        stateRef.current.agents.some(agent => agent.key === selectedAgentKey && !agent.primaryChat?.chatId);
 
       const kbaseReferenceIds = referenceIds(normalizedReferences,"kbase");
       const validationChatId = stateRef.current.chatId;
@@ -758,6 +760,7 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
           params: Object.keys(params).length > 0 ? params : undefined,
           planningMode,
           editingMode,
+          ...(primary ? { primary: true } : {}),
 
           signal: abortController.signal,
           onEvent: sessionHandleEvent,

@@ -269,7 +269,7 @@ describe("createConversationPushHandler", () => {
 	});
 
 
-  it("refreshes pins and invalidates navigation caches after another client's reorder", () => {
+  it.each(["chats.order.changed", "chat.primary.changed"])("refreshes navigation after %s from another client", (type) => {
     const invalidate = jest.spyOn(dataQueryCache, "invalidatePrefix");
     const dispatchEvent = jest.fn();
     Object.defineProperty(globalThis, "window", { value: { dispatchEvent }, configurable: true, writable: true });
@@ -277,7 +277,7 @@ describe("createConversationPushHandler", () => {
         constructor(public type: string) { }
     }, configurable: true, writable: true });
     const onPush = createConversationPushHandler({ dispatch, stateRef: { current: createState() }, handleEvent });
-    onPush({ frame: "push", type: "chats.order.changed", data: { updatedAt: EPOCH_MS } });
+    onPush({ frame: "push", type, data: { updatedAt: EPOCH_MS, agentKey: "agent", chatId: "primary-chat" } });
     expect(dispatchEvent).toHaveBeenCalledWith(expect.objectContaining({ type: "agent:refresh-worker-data" }));
     expect(invalidate).toHaveBeenCalledWith("request:chats.list");
     expect(invalidate).toHaveBeenCalledWith("request:agents.list");
