@@ -5,6 +5,7 @@ import type { Agent } from "@/features/agents/lib/agentState";
 import { TimelineToolIcon } from "./TimelineToolIcon";
 import { WaitCard } from "./WaitCard";
 import { ImageGenerationCard } from "./ImageGenerationCard";
+import { RunActivityIcon } from "./RunActivityIcon";
 import { isImageGenerationTool } from "../lib/imageGenerationDisplay";
 import React from "react";
 import { Flex } from "antd";
@@ -418,7 +419,7 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
         data-task-id={taskID || undefined}
       >
         <div className={TIMELINE_MARKER_CLASS_NAME}>
-          <NodeIcon kind="thinking" />
+          <RunActivityIcon />
         </div>
         <div className={`${TIMELINE_FLOW_CONTENT_CLASS_NAME} tw:text-[13px]`} role="status" aria-live="polite">
           <Skeleton active={true} text={node.text || ""} />
