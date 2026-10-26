@@ -179,11 +179,11 @@ export const ContentBlock: React.FC<ContentBlockProps> = ({ node }) => {
 						return <React.Fragment key={segment.signature}>{interaction.renderContentView(segment, chatId, binding, node.runId)}</React.Fragment>;
 					}
 					if (!settled && interaction?.renderContentView && interaction.conversationActive) {
-						return <div key={segment.signature} className="tw:my-2"><ViewHeader query={segment.query} /><div role="status" className="tw:text-sm tw:opacity-70">{t("view.loading")}</div></div>;
+						return <div key={segment.signature} className="tw:my-2"><ViewHeader dynamic /><div role="status" className="tw:text-sm tw:opacity-70">{t("view.loading")}</div></div>;
 					}
 					return (
 						<div key={segment.signature || idx} className={markdownClassName}>
-							<ViewHeader query={segment.query} />
+							<ViewHeader dynamic />
 							{renderMarkdown({ content: segment.text || "", chatId, teamChat })}
 						</div>
 					);

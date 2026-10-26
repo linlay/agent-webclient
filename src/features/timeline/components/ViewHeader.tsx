@@ -9,8 +9,9 @@ export interface ViewQueryStatus {
 }
 
 /** Host-owned metadata stays outside the frozen connector template. */
-export function ViewHeader({ query, status, onExpand, onOpenSidebar, canExpand = true, onClose }: {
-  query?: string;
+export function ViewHeader({ dynamic = false, status, onExpand, onOpenSidebar, canExpand = true, onClose }: {
+  /** Markdown views query current data themselves; tool-result views show the saved result. */
+  dynamic?: boolean;
   status?: ViewQueryStatus;
   onExpand?: () => void;
   onOpenSidebar?: () => void;
@@ -18,11 +19,10 @@ export function ViewHeader({ query, status, onExpand, onOpenSidebar, canExpand =
   onClose?: () => void;
 }) {
   const { t, locale } = useI18n();
-  const dynamic = Boolean(query);
   const updated = Boolean(status?.updatedAt);
   const state = status?.pending ? "querying" : status?.failed
     ? (updated ? "updateFailed" : "queryFailed")
-    : !dynamic && updated ? "updated" : "";
+    : "";
   const date = status?.updatedAt ? new Date(status.updatedAt) : undefined;
   const sameDay = date && date.toDateString() === new Date().toDateString();
   const time = date?.toLocaleString(locale, sameDay

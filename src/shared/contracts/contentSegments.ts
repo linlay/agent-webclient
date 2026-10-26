@@ -6,9 +6,7 @@ export interface ContentSegment {
   key?: string;
   /** VIEW: order among closed VIEW fences of this content; matches the platform binding. */
   index?: number;
-  /** VIEW: declared query the view runs itself; the body is then its params. */
-  query?: string;
-  /** VIEW: the trimmed JSON body. */
+  /** VIEW: the trimmed JSON body, the view input. */
   payloadRaw?: string;
   /** VIEW: local grammar check; the platform binding remains authoritative. */
   error?: "invalid_view" | "view_data_invalid";

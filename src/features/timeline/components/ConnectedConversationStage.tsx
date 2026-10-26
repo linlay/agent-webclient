@@ -1678,7 +1678,7 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
     renderToolOutput: (output) =>
       <ToolOutputTerminal output={output} themeMode={state.themeMode} />,
     renderContentView: (segment, chatId, binding, runId) =>
-      <ViewEmbed allowSidebar={surfaceMode === "main"} chatId={chatId} view={binding.view} viewError={binding.viewError} payloadRaw={segment.payloadRaw || "{}"} rawData={segment.payloadRaw} runId={runId} query={segment.query} />,
+      <ViewEmbed allowSidebar={surfaceMode === "main"} chatId={chatId} view={binding.view} viewError={binding.viewError} payloadRaw={segment.payloadRaw || "{}"} rawData={segment.payloadRaw} runId={runId} />,
     renderMarkdown: (props) => <MarkdownContent {...props} htmlPreview />,
     renderAttachment: (attachment, options) => <AttachmentCard
       attachment={attachment} variant="timeline" thumbnailMode="inline"

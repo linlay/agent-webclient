@@ -103,7 +103,6 @@ export function useBtwTimelineInteraction({
           payloadRaw={segment.payloadRaw || "{}"}
           rawData={segment.payloadRaw}
           runId={runId}
-          query={segment.query}
         />
       ),
       renderMarkdown: (props) => <MarkdownContent {...props} />,

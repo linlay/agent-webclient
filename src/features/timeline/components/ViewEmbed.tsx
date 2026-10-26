@@ -30,7 +30,7 @@ function isObject(value: unknown): value is Record<string, unknown> {
 // Display writes require an explicit declaration and trusted host confirmation.
 // Connector views load only frozen Chat snapshots named by an event hash, and
 // may run only queries their snapshot declares, as the viewing user.
-export function ViewEmbed({ chatId, view, payloadRaw, viewError, rawData, runId, query, allowExpand = true, allowSidebar = false, onClose }: {
+export function ViewEmbed({ chatId, view, payloadRaw, viewError, rawData, runId, allowExpand = true, allowSidebar = false, onClose }: {
   chatId: string;
   view?: ViewReference;
   payloadRaw: string;
@@ -39,8 +39,6 @@ export function ViewEmbed({ chatId, view, payloadRaw, viewError, rawData, runId,
   rawData?: string;
   /** Run whose content published the view; required for view queries. */
   runId?: string;
-  /** Markdown query block: payloadRaw holds the params of this declared query. */
-  query?: string;
   /** Expanded hosts keep metadata without nested presentation controls. */
   allowExpand?: boolean;
   /** Only surfaces with the existing right sidebar expose this action. */
@@ -51,8 +49,8 @@ export function ViewEmbed({ chatId, view, payloadRaw, viewError, rawData, runId,
   const { t, locale } = useI18n();
   const app = useOptionalAppContext();
   const sidebarId = useId();
-  const preview = useMemo(() => ({ key: sidebarId, chatId, view, payloadRaw, viewError, rawData, runId, query }),
-    [sidebarId, chatId, view?.source, view?.connectorId, view?.key, view?.hash, view?.version, view?.renderer, payloadRaw, viewError, rawData, runId, query]);
+  const preview = useMemo(() => ({ key: sidebarId, chatId, view, payloadRaw, viewError, rawData, runId }),
+    [sidebarId, chatId, view?.source, view?.connectorId, view?.key, view?.hash, view?.version, view?.renderer, payloadRaw, viewError, rawData, runId]);
   const previewOpen = Boolean(app?.state.viewPreviews?.some(item => item.key === sidebarId));
   const dispatch = app?.dispatch;
   useEffect(() => {
@@ -63,7 +61,6 @@ export function ViewEmbed({ chatId, view, payloadRaw, viewError, rawData, runId,
   const ready = useRef(false);
   const documentRef = useRef<ViewDocument | null>(null);
   const lastPayload = useRef<unknown>(undefined);
-  const lastQueryContext = useRef<Record<string, unknown>>({});
   const [resolvedView, setResolvedView] = useState(view);
   const [html, setHTML] = useState("");
   const [error, setError] = useState("");
@@ -87,7 +84,7 @@ export function ViewEmbed({ chatId, view, payloadRaw, viewError, rawData, runId,
     try { sessionStorage.setItem(key, id); } catch { /* memory fallback */ }
     return id;
   };
-  const identity = JSON.stringify([chatId, view?.source, view?.connectorId, view?.key, view?.hash, viewError, runId, query, query ? payloadRaw : undefined]);
+  const identity = JSON.stringify([chatId, view?.source, view?.connectorId, view?.key, view?.hash, viewError, runId]);
   const queryable = () => Boolean(
     runId && chatId && view?.source === "connector" && view.connectorId && view.hash
     && Object.keys(documentRef.current?.queries || {}).length,
@@ -200,31 +197,22 @@ export function ViewEmbed({ chatId, view, payloadRaw, viewError, rawData, runId,
     data: {
       view: resolvedView,
       payload: lastPayload.current,
-      context: { ...lastQueryContext.current, queryable: queryable(), actionable: actionable(), locale, colorScheme },
+      context: { queryable: queryable(), actionable: actionable(), locale, colorScheme },
     },
   }, "*");
 
+  // The payload is the Markdown view input or the tool result; the template
+  // runs its declared queries itself.
   const initialize = () => {
     if (ready.current) return;
     ready.current = true;
-    if (!query) {
-      lastPayload.current = safeJsonParse(payloadRaw, payloadRaw);
-      lastQueryContext.current = {};
-      post("view_init");
-      return;
-    }
-    const params = safeJsonParse(payloadRaw, null);
-    const queryContext = { query: { name: query, params: isObject(params) ? params : {} } };
-    const current = generation.current;
-    runQuery(query, queryContext.query.params)
-      .then((result) => { if (generation.current === current) { lastPayload.current = result.data; lastQueryContext.current = { ...queryContext, executedAt: result.executedAt }; } })
-      .catch((error) => { if (generation.current === current) { lastPayload.current = null; lastQueryContext.current = { ...queryContext, error: errorCode(error) }; } })
-      .finally(() => { if (ready.current && generation.current === current) post("view_init"); });
+    lastPayload.current = safeJsonParse(payloadRaw, payloadRaw);
+    post("view_init");
   };
 
-  // Tool results may stream new data; query blocks own their data after init.
+  // Tool results may stream new data.
   useEffect(() => {
-    if (!ready.current || query) return;
+    if (!ready.current) return;
     lastPayload.current = safeJsonParse(payloadRaw, payloadRaw);
     post("view_update");
   }, [payloadRaw]);
@@ -232,7 +220,7 @@ export function ViewEmbed({ chatId, view, payloadRaw, viewError, rawData, runId,
 
   return <div className={onClose ? "tw:m-0 tw:flex tw:h-full tw:min-h-0 tw:flex-col" : "tw:my-2"}>
     <div className={onClose ? "tw:shrink-0" : undefined}>
-    <ViewHeader query={query} status={queryStatus}
+    <ViewHeader dynamic={Boolean(runId && view?.source === "connector")} status={queryStatus}
       onExpand={allowExpand ? () => setExpanded(true) : undefined}
       onOpenSidebar={allowExpand && allowSidebar && dispatch ? () => dispatch({ type: "OPEN_VIEW_PREVIEW", preview }) : undefined}
       canExpand={Boolean(html) && !error} onClose={onClose} />
@@ -261,7 +249,7 @@ export function ViewEmbed({ chatId, view, payloadRaw, viewError, rawData, runId,
       styles={{ content: { height: "80dvh", boxSizing: "border-box", display: "flex", flexDirection: "column", padding: "10px 16px 16px" }, body: { flex: 1, minHeight: 0, overflow: "hidden" } }}
       footer={null} destroyOnHidden onCancel={() => setExpanded(false)}>
       {expanded && <ViewEmbed chatId={chatId} view={view} payloadRaw={payloadRaw}
-        viewError={viewError} rawData={rawData} runId={runId} query={query} allowExpand={false} onClose={() => setExpanded(false)} />}
+        viewError={viewError} rawData={rawData} runId={runId} allowExpand={false} onClose={() => setExpanded(false)} />}
     </Modal>}
   </div>;
 }

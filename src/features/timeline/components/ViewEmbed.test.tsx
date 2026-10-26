@@ -51,12 +51,11 @@ async function mount(props: Partial<React.ComponentProps<typeof ViewEmbed>>, wor
 
 afterEach(() => { mockGetView.mockReset(); mockQueryView.mockReset(); mockInvokeView.mockReset(); mockDispatch.mockReset(); mockViewPreviews = []; });
 
-test("query blocks run the initial query with the publishing Run and pass host context", async () => {
-  mockQueryView.mockResolvedValue({ data: { data: { items: [{ id: "daily" }] }, executedAt: 1700000000000 } });
-  const { posted, cleanup } = await mount({ runId: "run-1", query: "list" });
+test("Markdown blocks pass their input to the template, which runs its own queries", async () => {
+  const { posted, cleanup } = await mount({ runId: "run-1" });
   try {
-    expect(mockQueryView).toHaveBeenCalledWith({ chatId: "chat", runId: "run-1", view: { connectorId: "builtin.task-control", key: "automations", hash }, query: "list", params: { limit: 5 } });
-    expect(posted[0]).toMatchObject({ type: "view_init", data: { payload: { items: [{ id: "daily" }] }, context: { queryable: true, colorScheme: "dark", locale: "zh-CN", executedAt: 1700000000000, query: { name: "list", params: { limit: 5 } } } } });
+    expect(mockQueryView).not.toHaveBeenCalled();
+    expect(posted[0]).toEqual({ type: "view_init", data: { view, payload: { limit: 5 }, context: { queryable: true, actionable: true, colorScheme: "dark", locale: "zh-CN" } } });
   } finally { cleanup(); }
 });
 
@@ -116,25 +115,32 @@ async function request(frame: HTMLIFrameElement, id: string) {
   })); });
 }
 
-test("message data has an accessible header and records later query success and failure", async () => {
-  mockQueryView.mockResolvedValueOnce({ data: { data: { items: [] }, executedAt: 1700000000000 } });
-  const { host, frame, cleanup } = await mount({ runId: "run-1" });
+test("tool results show the saved result and cannot query", async () => {
+  const { host, frame, posted, cleanup } = await mount({});
   try {
     const header = host.querySelector(".view-header")!;
     expect(header.textContent).toContain("view.header.message");
     expect(header.querySelector("details")).toBeNull();
-    expect(header.querySelector("time")).toBeNull();
     await request(frame, "q1");
-    expect(header.textContent).toContain("view.header.updated");
+    expect(mockQueryView).not.toHaveBeenCalled();
+    expect(posted).toContainEqual({ type: "view_query_result", id: "q1", ok: false, error: "view_query_unavailable" });
+    expect(header.querySelector("time")).toBeNull();
+  } finally { cleanup(); }
+});
+
+test("later query failures keep the last success time", async () => {
+  mockQueryView.mockResolvedValueOnce({ data: { data: { items: [] }, executedAt: 1700000000000 } });
+  const { host, frame, cleanup } = await mount({ runId: "run-1" });
+  try {
+    const header = host.querySelector(".view-header")!;
+    await request(frame, "q1");
     expect(header.querySelector("time")?.getAttribute("datetime")).toBeTruthy();
     mockQueryView.mockRejectedValueOnce(new Error("offline"));
     await request(frame, "q2");
     expect(header.textContent).toContain("view.header.updateFailed");
     expect(header.textContent).toContain("view.header.lastSuccess");
-    expect(header.textContent).toContain("view.header.message");
     mockQueryView.mockResolvedValueOnce({ data: { data: { items: [] }, executedAt: 1700000000000 } });
     await request(frame, "q3");
-    expect(header.textContent).toContain("view.header.updated");
     expect(header.textContent).not.toContain("view.header.updateFailed");
   } finally { cleanup(); }
 });
@@ -142,10 +148,11 @@ test("message data has an accessible header and records later query success and 
 test("dynamic queries show pending and failed states, then a successful retry", async () => {
   let reject!: (error: Error) => void;
   mockQueryView.mockImplementationOnce(() => new Promise((_, fail) => { reject = fail; }));
-  const { host, frame, cleanup } = await mount({ runId: "run-1", query: "list" });
+  const { host, frame, cleanup } = await mount({ runId: "run-1" });
   try {
     const header = host.querySelector(".view-header")!;
     expect(header.textContent).toContain("view.header.dynamic");
+    await request(frame, "first");
     expect(header.textContent).toContain("view.header.querying");
     await act(async () => { reject(new Error("offline")); });
     expect(header.textContent).toContain("view.header.queryFailed");
@@ -170,14 +177,14 @@ test("concurrent queries keep the pending indicator until all requests settle", 
     expect(host.querySelector(".view-header")?.textContent).toContain("view.header.querying");
     await act(async () => { resolveFirst({ data: { data: {}, executedAt: 1700000000000 } }); });
     expect(host.querySelector(".view-header")?.textContent).not.toContain("view.header.querying");
-    expect(host.querySelector(".view-header")?.textContent).toContain("view.header.updated");
+    expect(host.querySelector(".view-header time")).not.toBeNull();
   } finally { cleanup(); }
 });
 
 test("template errors still have a header and raw data fallback", async () => {
   const host = document.createElement("div");
   const root = createRoot(host);
-  await act(async () => root.render(<ViewEmbed chatId="chat" view={view} payloadRaw="{}" rawData="original" query="list" viewError="view_not_found" />));
+  await act(async () => root.render(<ViewEmbed chatId="chat" view={view} payloadRaw="{}" rawData="original" runId="run-1" viewError="view_not_found" />));
   try {
     expect(host.querySelector(".view-header")?.textContent).toContain("view.header.dynamic");
     expect(host.querySelector('[role="alert"]')).not.toBeNull();
@@ -192,13 +199,13 @@ test("switching Chats clears query state and ignores the previous Chat's respons
   const host = document.createElement("div");
   document.body.append(host);
   const root = createRoot(host);
-  await act(async () => root.render(<ViewEmbed chatId="first" view={view} payloadRaw="{}" runId="run-1" query="list" />));
+  await act(async () => root.render(<ViewEmbed chatId="first" view={view} payloadRaw="{}" runId="run-1" />));
   await act(async () => { host.querySelector("iframe")!.dispatchEvent(new Event("load")); });
   try {
+    await request(host.querySelector("iframe")!, "first");
     expect(host.querySelector(".view-header")?.textContent).toContain("view.header.querying");
     await act(async () => root.render(<ViewEmbed chatId="second" view={view} payloadRaw="{}" runId="run-2" />));
     await act(async () => { resolve({ data: { data: { items: ["old"] }, executedAt: 1700000000000 } }); });
-    expect(host.querySelector(".view-header")?.textContent).toContain("view.header.message");
     expect(host.querySelector(".view-header")?.textContent).not.toContain("view.header.querying");
     expect(host.querySelector("time")).toBeNull();
   } finally { act(() => root.unmount()); host.remove(); }
@@ -227,16 +234,17 @@ test("expand opens a larger dialog with the same frozen view and saved data", as
   } finally { cleanup(); }
 });
 
-test("expanded dynamic views query with the same Run and initial parameters", async () => {
+test("expanded views get the same input and query with the same Run", async () => {
   mockQueryView.mockResolvedValue({ data: { data: { items: [] }, executedAt: 1700000000000 } });
-  const { host, cleanup } = await mount({ runId: "run-1", query: "list" });
+  const { host, posted, cleanup } = await mount({ runId: "run-1" });
   try {
-    const initialCalls = mockQueryView.mock.calls.length;
     await act(async () => { (host.querySelector('button[aria-haspopup="dialog"]') as HTMLButtonElement).click(); });
-    const frame = document.querySelector('[role="dialog"] iframe')!;
+    const frame = document.querySelector('[role="dialog"] iframe') as HTMLIFrameElement;
     await act(async () => { frame.dispatchEvent(new Event("load")); });
-    expect(mockQueryView).toHaveBeenCalledTimes(initialCalls + 1);
-    expect(mockQueryView.mock.calls.at(-1)[0]).toMatchObject({ chatId: "chat", runId: "run-1", view: { hash }, query: "list", params: { limit: 5 } });
+    expect(posted.filter((message: any) => message.type === "view_init")).toHaveLength(2);
+    expect(posted.at(-1)).toMatchObject({ type: "view_init", data: { payload: { limit: 5 }, context: { queryable: true } } });
+    await request(frame, "dialog");
+    expect(mockQueryView.mock.calls.at(-1)[0]).toMatchObject({ chatId: "chat", runId: "run-1", view: { hash }, query: "list" });
     expect(document.querySelector('[role="dialog"] time')).not.toBeNull();
   } finally { cleanup(); }
 });
@@ -244,8 +252,9 @@ test("expanded dynamic views query with the same Run and initial parameters", as
 
 test("query time opens the explanation in a popover without a separate information row", async () => {
   mockQueryView.mockResolvedValue({ data: { data: { items: [] }, executedAt: 1700000000000 } });
-  const { host, cleanup } = await mount({ runId: "run-1", query: "list" });
+  const { host, frame, cleanup } = await mount({ runId: "run-1" });
   try {
+    await request(frame, "q1");
     const header = host.querySelector(".view-header")!;
     expect(header.textContent).toContain("view.header.title");
     expect(header.querySelector("details")).toBeNull();
@@ -259,18 +268,18 @@ test("query time opens the explanation in a popover without a separate informati
 });
 
 test("sidebar action opens a tab with the same frozen view, after the dialog button", async () => {
-  const { host, render, cleanup } = await mount({ runId: "run-1", query: "list" }, true);
+  const { host, render, cleanup } = await mount({ runId: "run-1" }, true);
   try {
     const dialog = host.querySelector('button[aria-haspopup="dialog"]')!;
     const sidebar = host.querySelector('button[aria-label="view.header.openSidebar"]') as HTMLButtonElement;
     expect(dialog.nextElementSibling).toBe(sidebar);
     await act(async () => sidebar.click());
     expect(mockDispatch).toHaveBeenLastCalledWith({ type: "OPEN_VIEW_PREVIEW", preview: expect.objectContaining({
-      chatId: "chat", runId: "run-1", view, query: "list", payloadRaw: '{"limit":5}',
+      chatId: "chat", runId: "run-1", view, payloadRaw: '{"limit":5}',
     }) });
     expect(document.querySelector("aside")).toBeNull();
     mockViewPreviews = [mockDispatch.mock.calls.at(-1)[0].preview];
-    await act(async () => render({ runId: "run-1", query: "list", payloadRaw: '{"limit":10}' }));
+    await act(async () => render({ runId: "run-1", payloadRaw: '{"limit":10}' }));
     expect(mockDispatch).toHaveBeenLastCalledWith({ type: "UPDATE_VIEW_PREVIEW", preview: expect.objectContaining({ payloadRaw: '{"limit":10}' }) });
   } finally { cleanup(); }
 });

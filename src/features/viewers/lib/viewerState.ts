@@ -39,7 +39,6 @@ export interface ViewPreviewState {
   viewError?: string;
   rawData?: string;
   runId?: string;
-  query?: string;
 }
 
 export interface ViewersState {

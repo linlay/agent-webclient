@@ -80,13 +80,14 @@
       ]
     },
     {
-      "name": "unknown attribute",
+      "name": "other attributes are ignored",
       "final": true,
       "text": "```view key=a/b mode=list\n{}\n```",
       "blocks": [
         {
           "index": 0,
-          "error": "invalid_view"
+          "key": "a/b",
+          "data": {}
         }
       ]
     },
@@ -223,14 +224,13 @@
       ]
     },
     {
-      "name": "query block carries params",
+      "name": "query attribute is ignored",
       "final": true,
       "text": "```view key=builtin.task-control/automations query=list\n{\"limit\":5}\n```",
       "blocks": [
         {
           "index": 0,
           "key": "builtin.task-control/automations",
-          "query": "list",
           "data": {
             "limit": 5
           }
@@ -238,46 +238,35 @@
       ]
     },
     {
-      "name": "query attribute order is free",
+      "name": "key may follow other attributes",
       "final": true,
-      "text": "```view query=list key=a/b\n{}\n```",
+      "text": "```view query=list key=a/b\n[1]\n```",
       "blocks": [
         {
           "index": 0,
           "key": "a/b",
-          "query": "list",
+          "data": [
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "name": "bare word and hash attribute are ignored",
+      "final": true,
+      "text": "```view key=a/b compact hash=abc\n{}\n```",
+      "blocks": [
+        {
+          "index": 0,
+          "key": "a/b",
           "data": {}
         }
       ]
     },
     {
-      "name": "query body must be an object",
+      "name": "missing key",
       "final": true,
-      "text": "```view key=a/b query=list\n[1]\n```",
-      "blocks": [
-        {
-          "index": 0,
-          "key": "a/b",
-          "query": "list",
-          "error": "view_data_invalid"
-        }
-      ]
-    },
-    {
-      "name": "duplicate query",
-      "final": true,
-      "text": "```view key=a/b query=list query=get\n{}\n```",
-      "blocks": [
-        {
-          "index": 0,
-          "error": "invalid_view"
-        }
-      ]
-    },
-    {
-      "name": "invalid query name",
-      "final": true,
-      "text": "```view key=a/b query=List\n{}\n```",
+      "text": "```view query=list\n{}\n```",
       "blocks": [
         {
           "index": 0,

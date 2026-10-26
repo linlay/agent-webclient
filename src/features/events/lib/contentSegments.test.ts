@@ -57,7 +57,6 @@ describe('VIEW Markdown grammar (shared with agent-platform)', () => {
       expect(blocks.map((segment) => ({
         index: segment.index,
         ...(segment.key ? { key: segment.key } : {}),
-        ...(segment.query ? { query: segment.query } : {}),
         ...(segment.error ? { error: segment.error } : {}),
         ...(!segment.error ? { data: JSON.parse(segment.payloadRaw || 'null') } : {}),
       }))).toEqual(testCase.blocks);

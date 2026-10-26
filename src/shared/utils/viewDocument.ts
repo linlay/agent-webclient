@@ -6,7 +6,8 @@ const VIEW_CSP = "default-src 'none'; script-src 'unsafe-inline' data:; style-sr
  * Host adapter injected first into every display view. It is not part of the
  * frozen snapshot, so it always matches the host protocol:
  *   viewHost.onData((payload, view, context) => …)  — view_init/view_update;
- *     context = { query?: {name, params}, executedAt?, queryable, error?, locale, colorScheme }
+ *     payload = Markdown view input or tool result;
+ *     context = { queryable, actionable, locale, colorScheme }
  *   viewHost.query(name, params) → Promise<{data, executedAt}>  — declared queries only;
  *     a newer call with the same name rejects the older one with view_query_superseded
  *   viewHost.resize()                               — re-reports the height

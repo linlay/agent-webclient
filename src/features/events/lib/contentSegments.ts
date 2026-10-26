@@ -92,24 +92,18 @@ function specialInfo(open: FenceOpen, word: string): string | null {
   return rest;
 }
 
-function parseViewAttributes(attrs: string): { key: string; query?: string } | undefined {
-  const values = new Map<string, string>();
-  for (const field of attrs.split(/\s+/).filter(Boolean)) {
-    const separator = field.indexOf('=');
-    const name = field.slice(0, separator);
-    if (separator < 0 || values.has(name) || (name !== 'key' && name !== 'query')) return undefined;
-    values.set(name, field.slice(separator + 1));
-  }
-  const key = values.get('key') || '';
+/** Reads the single key=<connectorId>/<viewKey>; other attributes are ignored. */
+function parseViewKey(attrs: string): string | undefined {
+  const keys = attrs.split(/\s+/).filter((field) => field.startsWith('key='));
+  if (keys.length !== 1) return undefined;
+  const key = keys[0].slice('key='.length);
   const [connectorId, viewKey, ...extra] = key.split('/');
   if (extra.length !== 0 || !VIEW_ID.test(connectorId || '') || !VIEW_ID.test(viewKey || '')) return undefined;
-  const query = values.get('query');
-  if (query !== undefined && !VIEW_ID.test(query)) return undefined;
-  return query === undefined ? { key } : { key, query };
+  return key;
 }
 
-function viewDataError(body: string, params: boolean): 'view_data_invalid' | undefined {
-  if (new TextEncoder().encode(body).length > MAX_VIEW_DATA_BYTES || (body[0] !== '{' && (params || body[0] !== '['))) return 'view_data_invalid';
+function viewDataError(body: string): 'view_data_invalid' | undefined {
+  if (new TextEncoder().encode(body).length > MAX_VIEW_DATA_BYTES || (body[0] !== '{' && body[0] !== '[')) return 'view_data_invalid';
   try {
     JSON.parse(body);
     return undefined;
@@ -123,10 +117,9 @@ function viewDataError(body: string, params: boolean): 'view_data_invalid' | und
  *
  * VIEW grammar mirrors agent-platform internal/view.ParseMarkdownBlocks and is
  * checked against the shared golden cases: fences start at column 0, a VIEW
- * fence is exactly ```view followed by key=<connectorId>/<viewKey> and an
- * optional query=<name>, its body is one JSON object or array (the query's
- * params object with query), and fences nested in other code blocks stay
- * code. `index` counts closed VIEW fences, so it matches the platform binding.
+ * fence is exactly ```view with one key=<connectorId>/<viewKey> (other
+ * attributes are ignored), its body is one JSON object or array (the view
+ * input), and fences nested in other code blocks stay code. `index` counts closed VIEW fences, so it matches the platform binding.
  */
 export function parseContentSegments(contentId: string, text: string): ContentSegment[] {
   const raw = stripPendingSpecialFenceTail(String(text ?? ''));
@@ -178,18 +171,17 @@ export function parseContentSegments(contentId: string, text: string): ContentSe
         startOffset: start,
       });
     } else {
-      const attributes = parseViewAttributes(viewAttrs as string);
+      const key = parseViewKey(viewAttrs as string);
       const body = raw.slice(bodyStart, bodyEnd).trim();
       segments.push({
         kind: 'view',
         index: viewIndex,
         signature: `${contentId || 'content'}::view::${viewIndex}`,
-        key: attributes?.key,
-        ...(attributes?.query ? { query: attributes.query } : {}),
+        key,
         payloadRaw: body,
         text: raw.slice(start, blockEnd),
         closed,
-        error: attributes ? viewDataError(body, Boolean(attributes.query)) : 'invalid_view',
+        error: key ? viewDataError(body) : 'invalid_view',
       });
       if (closed) viewIndex += 1;
     }
