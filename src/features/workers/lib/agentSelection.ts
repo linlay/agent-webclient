@@ -1,3 +1,4 @@
+import { effectiveAgentIcon } from "@/shared/icons/agentAppearance";
 import type { Agent } from "@/features/agents/lib/agentState";
 import type { WorkerRow } from "./workerState";
 import type { CurrentWorkerSummary } from "./currentWorker";
@@ -71,7 +72,7 @@ export function buildTimelineAgentOptions(input: {
   for (const agent of Array.isArray(input.agents) ? input.agents : []) {
     const key = String(agent?.key || "").trim();
     if (key) {
-      iconByAgentKey.set(key, agent.icon);
+      iconByAgentKey.set(key, agent.icon || (agent.mode ? effectiveAgentIcon(undefined, agent.mode) : undefined));
     }
   }
 
@@ -124,7 +125,7 @@ export function buildTimelineAgentOptions(input: {
           agent?.type === "coder" ||
           String(agent?.mode || "").toUpperCase() === "CODER" ||
           String(agent?.mode || "").toUpperCase() === "KBASE",
-        icon: agent?.icon,
+        icon: agent?.icon || (agent?.mode ? effectiveAgentIcon(undefined, agent.mode) : undefined),
       });
     }
   }

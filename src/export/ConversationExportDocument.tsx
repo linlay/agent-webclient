@@ -3,7 +3,7 @@ import { Tooltip } from "antd";
 import { ConversationPreview, type ConversationPreviewProps } from "@/features/conversation/components/ConversationPreview";
 import { ConversationMarkdown, type ConversationMarkdownElementProps } from "@/shared/ui/ConversationMarkdown";
 import { ConversationMarkdownCode, type ConversationMarkdownCodeProps } from "@/shared/ui/markdown-code/ConversationMarkdownCode";
-import { getAgentIconSource } from "@/shared/icons/agentIconAssets";
+import { AgentIcon } from "@/shared/icons/agent";
 import type { MarkdownContentProps } from "@/features/viewers/components/MarkdownContent";
 import { conversationExportMessages } from "@/shared/i18n/conversationExport";
 import type { ConversationSnapshotV1, SnapshotAttachmentV1 } from "./conversationSnapshotV1";
@@ -81,8 +81,8 @@ export const ConversationExportDocument: React.FC<ConversationExportDocumentProp
   const assistantByRunId = useMemo(() => new Map(snapshot.turns.map((turn) =>
     [turn.runId, turn.assistant])), [snapshot.turns]);
   const agents = useMemo(() => snapshot.turns.flatMap((turn) => (turn.tasks || []).flatMap((task) =>
-    task.subAgentKey ? [{ key: task.subAgentKey, name: task.subAgentName || task.subAgentKey,
-      ...(task.subAgentIconName ? { icon: { name: task.subAgentIconName } } : {}) }] : [])), [snapshot]);
+    (task.subAgentKey || task.taskAgentKey) ? [{ key: (task.subAgentKey || task.taskAgentKey)!, name: task.subAgentName || (task.subAgentKey || task.taskAgentKey)!,
+      mode: task.subAgentMode, icon: { name: task.subAgentIconName, color: task.subAgentIconColor } }] : [])), [snapshot]);
   const attachments = useMemo(() => new Map(snapshot.attachments.map((attachment) =>
     [chatFilePath(attachment.sourceRef), attachment])), [snapshot.attachments]);
   const open = (attachment: SnapshotAttachmentV1) => {
@@ -112,12 +112,9 @@ export const ConversationExportDocument: React.FC<ConversationExportDocumentProp
   />;
   const renderRunHeader: NonNullable<ConversationPreviewProps["renderRunHeader"]> = (item) => {
     const assistant = assistantByRunId.get(item.runId || "");
-    const fallbackIcon = getAgentIconSource();
     return <div className={styles.assistantIdentity}>
-      <img src={getAgentIconSource(assistant?.iconName)} alt="" width={24} height={24}
-        onError={(event) => {
-          if (event.currentTarget.getAttribute("src") !== fallbackIcon) event.currentTarget.src = fallbackIcon;
-        }} />
+      <AgentIcon type="agent" mode={assistant?.mode} icon={{ name: assistant?.iconName, color: assistant?.iconColor }}
+        props={{ icon: { width: 24, height: 24 } }} />
       <strong>{assistant?.name?.trim() || copy.assistant}</strong>
     </div>;
   };

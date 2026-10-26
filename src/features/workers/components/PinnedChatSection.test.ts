@@ -112,10 +112,10 @@ describe("Pinned chat owner identity", () => {
 
     const html = renderSection();
 
-    expect(html).toContain("<img");
+    expect(html).toContain("<svg");
     expect(html).toContain('data-agent-icon-source="builtin"');
     expect(html).toContain('class="pinned-chat-owner-icon"');
-    expect(html).toContain("width:12px");
+    expect(html).toContain('width="12"');
     expect(html).toContain(">Alpha<");
     expect(html.indexOf("pinned-chat-owner-icon")).toBeLessThan(
       html.indexOf("pinned-chat-owner-label"),

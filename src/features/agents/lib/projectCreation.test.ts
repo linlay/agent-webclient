@@ -48,6 +48,7 @@ function creationOptions(): AgentCreationOptionsResponse {
         key: "acp",
         label: "External",
         mode: "CODER",
+        icon: { name: "coder" },
         engine: "acp",
         available: true,
         workspaceRequired: true,
@@ -116,6 +117,7 @@ describe("projectCreation", () => {
       isProject: true,
       definition: {
         mode: "KBASE",
+        icon: { name: "kbase" },
         runtimeConfig: { workspaceRoot: "/project" },
         modelConfig: { modelKey: "default-model" },
       },
@@ -128,6 +130,7 @@ describe("projectCreation", () => {
       definition: {
         name: "Docs",
         mode: "KBASE",
+        icon: { name: "kbase" },
         runtimeConfig: { workspaceRoot: "/project" },
         modelConfig: { modelKey: "other-model" },
       },
@@ -142,7 +145,7 @@ describe("projectCreation", () => {
     const general = initialProjectCreationSelection(options);
     expect(buildProjectCreateRequest(options, general, "/project")).toEqual({
       isProject: true,
-      definition: { mode: "GENERAL", runtimeConfig: { workspaceRoot: "/project" } },
+      definition: { mode: "GENERAL", icon: { name: "general" }, runtimeConfig: { workspaceRoot: "/project" } },
     });
     expect(projectCreationProblem(options, general, "  ")).toBe("directoryRequired");
 
@@ -152,6 +155,7 @@ describe("projectCreation", () => {
       isProject: true,
       definition: {
         mode: "CODER",
+        icon: { name: "coder" },
         engine: "acp",
         runtimeConfig: { workspaceRoot: "/project", acpBridgeId: "codex" },
       },

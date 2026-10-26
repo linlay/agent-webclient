@@ -1,3 +1,4 @@
+import { effectiveAgentIcon } from "@/shared/icons/agentAppearance";
 import libraryPresentation from "@/shared/ui/Presentation.module.css";
 import React, { useMemo, useState } from "react";
 import { Badge, Popover } from "antd";
@@ -36,7 +37,7 @@ export function PinnedChatSection({
       chat: toWorkerConversationRow(chat),
       ownerLabel: agent?.name || chat.firstAgentName || agentKey || "",
       ownerType: agent ? ("agent" as const) : undefined,
-      ownerIcon: agent?.icon,
+      ownerIcon: agent?.icon || (agent?.mode ? effectiveAgentIcon(undefined, agent.mode) : undefined),
     };
   });
   if (pinned.length === 0) return null;

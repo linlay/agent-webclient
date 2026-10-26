@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>括号小队 · 图标与动作实验室</title>
+<style>
+:root{color-scheme:light;--bg:#f5f5f0;--paper:#fff;--ink:#242921;--muted:#798073;--line:#e3e6dc;--accent:#426c4b;--soft:#eaf0e5;--size:88px;--duration:5.6s}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC",sans-serif}button,input,select{font:inherit}button,select{color:inherit}button{cursor:pointer}button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid #89af71;outline-offset:4px}button{border:1px solid var(--line);background:var(--paper);border-radius:10px;padding:8px 14px}button:hover{border-color:var(--accent)}button[aria-pressed=true]{background:var(--ink);color:var(--paper);border-color:var(--ink)}.page{max-width:1280px;margin:auto;padding:32px 44px 64px}.topline{display:flex;align-items:center;justify-content:space-between;gap:20px}.brand{display:flex;align-items:center;gap:10px;font-size:13px;font-weight:650}.brand-mark{font-size:22px;letter-spacing:-3px}.edition,.eyebrow{font:11px/1.5 ui-monospace,SFMono-Regular,monospace;letter-spacing:1.4px;color:var(--muted)}.intro{margin:52px 0 32px;display:flex;justify-content:space-between;align-items:flex-end;gap:32px}.intro h1{font-size:clamp(32px,4vw,48px);line-height:1.2;letter-spacing:-1.8px;margin:12px 0 16px;font-weight:650}.intro p{margin:0;color:var(--muted);max-width:610px;font-size:14px}.count{text-align:right;white-space:nowrap}.count strong{font:48px/1 ui-monospace,monospace;letter-spacing:-4px}.count span{display:block;color:var(--muted);font-size:11px;margin-top:8px}.family-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:12px}.family{position:relative;display:flex;flex-direction:column;align-items:flex-start;text-align:left;padding:22px 22px 20px;border-radius:18px;background:var(--paper);min-width:0;transition:transform .2s,border-color .2s}.family:hover{transform:translateY(-3px)}.family[aria-pressed=true]{background:var(--paper);color:var(--ink);border:1px solid var(--accent);box-shadow:0 0 0 2px var(--soft)}.family .symbol{position:absolute;top:18px;right:20px;color:var(--muted);font:12px ui-monospace,monospace}.family .icon-box{width:100%;height:110px;display:grid;place-items:center;margin:2px 0 17px}.family svg{width:105px;height:105px}.family strong{font-size:17px;font-weight:650}.family small{display:block;color:var(--muted);font-size:11px;letter-spacing:.8px;margin:3px 0 10px}.family p{font-size:12px;line-height:1.65;color:var(--muted);margin:0;min-height:40px}.toolbar{margin:30px 0 18px;display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap}.section-name{display:flex;align-items:baseline;gap:12px}.section-name h2{font-size:20px;margin:0;letter-spacing:-.5px}.section-name span{color:var(--muted);font-size:12px}.controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.controls button,.controls select{font-size:12px;padding:7px 11px}.controls select{border:1px solid var(--line);border-radius:10px;background:var(--paper)}.range{display:flex;align-items:center;gap:8px;margin-right:7px;font-size:12px;color:var(--muted)}input[type=range]{width:80px;accent-color:var(--accent)}.state-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:12px}.state-card{padding:13px 16px 16px;min-width:0;text-align:left;border-radius:15px;background:var(--paper)}.state-card[aria-pressed=true]{background:var(--paper);color:var(--ink);border-color:var(--accent)}.state-card .index{font:10px ui-monospace,monospace;color:var(--muted)}.state-card .icon-box{display:grid;place-items:center;height:118px}.state-card svg{width:var(--size);height:var(--size);max-width:110px;max-height:110px}.state-card strong{font-size:12px;font-weight:600}.state-card small{display:block;color:var(--muted);font-size:11px;margin-top:3px}.bottom{display:grid;grid-template-columns:1.25fr 1fr;gap:18px;margin-top:26px}.panel{background:var(--paper);border:1px solid var(--line);border-radius:18px;padding:25px 28px}.panel-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:22px}.panel-head h3{font-size:14px;margin:0}.pill{font:10px ui-monospace,monospace;letter-spacing:.6px;padding:4px 8px;border-radius:20px;background:var(--soft);color:var(--accent)}.sample-message{padding-left:30px;font-size:13px;margin:10px 0 20px;color:var(--muted)}.activity-line{display:flex;align-items:center;gap:12px;height:38px;font-size:13px}.activity-line svg{display:block;width:25px;height:25px;flex:none}.activity-copy{background:linear-gradient(100deg,var(--muted) 25%,var(--ink) 50%,var(--muted) 75%);background-size:240% 100%;background-clip:text;-webkit-background-clip:text;color:transparent;animation:shimmer 3s ease-in-out infinite}.sample-footer{margin:20px 0 0;padding-top:16px;border-top:1px solid var(--line);color:var(--muted);font-size:11px}.sizes{display:flex;align-items:center;justify-content:space-between;gap:16px;height:76px}.size-item{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-width:25px}.size-item small{font:10px ui-monospace,monospace;color:var(--muted)}.note{font-size:12px;color:var(--muted);margin:15px 0 0}.footer{display:flex;justify-content:space-between;gap:20px;font-size:11px;color:var(--muted);margin-top:24px}.status-dot{width:6px;height:6px;border-radius:50%;display:inline-block;background:#64956b;margin-right:6px}svg{overflow:visible;color:var(--icon-color,var(--ink))}svg .stroke{fill:none;stroke:currentColor;stroke-width:14;stroke-linecap:round;stroke-linejoin:round}.eyes{transform-box:fill-box;transform-origin:center}.motion{transform-box:view-box;transform-origin:center;animation-duration:1.15s;animation-timing-function:cubic-bezier(.2,.8,.25,1);animation-fill-mode:both}.motion[data-move=peek]{animation-name:peek}.motion[data-move=tilt]{animation-name:tilt}.motion[data-move=hop]{animation-name:hop}.motion[data-move=nod]{animation-name:nod}.motion[data-move=shake]{animation-name:shake}.motion[data-move=stretch]{animation-name:stretch}.blink{animation:blink .85s ease both}.gaze{animation:gaze 1.1s cubic-bezier(.2,.8,.25,1) both}.companion{transform-box:fill-box;transform-origin:center}.motion .companion{animation:collaborate 1.1s ease both}.motion .companion.right{animation-delay:.18s}.expression-cycle .scan{animation:scan var(--duration) ease both}.scan{opacity:0}.paused *{animation-play-state:paused!important}.dark{color-scheme:dark;--bg:#171b18;--paper:#202621;--ink:#e9eee4;--muted:#9ca696;--line:#343d34;--accent:#a5c695;--soft:#2e3c2f}.reduced *{animation:none!important}
+@keyframes peek{0%,100%{transform:translateX(0) rotate(0)}30%,55%{transform:translateX(6px) rotate(3deg)}75%{transform:translateX(-3px) rotate(-2deg)}}
+@keyframes tilt{0%,100%{transform:rotate(0)}25%,60%{transform:rotate(-12deg) translateY(-2px)}80%{transform:rotate(4deg)}}
+@keyframes hop{0%,100%{transform:translateY(0) scale(1)}20%{transform:translateY(3px) scale(1.05,.94)}44%{transform:translateY(-11px) scale(.96,1.04)}66%{transform:translateY(2px) scale(1.03,.97)}82%{transform:translateY(-3px)}}
+@keyframes nod{0%,100%{transform:translateY(0)}28%,60%{transform:translateY(7px) rotate(4deg)}43%,78%{transform:translateY(-3px)}}
+@keyframes shake{0%,100%{transform:rotate(0)}22%,60%{transform:rotate(-8deg)}40%,77%{transform:rotate(8deg)}}
+@keyframes stretch{0%,100%{transform:scale(1)}30%,55%{transform:scale(1.08,.93)}75%{transform:scale(.97,1.03)}}
+@keyframes blink{0%,17%,30%,100%{transform:scaleY(1)}23%{transform:scaleY(.1)}}
+@keyframes gaze{0%,100%{transform:translateX(0)}30%,55%{transform:translateX(calc(8px * var(--look,1)))}76%{transform:translateX(calc(-4px * var(--look,1)))}}
+@keyframes collaborate{0%,100%{transform:translateY(0)}35%{transform:translateY(-7px)}65%{transform:translateY(3px)}}
+@keyframes scan{0%,100%{opacity:0;transform:translateY(-20px)}25%,75%{opacity:.35}80%{transform:translateY(30px)}}
+@keyframes shimmer{0%{background-position:120% 0}100%{background-position:-120% 0}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;scroll-behavior:auto!important}}
+@media(min-width:681px) and (max-width:1100px){.family-grid{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:1000px){.page{padding:24px}.family{padding:16px}.family-grid{gap:9px}.family p{min-height:60px}.state-grid{grid-template-columns:repeat(4,1fr)}.intro{margin-top:36px}}
+@media(max-width:680px){.page{padding:20px 16px}.edition,.count{display:none}.intro{margin:32px 0 24px}.intro h1{font-size:34px}.family-grid{grid-template-columns:repeat(2,1fr)}.family p{min-height:0}.family .icon-box{height:86px;margin-bottom:8px}.family svg{width:86px;height:86px}.state-grid{grid-template-columns:repeat(3,1fr)}.state-card{padding:10px}.state-card .icon-box{height:98px}.bottom{grid-template-columns:1fr}.panel{padding:20px}.toolbar{gap:12px}.section-name{width:100%}.footer{flex-direction:column;gap:4px}.controls{gap:7px}.range{margin:0}.state-card small{font-size:10px}}
+.comparison{margin-top:24px;padding:20px 24px;border:1px solid var(--line);border-radius:16px;display:flex;align-items:center;justify-content:space-between;gap:22px;background:var(--soft)}.comparison strong{font-size:14px}.comparison p{max-width:590px;margin:6px 0 0;font-size:12px;color:var(--muted)}.compare-options{display:flex;gap:10px;flex:none}.compare-options button{display:flex;align-items:center;gap:8px;font-size:11px;text-align:left;padding:8px 12px}.compare-options svg{display:block;width:43px;height:43px}.compare-options small{display:block;font-size:10px;opacity:.7}.compare-options button[aria-pressed=true] svg{color:var(--paper)}.filterbar{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin:0 0 16px}.filters{display:flex;gap:6px;flex-wrap:wrap}.filters button{padding:6px 12px;font-size:12px;border-radius:20px}.filterbar>span{font-size:11px;color:var(--muted)}.state-card{position:relative;padding:0;overflow:hidden;transition:border-color .2s}.state-main{display:block;padding:13px 16px 16px;width:100%;text-align:left;border:0;background:none;border-radius:0}.state-main[aria-pressed=true]{background:var(--soft);color:var(--ink)}.state-main .index{font-size:9px;letter-spacing:.2px}.favorite{position:absolute;right:7px;top:5px;background:none;border:0;padding:4px 6px;font-size:18px;line-height:1.2;color:var(--muted)}.favorite[aria-pressed=true]{color:var(--accent);background:var(--soft)}.state-main .index{padding-right:18px;display:block}.state-card:has(.state-main[aria-pressed=true]){border-color:var(--accent)}#empty-favorites{color:var(--muted);padding:36px;text-align:center;border:1px dashed var(--line);border-radius:14px}@media(max-width:800px){.comparison{align-items:flex-start;flex-direction:column}.compare-options{flex-wrap:wrap}}@media(max-width:680px){.state-main{padding:10px}.state-card{padding:0}.state-main .index{font-size:8px}.favorite{right:3px}.compare-options button{padding:6px 9px}}
+
+.sequence-note{margin:0 0 18px;color:var(--muted);font-size:12px;line-height:1.8;max-width:850px}
+.expression-cycle .surprise-eye,.expression-cycle .surprise-mouth,.expression-cycle .round-eye,.expression-cycle .sleepy-mouth{transform-box:fill-box;transform-origin:center;animation-duration:var(--duration);animation-timing-function:ease-in-out;animation-fill-mode:both}
+.expression-cycle .surprise-eye{animation-name:discover-eye}.expression-cycle .surprise-mouth{animation-name:discover-mouth}.expression-cycle .round-eye{animation-name:round-eye}
+.motion[data-move=work]{animation-name:work}.motion[data-move=inspect]{animation-name:inspect}.motion[data-move=drowse]{animation-name:drowse}.motion[data-move=persevere]{animation-name:persevere}
+.expression-cycle[data-sequence=work] .features{animation:work-gaze var(--duration) ease-in-out both}
+.expression-cycle[data-sequence=inspect] .features{animation:inspect-gaze var(--duration) ease-in-out both}
+.expression-cycle[data-sequence=drowse] .eyes{animation:drowse-eyes var(--duration) ease-in-out both}
+.expression-cycle[data-sequence=drowse] .sleepy-mouth{animation-name:drowse-mouth}
+.expression-cycle[data-sequence=persevere] .eyes{animation:resolve-eyes var(--duration) ease-in-out both}
+@keyframes discover-eye{0%,8%,78%,100%{transform:scale(1)}15%{transform:scale(1.22,1.65)}21%,64%{transform:scale(1.17,1.58)}72%{transform:scale(1.02,1.06)}}
+@keyframes discover-mouth{0%,10%,78%,100%{transform:scale(1)}19%,64%{transform:scale(1.12,1.65)}}
+@keyframes round-eye{0%,9%,80%,100%{transform:scale(1)}18%{transform:scale(2.45)}25%,64%{transform:scale(2.25)}73%{transform:scale(1.25)}}
+@keyframes work{0%,17%,100%{transform:translateY(0)}28%,42%{transform:translateY(3px) rotate(2deg)}47%,57%,67%{transform:translateY(5px)}52%,62%{transform:translateY(1px)}81%{transform:translateY(-2px)}}
+@keyframes work-gaze{0%,12%,90%,100%{transform:translateY(0)}20%,72%{transform:translateY(5px)}}
+@keyframes inspect{0%,100%{transform:rotate(0)}20%,38%{transform:rotate(-5deg)}55%,73%{transform:rotate(5deg)}}
+@keyframes inspect-gaze{0%,9%,95%,100%{transform:translateX(0)}16%,34%{transform:translateX(-8px)}42%,66%{transform:translateX(8px)}74%,85%{transform:translateX(-3px)}}
+@keyframes drowse{0%,16%,100%{transform:rotate(0) translateY(0)}35%,64%{transform:rotate(7deg) translateY(4px)}80%{transform:rotate(-2deg) translateY(-2px)}}
+@keyframes drowse-eyes{0%,12%,94%,100%{transform:scaleY(1)}32%,73%{transform:scaleY(.15)}}
+@keyframes drowse-mouth{0%,23%,88%,100%{transform:scale(1)}42%,64%{transform:scale(1.9,3.1)}}
+@keyframes persevere{0%,100%{transform:scale(1) rotate(0)}22%,40%{transform:scale(1.05,.97) rotate(-3deg)}58%{transform:rotate(3deg) translateY(-2px)}73%{transform:translateY(3px)}84%{transform:translateY(-2px)}}
+@keyframes resolve-eyes{0%,100%{transform:scaleY(1)}22%,40%{transform:scaleY(.75)}58%,78%{transform:scaleY(1.1)}}
+@media(prefers-reduced-motion:reduce){.motion,.motion *{animation:none!important}}
+.agent-study{margin-top:24px;padding:25px;border:1px solid var(--line);border-radius:18px;background:var(--paper)}.agent-study-head{display:flex;justify-content:space-between;align-items:end;gap:20px;margin-bottom:18px}.agent-study h2{font-size:22px;letter-spacing:-.5px;margin:5px 0 0}.agent-study-head p{font-size:12px;color:var(--muted);max-width:350px;margin:0}.agent-options{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.agent-option{padding:16px;text-align:left;border-radius:14px;min-width:0;background:var(--bg)}.agent-option[aria-pressed=true]{color:var(--ink);background:var(--soft);border-color:var(--accent)}.agent-option svg{display:block;width:105px;height:105px;margin:0 auto 12px}.agent-option strong{font-size:13px}.agent-option small{display:block;margin-top:4px;font-size:11px;color:var(--muted)}@media(max-width:680px){.agent-study{padding:18px}.agent-study-head{display:block}.agent-study-head p{margin-top:9px}.agent-options{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+<main class="page">
+  <header class="topline"><div class="brand"><span class="brand-mark">( · )</span> 括号小队 / BRACKET BUDDIES</div><div class="edition">ICON & MOTION STUDY · 01</div><button id="theme" aria-pressed="false">深色预览</button></header>
+  <section class="intro"><div><div class="eyebrow">ONE FAMILY. SIX PERSONALITIES.</div><h1>不同的本领，<br>同样有点小表情。</h1><p>让轮廓表达身份，让眼神表达状态。六种角色、二十二组表情，<br>加上不按节拍的小动作，看看谁最适合待在你的对话旁边。</p></div><div class="count"><strong>6 × 22</strong><span>角色轮廓 × 表情变体 / SVG 动态原型</span></div></section>
+  <section class="family-grid" id="families" aria-label="选择图标类别"></section>
+  <section class="comparison" aria-label="知识库轮廓对比"><div><strong>知识库，用哪种括号？</strong><p>我倾向方括号：像引用、条目和资料归档。尖括号更有技术与方向感，留给代理更容易区分。</p></div><div class="compare-options"><button data-knowledge="square" aria-pressed="true"><span id="square-sample"></span><span>方括号 · 引用与资料 <small>推荐</small></span></button><button data-knowledge="angle" aria-pressed="false"><span id="angle-sample"></span><span>尖括号 · 技术与探索</span></button></div></section>
+  <section class="agent-study" aria-labelledby="agent-study-title"><div class="agent-study-head"><div><div class="eyebrow">PROXY / SHAPE EXPLORATION</div><h2 id="agent-study-title">代理，再换一种样子。</h2></div><p>同一张小脸、同样的动作，只换轮廓。点击候选，整本表情簿一起试穿。</p></div><div id="agent-options" class="agent-options"></div></section>
+  <section aria-labelledby="gallery-title">
+    <div class="toolbar"><div class="section-name"><h2 id="gallery-title">通用型的表情簿</h2><span id="gallery-caption">温和、好奇、偶尔调皮</span></div><div class="controls"><label class="range">颜色 <input id="icon-color" type="color" value="#426c4b" aria-label="图标颜色" style="width:26px;height:27px;padding:0;border:0;background:none"></label><button id="reset-color">跟随主题</button><label class="range">尺寸 <input id="size" type="range" min="48" max="110" value="88" aria-label="预览图标尺寸"></label><select id="speed" aria-label="动作速度"><option value="5.6">自然 · 5.6 秒</option><option value="8">多演一会儿 · 8 秒</option><option value="3.8">短一点 · 3.8 秒</option></select><button id="random" aria-pressed="true">随机动作 · 开</button><button id="pause" aria-pressed="false">暂停</button></div></div>
+    <div class="filterbar"><div class="filters" aria-label="筛选表情"><button data-filter="all" aria-pressed="true">全部 22</button><button data-filter="work" aria-pressed="false">认真开工 10</button><button data-filter="mood" aria-pressed="false">灵动表情 12</button><button data-filter="favorites" aria-pressed="false">我的候选 <span id="favorite-count">0</span></button></div><span>点图标预览，点 ☆ 留作候选 · 本页自动记住选择</span></div>
+    <p class="sequence-note">一组表情默认保留 5.6 秒，也可切到 8 秒；每个小动作仍然轻快，在这一组里随机接上 2—4 次眨眼、探头、点头或轻弹。相近表情已合并：开工＋敲键、查找＋对照、倔强＋再试、待命＋哈欠。</p><div class="state-grid" id="states"></div><p id="empty-favorites" hidden>还没有候选。点击表情卡片右上角的 ☆，把喜欢的小表情留下来。</p>
+  </section>
+  <section class="bottom">
+    <div class="panel"><div class="panel-head"><h3>放回对话里看看</h3><span class="pill">LIVE PREVIEW</span></div><p class="sample-message" id="sample-request"></p><div class="activity-line"><span id="live-icon"></span><span class="activity-copy" id="live-copy" role="status" aria-live="polite"></span></div><p class="sample-footer">点击任意表情，预览会跟随切换；再点「随机动作」可恢复自由活动。</p></div>
+    <div class="panel"><div class="panel-head"><h3>小尺寸辨识度</h3><span class="pill">18 — 64 PX</span></div><div class="sizes" id="sizes"></div><p class="note" id="design-note"></p></div>
+  </section>
+  <footer class="footer"><span><i class="status-dot"></i><span id="motion-status">自由活动中 · 完整演完一组，再歇一小会儿</span></span><span>单色优先 / 跟随主题 / 支持减少动态效果</span></footer>
+</main>
+<script>
+'use strict';
+const $ = id => document.getElementById(id);
+const families = [
+ {id:'general',name:'通用型',en:'THE COMPANION',symbol:'( )',caption:'温和、好奇、偶尔调皮',desc:'柔软的圆括号。陪你聊天，也陪你慢慢想。',note:'圆弧保持圆润和微微外扩，动作偏柔和：探头、歪头、轻轻弹起。',request:'帮我把这个想法整理得更清楚一点。',activity:['正在琢磨你的想法…','换个角度想一想…','正在把线索串起来…']},
+ {id:'code',name:'编程型',en:'THE BUILDER',symbol:'{ }',caption:'专注、敏捷、有点工程师的倔强',desc:'利落的花括号。读代码的时候，眼神也认真一点。',note:'花括号中间保留清楚的收腰，小尺寸也能认出来；以短促点头、左右检查和得意轻弹为主。',request:'帮我检查这个函数，顺便补好边界处理。',activity:['正在阅读代码与调用关系…','正在检查边界条件…','正在整理修改方案…']},
+ {id:'knowledge',name:'知识库型',en:'THE LIBRARIAN',symbol:'[ ]',caption:'沉稳、细心、带一点发现的惊喜',desc:'整齐的方括号。像书页，也像收好的一条引用。',note:'方括号用圆头笔触削弱生硬感；眼神像在逐行阅读，偶尔出现一道轻扫描。',request:'从资料里找找，这个结论有哪些来源？',activity:['正在检索相关资料…','正在对照原文与来源…','找到了几条相关线索…']},
+ {id:'team',name:'团队型',en:'THE CREW',symbol:'(···)',caption:'一起想、互相看、轮流接力',desc:'三个小脸组成小队。主角带头，伙伴错拍回应。',note:'用一大两小表达协作，伙伴轻微错拍回应。18px 时更适合作为团队状态符号，32px 以上能看清成员表情。',request:'请大家一起研究，给我一个完整的方案。',activity:['成员们正在并行分析…','正在交换发现与线索…','正在汇总团队的建议…']},
+ {id:'executor',name:'执行型',en:'THE EXECUTOR',symbol:'/ /',caption:'直接、果断，把下一步真正做完',desc:'两道轻快的斜线，像执行任务时穿梭向前。',note:'两道斜线构成穿梭轮廓，动作以稳稳点头、确认和前探为主。',request:'按确认好的步骤执行，完成后告诉我结果。',activity:['正在执行当前步骤…','正在核对执行结果…','准备推进下一步…']},
+ {id:'agent',name:'代理型',en:'THE SCOUT',symbol:'< >',caption:'敏锐、主动、准备随时出发',desc:'干净的一对轮廓，像准备出发的小侦察员。',note:'在上方四款候选里比较代理轮廓；保持同一张脸、同样的动作与颜色，只比较外形。',request:'替我跟进这件事，有结果后整理给我。',activity:['正在观察当前任务状态…','正在确认下一步行动…','正在执行并核对结果…']}
+];
+const states = [
+ {id:'curious',name:'好奇探头',desc:'看看右边有什么',move:'peek'},
+ {id:'focus',name:'认真开工',desc:'专注看清 → 埋头敲键 → 确认',move:'work'},
+ {id:'ponder',name:'歪头思考',desc:'让我再想一小会儿',move:'tilt'},
+ {id:'scan',name:'查找与对照',desc:'向左查找 → 向右比对 → 回正',move:'inspect'},
+ {id:'wink',name:'俏皮眨眼',desc:'这件事交给我吧',move:'tilt'},
+ {id:'surprise',name:'发现了！',desc:'普通眼形 → 睁大一下 → 恢复',move:'hop'},
+ {id:'round',name:'圆眼睁大',desc:'小圆眼 → 圆圆睁大 → 慢慢收回',move:'tilt'},
+ {id:'side',name:'悄悄打量',desc:'嗯？好像有点不对',move:'peek'},
+ {id:'sleepy',name:'待命打个盹',desc:'安静等候 → 偷偷哈欠 → 恢复',move:'drowse'},
+ {id:'talk',name:'小声汇报',desc:'有一点进展告诉你',move:'nod'},
+ {id:'proud',name:'得意一下',desc:'挑一只眼，歪嘴小得意',move:'tilt'},
+ {id:'reading',name:'逐行阅读',desc:'短眼往下，抿嘴细读',move:'nod'},
+ {id:'compute',name:'脑内计算',desc:'小圆眼，正在跑脑回路',move:'tilt'},
+ {id:'debug',name:'抓到问题',desc:'一只睁眼，一只眯起来',move:'peek'},
+ {id:'verify',name:'确认无误',desc:'稳稳看清，再点一下头',move:'nod'},
+ {id:'organize',name:'归纳整理',desc:'横短眼，思路排整齐',move:'peek'},
+ {id:'listen',name:'认真听你',desc:'圆眼专注，微微张嘴',move:'tilt'},
+ {id:'aim',name:'锁定目标',desc:'小倒八眼，这次很笃定',move:'nod'},
+ {id:'shy',name:'有点害羞',desc:'目光躲开，脸颊小短线',move:'tilt'},
+ {id:'determined',name:'倔强再试试',desc:'鼓嘴想想 → 坚定眼神 → 再来',move:'persevere'},
+ {id:'bored',name:'有点无聊',desc:'平平的眼睛，扁扁的嘴',move:'peek'},
+ {id:'excited',name:'兴奋搓手',desc:'挤成两道小尖眼，张嘴笑',move:'hop'},
+];
+const agentShapes = [
+ {id:'angle', name:'01 · 原始尖括号', symbol:'< >', desc:'识别最直接，和整套括号语言一致。',d:'M57 58 L31 100 L57 142 M143 58 L169 100 L143 142'},
+ {id:'soft', name:'02 · 柔和折角', symbol:'‹ ›', desc:'保留尖括号身份，折点更圆、更亲和。',d:'M58 56 L38 87 Q27 100 38 113 L58 144 M142 56 L162 87 Q173 100 162 113 L142 144'},
+ {id:'slash', name:'03 · 轻捷穿梭', symbol:'/ /', desc:'两道斜线，轻快、利落，有行动感。',d:'M57 55 L35 145 M165 55 L143 145'},
+ {id:'gateway', name:'04 · 委托窗口', symbol:'⌜ ⌟', desc:'对角开放的小窗口，像任务的交接入口。',d:'M65 53 H39 V84 M135 147 H161 V116'}
+];
+let agentShape='gateway';
+let selected = 'general', random = true, paused = false, selectedState = null, filter = 'all', knowledgeShape = 'square';
+const workStates = new Set(['focus','ponder','scan','reading','compute','debug','verify','organize','listen','aim']);
+const mergedStates = new Map([['typing','focus'],['compare','scan'],['pout','determined'],['yawn','sleepy']]);
+let favorites = new Set();
+try { const saved=JSON.parse(localStorage.getItem('bracket-buddies-favorites')||'[]'); if(Array.isArray(saved)) favorites=new Set(saved.map(id=>mergedStates.get(id)||id).filter(id=>states.some(s=>s.id===id))); } catch {}
+function visibleStates(){return states.filter(s=>filter==='all'||(filter==='work'&&workStates.has(s.id))||(filter==='mood'&&!workStates.has(s.id))||(filter==='favorites'&&favorites.has(s.id)));}
+const systemMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+const rect = (x,y,w=13,h=28,extra='') => `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${Math.min(w,h)/2}" fill="currentColor" ${extra}/>`;
+const path = (d,w=9) => `<path class="stroke" d="${d}" style="stroke-width:${w}"/>`;
+const dot = (x,y,r=5.5) => `<circle cx="${x}" cy="${y}" r="${r}" fill="currentColor"/>`;
+function face(state){
+ let eyes='',mouth='';
+ switch(state){
+ case 'focus':eyes=rect(74,82,13,24,'transform="rotate(-10 80.5 94)"')+rect(113,82,13,24,'transform="rotate(10 119.5 94)"');mouth=rect(93,122,14,7);break;
+ case 'ponder':eyes=rect(73,77,13,30)+rect(114,84,13,20);mouth=path('M89 123 Q95 131 100 121 Q105 131 111 123',7);break;
+ case 'scan':eyes=rect(70,83,13,24)+rect(110,83,13,24);mouth=rect(95,122,12,7);break;
+ case 'wink':eyes=rect(72,73)+path('M109 96 Q121 77 133 96',11);mouth=`<circle cx="103" cy="125" r="5.5" class="stroke" style="stroke-width:6"/>`;break;
+ case 'surprise':eyes=rect(74,81,13,26,'class="surprise-eye"')+rect(113,81,13,26,'class="surprise-eye"');mouth=rect(95,122,10,9,'class="surprise-mouth"');break;
+ case 'round':eyes=`<circle class="round-eye" cx="78" cy="94" r="6" fill="currentColor"/><circle class="round-eye" cx="122" cy="94" r="6" fill="currentColor"/>`;mouth=dot(100,124,5);break;
+ case 'side':eyes=rect(61,86,28,12)+rect(103,86,28,12);mouth=rect(98,120,14,8);break;
+ case 'sleepy':eyes=rect(74,85,12,23)+rect(114,85,12,23);mouth=`<ellipse class="sleepy-mouth" cx="100" cy="124" rx="4" ry="4" fill="currentColor"/>`;break;
+ case 'talk':eyes=rect(73,75,13,33)+rect(114,75,13,33);mouth=rect(94,119,13,15);break;
+ case 'proud':eyes=rect(70,86,25,10,'transform="rotate(-12 82 91)"')+path('M112 94 Q121 81 131 89',9);mouth=path('M96 124 Q112 131 120 115',8);break;
+ case 'reading':eyes=rect(72,91,14,18)+rect(114,91,14,18);mouth=rect(95,125,10,6);break;
+ case 'compute':eyes=dot(78,93,8)+dot(122,93,8);mouth=path('M93 125 Q100 118 107 125',7);break;
+ case 'debug':eyes=rect(72,81,14,27)+path('M111 94 L132 90',10);mouth=dot(105,125,5);break;
+ case 'verify':eyes=rect(73,83,14,22)+rect(113,83,14,22);mouth=path('M93 120 Q100 127 107 120',7);break;
+ case 'organize':eyes=rect(69,87,22,13)+rect(111,87,22,13);mouth=path('M94 122 H106',7);break;
+ case 'listen':eyes=dot(78,90,9)+dot(122,90,9);mouth=rect(97,120,7,11);break;
+ case 'aim':eyes=path('M72 86 L88 93 M112 93 L128 86',11);mouth=path('M92 124 H108',8);break;
+ case 'shy':eyes=rect(79,87,11,22)+rect(115,87,11,22);mouth=path('M97 123 Q104 128 110 122',6)+path('M64 115 L70 118 M130 118 L136 115',4);break;
+ case 'determined':eyes=rect(72,84,13,23,'transform="rotate(-20 78 95)"')+rect(115,84,13,23,'transform="rotate(20 121 95)"');mouth=path('M90 124 Q100 112 110 124',9);break;
+ case 'bored':eyes=rect(69,91,23,7)+rect(111,91,23,7);mouth=rect(91,124,18,5);break;
+ case 'excited':eyes=path('M70 82 L83 94 L70 104 M130 82 L117 94 L130 104',9);mouth=`<path d="M89 119 Q100 123 111 119 Q109 138 100 138 Q91 138 89 119Z" fill="currentColor"/>`;break;
+ default:eyes=rect(80,72)+rect(114,72);mouth=dot(103,124);
+ }
+ return `<g class="features"><g class="eyes">${eyes}</g>${mouth}</g>`;
+}
+function shell(kind){
+ switch(kind){
+ case 'code': return path('M65 48 C47 48 46 59 46 72 L46 82 Q46 96 33 100 Q46 104 46 118 L46 128 C46 141 47 152 65 152 M135 48 C153 48 154 59 154 72 L154 82 Q154 96 167 100 Q154 104 154 118 L154 128 C154 141 153 152 135 152',13);
+ case 'executor':return path('M57 55 L35 145 M165 55 L143 145',14);
+ case 'knowledge':if(knowledgeShape==='angle')return path('M57 58 L31 100 L57 142 M143 58 L169 100 L143 142',13);return path('M63 50 H42 V150 H63 M137 50 H158 V150 H137',13);
+ case 'agent':return path(agentShapes.find(s=>s.id===agentShape).d,13);
+ default:return path('M58 56 C34 82 32 120 56 144 M142 56 C166 82 168 120 144 144',15);
+ }
+}
+function buddy(kind,state){
+ const core = shell(kind)+face(state);
+ if(kind==='team')return `<g transform="translate(4 28) scale(.58)"><g class="companion">${path('M58 56 C34 82 32 120 56 144',15)}${face('excited')}</g></g><g transform="translate(82 28) scale(.58)"><g class="companion right">${path('M142 56 C166 82 168 120 144 144',15)}${face('curious')}</g></g><g transform="translate(23 52.12) scale(.78)"><circle cx="100" cy="98" r="69" fill="var(--paper)"/>${shell('general')}${face(state)}</g>`;
+ return core+(kind==='knowledge'?`<g class="scan">${path('M69 111 H131',4)}</g>`:'');
+}
+function svg(kind,state='curious',size, label=''){
+ return `<svg viewBox="0 0 200 200" data-expression="${state}" ${size?`width="${size}" height="${size}"`:''} ${label?`role="img" aria-label="${label}"`:'aria-hidden="true"'}><g class="motion" data-move="${states.find(s=>s.id===state)?.move||'peek'}"><g class="expression-cycle" data-sequence="${states.find(s=>s.id===state)?.move||'peek'}">${buddy(kind,state)}</g></g></svg>`;
+}
+function motionDurationMs(){return Number($('speed').value)*1000;}
+const sequenceMoves = new Set(['work','inspect','drowse','persevere']);
+function pulse(svgNode,move){
+ const group=svgNode.querySelector('.motion');
+ group.classList.remove('motion');
+ svgNode.querySelectorAll('.blink,.gaze').forEach(n=>n.classList.remove('blink','gaze'));
+ void group.getBoundingClientRect();
+ group.style.setProperty('--look',Math.random()<.5?-1:1);
+ group.dataset.move=move;group.classList.add('motion');
+ svgNode.querySelectorAll('.eyes').forEach(n=>n.classList.add('blink'));
+ const sequence=svgNode.querySelector('.expression-cycle').dataset.sequence;
+ if(!sequenceMoves.has(sequence))svgNode.querySelectorAll('.features').forEach(n=>n.classList.add('gaze'));
+}
+function restart(svgNode,move){
+ const sequence=svgNode.querySelector('.expression-cycle');
+ sequence.classList.remove('expression-cycle');
+ void sequence.getBoundingClientRect();
+ sequence.classList.add('expression-cycle');
+ const preferred=states.find(s=>s.id===svgNode.dataset.expression)?.move;
+ pulse(svgNode,sequenceMoves.has(preferred)?preferred:move);
+ const now=Date.now();
+ due.set(svgNode,now+motionDurationMs()+400+Math.random()*700);
+ micro.set(svgNode,{next:now+1300+Math.random()*450,end:now+motionDurationMs()-1150,last:move});
+}
+function animateAll(){document.querySelectorAll('svg').forEach(node=>restart(node,node.querySelector('.motion').dataset.move));}
+function current(){return families.find(f=>f.id===selected)}
+function renderFamily(){
+ $('families').innerHTML=families.map(f=>`<button class="family" aria-pressed="${f.id===selected}" data-family="${f.id}"><span class="symbol">${f.symbol.replace(/</g,'&lt;')}</span><span class="icon-box">${svg(f.id)}</span><strong>${f.name}</strong><small>${f.en}</small><p>${f.desc}</p></button>`).join('');
+}
+function renderStates(){
+ $('states').innerHTML=visibleStates().map(s=>`<div class="state-card"><button class="state-main" data-state="${s.id}" aria-pressed="${selectedState===s.id}"><span class="index">${String(states.indexOf(s)+1).padStart(2,'0')} / ${workStates.has(s.id)?'专注':'情绪'}</span><span class="icon-box">${svg(selected,s.id)}</span><strong>${s.name}</strong><small>${s.desc}</small></button><button class="favorite" data-favorite="${s.id}" aria-label="${favorites.has(s.id)?'移除候选':'加入候选'}：${s.name}" aria-pressed="${favorites.has(s.id)}">${favorites.has(s.id)?'★':'☆'}</button></div>`).join('');
+ $('favorite-count').textContent=favorites.size;
+ $('empty-favorites').hidden=filter!=='favorites'||visibleStates().length>0;
+}
+function renderLive(state='curious'){
+ nextLive=Date.now()+motionDurationMs()+450+Math.random()*750;
+ $('live-icon').innerHTML=svg(selected,state);
+ $('live-copy').textContent=current().activity[Math.floor(Math.random()*current().activity.length)];
+ restart($('live-icon').querySelector('svg'),states.find(s=>s.id===state).move);
+}
+function render(){
+ const priorAgentShape=agentShape;
+ $('agent-options').innerHTML=agentShapes.map(shape=>{agentShape=shape.id;return `<button class="agent-option" data-agent-shape="${shape.id}" aria-pressed="${shape.id===priorAgentShape}">${svg('agent','curious')}<strong>${shape.name}</strong><small>${shape.desc}</small></button>`}).join('');
+ agentShape=priorAgentShape;
+ families.find(f=>f.id==='agent').symbol=agentShapes.find(s=>s.id===agentShape).symbol;
+ const previousShape=knowledgeShape;
+ knowledgeShape='square';$('square-sample').innerHTML=svg('knowledge','focus');
+ knowledgeShape='angle';$('angle-sample').innerHTML=svg('knowledge','focus');
+ knowledgeShape=previousShape;
+ renderFamily();renderStates();renderLive(selectedState||'curious');
+ $('gallery-title').textContent=current().name+'的表情簿';$('gallery-caption').textContent=current().caption;
+ $('sample-request').textContent=current().request;$('design-note').textContent=current().note;
+ $('sizes').innerHTML=[18,22,32,48,64].map(size=>`<div class="size-item">${svg(selected,selectedState||'curious',size)}<small>${size}px</small></div>`).join('');
+ animateAll();
+}
+function updateControls(){
+ $('random').textContent='随机动作 · '+(random?'开':'关');$('random').setAttribute('aria-pressed',String(random));
+ $('pause').textContent=paused?'继续':'暂停';$('pause').setAttribute('aria-pressed',String(paused));
+ document.body.classList.toggle('paused',paused);
+ $('motion-status').textContent=systemMotion.matches?'遵循系统设置 · 减少动态效果':paused?'暂停中 · 保留当前表情':random?'自由活动中 · 动作保持轻快，一组里多动几次':'固定表情 · 演完组内小动作，点击可重播';
+}
+$('agent-options').onclick=e=>{const b=e.target.closest('[data-agent-shape]');if(!b)return;agentShape=b.dataset.agentShape;selected='agent';render();};
+$('families').addEventListener('click',e=>{const button=e.target.closest('[data-family]');if(!button)return;selected=button.dataset.family;render();});
+$('states').addEventListener('click',e=>{
+ const favorite=e.target.closest('[data-favorite]');
+ if(favorite){const id=favorite.dataset.favorite;if(favorites.has(id))favorites.delete(id);else favorites.add(id);try{localStorage.setItem('bracket-buddies-favorites',JSON.stringify([...favorites]));}catch{}renderStates();return;}
+ const button=e.target.closest('[data-state]');if(!button)return;
+ selectedState=button.dataset.state;random=false;
+ document.querySelectorAll('[data-state]').forEach(b=>b.setAttribute('aria-pressed',String(b===button)));
+ renderLive(selectedState);restart(button.querySelector('svg'),states.find(s=>s.id===selectedState).move);
+ $('sizes').innerHTML=[18,22,32,48,64].map(size=>`<div class="size-item">${svg(selected,selectedState,size)}<small>${size}px</small></div>`).join('');updateControls();
+});
+$('states').addEventListener('pointerover',e=>{if(paused||systemMotion.matches)return;const b=e.target.closest('[data-state]');if(b&&!b.contains(e.relatedTarget))restart(b.querySelector('svg'),states.find(s=>s.id===b.dataset.state).move);});
+document.querySelector('.filters').onclick=e=>{const b=e.target.closest('[data-filter]');if(!b)return;filter=b.dataset.filter;document.querySelectorAll('[data-filter]').forEach(n=>n.setAttribute('aria-pressed',String(n===b)));renderStates();};
+document.querySelector('.compare-options').onclick=e=>{const b=e.target.closest('[data-knowledge]');if(!b)return;knowledgeShape=b.dataset.knowledge;selected='knowledge';document.querySelectorAll('[data-knowledge]').forEach(n=>n.setAttribute('aria-pressed',String(n===b)));render();};
+$('random').onclick=()=>{random=!random;if(random){selectedState=null;document.querySelectorAll('[data-state]').forEach(b=>b.setAttribute('aria-pressed','false'));}updateControls();};
+let pausedAt=0;
+$('pause').onclick=()=>{
+ paused=!paused;
+ if(paused)pausedAt=Date.now();
+ else{const elapsed=Date.now()-pausedAt;nextLive+=elapsed;document.querySelectorAll('svg').forEach(node=>{if(due.has(node))due.set(node,due.get(node)+elapsed);const phase=micro.get(node);if(phase){phase.next+=elapsed;phase.end+=elapsed;}});}
+ updateControls();
+};
+$('theme').onclick=()=>{const dark=document.body.classList.toggle('dark');$('theme').textContent=dark?'浅色预览':'深色预览';$('theme').setAttribute('aria-pressed',String(dark));};
+$('icon-color').oninput=e=>document.documentElement.style.setProperty('--icon-color',e.target.value);
+$('reset-color').onclick=()=>document.documentElement.style.removeProperty('--icon-color');
+$('size').oninput=e=>document.documentElement.style.setProperty('--size',e.target.value+'px');
+$('speed').onchange=e=>{document.documentElement.style.setProperty('--duration',e.target.value+'s');nextLive=Date.now()+motionDurationMs()+1800;document.querySelectorAll('svg').forEach(node=>due.set(node,Date.now()+motionDurationMs()+1500));if(!paused)animateAll();};
+systemMotion.addEventListener('change',updateControls);
+let nextLive=0;
+const due=new WeakMap();
+const micro=new WeakMap();
+const moves={general:['peek','tilt','hop','stretch'],code:['nod','peek','hop'],knowledge:['peek','tilt','nod'],team:['hop','nod','shake'],agent:['peek','hop','nod'],executor:['nod','peek','hop']};
+const timer=setInterval(()=>{
+ if(paused||document.hidden||systemMotion.matches)return;
+ const now=Date.now();
+ document.querySelectorAll('.family svg,.state-card svg,.agent-option svg,#live-icon svg').forEach(node=>{
+   const box=node.getBoundingClientRect();if(box.bottom<0||box.top>innerHeight)return;
+   const kind=node.closest('[data-agent-shape]')?'agent':node.closest('[data-family]')?.dataset.family||selected;
+   const choices=moves[kind];
+   const phase=micro.get(node);
+   if(phase&&now>=phase.next&&now<phase.end){
+     const expression=node.dataset.expression;
+     const preferred=states.find(s=>s.id===expression)?.move;
+     let pool=sequenceMoves.has(preferred)?[preferred,'nod','peek']:choices;
+     pool=pool.filter(move=>move!==phase.last);
+     // Keep expressions quiet enough to read; quick accents occur at irregular beats.
+     const move=pool[Math.floor(Math.random()*pool.length)];
+     pulse(node,move);phase.last=move;phase.next=now+1250+Math.random()*650;
+   }
+   if(node.closest('#live-icon')||!random)return;
+   if(!due.has(node)||now>=due.get(node))restart(node,choices[Math.floor(Math.random()*choices.length)]);
+ });
+ if(random&&now>=nextLive){let next=states[Math.floor(Math.random()*states.length)].id;const previous=$('live-icon').dataset.state;if(next===previous)next=states[(states.findIndex(s=>s.id===next)+1)%states.length].id;$('live-icon').dataset.state=next;renderLive(next);}
+},100);
+window.addEventListener('pagehide',()=>clearInterval(timer));
+render();updateControls();
+</script>
+</body>
+</html>

@@ -1,3 +1,4 @@
+import { defaultAgentIconName, normalizeAgentIconName } from "@/shared/icons/agentAppearance";
 import { skillDisplayName } from "@/shared/utils/skillDisplayName";
 import type { Agent } from "@/features/agents/lib/agentState";
 import type { AgentSkillOption, AgentToolOption } from "@/features/agents/lib/agentOptions";
@@ -52,6 +53,7 @@ export interface AgentFormState {
   iconKind: IconKind;
   iconName: string;
   iconImage: string;
+  iconColor?: string;
   role: string;
   description: string;
   mode: string;
@@ -85,6 +87,7 @@ export const EMPTY_FORM: AgentFormState = {
   iconKind: "none",
   iconName: "",
   iconImage: "",
+  iconColor: "",
   role: "",
   description: "",
   mode: "GENERAL",
@@ -114,7 +117,7 @@ export function createEmptyAgentForm(): AgentFormState {
   const suffix = `${Date.now().toString(36)}-${Math.random()
     .toString(36)
     .slice(2, 8)}`;
-  return { ...EMPTY_FORM, key: `agent-${suffix}` };
+  return { ...EMPTY_FORM, iconKind: "builtin", iconName: "general", key: `agent-${suffix}` };
 }
 
 export const BUDGET_PLACEHOLDER = `{
@@ -522,20 +525,25 @@ export function interactionPresentation(
 
 export function iconFieldsFromValue(
   value: unknown,
-): Pick<AgentFormState, "iconKind" | "iconName" | "iconImage"> {
+): Pick<AgentFormState, "iconKind" | "iconName" | "iconImage" | "iconColor"> {
   if (typeof value === "string" && value.trim()) {
-    return { iconKind: "image", iconName: "", iconImage: value.trim() };
+    const name = normalizeAgentIconName(value);
+    return name ? { iconKind: "builtin", iconName: name, iconImage: "", iconColor: "" }
+      : { iconKind: "image", iconName: "", iconImage: value.trim(), iconColor: "" };
   }
   const record = asRecord(value);
-  const name = toText(record.name);
-  if (name) return { iconKind: "builtin", iconName: name, iconImage: "" };
-  return { iconKind: "none", iconName: "", iconImage: "" };
+  const name = normalizeAgentIconName(toText(record.name));
+  const iconColor = toText(record.color);
+  if (name || iconColor) return { iconKind: "builtin", iconName: name || "", iconImage: "", iconColor };
+  return { iconKind: "none", iconName: "", iconImage: "", iconColor: "" };
 }
 
 export function buildIconValue(form: AgentFormState): unknown {
   if (form.iconKind === "image") return form.iconImage.trim() || undefined;
-  if (form.iconKind === "builtin")
-    return form.iconName.trim() ? { name: form.iconName.trim() } : undefined;
+  if (form.iconKind === "builtin") return {
+    name: normalizeAgentIconName(form.iconName) || defaultAgentIconName(form.mode),
+    ...(form.iconColor?.trim() ? { color: form.iconColor.trim() } : {}),
+  };
   return undefined;
 }
 

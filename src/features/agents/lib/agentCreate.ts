@@ -17,6 +17,7 @@ export function buildCoderAgentCreateRequest(
     definition: {
       ...(name ? { name } : {}),
       mode: "CODER",
+      icon: { name: "coder" },
       // Platform never infers the engine from acpBridgeId; it must be explicit.
       ...(options.acpBridgeId ? { engine: "acp" } : {}),
       runtimeConfig,
@@ -35,6 +36,7 @@ export function buildKbaseAgentCreateRequest(
     definition: {
       ...(name ? { name } : {}),
       mode: "KBASE",
+      icon: { name: "kbase" },
       runtimeConfig: { workspaceRoot: workspaceDir },
     },
   };

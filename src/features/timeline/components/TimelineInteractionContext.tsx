@@ -4,8 +4,10 @@ import type { OpenTargetIntent } from "@/features/surfaces/lib/openTarget";
 import type { ContentSegment, ContentViewBinding } from "@/shared/contracts/contentSegments";
 import type { MarkdownContentProps } from "@/features/viewers/components/MarkdownContent";
 import type { DesktopContextMenuTargetDescriptor } from "@/shared/data/desktop/desktopContextMenu";
+import type { RunActivityAppearance } from "../lib/runActivityAppearance";
 
 export interface TimelineInteractionValue {
+  activityAppearance?: RunActivityAppearance;
   conversationActive?: boolean;
   openChat?: (chat: import("../lib/timelineState").RelatedChat) => void;
   /** Ends a root-Run wait early with a blank steer; resolves false when not accepted. */

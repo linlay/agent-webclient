@@ -1036,6 +1036,7 @@ describe("LeftSidebar", () => {
       definition: {
         name: "agent-coder",
         mode: "CODER",
+        icon: { name: "coder" },
         runtimeConfig: {
             workspaceRoot: "/Users/demo/Project/agent-coder"
         }
@@ -1053,6 +1054,7 @@ describe("LeftSidebar", () => {
       definition: {
         name: "ACP Coder",
         mode: "CODER",
+        icon: { name: "coder" },
         engine: "acp",
         runtimeConfig: {
           workspaceRoot: "/Users/demo/Project/acp-coder",
@@ -1074,6 +1076,7 @@ describe("LeftSidebar", () => {
       definition: {
         name: "My KB",
         mode: "KBASE",
+        icon: { name: "kbase" },
         runtimeConfig: {
             workspaceRoot: "/Users/demo/Knowledge/my-project"
         }
@@ -1081,7 +1084,7 @@ describe("LeftSidebar", () => {
     });
     expect(result).not.toHaveProperty("key");
     expect(result.definition).not.toHaveProperty("key");
-    expect(result.definition).not.toHaveProperty("icon");
+    expect(result.definition.icon).toEqual({ name: "kbase" });
     expect(result.definition).not.toHaveProperty("workspace");
     expect(result.definition).not.toHaveProperty("kbaseConfig");
     expect(JSON.stringify(result)).not.toContain("openai");

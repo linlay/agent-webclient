@@ -11,9 +11,9 @@ import {
 } from "../lib/agentSelection";
 import "./AgentSwitcherPopover.module.css";
 const TIMELINE_EMPTY_AGENT_SWITCHER_CLASS_NAME =
-  "timeline-empty-agent-switcher tw:relative tw:inline-flex tw:align-baseline";
+  "timeline-empty-agent-switcher tw:relative tw:inline-block tw:align-baseline";
 const TIMELINE_AGENT_SWITCHER_TRIGGER_CLASS_NAME =
-  "timeline-agent-switcher-trigger tw:m-0 tw:inline-flex tw:max-w-[min(300px,62vw)] tw:items-center tw:rounded-lg tw:border-0 tw:bg-transparent tw:px-[5px] tw:py-px tw:font-[inherit] tw:font-extrabold tw:leading-[1.25] tw:text-ink-1 tw:align-baseline tw:shadow-none tw:hover:bg-[color-mix(in_srgb,var(--accent-soft)_58%,transparent)] tw:hover:text-accent-electric-strong tw:focus-visible:bg-[color-mix(in_srgb,var(--accent-soft)_58%,transparent)] tw:focus-visible:text-accent-electric-strong tw:focus-visible:outline-none tw:active:transform-none";
+  "timeline-agent-switcher-trigger tw:m-0 tw:inline-flex tw:max-w-[min(300px,62vw)] tw:items-baseline tw:rounded-lg tw:border-0 tw:bg-transparent tw:px-[5px] tw:py-px tw:font-[inherit] tw:font-extrabold tw:leading-[inherit] tw:text-ink-1 tw:align-baseline tw:shadow-none tw:hover:bg-[color-mix(in_srgb,var(--accent-soft)_58%,transparent)] tw:hover:text-accent-electric-strong tw:focus-visible:bg-[color-mix(in_srgb,var(--accent-soft)_58%,transparent)] tw:focus-visible:text-accent-electric-strong tw:focus-visible:outline-none tw:active:transform-none";
 const TIMELINE_AGENT_SWITCHER_TRIGGER_NAME_CLASS_NAME =
   "timeline-agent-switcher-trigger-name tw:min-w-0 tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap";
 const TIMELINE_AGENT_SWITCHER_MENU_CLASS_NAME =
@@ -145,7 +145,7 @@ export const AgentSwitcherPopover: React.FC<{
                 {filteredOptions.map((option) => {
                   const selected = option.key === currentAgentKey;
                   return (
-                    <button
+                    <button data-agent-identity=""
                       key={option.key}
                       className={[
                         TIMELINE_AGENT_SWITCHER_OPTION_CLASS_NAME,
@@ -210,9 +210,9 @@ export const AgentSwitcherPopover: React.FC<{
         {renderTrigger ? (
           renderTrigger(open && !disabled)
         ) : (
-          <button
+          <button data-agent-identity=""
             disabled={disabled}
-            className={TIMELINE_AGENT_SWITCHER_TRIGGER_CLASS_NAME}
+            className={`${TIMELINE_AGENT_SWITCHER_TRIGGER_CLASS_NAME} tw:gap-2`}
             type="button"
             aria-haspopup="listbox"
             aria-expanded={open}

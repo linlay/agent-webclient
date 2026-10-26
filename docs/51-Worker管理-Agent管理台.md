@@ -89,3 +89,23 @@ ZIP 页签支持拖放、文件选择和更换，前端先校验 `.zip`、非空
 ## 对话入口配置
 
 结构化表单的“对话输入”支持规划入口、Workspace 编辑入口和终端入口，对应 interactionConfig.showPlanningMode/showEditingMode/showTerminal。它们只控制入口显示，不增加运行权限。默认预览与 Platform 模板一致：四种 Native Agent 都显示规划，只有 KBASE 显示编辑，只有 CODER 显示终端。保存只写用户显式覆盖的字段，false 必须保留；“恢复类型默认值”删除 interactionConfig 覆盖，不把预览默认值固化进 agent.yml。
+
+
+### 智能体图标与颜色
+
+`mode` 与 `icon` 独立。管理页内置图标只有 general、coder、kbase、team、executor、proxy 六款，使用各自确认的默认静态造型；颜色可选色板、自定义或清空以继承主题。动画只用于运行中的 activity，同样按 icon.name 与 icon.color 选择轮廓与颜色。
+
+```yaml
+mode: CODER
+icon:
+  name: proxy
+  color: "#358E8A"
+```
+
+创建草稿在尚未手动选择图标时随类型给默认值；手动选择图标后保持选择。保存后修改 mode 不覆盖已有图标。Platform 的结构化创建在缺少 icon 时将默认 name 写入 agent.yml，显式 name、color 和外部图片地址保留。旧配置不因读取改写；旧内置名称通过展示兼容映射，结构化编辑明确保存时使用规范名称。外部图片继续兼容。
+
+底座位于 shared/icons/agentAppearance.ts、AgentCharacterGlyph.tsx 与 AgentDefaultPose.tsx，普通头像为 inline SVG currentColor；页面不再使用旧 SVG 图片进行着色。导出快照保留可选 mode/iconColor 以及子任务对应字段，旧快照仍可读取。
+
+智能体头像下方使用随 currentColor 着色的浅椭圆落地影子，不增加整块背景或边框。名称与图标共用 data-agent-identity 悬停/聚焦区域，触发轻微歪头和眨眼，影子随抬起动作轻微收缩；离开后恢复默认静态造型，减少动态效果设置下关闭动画。
+
+Main Chat 空态标题的头像为独立的 40px 元素，不放进名称切换按钮；名称保留点击切换，头像与正文使用文本基线协调对齐。

@@ -1,9 +1,11 @@
+import { AGENT_ICON_COLORS } from "@/shared/icons/agentAppearance";
 import { bindCssModuleClasses } from "@/shared/utils/cssModuleClasses";
 import modelPresentation from "@/features/model-config/components/ModelMenu.module.css";
 import React from "react";
 import { interactionDefaults } from "@/shared/contracts/interaction";
 import {
   Dropdown,
+  Flex,
   Input,
   Popover,
   Select,
@@ -197,9 +199,10 @@ export const AgentEditor: React.FC<AgentEditorProps> = (props) => {
         <div className="agent-basic-identity">
           <div className="agent-identity-avatar-column">
             <div className="agent-icon-picker">
-              <div className="agent-identity-avatar" aria-hidden="true">
+              <div data-agent-identity="" className="agent-identity-avatar" aria-hidden="true">
                 <AgentIcon
                   icon={selectedIconValue as any}
+                  mode={form.mode}
                   type="agent"
                   props={{
                     icon: { width: 80, height: 80 },
@@ -261,7 +264,7 @@ export const AgentEditor: React.FC<AgentEditorProps> = (props) => {
                           value={form.iconName || undefined}
                           options={AGENT_ICON_NAMES.map((name) => ({
                             value: name,
-                            label: name,
+                            label: <Flex data-agent-identity="" gap={8} align="center"><AgentIcon type="agent" icon={{ name, color: form.iconColor }} props={{ icon: { width: 22, height: 22 } }} />{t(`agentConsole.icon.${name}`)}</Flex>,
                           }))}
                           onChange={(value) =>
                             updateForm({ iconName: value || "" })
@@ -269,6 +272,25 @@ export const AgentEditor: React.FC<AgentEditorProps> = (props) => {
                         />
                       </div>
                     )}
+                    {form.iconKind === "builtin" && <div className="field-group">
+                      <label htmlFor="agent-icon-color-input">{t("agentConsole.field.iconColor")}</label>
+                      <Flex gap={8} align="center">
+                        <input type="color" aria-label={t("agentConsole.field.iconColor")}
+                          value={/^#[0-9a-f]{6}$/i.test(form.iconColor || "") ? form.iconColor : "#426c4b"}
+                          onChange={event => updateForm({ iconColor: event.target.value })} />
+                        <Input id="agent-icon-color-input" value={form.iconColor || ""} allowClear
+                          placeholder={t("agentConsole.field.iconColor.inherit")}
+                          onChange={event => updateForm({ iconColor: event.target.value })} />
+                      </Flex>
+                      <Flex gap={6} wrap style={{ marginTop: 8 }}>
+                        {AGENT_ICON_COLORS.map(color => <UiButton key={color} size="mini" variant="ghost"
+                          aria-label={t("agentConsole.field.iconColor.select", { color })}
+                          aria-pressed={form.iconColor?.toUpperCase() === color}
+                          onClick={() => updateForm({ iconColor: color })}>
+                          <span style={{ display: "block", width: 16, height: 16, borderRadius: "50%", background: color }} />
+                        </UiButton>)}
+                      </Flex>
+                    </div>}
                     {form.iconKind === "image" && (
                       <div className="field-group">
                         <label htmlFor="agent-icon-image-input">

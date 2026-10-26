@@ -1,18 +1,1 @@
-<svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <defs>
-    <linearGradient id="g-kbase-agent" x1="7" y1="6" x2="41" y2="42" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#38BDF8"/>
-      <stop offset="0.48" stop-color="#2563EB"/>
-      <stop offset="1" stop-color="#4F46E5"/>
-    </linearGradient>
-  </defs>
-  <path d="M7 12.8C13.4 10.3 19.2 11.7 23.6 16.2V39.2C19 35.6 13.4 34.3 7 36.9V12.8Z" stroke="url(#g-kbase-agent)" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M41 12.8C34.6 10.3 28.8 11.7 24.4 16.2V39.2C29 35.6 34.6 34.3 41 36.9V12.8Z" stroke="url(#g-kbase-agent)" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M24 16.5V39.2" stroke="url(#g-kbase-agent)" stroke-width="2.8" stroke-linecap="round"/>
-  <path d="M11.6 19.8C15.7 18.5 19.3 19.3 21.7 21.7" stroke="#93C5FD" stroke-width="2" stroke-linecap="round"/>
-  <path d="M11.6 25.3C15.7 24 19.3 24.8 21.7 27.2" stroke="#93C5FD" stroke-width="2" stroke-linecap="round"/>
-  <path d="M11.6 30.8C15.7 29.5 19.3 30.3 21.7 32.7" stroke="#93C5FD" stroke-width="2" stroke-linecap="round"/>
-  <path d="M26.3 21.7C28.7 19.3 32.3 18.5 36.4 19.8" stroke="#93C5FD" stroke-width="2" stroke-linecap="round"/>
-  <path d="M26.3 27.2C28.7 24.8 32.3 24 36.4 25.3" stroke="#93C5FD" stroke-width="2" stroke-linecap="round"/>
-  <path d="M26.3 32.7C28.7 30.3 32.3 29.5 36.4 30.8" stroke="#93C5FD" stroke-width="2" stroke-linecap="round"/>
-</svg>
+<svg viewBox="20 35 160 145"  xmlns="http://www.w3.org/2000/svg" ><g class="gesture"><g transform="rotate(-2 100 100)"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" d="M63 50 H42 V150 H63 M137 50 H158 V150 H137" style="stroke-width:13"/><g transform="translate(-4 2)"><g class="eyes"><rect x="73" y="87" width="13" height="21" rx="6.5" fill="currentColor" /><rect x="114" y="91" width="13" height="17" rx="6.5" fill="currentColor" /></g><path d="M94 124 Q101 128 107 124" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" style="stroke-width:6.5"/></g></g></g></svg>

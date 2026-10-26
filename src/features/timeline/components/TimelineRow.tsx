@@ -419,7 +419,7 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
         data-task-id={taskID || undefined}
       >
         <div className={TIMELINE_MARKER_CLASS_NAME}>
-          <RunActivityIcon />
+          <RunActivityIcon {...interaction?.activityAppearance} />
         </div>
         <div className={`${TIMELINE_FLOW_CONTENT_CLASS_NAME} tw:text-[13px]`} role="status" aria-live="polite">
           <Skeleton active={true} text={node.text || ""} />

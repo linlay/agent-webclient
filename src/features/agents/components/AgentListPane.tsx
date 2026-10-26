@@ -190,7 +190,7 @@ const SortableAgentListItem: React.FC<{
     </Flex>
   );
   const itemNode = (
-    <div
+    <div data-agent-identity=""
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
       role="button"
@@ -214,7 +214,7 @@ const SortableAgentListItem: React.FC<{
           {...listeners}
         >
           <AgentIcon
-            icon={agent.icon}
+            icon={agent.icon} mode={agent.mode}
             type="agent"
             props={{
               icon: {

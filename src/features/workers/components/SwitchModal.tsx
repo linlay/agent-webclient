@@ -140,7 +140,7 @@ export const SwitchModal: React.FC<{
               onClick={() => onSelect(index)}
             >
               {isCopilot ? (
-                <div className="command-switch-compact-row">
+                <div data-agent-identity="" className="command-switch-compact-row">
                   <AgentIcon
                     icon={workerIconsByKey?.get(row.key)}
                     type={row.type}

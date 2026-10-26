@@ -39,7 +39,7 @@ export const WorkerChatPreviewItem: React.FC<{
   const showAutomationSource = String(chat.source || "").trim().startsWith("automation:");
   const isBusy = chat.hasPendingAwaiting || loading || isChatActiveRun(chat);
   const hasStatus = showAutomationSource || isBusy || isChatUnread(chat);
-  const owner = ownerLabel && <span className={`${styles.owner} pinned-chat-owner`} title={ownerLabel}>
+  const owner = ownerLabel && <span data-agent-identity="" className={`${styles.owner} pinned-chat-owner`} title={ownerLabel}>
     {ownerType && <AgentIcon icon={ownerIcon} type={ownerType} props={{ icon: { className: "pinned-chat-owner-icon", width: 12, height: 12, style: { borderRadius: 3 } }, avatar: { className: "pinned-chat-owner-icon", size: 12 } }} />}
     <SidebarOverflowText text={ownerLabel} className={`${styles.ownerLabel} pinned-chat-owner-label`} />
   </span>;

@@ -33,6 +33,7 @@ jest.mock("antd", () => {
     Dropdown: ({ children }: { children?: unknown }) =>
       React.createElement("div", { className: "mock-dropdown" }, children),
     Input,
+    Flex: ({ children }: any) => React.createElement("div", null, children),
     Modal,
     Popover: ({ children, classNames, content }: any) =>
       React.createElement(

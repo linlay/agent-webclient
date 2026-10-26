@@ -1,4 +1,6 @@
+import { AgentIcon } from "@/shared/icons/agent";
 import { useRunActivityTimeline } from "../hooks/useRunActivityTimeline";
+import { resolveRunActivityAppearance } from "../lib/runActivityAppearance";
 import { chatDetailLevel } from "@/features/chats/lib/chatDetailLevel";
 import { referenceIds } from "@/shared/contracts/references";
 import { bindCssModuleClasses } from "@/shared/utils/cssModuleClasses";
@@ -1417,33 +1419,31 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
     return () => observer.disconnect();
   }, []);
 
+  const emptyAgent = state.agents.find(agent => agent.key === currentWorker?.sourceId);
+  const emptyAgentIdentity = (
+    <span className="timeline-empty-agent-identity tw:inline-flex tw:items-baseline tw:gap-2 tw:align-baseline">
+      <span data-agent-identity="" className="timeline-empty-agent-icon tw:inline-flex tw:self-center">
+        <AgentIcon type="agent" icon={emptyAgent?.icon} mode={emptyAgent?.mode} props={{ icon: { width: 40, height: 40 } }} />
+      </span>
+      {canSwitchEmptyAgent ? (
+        <TimelineAgentSwitcher currentWorker={currentWorker} options={timelineAgentOptions} />
+      ) : <span>{currentWorker?.displayName}</span>}
+    </span>
+  );
   const emptyStateContent = !state.chatId && showEmptyState && (
     <div className={TIMELINE_EMPTY_CLASS_NAME}>
       {greeting ? greeting.split("${agent}").map((part, index) => (
         <React.Fragment key={index}>
-          {index > 0 && (canSwitchEmptyAgent ? (
-            <TimelineAgentSwitcher currentWorker={currentWorker} options={timelineAgentOptions} />
-          ) : currentWorker?.displayName)}
+          {index > 0 && emptyAgentIdentity}
           {part}
         </React.Fragment>
-      )) : (currentWorker?.displayName ? (
-        canSwitchEmptyAgent ? (
-          <>
-            {t("timeline.empty.withAgentPrefix")}
-            <TimelineAgentSwitcher
-              currentWorker={currentWorker}
-              options={timelineAgentOptions}
-            />
-            {t("timeline.empty.withAgentSuffix")}
-          </>
-        ) : (
-          t("timeline.empty.withWorker", {
-            name: currentWorker.displayName,
-          })
-        )
-      ) : (
-        t("timeline.empty.default")
-      ))}
+      )) : currentWorker?.displayName ? (
+        <>
+          {t("timeline.empty.withAgentPrefix")}
+          {emptyAgentIdentity}
+          {t("timeline.empty.withAgentSuffix")}
+        </>
+      ) : t("timeline.empty.default")}
     </div>
   );
 
@@ -1628,6 +1628,7 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
 
   const waitTransport = useRunTransport();
   const interaction = useMemo<TimelineInteractionValue>(() => ({
+    activityAppearance: resolveRunActivityAppearance(state.agents.find(agent => agent.key === resolvePreferredAgentKey(state))),
     // "Continue now" is a blank steer, which Platform treats as "continue"; a
     // request.steer without content renders no user message.
     continueWait: async (runId) => {

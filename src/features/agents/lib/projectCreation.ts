@@ -1,3 +1,4 @@
+import { defaultAgentIconName } from "@/shared/icons/agentAppearance";
 import { selectedCreationDefinition } from "@/shared/creation/creation-profile";
 import type {
   AgentCreationGroupOption,
@@ -158,6 +159,7 @@ export function buildProjectCreateRequest(
     // Agent Platform never infers the engine from acpBridgeId. The external
     // engine manages its own capabilities and takes no model or groups.
     definition.mode = "CODER";
+    definition.icon ??= { name: "coder" };
     definition.engine = "acp";
     runtimeConfig.acpBridgeId = selection.acpBridgeId;
     definition.runtimeConfig = runtimeConfig;
@@ -165,6 +167,7 @@ export function buildProjectCreateRequest(
   }
   Object.assign(definition, selectedCreationDefinition(options, selection.typeKey, selection.groups));
   definition.mode = type?.mode ?? selection.typeKey.toUpperCase();
+  definition.icon ??= { name: defaultAgentIconName(String(definition.mode)) };
   definition.runtimeConfig = runtimeConfig;
   // Only a model that differs from the type default is sent; otherwise Agent
   // Platform applies its own configured default.

@@ -1,3 +1,4 @@
+import { defaultAgentIconName } from "@/shared/icons/agentAppearance";
 import { ExecuteAgentModal } from "@/features/execute/components/ExecuteAgentModal";
 import { skillDisplayName } from "@/shared/utils/skillDisplayName";
 import { EditMenuButton } from "@/shared/ui/EditMenuButton";
@@ -220,6 +221,7 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
   });
   const [formMode, setFormMode] = useState<AgentFormMode>("create");
   const [editorMode, setEditorMode] = useState<AgentEditorMode>("structured");
+  const iconCustomizedRef = useRef(false);
   const [iconEditorOpen, setIconEditorOpen] = useState(false);
   const [form, setForm] = useState<AgentFormState>(createEmptyAgentForm);
   const [executeAgentKey, setExecuteAgentKey] = useState("");
@@ -488,10 +490,10 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
   );
   const selectedIconValue = useMemo(() => {
     if (form.iconKind === "image") return form.iconImage;
-    if (form.iconKind === "builtin" && form.iconName)
-      return { name: form.iconName };
+    if (form.iconKind === "builtin")
+      return { name: form.iconName || defaultAgentIconName(form.mode), ...(form.iconColor?.trim() ? { color: form.iconColor.trim() } : {}) };
     return undefined;
-  }, [form.iconImage, form.iconKind, form.iconName]);
+  }, [form.iconImage, form.iconKind, form.iconName, form.iconColor, form.mode]);
   const detailDiagnostics = useMemo(
     () => readAdminAgentDiagnostics(detail),
     [detail],
@@ -614,6 +616,7 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
   );
 
   const resetToCreate = useCallback(() => {
+    iconCustomizedRef.current = false;
     sourceLoadSeqRef.current += 1;
     loadedDetailKeyRef.current = "";
     setFormMode("create");
@@ -883,6 +886,7 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
   }, [formMode, effectiveSelectedKey, loadingList, resetToCreate, localAgents.length]);
 
   const updateForm = (patch: Partial<AgentFormState>) => {
+    if ("iconKind" in patch || "iconName" in patch || "iconImage" in patch) iconCustomizedRef.current = true;
     setForm((current) => ({ ...current, ...patch }));
     setStructuredDirty(true);
     setFormError("");
@@ -1130,6 +1134,9 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
   );
 
   const setMode = (mode: string) => {
+    if (formMode === "create" && !iconCustomizedRef.current) {
+      setForm(current => ({ ...current, iconKind: "builtin", iconName: defaultAgentIconName(mode) }));
+    }
     if (mode === "PROXY" && !form.proxyConfigText.trim()) {
       updateForm({
         mode,

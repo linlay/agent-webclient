@@ -41,9 +41,9 @@ const snapshot: ConversationSnapshotV1 = {
 
 it("uses each run's assistant identity and falls back for an older turn", () => {
   const html = renderToStaticMarkup(React.createElement(ConversationExportDocument, { snapshot }));
-  expect(html).toContain('src="icon-terminal"');
+  expect(html).toContain('data-agent-icon-name="coder"');
   expect(html).toContain("小君");
-  expect(html).toContain('src="default-icon"');
+  expect(html).toContain('data-agent-icon-name="general"');
   expect(html).toContain("助手");
   expect(html).not.toContain("继续聊");
   expect(html).not.toContain("复制对话");

@@ -60,8 +60,8 @@ export const HistoryFilter: React.FC<HistoryFilterProps> = ({
     const options = agents.map((agent) => ({
       value: String(agent.key || ""),
       label: (
-        <span className="history-filter-agent-option">
-          <AgentIcon icon={agent.icon} type="agent" props={AGENT_ICON_PROPS} />
+        <span data-agent-identity="" className="history-filter-agent-option">
+          <AgentIcon icon={agent.icon} mode={agent.mode} type="agent" props={AGENT_ICON_PROPS} />
           <span
             className="history-filter-agent-name"
             title={agent.name || agent.key}
