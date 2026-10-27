@@ -87,6 +87,7 @@ import {
 import type { ConversationSurfaceMode } from "@/features/conversation/lib/conversationState";
 import type { TimelineNode } from "@/features/timeline/lib/timelineState";
 import { LogoLoading } from "@/shared/components/logo-loading";
+import { DotLoading } from "@/shared/components/dot-loading";
 import { resolveMainChatRuntime } from "@/features/runs/lib/runRuntimeState";
 import { useAppMessage } from "@/shared/ui/useAppMessage";
 import type {
@@ -1674,12 +1675,8 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
     </div>
   );
 
-  // 运行中的按钮画的是角色头像，交互不能只认那 32px 的圆钮：把整块对话区域声明成
-  // 体验区，指针进入对话就唤醒角色（视线跟随 + 眨眼），按钮本身只保留点按/聚焦。
   const scrollToBottomRunning = isMainChatRunning || state.streaming;
   const showScrollToBottomControl = Boolean(state.chatId) && scrollToBottomVisible;
-  const agentPointerSurface =
-    scrollToBottomRunning && showScrollToBottomControl ? "" : undefined;
 
   const renderScrollToBottomControl = () => {
     // 已在底部时不展示：内容还在视口里时这个按钮没有意义。
@@ -1702,19 +1699,13 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
             className={CONVERSATION_STAGE_SCROLL_TO_BOTTOM_CLASS_NAME}
             iconOnly
             size="sm"
-            aria-label={t("conversationStage.scrollToBottom")}
-            data-agent-identity=""
             onClick={handleScrollToBottomClick}
           >
             {scrollToBottomRunning ? (
-              // 运行中用当前 Agent 的角色形象表示进行中：指针在对话区域内即跟随视线
-              // 并眨眼，靠近图形或点按时打招呼。静态图形不承载状态语义，可访问名由
-              // 按钮的 aria-label 提供。
-              <AgentIcon
-                type="agent"
-                icon={currentAgent?.icon}
-                mode={currentAgent?.mode}
-                props={{ icon: { width: 20, height: 20 } }}
+              <DotLoading
+                color="primary"
+                height={15}
+                ariaLabel={t("leftSidebar.loading")}
               />
             ) : (
               <MaterialIcon name="arrow_downward" />
@@ -1957,11 +1948,7 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
 
   return (
     <TimelineInteractionProvider value={interaction}>
-    <div
-      className={CONVERSATION_STAGE_CLASS_NAME}
-      ref={containerRef}
-      data-agent-pointer-surface={agentPointerSurface}
-    >
+    <div className={CONVERSATION_STAGE_CLASS_NAME} ref={containerRef}>
       <div
         className="tw:absolute tw:inset-0 tw:flex tw:flex-col"
         data-conversation-content="timeline"
