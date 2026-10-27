@@ -1,7 +1,7 @@
 export const AGENT_ICON_NAMES = ["general", "coder", "kbase", "team", "executor", "proxy"] as const;
 export type AgentIconName = typeof AGENT_ICON_NAMES[number];
 export type AgentIconConfig = string | { name?: string; color?: string };
-export const AGENT_ICON_COLORS = ["#426C4B", "#4370B4", "#987B40", "#8D64A9", "#B96942", "#358E8A", "#C14E86", "#697586"] as const;
+export const AGENT_ICON_COLORS = ["#426C4B", "#4370B4", "#987B40", "#8D64A9", "#B96942", "#358E8A"] as const;
 const MODE_ICONS: Record<string, AgentIconName> = { CODER: "coder", KBASE: "kbase", TEAM: "team", EXECUTOR: "executor", PROXY: "proxy" };
 export function defaultAgentIconName(mode?: string): AgentIconName {
   return MODE_ICONS[mode?.trim().toUpperCase() || ""] || "general";

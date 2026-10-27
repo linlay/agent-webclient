@@ -87,7 +87,6 @@ import {
 import type { ConversationSurfaceMode } from "@/features/conversation/lib/conversationState";
 import type { TimelineNode } from "@/features/timeline/lib/timelineState";
 import { LogoLoading } from "@/shared/components/logo-loading";
-import { DotLoading } from "@/shared/components/dot-loading";
 import { resolveMainChatRuntime } from "@/features/runs/lib/runRuntimeState";
 import { useAppMessage } from "@/shared/ui/useAppMessage";
 import type {
@@ -105,6 +104,7 @@ import {
 } from "@/features/timeline/lib/conversationScrollBookmark";
 import {
   CONVERSATION_AT_BOTTOM_THRESHOLD_PX,
+  CONVERSATION_SCROLL_BUTTON_REVEAL_DELAY_MS,
   CONVERSATION_SCROLL_SETTLE_DELAY_MS,
   isWithinConversationFollowThreshold,
   resolveConversationFollowIntent,
@@ -534,7 +534,7 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
   const [expandedRunCollapses, setExpandedRunCollapses] = useState<
     Record<string, boolean>
   >({});
-  const [isAtBottom, setIsAtBottom] = useState(true);
+  const [scrollToBottomVisible, setScrollToBottomVisible] = useState(false);
   const [containerWidth, setContainerWidth] = useState(0);
   const isAtBottomRef = useRef(true);
   // 跟随意图独立于“当前是否在底部”：内容长高会让 atBottom 短暂变 false，
@@ -543,6 +543,7 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
   const lastScrollerScrollTopRef = useRef(0);
   const pinFrameRef = useRef<number | null>(null);
   const explicitScrollTimerRef = useRef<number | null>(null);
+  const scrollToBottomRevealTimerRef = useRef<number | null>(null);
   const restorationReadyRef = useRef(false);
   const scrollerScrollListenerRef = useRef<(() => void) | null>(null);
   const restoringRef = useRef(false);
@@ -1060,6 +1061,44 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
     };
   }, []);
 
+  const clearScrollToBottomRevealTimer = useCallback(() => {
+    if (scrollToBottomRevealTimerRef.current !== null) {
+      window.clearTimeout(scrollToBottomRevealTimerRef.current);
+      scrollToBottomRevealTimerRef.current = null;
+    }
+  }, []);
+
+  const hideScrollToBottom = useCallback(() => {
+    clearScrollToBottomRevealTimer();
+    setScrollToBottomVisible(false);
+  }, [clearScrollToBottomRevealTimer]);
+
+  const showScrollToBottom = useCallback(() => {
+    clearScrollToBottomRevealTimer();
+    setScrollToBottomVisible(true);
+  }, [clearScrollToBottomRevealTimer]);
+
+  // 生长把内容顶出视口时先给贴底一帧机会；只有缺口真的留在那里才亮按钮。
+  const revealScrollToBottomLater = useCallback(() => {
+    if (scrollToBottomRevealTimerRef.current !== null) return;
+    scrollToBottomRevealTimerRef.current = window.setTimeout(() => {
+      scrollToBottomRevealTimerRef.current = null;
+      const scroller = scrollerRef.current;
+      if (!scroller) return;
+      // 以真实滚动位置为准：期间可能已经贴底，只是 atBottom 回调还没回来。
+      if (
+        isWithinConversationFollowThreshold({
+          scrollHeight: scroller.scrollHeight,
+          clientHeight: scroller.clientHeight,
+          scrollTop: scroller.scrollTop,
+        })
+      ) {
+        return;
+      }
+      setScrollToBottomVisible(true);
+    }, CONVERSATION_SCROLL_BUTTON_REVEAL_DELAY_MS);
+  }, []);
+
   const trackScrollerScroll = useCallback(() => {
     const scroller = scrollerRef.current;
     if (!scroller) return;
@@ -1067,17 +1106,24 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
     const previousScrollTop = lastScrollerScrollTopRef.current;
     lastScrollerScrollTopRef.current = scrollTop;
     if (restoringRef.current) return;
+    const atBottom = isWithinConversationFollowThreshold({
+      scrollHeight: scroller.scrollHeight,
+      clientHeight: scroller.clientHeight,
+      scrollTop,
+    });
     followActiveRef.current = resolveConversationFollowIntent({
       following: followActiveRef.current,
-      atBottom: isWithinConversationFollowThreshold({
-        scrollHeight: scroller.scrollHeight,
-        clientHeight: scroller.clientHeight,
-        scrollTop,
-      }),
+      atBottom,
       scrollTop,
       previousScrollTop,
     });
-  }, []);
+    if (atBottom) {
+      hideScrollToBottom();
+    } else if (!followActiveRef.current) {
+      // 用户已经主动停在非底部位置：立即给按钮反馈，不走防抖。
+      showScrollToBottom();
+    }
+  }, [hideScrollToBottom, showScrollToBottom]);
   const trackScrollerScrollRef = useRef(trackScrollerScroll);
   trackScrollerScrollRef.current = trackScrollerScroll;
 
@@ -1131,8 +1177,13 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
     // 只有真实的向上滚动（scroll 事件）才算用户离开底部。
     if (atBottom) followActiveRef.current = true;
     isAtBottomRef.current = atBottom;
-    setIsAtBottom(atBottom);
-  }, []);
+    if (atBottom) {
+      hideScrollToBottom();
+    } else {
+      // 内容生长会在下一帧被贴底修复；先不亮按钮，避免每个 chunk 闪一下。
+      revealScrollToBottomLater();
+    }
+  }, [hideScrollToBottom, revealScrollToBottomLater]);
 
   const pinConversationToBottom = useCallback(() => {
     virtuosoRef.current?.scrollToIndex({
@@ -1230,7 +1281,7 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
     }
     followActiveRef.current = true;
     isAtBottomRef.current = true;
-    setIsAtBottom(true);
+    hideScrollToBottom();
     virtuosoRef.current?.scrollToIndex({
       index: "LAST",
       behavior: "smooth",
@@ -1249,6 +1300,7 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
       pinConversationToBottom();
     }, CONVERSATION_SCROLL_SETTLE_DELAY_MS);
   }, [
+    hideScrollToBottom,
     pinConversationToBottom,
     restorationReady,
     state.chatId,
@@ -1311,7 +1363,11 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
       resolvedBookmarkIndex < 0,
     );
     isAtBottomRef.current = shouldRestoreBottom;
-    setIsAtBottom(shouldRestoreBottom);
+    if (shouldRestoreBottom) {
+      hideScrollToBottom();
+    } else {
+      showScrollToBottom();
+    }
     followActiveRef.current = shouldRestoreBottom;
     restoreTargetModeRef.current = shouldRestoreBottom ? "bottom" : "anchor";
     restoreAtBottomObservedRef.current = false;
@@ -1538,6 +1594,10 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
         window.clearTimeout(explicitScrollTimerRef.current);
         explicitScrollTimerRef.current = null;
       }
+      if (scrollToBottomRevealTimerRef.current !== null) {
+        window.clearTimeout(scrollToBottomRevealTimerRef.current);
+        scrollToBottomRevealTimerRef.current = null;
+      }
       if (scrollerRef.current && scrollerScrollListenerRef.current) {
         scrollerRef.current.removeEventListener(
           "scroll",
@@ -1586,11 +1646,11 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
     return () => observer.disconnect();
   }, []);
 
-  const emptyAgent = state.agents.find(agent => agent.key === currentWorker?.sourceId);
+  const currentAgent = state.agents.find(agent => agent.key === currentWorker?.sourceId);
   const emptyAgentIdentity = (
     <span className="timeline-empty-agent-identity tw:inline-flex tw:items-baseline tw:gap-2 tw:align-baseline">
       <span data-agent-identity="" className="timeline-empty-agent-icon tw:inline-flex tw:self-center">
-        <AgentIcon type="agent" icon={emptyAgent?.icon} mode={emptyAgent?.mode} props={{ icon: { width: 40, height: 40 } }} />
+        <AgentIcon type="agent" icon={currentAgent?.icon} mode={currentAgent?.mode} props={{ icon: { width: 40, height: 40 } }} />
       </span>
       {canSwitchEmptyAgent ? (
         <TimelineAgentSwitcher currentWorker={currentWorker} options={timelineAgentOptions} />
@@ -1614,17 +1674,23 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
     </div>
   );
 
+  // 运行中的按钮画的是角色头像，交互不能只认那 32px 的圆钮：把整块对话区域声明成
+  // 体验区，指针进入对话就唤醒角色（视线跟随 + 眨眼），按钮本身只保留点按/聚焦。
+  const scrollToBottomRunning = isMainChatRunning || state.streaming;
+  const showScrollToBottomControl = Boolean(state.chatId) && scrollToBottomVisible;
+  const agentPointerSurface =
+    scrollToBottomRunning && showScrollToBottomControl ? "" : undefined;
+
   const renderScrollToBottomControl = () => {
-    const running = isMainChatRunning || state.streaming;
-    // 已在底部时不展示，运行中也不展示：内容还在视口里时这个按钮没有意义。
-    if (!state.chatId || isAtBottom) {
+    // 已在底部时不展示：内容还在视口里时这个按钮没有意义。
+    if (!showScrollToBottomControl) {
       return null;
     }
     return (
       <div className={CONVERSATION_STAGE_SCROLL_TO_BOTTOM_DOCK_CLASS_NAME}>
         <Tooltip
           title={
-            running ? (
+            scrollToBottomRunning ? (
               <RunElapsedTime startTimeMs={runStartedAt} />
             ) : (
               t("conversationStage.scrollToBottom")
@@ -1636,13 +1702,19 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
             className={CONVERSATION_STAGE_SCROLL_TO_BOTTOM_CLASS_NAME}
             iconOnly
             size="sm"
+            aria-label={t("conversationStage.scrollToBottom")}
+            data-agent-identity=""
             onClick={handleScrollToBottomClick}
           >
-            {running ? (
-              <DotLoading
-                color="primary"
-                height={15}
-                ariaLabel={t("leftSidebar.loading")}
+            {scrollToBottomRunning ? (
+              // 运行中用当前 Agent 的角色形象表示进行中：指针在对话区域内即跟随视线
+              // 并眨眼，靠近图形或点按时打招呼。静态图形不承载状态语义，可访问名由
+              // 按钮的 aria-label 提供。
+              <AgentIcon
+                type="agent"
+                icon={currentAgent?.icon}
+                mode={currentAgent?.mode}
+                props={{ icon: { width: 20, height: 20 } }}
               />
             ) : (
               <MaterialIcon name="arrow_downward" />
@@ -1897,7 +1969,11 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
 
   return (
     <TimelineInteractionProvider value={interaction}>
-    <div className={CONVERSATION_STAGE_CLASS_NAME} ref={containerRef}>
+    <div
+      className={CONVERSATION_STAGE_CLASS_NAME}
+      ref={containerRef}
+      data-agent-pointer-surface={agentPointerSurface}
+    >
       <div
         className="tw:absolute tw:inset-0 tw:flex tw:flex-col"
         data-conversation-content="timeline"

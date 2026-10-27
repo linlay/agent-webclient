@@ -439,20 +439,63 @@ describe("ConversationStage scroll restoration", () => {
       container.querySelector(".conversation-stage-scroll-to-bottom"),
     ).toBeNull();
 
+    // 用户主动上滚：按钮立即出现，不等生长防抖。
+    setScrollerMetrics(2_200, 600);
+    userScrollTo(1_600);
+    userScrollTo(900);
     act(() => mockVirtuosoProps.atBottomStateChange(false));
 
     const button = container.querySelector(
       ".conversation-stage-scroll-to-bottom",
     );
     expect(button).not.toBeNull();
-    expect(button?.querySelector('[aria-label="leftSidebar.loading"]')).not.toBeNull();
+    // 运行中不画静态向下箭头，改为运行态图形。
+    expect(button?.querySelector('[data-icon="arrow_downward"]')).toBeNull();
+  });
+
+  it("does not flash the scroll-to-bottom control while content growth is pinned", () => {
+    mockState = { ...createChatState(), streaming: true };
+    mockStateRef.current = mockState;
+    renderStage();
+
+    // 内容长高：Virtuoso 先报 atBottom=false，下一帧贴底又会回到 true。
+    act(() => mockVirtuosoProps.atBottomStateChange(false));
+    expect(
+      container.querySelector(".conversation-stage-scroll-to-bottom"),
+    ).toBeNull();
+
+    act(() => mockVirtuosoProps.totalListHeightChanged(1_200));
+    act(() => mockVirtuosoProps.atBottomStateChange(true));
+    act(() => jest.advanceTimersByTime(300));
+    expect(
+      container.querySelector(".conversation-stage-scroll-to-bottom"),
+    ).toBeNull();
+  });
+
+  it("reveals the scroll-to-bottom control when the shortfall persists", () => {
+    mockState = { ...createChatState(), streaming: true };
+    mockStateRef.current = mockState;
+    renderStage();
+
+    setScrollerMetrics(2_200, 600);
+    act(() => mockVirtuosoProps.atBottomStateChange(false));
+    act(() => jest.advanceTimersByTime(249));
+    expect(
+      container.querySelector(".conversation-stage-scroll-to-bottom"),
+    ).toBeNull();
+    act(() => jest.advanceTimersByTime(1));
+    expect(
+      container.querySelector(".conversation-stage-scroll-to-bottom"),
+    ).not.toBeNull();
   });
 
   // sticky 只能在自己所在的滚动内容里生效，按钮必须挂在 conversation-stage 的
   // 定位层上，才不会随虚拟列表内容滚动。
   it("pins the scroll to bottom control outside the virtualized scroll content", () => {
     renderStage();
+    setScrollerMetrics(2_200, 600);
     act(() => mockVirtuosoProps.atBottomStateChange(false));
+    act(() => jest.advanceTimersByTime(250));
 
     const stage = container.querySelector(".conversation-stage");
     const scroller = container.querySelector(".conversation-stage-virtuoso");
