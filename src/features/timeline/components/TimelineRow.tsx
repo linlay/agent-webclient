@@ -1,5 +1,6 @@
 import { bindCssModuleClasses } from "@/shared/utils/cssModuleClasses";
 import timelinePresentation from "@/features/timeline/components/TimelinePresentation.module.css";
+import { MailBadge } from "./MailBadge";
 import { RelatedChatCards } from "./RelatedChatCards";
 import type { Agent } from "@/features/agents/lib/agentState";
 import { TimelineToolIcon } from "./TimelineToolIcon";
@@ -323,6 +324,7 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
         data-task-id={taskID || undefined}
       >
         <div className={TIMELINE_USER_STACK_CLASS_NAME}>
+          {node.mail && <MailBadge mail={node.mail} />}
           {/* 消息发出后引用只是记录：可以回看文本与批注，但不再提供"跳回原文"的定位，避免把已读的这一行再滚走。 */}
           <SelectedTextFragmentsPill
             fragments={selectedTextFragments}
@@ -389,7 +391,7 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
         </div>
         <div className={TIMELINE_FLOW_CONTENT_CLASS_NAME}>
           <div className={TIMELINE_COMMAND_LABEL_CLASS_NAME}>
-            {getCommandMessageLabel(node.messageVariant)}
+            {node.mail ? <MailBadge mail={node.mail} /> : getCommandMessageLabel(node.messageVariant)}
           </div>
           <div className="tw:flex tw:flex-wrap tw:gap-1">
             {(node.attachments || []).map((attachment, index) => (

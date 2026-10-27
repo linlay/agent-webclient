@@ -1,4 +1,4 @@
-import { readReferences, readRequestQueryText } from "@/features/events/lib/eventFields";
+import { readReferences, readRequestQueryText, readMailMetadata } from "@/features/events/lib/eventFields";
 import { MODEL_RETRY_NODE_ID, RUN_ACTIVITY_NODE_ID } from "@/shared/ui/modelRetry";
 import type { AgentEvent, AIContextCompactEvent } from "@/shared/contracts/agentEvents";
 import type {
@@ -61,7 +61,7 @@ export function processRunEvent(
   }
 
   if (type === "request.query") {
-    if (config.mode !== "replay") return commands;
+    if (config.mode !== "replay" && !event.mailId) return commands;
     const hidden = event.hidden === true ||
       (event.hidden === undefined && toText(event.role) === "automation");
     if (hidden) return commands;
@@ -75,6 +75,7 @@ export function processRunEvent(
     const taskBinding = applyTaskBindingToNode(event, state, undefined);
     commands.push({
       cmd: "USER_MESSAGE",
+      mail: readMailMetadata(event),
       references: readReferences(event),
       nodeId: `user_${suffix}`,
       text,
@@ -100,6 +101,7 @@ export function processRunEvent(
     if (event.runId) commands.push({ cmd: "SET_RUN_ID", runId: String(event.runId) });
     commands.push({
       cmd: "USER_MESSAGE",
+      mail: readMailMetadata(event),
       references: readReferences(event),
       nodeId: `${prefix}_${suffix}`,
       text,

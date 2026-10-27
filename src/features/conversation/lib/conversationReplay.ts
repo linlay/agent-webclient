@@ -375,6 +375,7 @@ function applyReplayEventCommand(rs: ReplayState, command: EventCommand): void {
         kind: 'message',
         role: 'user',
         messageVariant: command.variant,
+        mail: command.mail,
         steerId: command.steerId,
         text: command.text,
         attachments: command.attachments,

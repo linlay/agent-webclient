@@ -946,6 +946,11 @@ export function createConversationPushHandler(
 			return;
 		}
 
+		if (type === "mail.updated") {
+			window.dispatchEvent(new CustomEvent("agent:mail-updated", { detail: liveEvent }));
+			return;
+		}
+
 		if (type === "chat.updated") {
 			upsertPushChatSummary(options.dispatch, liveEvent);
 			syncAgentUnreadCountFromPush(options.dispatch, options.stateRef, liveEvent);

@@ -1,4 +1,5 @@
 import React from "react";
+import { isPlatformBackendMode } from "@/shared/config/backendMode";
 import "./SidebarSettingsMenu.module.css";
 import type { ThemeMode } from "@/shared/styles/theme";
 import { t } from "@/shared/i18n";
@@ -13,6 +14,7 @@ export interface SettingsSummaryBadge {
 }
 
 export type SidebarSettingsMenuAction =
+  | { type: "open-mailbox" }
   | { type: "open-agents" }
   | { type: "open-skills" }
   | { type: "open-settings" }
@@ -64,6 +66,7 @@ export function buildSidebarSettingsMenuSections(): SidebarSettingsMenuSection[]
       key: "entry",
       title: t("settingsMenu.section.entry"),
       items: [
+        ...(isPlatformBackendMode() ? [{ key: "open-mailbox", label: t("mailbox.title"), icon: "question_answer" as const, action: { type: "open-mailbox" as const } }] : []),
         {
           key: "open-agents",
           label: t("leftSidebar.quickActions.agents"),
