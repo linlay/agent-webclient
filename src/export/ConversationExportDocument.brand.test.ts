@@ -11,7 +11,7 @@ const { renderToStaticMarkup } = require("react-dom/server") as typeof import("r
 
 jest.mock("./brand-icons/zenmind.svg", () => "zenmind-icon");
 jest.mock("./brand-icons/cutej.svg", () => "cutej-icon");
-jest.mock("@/shared/icons/agent-icons/default.svg", () => "default-icon");
+jest.mock("@/export/brand-icons/assistant-default.svg", () => "default-icon");
 
 jest.mock("./conversationSnapshotV1", () => ({ snapshotV1PreviewData: () => ({}) }));
 jest.mock("@/shared/icons/agentIconAssets", () => ({
@@ -33,7 +33,7 @@ const snapshot: ConversationSnapshotV1 = {
   version: 1, title: "Shared conversation", locale: "zh-CN", createdAt: 1, capturedAt: 2,
   turns: [
     { runId: "run-one", queryAt: 1, startedAt: 1, outcome: "completed",
-      assistant: { name: "小君", iconName: "terminal" }, nodes: [] },
+      assistant: { name: "小君", mode: "CODER", iconName: "proxy", iconColor: "#358E8A" }, nodes: [] },
     { runId: "run-two", queryAt: 2, startedAt: 2, outcome: "completed", nodes: [] },
   ],
   attachments: [],
@@ -41,7 +41,7 @@ const snapshot: ConversationSnapshotV1 = {
 
 it("uses each run's assistant identity and falls back for an older turn", () => {
   const html = renderToStaticMarkup(React.createElement(ConversationExportDocument, { snapshot }));
-  expect(html).toContain('data-agent-icon-name="coder"');
+  expect(html).toContain('data-agent-icon-name="proxy"');
   expect(html).toContain("小君");
   expect(html).toContain('data-agent-icon-name="general"');
   expect(html).toContain("助手");

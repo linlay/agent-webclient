@@ -1,4 +1,4 @@
-import { defaultAgentIconName, normalizeAgentIconName } from "@/shared/icons/agentAppearance";
+import { defaultAgentIconName, normalizeAgentIconName, isExternalAgentIcon } from "@/shared/icons/agentAppearance";
 import { skillDisplayName } from "@/shared/utils/skillDisplayName";
 import type { Agent } from "@/features/agents/lib/agentState";
 import type { AgentSkillOption, AgentToolOption } from "@/features/agents/lib/agentOptions";
@@ -528,8 +528,9 @@ export function iconFieldsFromValue(
 ): Pick<AgentFormState, "iconKind" | "iconName" | "iconImage" | "iconColor"> {
   if (typeof value === "string" && value.trim()) {
     const name = normalizeAgentIconName(value);
-    return name ? { iconKind: "builtin", iconName: name, iconImage: "", iconColor: "" }
-      : { iconKind: "image", iconName: "", iconImage: value.trim(), iconColor: "" };
+    if (name) return { iconKind: "builtin", iconName: name, iconImage: "", iconColor: "" };
+    if (isExternalAgentIcon(value)) return { iconKind: "image", iconName: "", iconImage: value.trim(), iconColor: "" };
+    return { iconKind: "none", iconName: "", iconImage: "", iconColor: "" };
   }
   const record = asRecord(value);
   const name = normalizeAgentIconName(toText(record.name));

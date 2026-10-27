@@ -113,12 +113,12 @@ export const ConversationExportDocument: React.FC<ConversationExportDocumentProp
   const renderRunHeader: NonNullable<ConversationPreviewProps["renderRunHeader"]> = (item) => {
     const assistant = assistantByRunId.get(item.runId || "");
     return <div className={styles.assistantIdentity}>
-      <AgentIcon type="agent" mode={assistant?.mode} icon={{ name: assistant?.iconName, color: assistant?.iconColor }}
+      <AgentIcon interactive={false} type="agent" mode={assistant?.mode} icon={{ name: assistant?.iconName, color: assistant?.iconColor }}
         props={{ icon: { width: 24, height: 24 } }} />
       <strong>{assistant?.name?.trim() || copy.assistant}</strong>
     </div>;
   };
-  return <main className={styles.page}>
+  return <main data-agent-pointer-disabled="" className={styles.page}>
     <header className={styles.header}><div className={styles.headerInner}>
       <h1 title={snapshot.title}>{snapshot.title}</h1>
     </div></header>

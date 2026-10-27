@@ -114,3 +114,14 @@
 @media (prefers-reduced-motion: reduce) {
     .avatar, .avatar * { animation: none !important; transition: none; }
 }
+
+/* Pointer tracking owns its clocks; avoid competing with the hover greeting. */
+.eyeTrack { will-change: transform; }
+.eyeBlink { transform-box: fill-box; transform-origin: center; }
+.avatar[data-pointer-tracking] .avatarMotion,
+.avatar[data-pointer-tracking] .eyes,
+.avatar[data-pointer-tracking] .avatarShadow,
+.avatar[data-agent-pointer-disabled] *,
+:global([data-agent-pointer-disabled]) .avatar * {
+    animation: none !important;
+}

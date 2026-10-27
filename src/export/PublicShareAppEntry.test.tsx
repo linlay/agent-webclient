@@ -7,7 +7,7 @@ import type { PublicShareBrand } from "./publicShareBrand";
 
 jest.mock("./brand-icons/zenmind.svg", () => "zenmind-icon");
 jest.mock("./brand-icons/cutej.svg", () => "cutej-icon");
-jest.mock("@/shared/icons/agent-icons/default.svg", () => "default-icon");
+jest.mock("@/export/brand-icons/assistant-default.svg", () => "default-icon");
 
 const brand: PublicShareBrand = {
   id: "zenmind",

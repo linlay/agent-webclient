@@ -1,4 +1,4 @@
-import { defaultAgentIconName, effectiveAgentIcon, resolveAgentIcon } from "./agentAppearance";
+import { defaultAgentIconName, effectiveAgentIcon, normalizeAgentIconName, resolveAgentIcon } from "./agentAppearance";
 
 it.each([
   ["GENERAL", "general"], ["CODER", "coder"], ["KBASE", "kbase"],
@@ -8,8 +8,12 @@ it.each([
   expect(resolveAgentIcon(undefined, mode).name).toBe(name);
   expect(resolveAgentIcon({ name: "proxy", color: "#4370B4" }, mode)).toEqual({ name: "proxy", color: "#4370B4" });
 });
-it("keeps old built-in names compatible and external images intact", () => {
-  expect(resolveAgentIcon({ name: "terminal", color: "purple" }, "GENERAL")).toEqual({ name: "coder", color: "purple" });
-  expect(resolveAgentIcon({ name: "library" }, "CODER").name).toBe("kbase");
+it("retires old built-in names while keeping external images intact", () => {
+  expect(resolveAgentIcon({ name: "terminal", color: "purple" }, "GENERAL")).toEqual({ name: "general", color: "purple" });
+  expect(resolveAgentIcon({ name: "library" }, "CODER").name).toBe("coder");
   expect(effectiveAgentIcon("/assets/avatar.svg", "CODER")).toBe("/assets/avatar.svg");
+});
+
+it.each(["terminal", "ternimal", "library", "folder", "default", "portal", "code", "knowledge", "bolt", "radar"])("does not resolve retired icon name %s", name => {
+  expect(normalizeAgentIconName(name)).toBeUndefined();
 });

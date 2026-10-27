@@ -10,7 +10,7 @@ import {
 
 jest.mock("./brand-icons/zenmind.svg", () => "zenmind-icon");
 jest.mock("./brand-icons/cutej.svg", () => "cutej-icon");
-jest.mock("@/shared/icons/agent-icons/default.svg", () => "default-icon");
+jest.mock("@/export/brand-icons/assistant-default.svg", () => "default-icon");
 
 function setBrandMeta(content: string): void {
   document.head.innerHTML = `<meta name="conversation-export-public-brand">`;

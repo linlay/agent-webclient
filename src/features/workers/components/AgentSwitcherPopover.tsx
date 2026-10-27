@@ -161,6 +161,7 @@ export const AgentSwitcherPopover: React.FC<{
                       onClick={() => handleSelectAgent(option)}
                     >
                       <AgentIcon
+                        interactive={false}
                         icon={option.icon}
                         type="agent"
                         props={{
