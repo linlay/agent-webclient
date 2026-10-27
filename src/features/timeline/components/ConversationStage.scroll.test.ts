@@ -375,6 +375,30 @@ describe("ConversationStage scroll restoration", () => {
     callback(0);
   }
 
+  function scrollerElement(): HTMLElement {
+    const scroller = container.querySelector<HTMLElement>("#messages");
+    if (!scroller) throw new Error("conversation scroller missing");
+    return scroller;
+  }
+
+  /** 让 scroller 像真实布局一样可滚动，便于区分“贴底”和“上滚”。 */
+  function setScrollerMetrics(scrollHeight: number, clientHeight: number) {
+    const scroller = scrollerElement();
+    Object.defineProperties(scroller, {
+      scrollHeight: { configurable: true, get: () => scrollHeight },
+      clientHeight: { configurable: true, get: () => clientHeight },
+    });
+    return scroller;
+  }
+
+  function userScrollTo(scrollTop: number) {
+    const scroller = scrollerElement();
+    scroller.scrollTop = scrollTop;
+    act(() => {
+      scroller.dispatchEvent(new Event("scroll"));
+    });
+  }
+
   function seedCompatibleBookmark(
     overrides: Partial<NonNullable<ReturnType<typeof getConversationScrollBookmark>>>,
   ) {
@@ -876,13 +900,126 @@ describe("ConversationStage scroll restoration", () => {
     renderStage();
     expect(mockVirtuosoProps.followOutput(true)).toBe("auto");
 
-    act(() => mockVirtuosoProps.atBottomStateChange(false));
+    // 只有真实的 scrollTop 减小才算用户离开底部；单纯 atBottom 变 false
+    // 可能是内容变高，不能因此关掉跟随。
+    setScrollerMetrics(2_200, 600);
+    userScrollTo(1_600);
+    userScrollTo(200);
     expect(mockVirtuosoProps.followOutput(true)).toBe(false);
     act(() => jest.advanceTimersByTime(2_000));
     expect(mockDispatch).not.toHaveBeenCalledWith(expect.objectContaining({
       type: "APPEND_DEBUG",
       line: expect.stringContaining("chat-scroll-restore-timeout"),
     }));
+  });
+
+  it("re-pins the bottom when the timeline grows in place while following", () => {
+    const transition = createTransition("restoring");
+    mockState = createChatState(transition);
+    mockStateRef.current = mockState;
+    renderStage();
+
+    mockState = createChatState(null);
+    mockStateRef.current = mockState;
+    renderStage();
+    expect(mockVirtuosoProps.followOutput(true)).toBe("auto");
+
+    mockScrollToIndex.mockReset();
+    act(() => mockVirtuosoProps.totalListHeightChanged(1_200));
+    expect(mockScrollToIndex).toHaveBeenCalledWith({
+      index: "LAST",
+      behavior: "auto",
+      align: "end",
+    });
+  });
+
+  it("keeps following when content growth alone reports not-at-bottom", () => {
+    const transition = createTransition("restoring");
+    mockState = createChatState(transition);
+    mockStateRef.current = mockState;
+    renderStage();
+
+    mockState = createChatState(null);
+    mockStateRef.current = mockState;
+    renderStage();
+
+    // 流式回答长高：Virtuoso 会先报 atBottom=false，但没有发生向上滚动。
+    act(() => mockVirtuosoProps.atBottomStateChange(false));
+    mockScrollToIndex.mockReset();
+    act(() => mockVirtuosoProps.totalListHeightChanged(1_400));
+    expect(mockScrollToIndex).toHaveBeenCalledWith({
+      index: "LAST",
+      behavior: "auto",
+      align: "end",
+    });
+  });
+
+  it("stops re-pinning after a manual upward scroll and resumes at the bottom", () => {
+    const transition = createTransition("restoring");
+    mockState = createChatState(transition);
+    mockStateRef.current = mockState;
+    renderStage();
+
+    mockState = createChatState(null);
+    mockStateRef.current = mockState;
+    renderStage();
+
+    const scroller = setScrollerMetrics(2_200, 600);
+    userScrollTo(1_600);
+    userScrollTo(900);
+    mockScrollToIndex.mockReset();
+    act(() => mockVirtuosoProps.totalListHeightChanged(1_900));
+    expect(mockScrollToIndex).not.toHaveBeenCalled();
+
+    // 回到真实底部后恢复跟随。
+    scroller.scrollTop = 1_600;
+    act(() => {
+      scroller.dispatchEvent(new Event("scroll"));
+    });
+    mockScrollToIndex.mockReset();
+    act(() => mockVirtuosoProps.totalListHeightChanged(2_000));
+    expect(mockScrollToIndex).toHaveBeenCalledWith({
+      index: "LAST",
+      behavior: "auto",
+      align: "end",
+    });
+  });
+
+  it("settles an explicit scroll-to-bottom request with auto correction", () => {
+    mockState = createChatState(null);
+    mockStateRef.current = mockState;
+    renderStage();
+    mockScrollToIndex.mockReset();
+
+    mockState = {
+      ...mockState,
+      conversationScrollRequest: {
+        id: 1,
+        chatId: "chat-target",
+        target: "bottom",
+        reason: "user-click",
+      },
+    };
+    mockStateRef.current = mockState;
+    renderStage();
+
+    expect(mockScrollToIndex).toHaveBeenCalledWith({
+      index: "LAST",
+      behavior: "smooth",
+      align: "end",
+    });
+
+    const scroller = setScrollerMetrics(2_200, 600);
+    scroller.scrollTop = 0;
+    mockScrollToIndex.mockReset();
+    act(() => jest.advanceTimersByTime(499));
+    expect(mockScrollToIndex).not.toHaveBeenCalled();
+    act(() => jest.advanceTimersByTime(1));
+    expect(mockScrollToIndex).toHaveBeenCalledWith({
+      index: "LAST",
+      behavior: "auto",
+      align: "end",
+    });
   });
 
   it("marks an empty timeline ready without producing a timeout diagnostic", () => {
