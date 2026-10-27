@@ -17,6 +17,12 @@ export const CONVERSATION_SCROLL_USER_DELTA_PX = 1;
 /** 显式“回到底部”的平滑动画结束后，用 auto 校正残余误差。 */
 export const CONVERSATION_SCROLL_SETTLE_DELAY_MS = 500;
 
+/**
+ * 内容生长先把视口顶离底部、下一帧贴底又会回到 atBottom=true。
+ * 按钮延后这么久再出现，避免流式输出时每个 chunk 都闪一下。
+ */
+export const CONVERSATION_SCROLL_BUTTON_REVEAL_DELAY_MS = 250;
+
 /** 滚动事件里判断“仍在跟随区间”：和 atBottomThreshold 使用同一容差。 */
 export function isWithinConversationFollowThreshold(input: {
   scrollHeight: number;
