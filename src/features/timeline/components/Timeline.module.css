@@ -167,15 +167,13 @@
         left: 50%;
         transform: translateX(-50%);
         padding: 0 20px;
-
-        >[data-testid="virtuoso-item-list"] + :last-child {
-            position: sticky;
-            bottom: 0;
-            height: 60px;
-            text-align: center;
-            pointer-events: none;
-        }
     }
+}
+
+/* 列表末尾留白：主对话的“滚动到底部”按钮浮动在这段空白里，不遮挡最后一条消息。 */
+:global(.conversation-stage-bottom-spacer) {
+    height: 60px;
+    pointer-events: none;
 }
 
 :global(.messages-scroll) {

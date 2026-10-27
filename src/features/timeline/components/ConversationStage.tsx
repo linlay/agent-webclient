@@ -80,7 +80,7 @@ export function ConversationStage({
     scrollerRef={viewport?.scrollerRef}
     increaseViewportBy={typeof window === "undefined" ? 0 : window.innerHeight}
     followOutput={viewport?.followOutput}
-    atBottomThreshold={200}
+    atBottomThreshold={100}
     atBottomStateChange={viewport?.atBottomStateChange}
     rangeChanged={viewport?.rangeChanged}
     isScrolling={viewport?.isScrolling}

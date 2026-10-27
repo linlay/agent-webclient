@@ -405,14 +405,15 @@ describe("ConversationStage scroll restoration", () => {
     ).toBe("allow");
   });
 
-  it("shows the running indicator when scrolling away from live output", () => {
+  it("shows the running indicator only when scrolled away from live output", () => {
     mockState = { ...createChatState(), streaming: true };
     mockStateRef.current = mockState;
     renderStage();
 
+    // 贴底时即使还在运行也不展示。
     expect(
-      container.querySelector(".conversation-stage-scroll-to-bottom [aria-label=\"leftSidebar.loading\"]"),
-    ).not.toBeNull();
+      container.querySelector(".conversation-stage-scroll-to-bottom"),
+    ).toBeNull();
 
     act(() => mockVirtuosoProps.atBottomStateChange(false));
 
@@ -421,6 +422,26 @@ describe("ConversationStage scroll restoration", () => {
     );
     expect(button).not.toBeNull();
     expect(button?.querySelector('[aria-label="leftSidebar.loading"]')).not.toBeNull();
+  });
+
+  // sticky 只能在自己所在的滚动内容里生效，按钮必须挂在 conversation-stage 的
+  // 定位层上，才不会随虚拟列表内容滚动。
+  it("pins the scroll to bottom control outside the virtualized scroll content", () => {
+    renderStage();
+    act(() => mockVirtuosoProps.atBottomStateChange(false));
+
+    const stage = container.querySelector(".conversation-stage");
+    const scroller = container.querySelector(".conversation-stage-virtuoso");
+    const control = container.querySelector(
+      ".conversation-stage-scroll-to-bottom",
+    );
+
+    expect(control).not.toBeNull();
+    expect(scroller?.contains(control)).toBe(false);
+    expect(stage?.contains(control)).toBe(true);
+    expect(
+      control?.closest(".conversation-stage-scroll-to-bottom-dock"),
+    ).not.toBeNull();
   });
 
   it("immediately overlays source content when the route targets another chat", () => {

@@ -137,6 +137,13 @@ const CONVERSATION_STAGE_CLASS_NAME =
   "conversation-stage tw:relative tw:min-h-0 tw:flex-1 tw:overflow-hidden tw:animate-fade-slide-in";
 const CONVERSATION_STAGE_SCROLL_TO_BOTTOM_CLASS_NAME =
   presentationClasses("conversation-stage-scroll-to-bottom tw:rounded-full tw:pointer-events-auto");
+// 按钮不能放在 Virtuoso 的 Footer 里：Footer 属于滚动内容，sticky 受虚拟列表
+// 视口容器（height:100%）限制，滚动一屏后就会跟着内容走。这里把它固定在
+// conversation-stage 自身的定位层里，Footer 只保留列表末尾的留白。
+const CONVERSATION_STAGE_SCROLL_TO_BOTTOM_DOCK_CLASS_NAME =
+  "conversation-stage-scroll-to-bottom-dock tw:pointer-events-none tw:absolute tw:inset-x-0 tw:bottom-3 tw:z-10 tw:flex tw:justify-center";
+const CONVERSATION_STAGE_BOTTOM_SPACER_CLASS_NAME =
+  "conversation-stage-bottom-spacer";
 const CONVERSATION_TRANSITION_OVERLAY_CLASS_NAME =
   "conversation-transition-overlay tw:absolute tw:inset-0 tw:z-20 tw:grid tw:place-items-center tw:overflow-hidden tw:px-6";
 const CONVERSATION_SCROLL_RESTORE_TIMEOUT_MS = 2_000;
@@ -201,6 +208,15 @@ const TIMELINE_RUN_INFO_CLASS_NAME =
   "timeline-run-info tw:inline-flex tw:min-w-0 tw:shrink-0 tw:items-center tw:gap-2";
 const TIMELINE_RUN_TIME_CLASS_NAME =
   "timeline-run-time tw:shrink-0 tw:text-[12px] tw:leading-none tw:text-ink-muted tw:tracking-[0.02em]";
+
+// 保持列表末尾原有的留白高度，让浮动的“滚动到底部”按钮落在空白带里，
+// 不遮挡最后一条消息。
+const ConversationStageBottomSpacer: React.FC = () => (
+  <div
+    className={CONVERSATION_STAGE_BOTTOM_SPACER_CLASS_NAME}
+    aria-hidden="true"
+  />
+);
 
 export function shouldEnableQueryAnchors(width: number): boolean {
   return Number.isFinite(width) && width >= QUERY_ANCHOR_MIN_SCROLL_WIDTH;
@@ -1448,41 +1464,44 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
     </div>
   );
 
-  const Footer = useCallback(() => {
+  const renderScrollToBottomControl = () => {
     const running = isMainChatRunning || state.streaming;
-    if (isAtBottom && !running) {
+    // 已在底部时不展示，运行中也不展示：内容还在视口里时这个按钮没有意义。
+    if (!state.chatId || isAtBottom) {
       return null;
     }
     return (
-      <Tooltip
-        title={
-          running ? (
-            <RunElapsedTime startTimeMs={runStartedAt} />
-          ) : (
-            t("conversationStage.scrollToBottom")
-          )
-        }
-        placement="top"
-      >
-        <UiButton
-          className={CONVERSATION_STAGE_SCROLL_TO_BOTTOM_CLASS_NAME}
-          iconOnly
-          size="sm"
-          onClick={handleScrollToBottomClick}
+      <div className={CONVERSATION_STAGE_SCROLL_TO_BOTTOM_DOCK_CLASS_NAME}>
+        <Tooltip
+          title={
+            running ? (
+              <RunElapsedTime startTimeMs={runStartedAt} />
+            ) : (
+              t("conversationStage.scrollToBottom")
+            )
+          }
+          placement="top"
         >
-          {running ? (
-            <DotLoading
-              color="primary"
-              height={15}
-              ariaLabel={t("leftSidebar.loading")}
-            />
-          ) : (
-            <MaterialIcon name="arrow_downward" />
-          )}
-        </UiButton>
-      </Tooltip>
+          <UiButton
+            className={CONVERSATION_STAGE_SCROLL_TO_BOTTOM_CLASS_NAME}
+            iconOnly
+            size="sm"
+            onClick={handleScrollToBottomClick}
+          >
+            {running ? (
+              <DotLoading
+                color="primary"
+                height={15}
+                ariaLabel={t("leftSidebar.loading")}
+              />
+            ) : (
+              <MaterialIcon name="arrow_downward" />
+            )}
+          </UiButton>
+        </Tooltip>
+      </div>
     );
-  }, [isAtBottom, isMainChatRunning, runStartedAt, state.streaming, t]);
+  };
 
   const queryAnchorRail =
     queryAnchorItems.length > 0 && queryAnchorsEnabled ? (
@@ -1772,10 +1791,12 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
               atBottomStateChange: handleAtBottomStateChange,
               rangeChanged: handleRangeChanged,
               isScrolling: handleIsScrolling,
-              Footer,
+              Footer: ConversationStageBottomSpacer,
             }}
           />
         )}
+
+        {renderScrollToBottomControl()}
       </div>
       {presentation.blocked ? (
         <ConversationTransitionOverlay
