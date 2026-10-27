@@ -115,6 +115,8 @@ export interface AgentEditorProps {
   queryModelButtonStateClass: string;
   showFastBadge: boolean;
   selectedModelLabel: string;
+  // Input limit of the selected model; undefined while no model is selected.
+  selectedModelContextWindow?: number;
   selectedReasoningLabel: string;
   contextTagOptions: Array<{ value: string; label: string }>;
   filteredToolOptions: AgentToolOption[];
@@ -157,6 +159,7 @@ export const AgentEditor: React.FC<AgentEditorProps> = (props) => {
     queryModelButtonStateClass,
     showFastBadge,
     selectedModelLabel,
+    selectedModelContextWindow,
     selectedReasoningLabel,
     contextTagOptions,
     filteredToolOptions,
@@ -489,6 +492,20 @@ export const AgentEditor: React.FC<AgentEditorProps> = (props) => {
             </Dropdown>
           </div>
         </div>
+        {form.mode !== "PROXY" && form.mode !== "CHANNEL" && (
+          <div className={AGENT_FORM_FULL_WIDTH_CLASS_NAME}>
+            <label htmlFor="agent-max-input-tokens">{t("agentConsole.field.maxInputTokens")}</label>
+            <Input id="agent-max-input-tokens" type="number" min={1} max={selectedModelContextWindow}
+              placeholder={selectedModelContextWindow ? String(selectedModelContextWindow) : ""}
+              value={form.maxInputTokensText}
+              onChange={event => updateForm({maxInputTokensText: event.target.value})} />
+            {selectedModelContextWindow ? (
+              <p className={`tw:text-xs ${Number(form.maxInputTokensText) > selectedModelContextWindow ? "tw:text-danger" : "tw:text-text-muted"}`}>
+                {t("agentConsole.field.maxInputTokensHint", { limit: selectedModelContextWindow })}
+              </p>
+            ) : null}
+          </div>
+        )}
       </AgentFormSection>
 
       <AgentFormSection

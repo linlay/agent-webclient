@@ -21,6 +21,7 @@ import {
 } from '@/features/chats/lib/chatSummary';
 import { upsertAgentSummary } from '@/features/workers/lib/agentSummary';
 import { readSidebarAgents } from '@/features/workers/lib/sidebarAgentData';
+import { readStoredGeneralAgentKey } from '../lib/generalAgentPreference';
 
 const INITIAL_AGENT_CHAT_LIMIT = 5;
 type AgentListRequestOptions = {
@@ -130,6 +131,10 @@ export function useWorkerData(input: {
     if (isCopilotPath(currentPathname())) {
       const firstAgentKey = rows.find((row) => row.type === 'agent')?.key || '';
       if (firstAgentKey) return firstAgentKey;
+    } else {
+      const savedKey = readStoredGeneralAgentKey();
+      const savedGeneral = rows.find(row => row.key === savedKey && !row.workspaceDir?.trim());
+      if (savedGeneral) return savedGeneral.key;
     }
     return rows[0]?.key || '';
   }, [stateRef]);

@@ -7,6 +7,8 @@ import type { AppAction } from "@/app/state/actions";
 import { getAgents, getChatOrder, invalidateChatNavigationCache, setAccessToken } from "@/shared/data";
 import { isAppMode } from "@/shared/utils/routing";
 import { useWorkerData } from "./useWorkerData";
+import { persistGeneralAgentKey, readStoredGeneralAgentKey } from "../lib/generalAgentPreference";
+import { resolveCurrentWorkerSummary } from "../lib/currentWorker";
 
 const mockStateRef = { current: createInitialState() };
 const mockDispatch = jest.fn((action: AppAction) => {
@@ -38,6 +40,7 @@ describe("worker data initialization and refresh", () => {
   let root: ReturnType<typeof createRoot>;
   beforeEach(() => {
     jest.clearAllMocks();
+    window.localStorage.clear();
     mockStateRef.current = createInitialState();
     window.history.replaceState(null, "", "/");
     jest.mocked(isAppMode).mockReturnValue(false);
@@ -83,6 +86,52 @@ describe("worker data initialization and refresh", () => {
     expect(setAccessToken).toHaveBeenLastCalledWith("ready-token");
     expect(requestPins).toHaveBeenCalledTimes(1);
     expect(requestAgents).toHaveBeenCalledTimes(2);
+  });
+
+  function mockGeneralAgents() {
+    requestAgents.mockImplementation(async options => ({ code: 0, msg: "", data: options?.hasWorkspace
+      ? [{ key: "project", name: "Project", workspaceDir: "/work/project" }]
+      : [{ key: "bootstrap", name: "初始化助手" }, { key: "zenmi", name: "小宅" }],
+    }));
+  }
+
+  it("restores the saved default as the actual Composer Agent after a fresh page load", async () => {
+    persistGeneralAgentKey("agent:zenmi");
+    mockGeneralAgents();
+    await act(async () => root.render(<Harness />));
+    expect(mockStateRef.current.workerSelectionKey).toBe("agent:zenmi");
+    expect(resolveCurrentWorkerSummary(mockStateRef.current)?.sourceId).toBe("zenmi");
+    expect(readStoredGeneralAgentKey()).toBe("agent:zenmi");
+  });
+
+  it.each(["agent:deleted", "agent:project"])("ignores an unavailable or project default %s", async saved => {
+    persistGeneralAgentKey(saved);
+    mockGeneralAgents();
+    await act(async () => root.render(<Harness />));
+    expect(mockStateRef.current.workerSelectionKey).toBe("agent:bootstrap");
+  });
+
+  it("preserves an explicitly selected Agent and an existing Chat owner", async () => {
+    persistGeneralAgentKey("agent:zenmi");
+    mockGeneralAgents();
+    mockStateRef.current.agents = [{ key: "bootstrap", name: "初始化助手" }, { key: "zenmi", name: "小宅" }];
+    mockStateRef.current.workerSelectionKey = "agent:bootstrap";
+    mockStateRef.current.chatId = "existing-chat";
+    mockStateRef.current.chats = [{ chatId: "existing-chat", agentKey: "bootstrap" }];
+    await act(async () => root.render(<Harness />));
+    expect(mockStateRef.current.workerSelectionKey).toBe("agent:bootstrap");
+    expect(resolveCurrentWorkerSummary(mockStateRef.current)?.sourceId).toBe("bootstrap");
+    expect(readStoredGeneralAgentKey()).toBe("agent:zenmi");
+  });
+
+  it("does not apply the Chat default to Copilot initialization", async () => {
+    persistGeneralAgentKey("agent:zenmi");
+    window.history.replaceState(null, "", "/copilot");
+    requestAgents.mockResolvedValue({ code: 0, msg: "", data: [
+      { key: "bootstrap", name: "初始化助手" }, { key: "zenmi", name: "小宅" },
+    ] });
+    await act(async () => root.render(<Harness />));
+    expect(mockStateRef.current.workerSelectionKey).toBe("agent:bootstrap");
   });
 
   it("reloads the Agent catalog through the management refresh event", async () => {

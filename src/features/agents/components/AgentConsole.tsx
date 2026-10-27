@@ -188,6 +188,8 @@ const AGENT_SECTION_NAV_ACTIONS_CLASS_NAME =
 const AGENT_SECTION_NAV_SAVE_CLASS_NAME = "agent-section-nav-save tw:flex-none";
 const AGENT_UNEDITABLE_CLASS_NAME =
   "agent-console-uneditable tw:flex tw:items-center tw:gap-2 tw:rounded-control tw:border tw:px-3 tw:py-2.5 tw:text-xs tw:text-accent-danger tw:[border-color:color-mix(in_srgb,var(--accent-danger)_26%,var(--line-soft))] tw:bg-[color-mix(in_srgb,var(--accent-danger)_6%,transparent)]";
+// Agent Platform uses this input limit for a model that declares none.
+const DEFAULT_MODEL_CONTEXT_WINDOW = 128000;
 export const AgentConsole: React.FC<AgentConsoleProps> = ({
   selectedAgentKey = "",
   onSelectAgentKey,
@@ -1583,6 +1585,7 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
                 queryModelButtonStateClass={queryModelButtonStateClass}
                 showFastBadge={showFastBadge}
                 selectedModelLabel={selectedModelLabel}
+                selectedModelContextWindow={selectedModel ? selectedModel.contextWindow || DEFAULT_MODEL_CONTEXT_WINDOW : undefined}
                 selectedReasoningLabel={selectedReasoningLabel}
                 contextTagOptions={contextTagOptions}
                 connectors={<AgentConnectorCapabilities key={form.key} {...connectorCapabilities}

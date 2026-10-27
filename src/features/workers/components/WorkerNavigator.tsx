@@ -63,6 +63,7 @@ import { PrimaryChatNavigation } from "./PrimaryChatNavigation";
 import primaryStyles from "./PrimaryChatNavigation.module.css";
 import { SidebarAgentNavigation } from "./SidebarAgentNavigation";
 import { splitSidebarWorkers } from "../lib/sidebarNavigation";
+import { readStoredGeneralAgentKey, persistGeneralAgentKey } from "../lib/generalAgentPreference";
 import "./WorkerNavigator.module.css";
 const presentationClasses = bindCssModuleClasses({ ...sharedPresentation });
 
@@ -96,7 +97,6 @@ const WORKER_COLLAPSED_NAME_CLASS =
   "worker-collapsed-name tw:inline-block tw:max-w-full tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:text-left tw:align-top tw:text-[10px] tw:leading-[1.2]";
 
 const LEFT_SIDEBAR_WIDTH_STORAGE_KEY = "agent-webclient:left-sidebar-width";
-const GENERAL_AGENT_STORAGE_KEY = "agent-webclient:general-agent-key";
 const LEFT_SIDEBAR_DEFAULT_WIDTH = 260;
 const LEFT_SIDEBAR_MIN_WIDTH = 260;
 const LEFT_SIDEBAR_MAIN_MIN_WIDTH = 420;
@@ -159,23 +159,6 @@ function persistLeftSidebarWidth(width: number): void {
     );
   } catch {
     // Width persistence is a convenience; resizing should still work.
-  }
-}
-
-function readStoredGeneralAgentKey(): string {
-  if (typeof window === "undefined") return "";
-  try {
-    return window.localStorage.getItem(GENERAL_AGENT_STORAGE_KEY)?.trim() || "";
-  } catch {
-    return "";
-  }
-}
-
-function persistGeneralAgentKey(workerKey: string): void {
-  try {
-    window.localStorage.setItem(GENERAL_AGENT_STORAGE_KEY, workerKey);
-  } catch {
-    // Agent selection remains usable when storage is unavailable.
   }
 }
 

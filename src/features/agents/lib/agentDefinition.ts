@@ -58,6 +58,8 @@ export interface AgentFormState {
   description: string;
   mode: string;
   modelKey: string;
+  // modelConfig.maxInputTokens as typed; empty means the model's own limit.
+  maxInputTokensText: string;
   serviceTier: string;
   reasoningConfigured: boolean;
   reasoningEnabled: boolean;
@@ -92,6 +94,7 @@ export const EMPTY_FORM: AgentFormState = {
   description: "",
   mode: "GENERAL",
   modelKey: "",
+  maxInputTokensText: "",
   serviceTier: "STANDARD",
   reasoningConfigured: false,
   reasoningEnabled: false,
@@ -706,6 +709,10 @@ export function formFromDetail(detail: EditableAgentDetail): AgentFormState {
     ),
     modelKey:
       toText(modelConfig.modelKey) || resolveModelKey(detail, definition),
+    maxInputTokensText:
+      modelConfig.maxInputTokens === undefined || modelConfig.maxInputTokens === null
+        ? ""
+        : String(modelConfig.maxInputTokens),
     serviceTier: normalizeServiceTier(modelConfig.serviceTier),
     reasoningConfigured: Object.prototype.hasOwnProperty.call(
       modelConfig,
@@ -786,6 +793,13 @@ export function buildDefinition(
       ...asRecord(definition.modelConfig),
       modelKey,
     };
+    const maxInputTokensText = form.maxInputTokensText.trim();
+    if (maxInputTokensText) {
+      const maxInputTokens = Number(maxInputTokensText);
+      if (!Number.isInteger(maxInputTokens) || maxInputTokens <= 0)
+        throw new Error(t("agentConsole.error.maxInputTokensInvalid"));
+      modelConfig.maxInputTokens = maxInputTokens;
+    } else delete modelConfig.maxInputTokens;
     const serviceTier = normalizeServiceTier(form.serviceTier);
     if (serviceTier !== "STANDARD") modelConfig.serviceTier = serviceTier;
     else delete modelConfig.serviceTier;

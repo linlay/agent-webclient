@@ -87,3 +87,16 @@ it("persists only the explicit detail override and supports restoring mode inher
  delete form.interactionConfig.defaultDetail;
  expect(buildDefinition(form,definition,translate).interactionConfig).toEqual({showTerminal:false});
 });
+
+it("round-trips modelConfig.maxInputTokens and rejects non-integers", () => {
+  const definition = { key: "win", mode: "GENERAL", modelConfig: { modelKey: "model-a", maxInputTokens: 200000 } };
+  const detail: AgentDetailResponse = {key: "win", name: "Win", mode: "GENERAL", tools: [], skills: [], connectors: [], controls: [], meta: {}, definition};
+  const form = formFromDetail(detail);
+  const translate = ((key: string) => key) as Parameters<typeof buildDefinition>[2];
+  expect(form.maxInputTokensText).toBe("200000");
+  expect(buildDefinition(form, definition, translate).modelConfig).toMatchObject({ maxInputTokens: 200000 });
+  form.maxInputTokensText = "";
+  expect(buildDefinition(form, definition, translate).modelConfig).not.toHaveProperty("maxInputTokens");
+  form.maxInputTokensText = "1.5";
+  expect(() => buildDefinition(form, definition, translate)).toThrow("agentConsole.error.maxInputTokensInvalid");
+});
