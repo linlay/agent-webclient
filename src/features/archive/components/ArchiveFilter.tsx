@@ -102,8 +102,8 @@ export const ArchiveFilter: React.FC<ArchiveFilterProps> = ({
     const options = agents.map((agent) => ({
       value: String(agent.key || ""),
       label: (
-        <span className="archive-filter-agent-option">
-          <AgentIcon icon={agent.icon} type="agent" props={AGENT_ICON_PROPS} />
+        <span data-agent-identity="" className="archive-filter-agent-option">
+          <AgentIcon icon={agent.icon} mode={agent.mode} type="agent" props={AGENT_ICON_PROPS} />
           <span
             className="archive-filter-agent-name"
             title={agent.name || agent.key}

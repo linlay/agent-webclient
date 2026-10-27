@@ -1,39 +1,282 @@
-import { useEffect, useRef, useState } from "react";
-import type { ViewReference } from "@/shared/contracts/view";
-import { getView } from "@/shared/data";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { Modal } from "antd";
+import type { ViewDocument, ViewQueryResult, ViewReference, ViewActionResult } from "@/shared/contracts/view";
+import { getView, queryView, invokeView, createRequestId } from "@/shared/data";
 import { viewDocumentHTML } from "@/shared/utils/viewDocument";
 import { safeJsonParse } from "@/shared/utils/safeJsonParse";
 import { useI18n } from "@/shared/i18n";
+import { useOptionalAppContext } from "@/app/state/provider";
+import { useOptionalWorkPanelTransport } from "@/features/transport/components/RealtimeTransportProvider";
+import { isDesktopAppMode } from "@/shared/utils/routing";
+import { buildDesktopWorkPanelDescriptor } from "@/features/surfaces/lib/openTarget";
+import { ViewHeader, type ViewQueryStatus } from "./ViewHeader";
 
-// Display views have no submit/action listener. Only HITL's host may submit.
-export function ViewEmbed({ chatId, view, payloadRaw, viewError }: { chatId: string; view: ViewReference; payloadRaw: string; viewError?: string }) {
-  const { t } = useI18n();
+const DEFAULT_HEIGHT = 320;
+const SUPERSEDED = "view_query_superseded";
+const MIN_HEIGHT = 48;
+
+// Display views size to their content with no upper bound; the timeline
+// scrolls. HITL form hosts keep their own capped height.
+export function clampViewHeight(value: unknown): number | undefined {
+  if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) return undefined;
+  return Math.max(MIN_HEIGHT, Math.ceil(value));
+}
+
+function errorCode(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+function isObject(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+// Display writes require an explicit declaration and trusted host confirmation.
+// Connector views load only frozen Chat snapshots named by an event hash, and
+// may run only queries their snapshot declares, as the viewing user.
+export function ViewEmbed({ chatId, view, payloadRaw, viewError, rawData, runId, sourceId, viewIndex, fill = false, allowExpand = true, allowSidebar = false, onClose }: {
+  chatId: string;
+  view?: ViewReference;
+  payloadRaw: string;
+  viewError?: string;
+  /** Markdown body shown when the view cannot render. */
+  rawData?: string;
+  /** Run whose content published the view; required for view queries. */
+  runId?: string;
+  sourceId?: string;
+  viewIndex?: string;
+  fill?: boolean;
+  /** Expanded hosts keep metadata without nested presentation controls. */
+  allowExpand?: boolean;
+  /** Browser surfaces opt into their sidebar; Desktop always offers its WorkPanel. */
+  allowSidebar?: boolean;
+  /** Expanded hosts merge the close action into the single VIEW header. */
+  onClose?: () => void;
+}) {
+  const { t, locale } = useI18n();
+  const app = useOptionalAppContext();
+  const mountId = useId();
+  const sidebarId = sourceId ? JSON.stringify([chatId, runId, sourceId, viewIndex]) : mountId;
+  const workPanel = useOptionalWorkPanelTransport();
+  const desktop = isDesktopAppMode();
+  const [openError, setOpenError] = useState("");
+  const [opening, setOpening] = useState(false);
+  const openGeneration = useRef(0);
+  useEffect(() => { openGeneration.current += 1; setOpenError(""); setOpening(false); return () => { openGeneration.current += 1; }; }, [sidebarId]);
+  const openSidebar = async () => {
+    if (!desktop) { dispatch?.({ type: "OPEN_VIEW_PREVIEW", preview }); return; }
+    const epoch = openGeneration.current;
+    setOpenError(""); setOpening(true);
+    try {
+      const descriptor = sourceId && runId && viewIndex !== undefined ? buildDesktopWorkPanelDescriptor({
+        version: 1, kind: "view", chatId, runId, sourceId, viewIndex, title: view?.key,
+      }) : null;
+      if (!workPanel || !descriptor) throw new Error(t("workPanel.error.openDenied"));
+      await workPanel.openDescriptor(descriptor);
+    } catch (cause) { if (epoch === openGeneration.current) setOpenError(errorCode(cause)); }
+    finally { if (epoch === openGeneration.current) setOpening(false); }
+  };
+  const preview = useMemo(() => ({ key: sidebarId, chatId, view, payloadRaw, viewError, rawData, runId }),
+    [sidebarId, chatId, view?.source, view?.connectorId, view?.key, view?.hash, view?.version, view?.renderer, payloadRaw, viewError, rawData, runId]);
+  const previewOpen = Boolean(app?.state.viewPreviews?.some(item => item.key === sidebarId));
+  const dispatch = app?.dispatch;
+  useEffect(() => {
+    if (previewOpen) dispatch?.({ type: "UPDATE_VIEW_PREVIEW", preview });
+  }, [previewOpen, dispatch, preview]);
+  const colorScheme = app?.state.themeMode;
   const frame = useRef<HTMLIFrameElement>(null);
   const ready = useRef(false);
+  const documentRef = useRef<ViewDocument | null>(null);
+  const lastPayload = useRef<unknown>(undefined);
   const [resolvedView, setResolvedView] = useState(view);
   const [html, setHTML] = useState("");
   const [error, setError] = useState("");
-  const identity = JSON.stringify([chatId, view.connectorId, view.key, view.hash, viewError]);
+  const [height, setHeight] = useState(DEFAULT_HEIGHT);
+  const [expanded, setExpanded] = useState(false);
+  const [queryStatus, setQueryStatus] = useState<ViewQueryStatus>({ pending: 0, failed: false });
+  const generation = useRef(0);
+  const [pendingAction, setPendingAction] = useState<{ name: string; params: Record<string, unknown>; confirm: () => void; cancel: () => void } | null>(null);
+  const [actionBusy, setActionBusy] = useState(false);
+  const actionPending = useRef(false);
+  const actionRequestIDs = useRef(new Map<string, string>());
+  const actionable = () => Boolean(runId && chatId && view?.source === "connector" && view.connectorId && view.hash && Object.keys(documentRef.current?.actions || {}).length);
+  const actionRequestID = (name: string, params: Record<string, unknown>) => {
+    // Canonical keys let remount/reload reuse the same durable write receipt.
+    const canonical = (value: unknown): unknown => Array.isArray(value) ? value.map(canonical) : isObject(value) ? Object.fromEntries(Object.keys(value).sort().map(key => [key, canonical(value[key])])) : value;
+    const key = "view-write:" + JSON.stringify([chatId, runId, view?.connectorId, view?.key, view?.hash, name, canonical(params)]);
+    let id = actionRequestIDs.current.get(key);
+    try { id = id || sessionStorage.getItem(key) || undefined; } catch { /* memory fallback */ }
+    if (!id) id = createRequestId();
+    actionRequestIDs.current.set(key, id);
+    try { sessionStorage.setItem(key, id); } catch { /* memory fallback */ }
+    return id;
+  };
+  const identity = JSON.stringify([chatId, view?.source, view?.connectorId, view?.key, view?.hash, viewError, runId, sourceId, viewIndex]);
+  const queryable = () => Boolean(
+    runId && chatId && view?.source === "connector" && view.connectorId && view.hash
+    && Object.keys(documentRef.current?.queries || {}).length,
+  );
+  // Per query name, only the latest request may answer; older ones are dropped.
+  const latestQuery = useRef(new Map<string, number>());
+  const querySequence = useRef(0);
+  const runQuery = async (name: string, params: Record<string, unknown>): Promise<ViewQueryResult> => {
+    const current = generation.current;
+    const ticket = ++querySequence.current;
+    latestQuery.current.set(name, ticket);
+    const latest = () => generation.current === current && latestQuery.current.get(name) === ticket;
+    setQueryStatus(previous => ({ ...previous, pending: previous.pending + 1, failed: false }));
+    try {
+      if (!queryable() || !view?.connectorId || !view.hash || !documentRef.current?.queries?.[name]) {
+        throw new Error("view_query_unavailable");
+      }
+      const response = await queryView({ chatId, runId: runId as string, view: { connectorId: view.connectorId, key: view.key, hash: view.hash }, query: name, params });
+      if (!latest()) throw new Error(SUPERSEDED);
+      const result = response.data;
+      setQueryStatus(previous => ({ ...previous, updatedAt: result.executedAt || Date.now(), failed: false }));
+      return result;
+    } catch (error) {
+      if (latest()) setQueryStatus(previous => ({ ...previous, failed: true }));
+      if (generation.current === current && latestQuery.current.get(name) !== ticket) throw new Error(SUPERSEDED);
+      throw error;
+    } finally {
+      if (generation.current === current) setQueryStatus(previous => ({ ...previous, pending: Math.max(0, previous.pending - 1) }));
+    }
+  };
+
   useEffect(() => {
     let active = true;
+    generation.current += 1;
+    setPendingAction(null); actionPending.current = false; setActionBusy(false);
+    setExpanded(false);
+    setQueryStatus({ pending: 0, failed: false });
+    latestQuery.current.clear();
     ready.current = false;
-    setHTML(""); setError("");
-    if (viewError && !view.hash) { setError(viewError); return; }
-    if (!chatId && view.source === "connector") return;
-    getView({ source:view.source, chatId, connectorId: view.connectorId, key: view.key, hash: view.hash, usage: "display" })
-      .then(response => { if (active) { setResolvedView(response.data.view); setHTML(viewDocumentHTML(response.data, "display")); } })
-      .catch(error => { if (active) setError(String(error.message)); });
-    return () => { active = false; ready.current = false; };
+    documentRef.current = null;
+    setHTML(""); setError(""); setHeight(DEFAULT_HEIGHT);
+    const cleanup = () => { active = false; ready.current = false; generation.current += 1; };
+    if (viewError) { setError(viewError); return cleanup; }
+    if (!view || (view.source === "connector" && (!chatId || !view.hash))) { setError("view_unavailable"); return cleanup; }
+    getView({ source: view.source, chatId, connectorId: view.connectorId, key: view.key, hash: view.hash, usage: "display" })
+      .then(response => {
+        if (!active) return;
+        documentRef.current = response.data;
+        setResolvedView(response.data.view);
+        setHTML(viewDocumentHTML(response.data, "display"));
+      })
+      .catch(error => { if (active) setError(errorCode(error)); });
+    return cleanup;
   }, [identity]);
+
+  useEffect(() => {
+    const onMessage = (event: MessageEvent) => {
+      const target = frame.current?.contentWindow;
+      if (!target || event.source !== target) return;
+      const message = event.data;
+      if (message?.type === "view_resize") {
+        const next = clampViewHeight(message.height);
+        if (next !== undefined) setHeight(next);
+        return;
+      }
+      if (message?.type === "view_invoke" && typeof message.id === "string") {
+        const current = generation.current;
+        const reply = (result: { ok: boolean; error?: string } & Partial<ViewActionResult>) => {
+          if (generation.current === current) target.postMessage({ type: "view_invoke_result", id: message.id, ...result }, "*");
+        };
+        if (!actionable() || typeof message.action !== "string" || !documentRef.current?.actions?.[message.action]) { reply({ ok: false, error: "view_action_unavailable" }); return; }
+        if (!isObject(message.params)) { reply({ ok: false, error: "view_action_params_invalid" }); return; }
+        if (actionPending.current) { reply({ ok: false, error: "view_action_busy" }); return; }
+        // Copy the message before asking the user; the frame cannot change it.
+        const name: string = message.action;
+        let params: Record<string, unknown>;
+        try {
+          const raw = JSON.stringify(message.params);
+          if (raw.length > 65536) throw new Error("too large");
+          params = JSON.parse(raw);
+        } catch { reply({ ok: false, error: "view_action_params_invalid" }); return; }
+        actionPending.current = true;
+        const cancel = () => { actionPending.current = false; setPendingAction(null); reply({ ok: false, error: "view_action_canceled" }); };
+        setPendingAction({ name, params, cancel, confirm: () => {
+          if (generation.current !== current) return;
+          setActionBusy(true);
+          invokeView({ chatId, runId: runId!, view: { connectorId: view!.connectorId!, key: view!.key, hash: view!.hash! }, action: name, params, requestId: actionRequestID(name, params) })
+            .then(result => reply({ ok: true, ...result.data }))
+            .catch(error => reply({ ok: false, error: errorCode(error) }))
+            .finally(() => { if (generation.current === current) { actionPending.current = false; setPendingAction(null); setActionBusy(false); } });
+        } });
+        return;
+      }
+      if (message?.type !== "view_query" || typeof message.id !== "string" || typeof message.query !== "string") return;
+      const current = generation.current;
+      const reply = (result: { ok: boolean; data?: unknown; executedAt?: number; error?: string }) => {
+        if (generation.current === current) target.postMessage({ type: "view_query_result", id: message.id, ...result }, "*");
+      };
+      if (!isObject(message.params)) { reply({ ok: false, error: "view_query_params_invalid" }); return; }
+      runQuery(message.query, message.params)
+        .then((result) => reply({ ok: true, data: result.data, executedAt: result.executedAt }))
+        .catch((error) => reply({ ok: false, error: errorCode(error) }));
+    };
+    window.addEventListener("message", onMessage);
+    return () => window.removeEventListener("message", onMessage);
+  });
+
   const post = (type: "view_init" | "view_update") => frame.current?.contentWindow?.postMessage({
-    type, data: { view: resolvedView, payload: safeJsonParse(payloadRaw, payloadRaw) },
+    type,
+    data: {
+      view: resolvedView,
+      payload: lastPayload.current,
+      context: { queryable: queryable(), actionable: actionable(), locale, colorScheme },
+    },
   }, "*");
-  useEffect(() => { if (ready.current) post("view_update"); }, [payloadRaw]);
-  return <div className="tw:my-2">
+
+  // The payload is the Markdown view input or the tool result; the template
+  // runs its declared queries itself.
+  const initialize = () => {
+    if (ready.current) return;
+    ready.current = true;
+    lastPayload.current = safeJsonParse(payloadRaw, payloadRaw);
+    post("view_init");
+  };
+
+  // Tool results may stream new data.
+  useEffect(() => {
+    if (!ready.current) return;
+    lastPayload.current = safeJsonParse(payloadRaw, payloadRaw);
+    post("view_update");
+  }, [payloadRaw]);
+  useEffect(() => { if (ready.current) post("view_update"); }, [locale, colorScheme]);
+
+  return <div className={onClose || fill ? "tw:m-0 tw:flex tw:h-full tw:min-h-0 tw:flex-col" : "tw:my-2"}>
+    <div className={onClose || fill ? "tw:shrink-0" : undefined}>
+    <ViewHeader dynamic={Boolean(runId && view?.source === "connector")} status={queryStatus}
+      onExpand={allowExpand ? () => setExpanded(true) : undefined}
+      onOpenSidebar={allowExpand && (desktop || (allowSidebar && dispatch)) ? () => { if (!opening) void openSidebar(); } : undefined}
+      canExpand={Boolean(html) && !error} onClose={onClose} />
+    </div>
+    <div className={onClose || fill ? "view-dialog-scroll tw:min-h-0 tw:flex-1 tw:overflow-auto" : undefined}>
+    {openError && <div role="alert">{openError}</div>}
     {error && <div role="alert">{t("view.loadFailed", { detail: error })}</div>}
+    {error && rawData && <details className="tw:mt-1 tw:text-sm">
+      <summary>{t("view.rawData")}</summary>
+      <pre className="tw:overflow-auto tw:whitespace-pre-wrap">{rawData}</pre>
+    </details>}
     {!error && !html && <div role="status">{t("view.loading")}</div>}
-    {html && <iframe ref={frame} title={`view-${view.connectorId}-${view.key}`} srcDoc={html}
-      sandbox="allow-scripts" className="tw:h-[320px] tw:w-full tw:border-0"
-      onLoad={() => { ready.current = true; post("view_init"); }} />}
+    {html && <iframe key={identity} ref={frame} title={`view-${resolvedView?.connectorId || resolvedView?.source}-${resolvedView?.key}`} srcDoc={html}
+      sandbox="allow-scripts" className="tw:w-full tw:border-0" style={{ height, colorScheme }}
+      onLoad={initialize} />}
+    </div>
+    <Modal open={Boolean(pendingAction)} title={t("view.action.title")} okText={t("view.action.submit")} cancelText={t("view.action.cancel")}
+      confirmLoading={actionBusy} closable={!actionBusy} maskClosable={false} keyboard={!actionBusy} cancelButtonProps={{ disabled: actionBusy }}
+      onOk={() => { if (!actionBusy) pendingAction?.confirm(); }} onCancel={() => { if (!actionBusy) pendingAction?.cancel(); }}>
+      <p>{t("view.action.notice")}</p>
+      <p>{resolvedView?.connectorId} / {resolvedView?.key} · {pendingAction?.name}</p>
+      <p>{pendingAction && documentRef.current?.actions?.[pendingAction.name]?.description}</p>
+      <pre className="tw:max-h-80 tw:overflow-auto tw:whitespace-pre-wrap">{JSON.stringify(pendingAction?.params, null, 2)}</pre>
+    </Modal>
+    {allowExpand && <Modal open={expanded} title={null} closable={false} aria-label={t("view.header.title")}
+      width="min(1280px, calc(100vw - 32px))" centered style={{ paddingBottom: 0 }}
+      styles={{ content: { height: "80dvh", boxSizing: "border-box", display: "flex", flexDirection: "column", padding: "10px 16px 16px" }, body: { flex: 1, minHeight: 0, overflow: "hidden" } }}
+      footer={null} destroyOnHidden onCancel={() => setExpanded(false)}>
+      {expanded && <ViewEmbed chatId={chatId} view={view} payloadRaw={payloadRaw}
+        viewError={viewError} rawData={rawData} runId={runId} allowExpand={false} onClose={() => setExpanded(false)} />}
+    </Modal>}
   </div>;
 }

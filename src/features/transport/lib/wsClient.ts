@@ -44,6 +44,7 @@ interface WsRequestFrame {
 	frame: "request";
 	type: string;
 	id: string;
+	detail?: "summary" | "full" | "none";
 	payload?: unknown;
 }
 
@@ -1144,6 +1145,7 @@ export class StandaloneSocketDriver extends PlatformFrameClient {
 	}
 
 	protected sendRequestFrame(frame: AgentPlatformRequestFrame): void {
+		// Omitted detail follows the Agent's Platform-resolved display default.
 		this.sendOutboundFrame(frame);
 	}
 

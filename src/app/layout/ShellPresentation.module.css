@@ -4,6 +4,24 @@
     position: relative;
     isolation: isolate;
 }
+/* Keep main-chat's original minimum. The existing sidebar grows over it
+   once the space left for chat reaches 420px. */
+.layout-desktop-fixed:global(.desktop-debug-enabled) {
+    --active-left-sidebar-width: var(--left-sidebar-close-width);
+    grid-template-columns: var(--active-left-sidebar-width) minmax(420px, 1fr)
+        min(var(--right-sidebar-width), max(0px, calc(100% - var(--active-left-sidebar-width) - 420px)));
+}
+.layout-desktop-fixed:global(.desktop-debug-enabled):global(.left-drawer-open) {
+    --active-left-sidebar-width: var(--left-sidebar-width);
+}
+.layout-desktop-fixed:global(.desktop-debug-enabled) > :global(.right-sidebar) {
+    justify-self: end;
+    z-index: 40;
+}
+.layout-desktop-fixed:has(> :global(.right-sidebar)[data-main-chat-collapsed="true"]) > :global(.app-shell-center) {
+    visibility: hidden;
+    pointer-events: none;
+}
 .layout-desktop-fixed::before {
     content: "";
     position: absolute;

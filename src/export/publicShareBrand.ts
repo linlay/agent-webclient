@@ -1,6 +1,6 @@
 import zenmindIcon from "./brand-icons/zenmind.svg";
 import cutejIcon from "./brand-icons/cutej.svg";
-import defaultIcon from "@/shared/icons/agent-icons/default.svg";
+import defaultIcon from "@/export/brand-icons/assistant-default.svg";
 
 export interface PublicShareBrand {
   id: string;

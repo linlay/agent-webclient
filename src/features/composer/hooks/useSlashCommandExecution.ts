@@ -22,6 +22,7 @@ export function useSlashCommandExecution(input: {
 	setInputValue: (value: string) => void;
 	setSlashDismissed: (dismissed: boolean) => void;
 	openBTW: () => void;
+	openDetailChooser: () => void;
 	state: Pick<
 		AppState,
 		"rightSidebarOpen" | "planningMode" | "chatId" | "usagePopoverOpen"
@@ -40,6 +41,7 @@ export function useSlashCommandExecution(input: {
 		setInputValue,
 		setSlashDismissed,
 		openBTW,
+		openDetailChooser,
 		state,
 	} = input;
 	const { openOverlay } = useSettingsOverlayActions();
@@ -104,6 +106,9 @@ export function useSlashCommandExecution(input: {
 						open: !state.usagePopoverOpen,
 					});
 					return;
+				case "detail":
+					openDetailChooser();
+					return;
 			}
 		},
 		[
@@ -119,6 +124,7 @@ export function useSlashCommandExecution(input: {
 			toggleVoiceMode,
 			openOverlay,
 			openBTW,
+			openDetailChooser,
 			openTarget,
 		],
 	);

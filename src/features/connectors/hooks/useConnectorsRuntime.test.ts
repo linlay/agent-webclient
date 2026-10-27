@@ -13,7 +13,7 @@ jest.mock("@/features/transport/hooks/useRealtimeTransport", () => ({ usePushTra
 jest.mock("@/shared/i18n", () => ({ useI18n: () => ({ t: (key: string) => key }) }));
 jest.mock("@/shared/data", () => ({
   ApiError: jest.requireActual("@/shared/data/api/http").ApiError,
-  deleteConnector: jest.fn(), getAdminConnectors: jest.fn(), getAdminTools: jest.fn(), getConnectorDefinition: jest.fn(), importConnectorArchive: jest.fn(), importConnectorMCP: jest.fn(), updateConnectorDefinition: jest.fn(),
+  invalidateAgentDetail: jest.fn(), deleteConnector: jest.fn(), getAdminConnectors: jest.fn(), getAdminTools: jest.fn(), getConnectorDefinition: jest.fn(), importConnectorArchive: jest.fn(), importConnectorMCP: jest.fn(), updateConnectorDefinition: jest.fn(),
 }));
 
 const item: ConnectorSummary = { id: "demo", name: "Demo", version: "1.0.0", type: "cli", authMode: "none", hasCli: true, hasMcp: true, hasBin: true, skills: [], mcp: [] };
@@ -89,6 +89,21 @@ it("keeps the selected draft when a background catalog update removes its packag
   expect(current.selected?.id).toBe("demo");
   expect(current.draft).toBe('{"name":"Unsaved"}');
   expect(current.detail?.sha256).toBe("sha-1");
+});
+
+it("preserves an unsaved draft across package validation failure and recovery", async () => {
+  await mount();
+  await act(async () => current.updateDraft('{"name":"Unsaved"}'));
+  jest.mocked(getAdminConnectors).mockResolvedValueOnce({ code: 0, msg: "", data: { connectors: [{ ...item, status: "invalid", error: "view.json: EOF", canDelete: true }] } });
+  await act(async () => current.refreshCatalog(true));
+  expect(current.draft).toBe('{"name":"Unsaved"}');
+  expect(current.errorDetails).toContain("view.json: EOF");
+  await act(async () => current.refreshCatalog(true));
+  expect(current.draft).toBe('{"name":"Unsaved"}');
+  expect(current.detail?.sha256).toBe("sha-1");
+  expect(current.dirty).toBe(true);
+  expect(current.error).toBe("");
+  expect(getConnectorDefinition).toHaveBeenCalledTimes(1);
 });
 
 it("preserves a dirty draft when ZIP import fails or the discard confirmation is cancelled", async () => {
@@ -320,4 +335,14 @@ it("preserves drafts on failed MCP import, then selects the installed connector 
   expect(current.catalogError).toBe("refresh unavailable");
   expect(onRouteIdChange).toHaveBeenCalledWith("mcp.example.test");
   expect(importConnectorMCP).toHaveBeenCalledWith(params);
+});
+
+
+it("confirms automatic detachment when saved Agent mounts exist", async () => {
+  jest.mocked(getAdminConnectors).mockResolvedValue({ code: 0, msg: "", data: { connectors: [{ ...item, mountedAgentCount: 3 }] } });
+  await mount();
+  const confirm = jest.spyOn(window, "confirm").mockReturnValue(false);
+  await act(async () => current.remove());
+  expect(confirm).toHaveBeenCalledWith("connectors.delete.confirmMounted");
+  expect(deleteConnector).not.toHaveBeenCalled();
 });

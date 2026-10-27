@@ -1,3 +1,8 @@
+import { AgentIcon } from "@/shared/icons/agent";
+import { isDesktopAppMode } from "@/shared/utils/routing";
+import { useRunActivityTimeline } from "../hooks/useRunActivityTimeline";
+import { resolveRunActivityAppearance } from "../lib/runActivityAppearance";
+import { chatDetailLevel } from "@/features/chats/lib/chatDetailLevel";
 import { referenceIds } from "@/shared/contracts/references";
 import { bindCssModuleClasses } from "@/shared/utils/cssModuleClasses";
 import timelinePresentation from "@/features/timeline/components/TimelinePresentation.module.css";
@@ -40,6 +45,7 @@ import {
 } from "@/shared/data/desktop/selectedTextLocate";
 import {
   buildTimelineDisplayItems,
+  nodesForDetailLevel,
   type TimelineDisplayItem,
 } from "@/features/timeline/lib/timelineDisplay";
 import {
@@ -62,6 +68,7 @@ import { resolveCurrentWorkerSummary } from "@/features/workers/lib/currentWorke
 import { resolvePreferredAgentKey } from "@/features/workers/lib/queryRouting";
 import { getVoiceRuntime } from "@/features/voice/lib/voiceRuntime";
 import { ToolOutputTerminal } from "@/features/terminal/components/ToolOutputTerminal";
+import { useViewPreviewPublisher } from "@/features/viewers/hooks/useViewPreviewTransfer";
 import { ViewEmbed } from "@/features/timeline/components/ViewEmbed";
 import { MarkdownContent } from "@/features/viewers/components/MarkdownContent";
 import { TimelineAttachmentView } from "@/features/timeline/components/TimelineAttachmentView";
@@ -96,6 +103,13 @@ import {
   setConversationScrollBookmark,
   type ConversationScrollBookmark,
 } from "@/features/timeline/lib/conversationScrollBookmark";
+import {
+  CONVERSATION_AT_BOTTOM_THRESHOLD_PX,
+  CONVERSATION_SCROLL_SETTLE_DELAY_MS,
+  isWithinConversationFollowThreshold,
+  resolveConversationFollowIntent,
+  shouldPinConversationToBottom,
+} from "@/features/timeline/lib/conversationFollow";
 import type { AgentSkill } from "@/shared/data/api/dto/agents";
 import { useAgentSkillsQuery } from "@/shared/data/query/queries";
 import timelineStyles from "./Timeline.module.css";
@@ -125,11 +139,18 @@ type VirtualListItem =
 const QUERY_ANCHOR_MIN_SCROLL_WIDTH = 960;
 
 const TIMELINE_EMPTY_CLASS_NAME =
-  "timeline-empty tw:relative tw:break-words tw:whitespace-pre-line tw:text-center tw:text-xl tw:font-bold tw:leading-[1.35]";
+  "timeline-empty tw:relative tw:break-words tw:whitespace-pre-line tw:text-center tw:text-[28px] tw:font-bold tw:leading-[1.35]";
 const CONVERSATION_STAGE_CLASS_NAME =
   "conversation-stage tw:relative tw:min-h-0 tw:flex-1 tw:overflow-hidden tw:animate-fade-slide-in";
 const CONVERSATION_STAGE_SCROLL_TO_BOTTOM_CLASS_NAME =
   presentationClasses("conversation-stage-scroll-to-bottom tw:rounded-full tw:pointer-events-auto");
+// 按钮不能放在 Virtuoso 的 Footer 里：Footer 属于滚动内容，sticky 受虚拟列表
+// 视口容器（height:100%）限制，滚动一屏后就会跟着内容走。这里把它固定在
+// conversation-stage 自身的定位层里，Footer 只保留列表末尾的留白。
+const CONVERSATION_STAGE_SCROLL_TO_BOTTOM_DOCK_CLASS_NAME =
+  "conversation-stage-scroll-to-bottom-dock tw:pointer-events-none tw:absolute tw:inset-x-0 tw:bottom-3 tw:z-10 tw:flex tw:justify-center";
+const CONVERSATION_STAGE_BOTTOM_SPACER_CLASS_NAME =
+  "conversation-stage-bottom-spacer";
 const CONVERSATION_TRANSITION_OVERLAY_CLASS_NAME =
   "conversation-transition-overlay tw:absolute tw:inset-0 tw:z-20 tw:grid tw:place-items-center tw:overflow-hidden tw:px-6";
 const CONVERSATION_SCROLL_RESTORE_TIMEOUT_MS = 2_000;
@@ -194,6 +215,15 @@ const TIMELINE_RUN_INFO_CLASS_NAME =
   "timeline-run-info tw:inline-flex tw:min-w-0 tw:shrink-0 tw:items-center tw:gap-2";
 const TIMELINE_RUN_TIME_CLASS_NAME =
   "timeline-run-time tw:shrink-0 tw:text-[12px] tw:leading-none tw:text-ink-muted tw:tracking-[0.02em]";
+
+// 保持列表末尾原有的留白高度，让浮动的“滚动到底部”按钮落在空白带里，
+// 不遮挡最后一条消息。
+const ConversationStageBottomSpacer: React.FC = () => (
+  <div
+    className={CONVERSATION_STAGE_BOTTOM_SPACER_CLASS_NAME}
+    aria-hidden="true"
+  />
+);
 
 export function shouldEnableQueryAnchors(width: number): boolean {
   return Number.isFinite(width) && width >= QUERY_ANCHOR_MIN_SCROLL_WIDTH;
@@ -484,6 +514,7 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
   const { t } = useI18n();
   const message = useAppMessage();
   const state = useAppState();
+  useViewPreviewPublisher(isDesktopAppMode() || surfaceMode === "main" ? state.chatId : "", state.timelineNodes);
   const dispatch = useAppDispatch();
   const appContext = useOptionalAppContext();
   const openTarget = useOpenTarget();
@@ -506,6 +537,14 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
   const [isAtBottom, setIsAtBottom] = useState(true);
   const [containerWidth, setContainerWidth] = useState(0);
   const isAtBottomRef = useRef(true);
+  // 跟随意图独立于“当前是否在底部”：内容长高会让 atBottom 短暂变 false，
+  // 但只有用户主动上滚才应该退出跟随。
+  const followActiveRef = useRef(true);
+  const lastScrollerScrollTopRef = useRef(0);
+  const pinFrameRef = useRef<number | null>(null);
+  const explicitScrollTimerRef = useRef<number | null>(null);
+  const restorationReadyRef = useRef(false);
+  const scrollerScrollListenerRef = useRef<(() => void) | null>(null);
   const restoringRef = useRef(false);
   const restoreTargetModeRef = useRef<"anchor" | "bottom" | null>(null);
   const restoreAtBottomObservedRef = useRef(false);
@@ -548,11 +587,21 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
       (option) => option.key !== currentWorker.sourceId,
     );
 
-  const timelineEntries = useMemo(() => {
-    return state.timelineOrder
-      .map((id) => state.timelineNodes.get(id))
-      .filter((node): node is NonNullable<typeof node> => Boolean(node));
-  }, [state.timelineOrder, state.timelineNodes]);
+  const detailLevel = chatDetailLevel(state);
+  const activityRunId = mainChatRuntime?.runId || state.currentChatActiveRun?.runId || state.runId;
+  const activityChatId = expectedChatId || state.chatTransition?.targetChatId || state.chatId;
+  const rawTimelineNodes = useMemo(() => state.timelineOrder
+    .map(id => state.timelineNodes.get(id))
+    .filter((node): node is TimelineNode => Boolean(node)), [state.timelineOrder, state.timelineNodes]);
+  const activityTimelineNodes = useRunActivityTimeline(rawTimelineNodes, {
+    scopeKey: JSON.stringify([activityChatId, activityRunId]),
+    runId: activityRunId,
+    active: activityChatId === state.chatId && Boolean(isMainChatRunning || state.streaming || state.currentChatActiveRun),
+    detailLevel,
+    events: state.events,
+  });
+  const timelineEntries = useMemo(() => nodesForDetailLevel(activityTimelineNodes, detailLevel),
+    [activityTimelineNodes, detailLevel]);
   const currentAgentKey =
     currentWorker?.type === "agent"
       ? String(currentWorker.sourceId || "").trim()
@@ -773,6 +822,22 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
         : null,
     [dataSignature, layoutSignature, state.chatId, surfaceMode],
   );
+  // 组件重新挂载（例如切换 Surface）时 transition 可能早已 ready，恢复流程不会再跑。
+  // 等容器量出真实宽度后再按已保存书签决定是否跟随，避免图片等晚到布局
+  // 把中部阅读位置拽回底部。
+  const initialFollowResolvedRef = useRef(false);
+  useIsomorphicLayoutEffect(() => {
+    if (initialFollowResolvedRef.current) return;
+    if (containerWidth <= 0) return;
+    initialFollowResolvedRef.current = true;
+    if (!currentBookmark) return;
+    const bookmarkMatchesTimeline =
+      currentBookmark.dataSignature === dataSignature &&
+      currentBookmark.layoutSignature === layoutSignature;
+    followActiveRef.current = bookmarkMatchesTimeline
+      ? currentBookmark.atBottom
+      : true;
+  }, [containerWidth]);
   const transition = state.chatTransition;
   const sharedPresentation = useConversationSurface();
   // Local fallback for independently mounted timelines; shells share one clock.
@@ -804,6 +869,7 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
   );
   const presentation = sharedPresentation || localPresentation;
   const restorationReady = presentation.restorationReady;
+  restorationReadyRef.current = restorationReady;
   const matchingSnapshot = Boolean(
     currentBookmark?.snapshot &&
     currentBookmark.dataSignature === dataSignature &&
@@ -994,6 +1060,48 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
     };
   }, []);
 
+  const trackScrollerScroll = useCallback(() => {
+    const scroller = scrollerRef.current;
+    if (!scroller) return;
+    const scrollTop = scroller.scrollTop;
+    const previousScrollTop = lastScrollerScrollTopRef.current;
+    lastScrollerScrollTopRef.current = scrollTop;
+    if (restoringRef.current) return;
+    followActiveRef.current = resolveConversationFollowIntent({
+      following: followActiveRef.current,
+      atBottom: isWithinConversationFollowThreshold({
+        scrollHeight: scroller.scrollHeight,
+        clientHeight: scroller.clientHeight,
+        scrollTop,
+      }),
+      scrollTop,
+      previousScrollTop,
+    });
+  }, []);
+  const trackScrollerScrollRef = useRef(trackScrollerScroll);
+  trackScrollerScrollRef.current = trackScrollerScroll;
+
+  const handleScrollerRef = useCallback(
+    (ref: HTMLElement | Window | null) => {
+      const element = ref instanceof HTMLElement ? ref : null;
+      if (scrollerRef.current === element) return;
+      if (scrollerRef.current && scrollerScrollListenerRef.current) {
+        scrollerRef.current.removeEventListener(
+          "scroll",
+          scrollerScrollListenerRef.current,
+        );
+      }
+      scrollerRef.current = element;
+      scrollerScrollListenerRef.current = null;
+      if (!element) return;
+      lastScrollerScrollTopRef.current = element.scrollTop;
+      const listener = () => trackScrollerScrollRef.current();
+      scrollerScrollListenerRef.current = listener;
+      element.addEventListener("scroll", listener, { passive: true });
+    },
+    [],
+  );
+
   const handleIsScrolling = useCallback((scrolling: boolean) => {
     if (scrolling) {
       if (saveTimerRef.current !== null) {
@@ -1019,9 +1127,48 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
       }
       return;
     }
+    // 不在底部时不直接关跟随：高度增长、视口变矮也会让 atBottom 变 false，
+    // 只有真实的向上滚动（scroll 事件）才算用户离开底部。
+    if (atBottom) followActiveRef.current = true;
     isAtBottomRef.current = atBottom;
     setIsAtBottom(atBottom);
   }, []);
+
+  const pinConversationToBottom = useCallback(() => {
+    virtuosoRef.current?.scrollToIndex({
+      index: "LAST",
+      align: "end",
+      behavior: "auto",
+    });
+  }, []);
+
+  // followOutput 只对条目数量变化求值；流式回答是最后一条自己长高，
+  // 必须由总高度变化补一次贴底，否则缺口会一直累积。
+  const handleTotalListHeightChanged = useCallback(() => {
+    if (pinFrameRef.current !== null) return;
+    if (
+      !shouldPinConversationToBottom({
+        following: followActiveRef.current,
+        restorationReady: restorationReadyRef.current,
+        restoring: restoringRef.current,
+      })
+    ) {
+      return;
+    }
+    pinFrameRef.current = window.requestAnimationFrame(() => {
+      pinFrameRef.current = null;
+      if (
+        !shouldPinConversationToBottom({
+          following: followActiveRef.current,
+          restorationReady: restorationReadyRef.current,
+          restoring: restoringRef.current,
+        })
+      ) {
+        return;
+      }
+      pinConversationToBottom();
+    });
+  }, [pinConversationToBottom]);
 
   const handleRangeChanged = useCallback(
     (range: ListRange) => {
@@ -1081,6 +1228,7 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
     ) {
       return;
     }
+    followActiveRef.current = true;
     isAtBottomRef.current = true;
     setIsAtBottom(true);
     virtuosoRef.current?.scrollToIndex({
@@ -1088,7 +1236,24 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
       behavior: "smooth",
       align: "end",
     });
-  }, [restorationReady, state.chatId, state.conversationScrollRequest]);
+    // 平滑滚动只算一次目标：内容在动画期间继续变高就会停在半路。
+    // 动画结束后用 auto 校正一次；后续生长由 totalListHeightChanged 接管。
+    if (explicitScrollTimerRef.current !== null) {
+      window.clearTimeout(explicitScrollTimerRef.current);
+    }
+    explicitScrollTimerRef.current = window.setTimeout(() => {
+      explicitScrollTimerRef.current = null;
+      if (!followActiveRef.current) return;
+      const scroller = scrollerRef.current;
+      if (!scroller || isConversationScrollerAtBottom(scroller)) return;
+      pinConversationToBottom();
+    }, CONVERSATION_SCROLL_SETTLE_DELAY_MS);
+  }, [
+    pinConversationToBottom,
+    restorationReady,
+    state.chatId,
+    state.conversationScrollRequest,
+  ]);
 
   useIsomorphicLayoutEffect(() => {
     if (
@@ -1147,6 +1312,7 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
     );
     isAtBottomRef.current = shouldRestoreBottom;
     setIsAtBottom(shouldRestoreBottom);
+    followActiveRef.current = shouldRestoreBottom;
     restoreTargetModeRef.current = shouldRestoreBottom ? "bottom" : "anchor";
     restoreAtBottomObservedRef.current = false;
     let cancelled = false;
@@ -1214,7 +1380,10 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
       restoringRef.current = false;
       restoreTargetModeRef.current = null;
       restoreAtBottomObservedRef.current = false;
+      followActiveRef.current = shouldRestoreBottom;
       const scroller = scrollerRef.current;
+      lastScrollerScrollTopRef.current =
+        scroller?.scrollTop ?? lastScrollerScrollTopRef.current;
       const elapsedMs = Math.max(0, Date.now() - restoreStartedAt);
       if (reason === "timeout") {
         const scrollTop = scroller?.scrollTop || 0;
@@ -1361,6 +1530,21 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
       if (saveTimerRef.current !== null) {
         window.clearTimeout(saveTimerRef.current);
       }
+      if (pinFrameRef.current !== null) {
+        window.cancelAnimationFrame(pinFrameRef.current);
+        pinFrameRef.current = null;
+      }
+      if (explicitScrollTimerRef.current !== null) {
+        window.clearTimeout(explicitScrollTimerRef.current);
+        explicitScrollTimerRef.current = null;
+      }
+      if (scrollerRef.current && scrollerScrollListenerRef.current) {
+        scrollerRef.current.removeEventListener(
+          "scroll",
+          scrollerScrollListenerRef.current,
+        );
+        scrollerScrollListenerRef.current = null;
+      }
     };
   }, []);
 
@@ -1402,71 +1586,72 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
     return () => observer.disconnect();
   }, []);
 
+  const emptyAgent = state.agents.find(agent => agent.key === currentWorker?.sourceId);
+  const emptyAgentIdentity = (
+    <span className="timeline-empty-agent-identity tw:inline-flex tw:items-baseline tw:gap-2 tw:align-baseline">
+      <span data-agent-identity="" className="timeline-empty-agent-icon tw:inline-flex tw:self-center">
+        <AgentIcon type="agent" icon={emptyAgent?.icon} mode={emptyAgent?.mode} props={{ icon: { width: 40, height: 40 } }} />
+      </span>
+      {canSwitchEmptyAgent ? (
+        <TimelineAgentSwitcher currentWorker={currentWorker} options={timelineAgentOptions} />
+      ) : <span>{currentWorker?.displayName}</span>}
+    </span>
+  );
   const emptyStateContent = !state.chatId && showEmptyState && (
     <div className={TIMELINE_EMPTY_CLASS_NAME}>
       {greeting ? greeting.split("${agent}").map((part, index) => (
         <React.Fragment key={index}>
-          {index > 0 && (canSwitchEmptyAgent ? (
-            <TimelineAgentSwitcher currentWorker={currentWorker} options={timelineAgentOptions} />
-          ) : currentWorker?.displayName)}
+          {index > 0 && emptyAgentIdentity}
           {part}
         </React.Fragment>
-      )) : (currentWorker?.displayName ? (
-        canSwitchEmptyAgent ? (
-          <>
-            {t("timeline.empty.withAgentPrefix")}
-            <TimelineAgentSwitcher
-              currentWorker={currentWorker}
-              options={timelineAgentOptions}
-            />
-            {t("timeline.empty.withAgentSuffix")}
-          </>
-        ) : (
-          t("timeline.empty.withWorker", {
-            name: currentWorker.displayName,
-          })
-        )
-      ) : (
-        t("timeline.empty.default")
-      ))}
+      )) : currentWorker?.displayName ? (
+        <>
+          {t("timeline.empty.withAgentPrefix")}
+          {emptyAgentIdentity}
+          {t("timeline.empty.withAgentSuffix")}
+        </>
+      ) : t("timeline.empty.default")}
     </div>
   );
 
-  const Footer = useCallback(() => {
+  const renderScrollToBottomControl = () => {
     const running = isMainChatRunning || state.streaming;
-    if (isAtBottom && !running) {
+    // 已在底部时不展示，运行中也不展示：内容还在视口里时这个按钮没有意义。
+    if (!state.chatId || isAtBottom) {
       return null;
     }
     return (
-      <Tooltip
-        title={
-          running ? (
-            <RunElapsedTime startTimeMs={runStartedAt} />
-          ) : (
-            t("conversationStage.scrollToBottom")
-          )
-        }
-        placement="top"
-      >
-        <UiButton
-          className={CONVERSATION_STAGE_SCROLL_TO_BOTTOM_CLASS_NAME}
-          iconOnly
-          size="sm"
-          onClick={handleScrollToBottomClick}
+      <div className={CONVERSATION_STAGE_SCROLL_TO_BOTTOM_DOCK_CLASS_NAME}>
+        <Tooltip
+          title={
+            running ? (
+              <RunElapsedTime startTimeMs={runStartedAt} />
+            ) : (
+              t("conversationStage.scrollToBottom")
+            )
+          }
+          placement="top"
         >
-          {running ? (
-            <DotLoading
-              color="primary"
-              height={15}
-              ariaLabel={t("leftSidebar.loading")}
-            />
-          ) : (
-            <MaterialIcon name="arrow_downward" />
-          )}
-        </UiButton>
-      </Tooltip>
+          <UiButton
+            className={CONVERSATION_STAGE_SCROLL_TO_BOTTOM_CLASS_NAME}
+            iconOnly
+            size="sm"
+            onClick={handleScrollToBottomClick}
+          >
+            {running ? (
+              <DotLoading
+                color="primary"
+                height={15}
+                ariaLabel={t("leftSidebar.loading")}
+              />
+            ) : (
+              <MaterialIcon name="arrow_downward" />
+            )}
+          </UiButton>
+        </Tooltip>
+      </div>
     );
-  }, [isAtBottom, isMainChatRunning, runStartedAt, state.streaming, t]);
+  };
 
   const queryAnchorRail =
     queryAnchorItems.length > 0 && queryAnchorsEnabled ? (
@@ -1613,6 +1798,7 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
 
   const waitTransport = useRunTransport();
   const interaction = useMemo<TimelineInteractionValue>(() => ({
+    activityAppearance: resolveRunActivityAppearance(state.agents.find(agent => agent.key === resolvePreferredAgentKey(state))),
     // "Continue now" is a blank steer, which Platform treats as "continue"; a
     // request.steer without content renders no user message.
     continueWait: async (runId) => {
@@ -1672,13 +1858,12 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
       void getVoiceRuntime()?.replayTtsVoiceBlock(node.contentId || "", signature, text)
         .catch(() => undefined);
     },
-    renderToolView: (view, chatId, error, payloadRaw) =>
-      <ViewEmbed chatId={chatId} view={view} viewError={error} payloadRaw={payloadRaw} />,
+    renderToolView: (view, chatId, error, payloadRaw, node) =>
+      <ViewEmbed allowSidebar={surfaceMode === "main"} chatId={chatId} view={view} viewError={error} payloadRaw={payloadRaw} runId={node?.runId} sourceId={node?.id} viewIndex="tool" />,
     renderToolOutput: (output) =>
       <ToolOutputTerminal output={output} themeMode={state.themeMode} />,
-    renderContentView: (segment, chatId) => segment.view
-      ? <ViewEmbed chatId={chatId} view={segment.view} payloadRaw={segment.payloadRaw || "{}"} />
-      : null,
+    renderContentView: (segment, chatId, binding, runId, sourceId) =>
+      <ViewEmbed allowSidebar={surfaceMode === "main"} chatId={chatId} view={binding.view} viewError={binding.viewError} payloadRaw={segment.payloadRaw || "{}"} rawData={segment.payloadRaw} runId={runId} sourceId={sourceId} viewIndex={String(segment.index)} />,
     renderMarkdown: (props) => <MarkdownContent {...props} htmlPreview />,
     renderAttachment: (attachment, options) => <TimelineAttachmentView
       attachment={attachment}
@@ -1759,19 +1944,21 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
               instanceKey: virtuosoInstanceKey,
               ref: virtuosoRef,
               snapshot: matchingSnapshot,
-              scrollerRef: (ref) => {
-                scrollerRef.current = ref instanceof HTMLElement ? ref : null;
-              },
+              scrollerRef: handleScrollerRef,
               followOutput: (atBottom) =>
-                restorationReady && !restoringRef.current && isAtBottomRef.current && atBottom
+                restorationReady && !restoringRef.current && followActiveRef.current && atBottom
                   ? "auto" : false,
+              atBottomThreshold: CONVERSATION_AT_BOTTOM_THRESHOLD_PX,
               atBottomStateChange: handleAtBottomStateChange,
+              totalListHeightChanged: handleTotalListHeightChanged,
               rangeChanged: handleRangeChanged,
               isScrolling: handleIsScrolling,
-              Footer,
+              Footer: ConversationStageBottomSpacer,
             }}
           />
         )}
+
+        {renderScrollToBottomControl()}
       </div>
       {presentation.blocked ? (
         <ConversationTransitionOverlay

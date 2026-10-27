@@ -31,6 +31,23 @@ describe("standalone Overview/Debug live replay policy", () => {
     })).toEqual({ action: "ignore", nextSeq: 8 });
   });
 
+  it("accepts summary seq gaps and unsequenced activities", () => {
+    expect(classifyChatSurfaceEvent({
+      event: event({ chatId: "chat_1", runId: "run_1", seq: 12 }),
+      chatId: "chat_1",
+      runId: "run_1",
+      lastSeq: 8,
+      detailLevel: "summary",
+    })).toEqual({ action: "apply", nextSeq: 12 });
+    expect(classifyChatSurfaceEvent({
+      event: event({ chatId: "chat_1", runId: "run_1", seq: 0, type: "run.activity" }),
+      chatId: "chat_1",
+      runId: "run_1",
+      lastSeq: 8,
+      detailLevel: "full",
+    })).toEqual({ action: "apply", nextSeq: 8 });
+  });
+
   it("applies the next event and reloads the chat snapshot on a gap", () => {
     expect(classifyChatSurfaceEvent({
       event: event({ chatId: "chat_1", runId: "run_1", seq: 9 }),

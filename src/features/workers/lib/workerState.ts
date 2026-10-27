@@ -45,6 +45,7 @@ export interface WorkerConversationRow {
 }
 
 export interface WorkersState {
+  primaryNavigation: boolean;
 
   sidebarPendingRequestCount: number;
   pendingNewChatAgentKey: string;
@@ -60,6 +61,7 @@ export interface WorkersState {
 }
 
 export type WorkersAction =
+  | { type: "SET_PRIMARY_NAVIGATION"; enabled: boolean }
   | { type: "START_SIDEBAR_REQUEST" }
   | { type: "FINISH_SIDEBAR_REQUEST" }
   | { type: "SET_CHAT_FILTER"; filter: string }
@@ -74,6 +76,7 @@ export type WorkersAction =
 
 export function createInitialWorkersState(): WorkersState {
   return {
+    primaryNavigation: false,
 
     sidebarPendingRequestCount: 0,
     pendingNewChatAgentKey: "",
@@ -94,6 +97,8 @@ export function reduceWorkersState<S extends WorkersState>(state: S, action: { t
 export function reduceWorkersState<S extends WorkersState>(state: S, input: { type: string }): S | null {
   const action = input as WorkersAction;
   switch (action.type) {
+    case "SET_PRIMARY_NAVIGATION":
+      return { ...state, primaryNavigation: action.enabled };
     case "START_SIDEBAR_REQUEST":
       return { ...state, sidebarPendingRequestCount: state.sidebarPendingRequestCount + 1 };
     case "FINISH_SIDEBAR_REQUEST":

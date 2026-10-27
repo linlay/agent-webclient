@@ -203,7 +203,7 @@ export const GlobalSearchPanel: React.FC<GlobalSearchPanelProps> = ({
                 }
                 if (row.kind === "worker") {
                   return (
-                    <button
+                    <button data-agent-identity=""
                       key={row.key}
                       type="button"
                       className={`${GLOBAL_SEARCH_ROW_CLASS} global-search-worker`}

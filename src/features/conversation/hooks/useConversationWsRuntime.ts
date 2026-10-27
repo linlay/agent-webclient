@@ -39,6 +39,11 @@ import { useChatNotificationRuntime } from "@/features/conversation/hooks/useCha
 import { useRunSubscriptionRuntime } from "@/features/conversation/hooks/useRunSubscriptionRuntime";
 import type { RunTransport } from "@/features/transport/contracts/realtimeTransport";
 import {
+	createAttachCursorRecovery,
+	isAttachCursorExpired,
+	type AttachCursorRecovery,
+} from "@/features/conversation/lib/attachCursorRecovery";
+import {
 	AGENT_DETACH_RUN_EVENT,
 } from "@/features/runs/lib/runControlEvents";
 import {
@@ -233,6 +238,7 @@ interface ConversationPushHandlerOptions {
 	activeQuerySessionRequestIdRef?: { current: string };
 	activeAttachRef?: { current: ActiveAttachState | null };
 	handleEvent: (event: AgentEvent) => void;
+	cursorRecovery?: Pick<AttachCursorRecovery, "nudge">;
 }
 
 function appendWsDebug(dispatch: WsTransportDispatch, line: string): void {
@@ -520,6 +526,7 @@ interface RegisterAttachRunListenerOptions {
 	chatQuerySessionIndexRef: { current: Map<string, string> };
 	activeQuerySessionRequestIdRef: { current: string };
 	runs: RunTransport;
+	cursorRecovery?: Pick<AttachCursorRecovery, "expired">;
 }
 
 function isAttachTerminalRunEventType(type: string): boolean {
@@ -751,7 +758,16 @@ export function registerAttachRunListener(
 			onEvent: attachHandleEvent,
 		});
 		void execution.identity.catch(() => cleanupActiveAttach(requestId));
-		void execution.completion.then(() => cleanupActiveAttach(requestId));
+		void execution.completion.then((completion) => {
+			// identity.catch may already have cleared this attach; only a newer one supersedes it.
+			const active = options.activeAttachRef.current;
+			const superseded = Boolean(active && active.requestId !== requestId);
+			cleanupActiveAttach(requestId);
+			// Platform no longer retains the cursor; the Run itself keeps going.
+			if (!superseded && completion.reason === "error" && isAttachCursorExpired(completion.error)) {
+				options.cursorRecovery?.expired(chatId, runId);
+			}
+		});
 
 		options.querySessionsRef.current.set(requestId, session);
 		options.chatQuerySessionIndexRef.current.set(chatId, requestId);
@@ -847,7 +863,7 @@ export function createConversationPushHandler(
 			return;
 		}
 
-		if (type === "chats.order.changed") {
+		if (type === "chats.order.changed" || type === "chat.primary.changed") {
 			invalidateChatNavigationCache();
 			if (typeof window !== "undefined") {
 				window.dispatchEvent(new CustomEvent("agent:refresh-worker-data"));
@@ -884,6 +900,9 @@ export function createConversationPushHandler(
 		}
 
 		if (type === "chat.deleted") {
+			if (typeof window !== "undefined") {
+				window.dispatchEvent(new CustomEvent("agent:refresh-worker-data"));
+			}
 			const deletedChatId = String(liveEvent.chatId || "").trim();
 			if (deletedChatId) {
 				options.dispatch({ type: "CHAT_DELETED", chatId: deletedChatId });
@@ -899,6 +918,9 @@ export function createConversationPushHandler(
 		}
 
 		if (type === "chat.archived") {
+			if (typeof window !== "undefined") {
+				window.dispatchEvent(new CustomEvent("agent:refresh-worker-data"));
+			}
 			const archivedChatId = String(liveEvent.chatId || "").trim();
 			if (archivedChatId) {
 				options.dispatch({ type: "CHAT_ARCHIVED", chatId: archivedChatId });
@@ -1010,6 +1032,11 @@ export function createConversationPushHandler(
 			isAwaitingAskPushEvent(type) || isAwaitingAnswerPushEvent(type);
 		if (isAwaitingPushEvent) {
 			upsertPushChatSummary(options.dispatch, liveEvent);
+			// The Run asking means its earlier steps are persisted, so a pending
+			// cursor recovery can now load a cursor Platform still retains.
+			if (isAwaitingAskPushEvent(type) && eventChatId) {
+				options.cursorRecovery?.nudge(eventChatId);
+			}
 			return;
 		}
 
@@ -1075,6 +1102,14 @@ export function useConversationWsRuntime(options: {
 		handleEventRef.current(event);
 	}, []);
 
+	const cursorRecovery = useMemo(() => createAttachCursorRecovery({
+		reload: (chatId) => window.dispatchEvent(new CustomEvent("agent:load-chat", {
+			detail: { chatId, forceReload: true, focusComposerOnComplete: false },
+		})),
+		isCurrentChat: (chatId) => String(stateRef.current.chatId || "").trim() === chatId,
+	}), [stateRef]);
+	useEffect(() => () => cursorRecovery.cancel(), [cursorRecovery]);
+
 	const handlePush = useMemo(() => createConversationPushHandler({
 		dispatch,
 		stateRef,
@@ -1082,8 +1117,10 @@ export function useConversationWsRuntime(options: {
 		activeQuerySessionRequestIdRef,
 		activeAttachRef,
 		handleEvent: stableHandleEvent,
+		cursorRecovery,
 	}), [
 		activeQuerySessionRequestIdRef,
+		cursorRecovery,
 		dispatch,
 		querySessionsRef,
 		stableHandleEvent,
@@ -1111,9 +1148,11 @@ export function useConversationWsRuntime(options: {
 			chatQuerySessionIndexRef,
 			activeQuerySessionRequestIdRef,
 			runs,
+			cursorRecovery,
 		}), [
 		activeQuerySessionRequestIdRef,
 		chatQuerySessionIndexRef,
+		cursorRecovery,
 		dispatch,
 		querySessionsRef,
 		runs,

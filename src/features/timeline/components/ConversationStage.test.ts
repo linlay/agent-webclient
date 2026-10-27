@@ -701,7 +701,9 @@ describe("ConversationStage", () => {
       React.createElement(ConnectedConversationStage, { onFeedback: mockOnFeedback, deriveChatAction: mockDeriveChatAction, surfaceMode: "main" }),
     );
 
-    expect(html).toContain("与 小宅 对话");
+    expect(html.replace(/<[^>]*>/g, "").replaceAll("agent-icon", "")).toContain("与 小宅 对话");
+    expect(html).toContain("timeline-empty-agent-identity");
+    expect(html).toContain("agent-icon");
     expect(html).not.toContain("timeline-agent-switcher-trigger");
   });
   it("shows the configured greeting instead of the default heading", () => {
@@ -769,7 +771,7 @@ describe("ConversationStage", () => {
       React.createElement(ConnectedConversationStage, { onFeedback: mockOnFeedback, deriveChatAction: mockDeriveChatAction, surfaceMode: "main" }),
     );
 
-    expect(html).toContain(expected);
+    expect(html.replace(/<[^>]*>/g, "").replaceAll("agent-icon", "")).toContain(expected);
     expect(html).not.toContain("${agent}");
     expect(html).not.toContain("与 小宅 对话");
     expect(html).not.toContain("timeline-agent-switcher-trigger");

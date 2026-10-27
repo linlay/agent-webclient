@@ -1,4 +1,6 @@
 import { locateSelectedTextReference } from "@/shared/data/desktop/selectedTextLocate";
+import { useRunActivityTimeline } from "@/features/timeline/hooks/useRunActivityTimeline";
+import { chatDetailLevel } from "@/features/chats/lib/chatDetailLevel";
 import React, { useCallback, useEffect, useMemo, useRef } from "react";
 import { App as AntdApp, Flex, Input, Popconfirm, Tooltip } from "antd";
 import type { TextAreaRef } from "antd/es/input/TextArea";
@@ -12,8 +14,10 @@ import { TimelineInteractionProvider } from "@/features/timeline/components/Time
 import { TimelineRow } from "@/features/timeline/components/TimelineRow";
 import {
   buildTimelineDisplayItems,
+  nodesForDetailLevel,
   type TimelineRenderEntry,
 } from "@/features/timeline/lib/timelineDisplay";
+import { type EventDetailLevel } from "@/shared/data/eventDetailLevel";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
 import { useI18n } from "@/shared/i18n";
@@ -72,6 +76,8 @@ export interface BtwTabViewProps {
   onPatchTimelineNode: (node: TimelineNode) => void;
   onOpenStandalone?: () => void;
   onOpenSource?: (source: TimelineSource, node?: TimelineNode) => void;
+  /** Defaults to the stored preference for surfaces outside the app state. */
+  detailLevel?: EventDetailLevel;
 }
 
 export const BtwTabView: React.FC<BtwTabViewProps> = ({
@@ -85,6 +91,7 @@ export const BtwTabView: React.FC<BtwTabViewProps> = ({
   onPatchTimelineNode,
   onOpenStandalone,
   onOpenSource,
+  detailLevel = "summary",
 }) => {
   const { t } = useI18n();
   const { message } = AntdApp.useApp();
@@ -95,12 +102,18 @@ export const BtwTabView: React.FC<BtwTabViewProps> = ({
   const interruptReady = Boolean(session?.interruptReady);
   const interruptPending = Boolean(session?.interruptPending);
 
-  const timelineEntries = useMemo(() => {
-    if (!session) return [];
-    return session.projection.timelineOrder
-      .map((id) => session.projection.timelineNodes.get(id))
-      .filter((node): node is TimelineNode => Boolean(node));
-  }, [session]);
+  const rawTimelineNodes = useMemo(() => session ? session.projection.timelineOrder
+    .map(id => session.projection.timelineNodes.get(id))
+    .filter((node): node is TimelineNode => Boolean(node)) : [], [session]);
+  const activityTimelineNodes = useRunActivityTimeline(rawTimelineNodes, {
+    scopeKey: JSON.stringify([parentChatId, session?.btwId, session?.runId]),
+    runId: session?.runId || "",
+    active: running,
+    detailLevel,
+    events: session?.projection.events || [],
+  });
+  const timelineEntries = useMemo(() => nodesForDetailLevel(activityTimelineNodes, detailLevel),
+    [activityTimelineNodes, detailLevel]);
   const displayItems = useMemo(
     () =>
       session
@@ -327,6 +340,7 @@ export const BtwTab: React.FC = () => {
     <BtwTabView
       parentChatId={parentChatId}
       session={session}
+      detailLevel={chatDetailLevel(state)}
       onSend={() => {
         const message = resolveBTWSendMessage(
           session?.draft || "",

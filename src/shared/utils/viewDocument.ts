@@ -2,6 +2,101 @@ import type { ViewDocument } from "@/shared/contracts/view";
 
 const VIEW_CSP = "default-src 'none'; script-src 'unsafe-inline' data:; style-src 'unsafe-inline' data:; img-src data: blob:; font-src data:; connect-src 'none'; frame-src 'none'; form-action 'none'; base-uri 'none'; object-src 'none'";
 
+/**
+ * Host adapter injected first into every display view. It is not part of the
+ * frozen snapshot, so it always matches the host protocol:
+ *   viewHost.onData((payload, view, context) => …)  — view_init/view_update;
+ *     payload = Markdown view input or tool result;
+ *     context = { queryable, actionable, locale, colorScheme }
+ *   viewHost.query(name, params) → Promise<{data, executedAt}>  — declared queries only;
+ *     a newer call with the same name rejects the older one with view_query_superseded
+ *   viewHost.resize()                               — re-reports the height
+ * Frozen legacy templates retain zenmindView with query() returning raw data.
+ * Native, CLI and MCP queries share this interface for every connector.
+ * Height is reported as {type:"view_resize",height}; the host applies it with
+ * a 48px floor and no ceiling, so content must not size itself by vh units.
+ */
+export const VIEW_DISPLAY_SDK = `(() => {
+  'use strict';
+  const handlers = [];
+  const pending = new Map();
+  let last = null, frame = 0, lastHeight = 0, sequence = 0;
+  function measure() {
+    frame = 0;
+    const body = document.body;
+    if (!body) return;
+    const marginBottom = parseFloat(getComputedStyle(body).marginBottom) || 0;
+    const height = Math.ceil(body.getBoundingClientRect().bottom + scrollY + marginBottom);
+    if (height <= 0 || height === lastHeight) return;
+    lastHeight = height;
+    parent.postMessage({ type: 'view_resize', height }, '*');
+  }
+  function schedule() { if (!frame) frame = requestAnimationFrame(measure); }
+  function deliver(handler) {
+    try { handler(last.payload, last.view, last.context || {}); } catch (error) { console.error(error); }
+  }
+  function applyContext(context) {
+    const root = document.documentElement;
+    if (context.colorScheme === 'dark' || context.colorScheme === 'light') {
+      root.dataset.colorScheme = context.colorScheme;
+      root.style.colorScheme = context.colorScheme;
+    }
+    if (typeof context.locale === 'string' && context.locale) root.lang = context.locale;
+  }
+  addEventListener('message', event => {
+    if (event.source !== parent) return;
+    const message = event.data;
+    if ((message?.type === 'view_query_result' || message?.type === 'view_invoke_result')) {
+      const request = pending.get(message.id);
+      if (!request) return;
+      pending.delete(message.id);
+      if (message.ok) request.resolve({ data: message.data, executedAt: message.executedAt, ...(message.type === "view_invoke_result" ? { invocationId: message.invocationId, exitCode: message.exitCode } : {}) });
+      else request.reject(new Error(String(message.error || 'view_query_failed')));
+      return;
+    }
+    if (message?.type !== 'view_init' && message?.type !== 'view_update') return;
+    last = message.data || {};
+    applyContext(last.context || {});
+    handlers.forEach(deliver);
+    schedule();
+  });
+  function observe() {
+    if (!document.body) { addEventListener('DOMContentLoaded', observe, { once: true }); return; }
+    if (typeof ResizeObserver === 'function') new ResizeObserver(schedule).observe(document.body);
+    schedule();
+  }
+  observe();
+  addEventListener('resize', schedule);
+  window.viewHost = Object.freeze({
+    onData(handler) {
+      if (typeof handler !== 'function') return;
+      handlers.push(handler);
+      if (last) deliver(handler);
+    },
+    query(name, params) {
+      const id = 'q' + (++sequence);
+      return new Promise((resolve, reject) => {
+        pending.set(id, { resolve, reject });
+        parent.postMessage({ type: 'view_query', id, query: String(name), params: params || {} }, '*');
+      });
+    },
+    invoke(name, params) {
+      const id = 'a' + (++sequence);
+      return new Promise((resolve, reject) => {
+        pending.set(id, { resolve, reject });
+        parent.postMessage({ type: 'view_invoke', id, action: String(name), params: params || {} }, '*');
+      });
+    },
+    resize() { lastHeight = 0; schedule(); },
+  });
+  // Historical snapshots keep their original scripts and return-value contract.
+  window.zenmindView = Object.freeze({
+    onData: window.viewHost.onData,
+    query(name, params) { return window.viewHost.query(name, params).then(result => result.data); },
+    resize: window.viewHost.resize,
+  });
+})();`;
+
 function escapeHTML(value: string): string {
   return value.replace(/[&<>"']/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char]!));
 }
@@ -61,6 +156,13 @@ export function viewDocumentHTML(document: ViewDocument, usage: "display" | "for
   parsed.querySelectorAll("[srcset]").forEach(node => node.removeAttribute("srcset"));
   parsed.querySelectorAll("style").forEach(node => { node.textContent = css(node.textContent || "", entry); });
   parsed.querySelectorAll("[style]").forEach(node => node.setAttribute("style", css(node.getAttribute("style") || "", entry)));
+  // The SDK runs before template scripts so they can register onData.
+  if (usage === "display") {
+    const sdk = parsed.createElement("script");
+    sdk.setAttribute("data-zenmind-view", "");
+    sdk.textContent = VIEW_DISPLAY_SDK;
+    parsed.head.prepend(sdk);
+  }
   const policy = parsed.createElement("meta");
   policy.httpEquiv = "Content-Security-Policy";
   policy.content = VIEW_CSP;

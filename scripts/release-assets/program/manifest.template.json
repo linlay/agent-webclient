@@ -88,6 +88,7 @@
         "/explain/",
         "/source-viewer/",
         "/planning-viewer/",
+        "/view-viewer/",
         "/resource-viewer/",
         "/file-viewer/",
         "/web-viewer",

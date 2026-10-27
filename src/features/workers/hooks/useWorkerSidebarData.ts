@@ -1,3 +1,4 @@
+import { effectiveAgentIcon } from "@/shared/icons/agentAppearance";
 import { useMemo } from "react";
 import type { AppState } from "@/app/state/AppContext";
 import type { WorkerConversationRow } from "@/features/workers/lib/workerState";
@@ -164,8 +165,8 @@ export function useWorkerSidebarData({
   const workerIconsByKey = useMemo(() => {
     const icons = new Map<string, AgentIconConfig>();
     for (const agent of agents) {
-      if (!agent?.key || !agent.icon) continue;
-      icons.set(`agent:${agent.key}`, agent.icon);
+      if (!agent?.key) continue;
+      icons.set(`agent:${agent.key}`, effectiveAgentIcon(agent.icon, agent.mode));
     }
 
     return icons;

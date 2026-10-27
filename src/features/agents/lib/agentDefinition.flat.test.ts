@@ -75,3 +75,28 @@ it("supports connector selections during creation and leaves effective presets o
  const detail = { key: "demo", name: "Demo", status: "ready", definition: { key: "demo" }, connectorBindings: [{ id: "web", source: "preset" as const, active: true }] };
  expect(formFromDetail(detail).connectors).toEqual([]);
 });
+
+it("persists only the explicit detail override and supports restoring mode inheritance", () => {
+ const definition = {key:"demo", mode:"CODER"};
+ const detail = {key:"demo",name:"Demo",definition,interactionConfig:{defaultDetail:"full"},status:"ready"};
+ const form = formFromDetail(detail as Parameters<typeof formFromDetail>[0]);
+ const translate = ((key:string) => key) as Parameters<typeof buildDefinition>[2];
+ expect(buildDefinition(form,definition,translate)).not.toHaveProperty("interactionConfig");
+ form.interactionConfig = {defaultDetail:"summary",showTerminal:false};
+ expect(buildDefinition(form,definition,translate).interactionConfig).toEqual({defaultDetail:"summary",showTerminal:false});
+ delete form.interactionConfig.defaultDetail;
+ expect(buildDefinition(form,definition,translate).interactionConfig).toEqual({showTerminal:false});
+});
+
+it("round-trips modelConfig.maxInputTokens and rejects non-integers", () => {
+  const definition = { key: "win", mode: "GENERAL", modelConfig: { modelKey: "model-a", maxInputTokens: 200000 } };
+  const detail: AgentDetailResponse = {key: "win", name: "Win", mode: "GENERAL", tools: [], skills: [], connectors: [], controls: [], meta: {}, definition};
+  const form = formFromDetail(detail);
+  const translate = ((key: string) => key) as Parameters<typeof buildDefinition>[2];
+  expect(form.maxInputTokensText).toBe("200000");
+  expect(buildDefinition(form, definition, translate).modelConfig).toMatchObject({ maxInputTokens: 200000 });
+  form.maxInputTokensText = "";
+  expect(buildDefinition(form, definition, translate).modelConfig).not.toHaveProperty("maxInputTokens");
+  form.maxInputTokensText = "1.5";
+  expect(() => buildDefinition(form, definition, translate)).toThrow("agentConsole.error.maxInputTokensInvalid");
+});

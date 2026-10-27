@@ -148,6 +148,9 @@ describe("ComposerActions", () => {
     expect(html).toContain("composer-connector-stack-btn");
     expect(html).toContain("composer-connector-avatar-stack");
     expect(html).toContain("Connector 1");
+    // 堆叠与展开偏移由 CSS 变量驱动，展开只靠绝对定位的 transform，不占用布局
+    expect(html).toContain("--connector-avatar-count:2");
+    expect(html).toContain("--connector-avatar-index:1");
   });
 });
 

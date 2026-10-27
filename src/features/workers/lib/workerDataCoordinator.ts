@@ -43,12 +43,17 @@ function extractChatsFromWorker(
   owner: { type: 'agent'; sourceId: string },
 ): Chat[] {
   const chats: Chat[] = [];
-  const workerChats = Array.isArray(worker?.chats) ? worker.chats : [];
+  const workerChats = [
+    ...(Array.isArray(worker?.chats) ? worker.chats : []),
+    ...(worker.primaryChat?.chatId ? [worker.primaryChat] : []),
+  ];
+  const seen = new Set<string>();
   for (const rawChat of workerChats) {
     if (!rawChat || typeof rawChat !== 'object') continue;
     const chat = rawChat as Chat;
     const chatId = readText(chat.chatId);
-    if (!chatId) continue;
+    if (!chatId || seen.has(chatId)) continue;
+    seen.add(chatId);
     const hasExplicitPendingAwaiting = Object.prototype.hasOwnProperty.call(
       chat,
       'hasPendingAwaiting',

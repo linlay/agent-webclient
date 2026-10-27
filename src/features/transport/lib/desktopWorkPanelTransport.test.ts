@@ -72,3 +72,17 @@ describe("DesktopWorkPanelTransport", () => {
     })).resolves.toBeNull();
   });
 });
+
+
+test("View panels explicitly require the host View capability", async () => {
+  const bridge = { getCapabilities: jest.fn(async () => ({ ok: true, capabilities: ["workpanel.open"] })),
+    openItem: jest.fn(async () => ({ ok: true, workspaceId: "workspace" })) } as unknown as AgentWebclientWorkPanelBridge;
+  const transport = new DesktopWorkPanelTransport(bridge);
+  const descriptor = { kind: "webclient" as const, module: "view" as const,
+    route: "/view-viewer/content?chatId=chat&runId=run&viewIndex=0",
+    context: { chatId: "chat", runId: "run", sourceId: "content", viewIndex: "0" } };
+  await expect(transport.openDescriptor(descriptor)).rejects.toThrow();
+  expect(bridge.openItem).not.toHaveBeenCalled();
+  (bridge.getCapabilities as jest.Mock).mockResolvedValue({ ok: true, capabilities: ["workpanel.open", "workpanel.view"] });
+  await expect(transport.openDescriptor(descriptor)).resolves.toMatchObject({ ok: true });
+});

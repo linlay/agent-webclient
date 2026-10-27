@@ -1,3 +1,4 @@
+import { effectiveAgentIcon } from "@/shared/icons/agentAppearance";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Drawer, Popover, Spin, Tabs, Tooltip } from "antd";
 import type { Agent } from "@/features/agents/lib/agentState";
@@ -260,7 +261,7 @@ export const AutomationExecutionDrawer: React.FC<
   ).trim();
   const agent = agents.find((item) => item.key === agentKey);
   const workerName = (String(agent?.name || chatState.data?.chat.firstAgentName || agentKey || "--"));
-  const workerIcon = (agent?.icon);
+  const workerIcon = effectiveAgentIcon(agent?.icon, agent?.mode);
   const workerType = ("agent");
 
   const copy = useCallback(
@@ -394,7 +395,7 @@ export const AutomationExecutionDrawer: React.FC<
 
   const executionDetails = visible ? (
     <div className={styles.detailsContent}>
-      <span className={styles.workerIdentity}>
+      <span data-agent-identity="" className={styles.workerIdentity}>
         <AgentIcon
           icon={workerIcon}
           type={workerType}

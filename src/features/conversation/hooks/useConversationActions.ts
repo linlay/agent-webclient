@@ -1,3 +1,4 @@
+import { normalizeEventDetailLevel, type EventDetailLevel } from "@/shared/data/eventDetailLevel";
 import { queryReferences } from "@/shared/contracts/references";
 import { resolveChatModel } from "@/features/runs/lib/modelSelection";
 import { useCallback, useEffect, useRef } from "react";
@@ -189,6 +190,10 @@ export function buildLoadedChatSummary(
   return {
     chatId: normalizedChatId || String(chatId || "").trim(),
     chatName: String(data.chatName || "").trim() || undefined,
+    ...(isObjectRecord(data.display) ? { display: {
+      defaultDetail: normalizeEventDetailLevel(data.display.defaultDetail),
+      effectiveDetail: normalizeEventDetailLevel(data.display.effectiveDetail),
+    } } : {}),
     ...(owner?.kind === "agent"
       ? { agentKey: owner.agentKey, firstAgentKey: owner.agentKey }
       : {}),
@@ -229,6 +234,8 @@ export function useConversationActions() {
   const blankIntentRouteRef = useRef<string | null>(null);
   const loadsRef = useRef(new Map<number, Promise<void>>());
   const cancelLoadsRef = useRef(new Map<number, () => void>());
+  // Level a viewer chose for a Chat with /detail; later reloads keep it.
+  const chatDetailRef = useRef(new Map<string, EventDetailLevel>());
   const { t } = useI18n();
   const { state } = useAppContext();
 
@@ -633,10 +640,13 @@ export function useConversationActions() {
         forceReload?: boolean;
         throwOnError?: boolean;
         routeDriven?: boolean;
+        detail?: EventDetailLevel;
       } = {},
     ): Promise<void> => {
       chatId = String(chatId || "").trim();
       if (!chatId) return Promise.resolve();
+      if (options.detail) chatDetailRef.current.set(chatId, options.detail);
+      const detail = chatDetailRef.current.get(chatId);
       const transition = prepareChat(chatId, { ...options, retryError: true });
       if (!transition) {
         if (options.focusComposerOnComplete) focusComposerSoon();
@@ -735,7 +745,7 @@ export function useConversationActions() {
             try {
               // Settle our waiter on timeout/switch without closing the shared transport.
               response = await Promise.race([
-                getChat(chatId, false),
+                detail ? getChat(chatId, false, detail) : getChat(chatId, false),
                 cancelled,
               ]);
               lastLoadError = null;

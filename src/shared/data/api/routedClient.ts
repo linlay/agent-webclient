@@ -1,4 +1,5 @@
 import { getKBaseOptionsHttp } from "./requests/kbases";
+import type { EventDetailLevel } from "@/shared/data/eventDetailLevel";
 import {
   getProjectGit as getProjectGitHttp,
   getProjectGitBranches as getProjectGitBranchesHttp,
@@ -59,7 +60,7 @@ import {
 } from "@/shared/data/api/resources";
 import { ensureAccessToken, getCurrentAccessToken, setAccessToken } from "@/shared/data/api/http";
 import { getAgentFile as getAgentFileHttp } from "@/shared/data/api/requests/projects";
-import { getView as getViewHttp } from "@/shared/data/api/requests/views";
+import { getView as getViewHttp, queryView as queryViewHttp, invokeView as invokeViewHttp } from "@/shared/data/api/requests/views";
 import { uploadFile } from "@/shared/data/api/requests/uploads";
 import type {
 	AgentDetailResponse,
@@ -172,8 +173,10 @@ function routeEndpoint<T, TInput>(
 	input: TInput,
 	fallback: () => Promise<ApiResponse<T>>,
 	signal?: AbortSignal,
+	detail?: EventDetailLevel,
 ): Promise<ApiResponse<T>> {
 	const payload = emptyPayloadAsUndefined(resolveEndpointPayload(endpoint, input));
+	const frameOptions = { ...(signal ? { signal } : {}), ...(detail ? { detail } : {}) };
 	const backend = getBackendMode();
 	const useWebSocket = endpoint.transport === "ws"
 		|| (
@@ -181,8 +184,8 @@ function routeEndpoint<T, TInput>(
 			&& endpoint.wsBackends?.includes(backend) === true
 		);
 	const request = useWebSocket
-		? () => signal
-			? requestDataThroughExecutor<T>(endpoint.path, payload, { signal })
+		? () => signal || detail
+			? requestDataThroughExecutor<T>(endpoint.path, payload, frameOptions)
 			: requestDataThroughExecutor<T>(endpoint.path, payload)
 		: fallback;
 	const cache = endpoint.method === "GET" ? endpoint.cache : undefined;
@@ -190,7 +193,7 @@ function routeEndpoint<T, TInput>(
 		return request();
 	}
 	return dataQueryCache.fetch(
-		createRouteCacheKey(endpoint, payload),
+		createRouteCacheKey(endpoint, payload) + (detail ? `:detail=${detail}` : ""),
 		request,
 		{
 			ttlMs: cache.ttlMs,
@@ -372,9 +375,12 @@ export async function getChats(options: GetChatsOptions = {}): Promise<ApiRespon
 	};
 }
 
+/** detail reads a Chat with no active Run at that level; while a Run is
+ * active Platform delivers the Run's own level. Omitted follows the Agent. */
 export function getChat(
 	chatId: string,
 	includeRawMessages = false,
+	detail?: EventDetailLevel,
 ): Promise<ApiResponse<ChatDetailResponse>> {
 	return routeEndpoint(
 		dataEndpoints.chat,
@@ -382,7 +388,9 @@ export function getChat(
 			chatId,
 			includeRawMessages,
 		},
-		() => getChatHttp(chatId, includeRawMessages),
+		() => getChatHttp(chatId, includeRawMessages, detail),
+		undefined,
+		detail,
 	);
 }
 
@@ -531,6 +539,10 @@ export function getView(params: import("@/shared/contracts/view").ViewRequest): 
   return routeEndpoint(dataEndpoints.view, params, () => getViewHttp(params));
 }
 
+export function queryView(params: import("@/shared/contracts/view").ViewQueryRequest): Promise<ApiResponse<import("@/shared/contracts/view").ViewQueryResult>> {
+  return routeEndpoint(dataEndpoints.viewQuery, params, () => queryViewHttp(params));
+}
+
 export function getBuiltinView(viewKey: string, runId?: string): Promise<ApiResponse> {
  return getView({source:"builtin", key:viewKey, runId});
 }
@@ -663,4 +675,8 @@ export function changeProjectGitBranch(request: ProjectGitBranchRequest) {
 
 export function getKBaseOptions(agentKey: string, signal?: AbortSignal) {
  return routeEndpoint(dataEndpoints.kbases, { agentKey }, () => getKBaseOptionsHttp(agentKey, signal), signal);
+}
+
+export function invokeView(params: import("@/shared/contracts/view").ViewActionRequest): Promise<ApiResponse<import("@/shared/contracts/view").ViewActionResult>> {
+  return routeEndpoint(dataEndpoints.viewInvoke, params, () => invokeViewHttp(params));
 }

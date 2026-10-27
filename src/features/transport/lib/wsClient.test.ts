@@ -644,6 +644,7 @@ describe("WsClient", () => {
 		const sentFrame = JSON.parse(await waitForSentFrame(socket)) as { id: string };
 		expect(sentFrame.id).toBe(`pfs_${(1_776_474_697 * 1000).toString(36)}`);
 		expect(stream.requestId).toBe(sentFrame.id);
+    expect(sentFrame).not.toHaveProperty("detail");
 		socket.message(
 			JSON.stringify({
 				frame: "stream",

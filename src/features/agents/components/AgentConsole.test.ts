@@ -33,6 +33,7 @@ jest.mock("antd", () => {
     Dropdown: ({ children }: { children?: unknown }) =>
       React.createElement("div", { className: "mock-dropdown" }, children),
     Input,
+    Flex: ({ children }: any) => React.createElement("div", null, children),
     Modal,
     Popover: ({ children, classNames, content }: any) =>
       React.createElement(
@@ -1281,7 +1282,7 @@ describe("buildAgentListSummary", () => {
         key: "agent-a",
         name: "Agent A",
         meta: {
-          mode: "PLAN_EXECUTE",
+          mode: "CODER",
         },
         modelConfig: {
           modelKey: "gpt-5",
@@ -1294,7 +1295,7 @@ describe("buildAgentListSummary", () => {
         },
       }),
     ).toEqual({
-      mode: "PLAN_EXECUTE",
+      mode: "CODER",
       modelKey: "gpt-5",
       toolsCount: 2,
       skillsCount: 1,

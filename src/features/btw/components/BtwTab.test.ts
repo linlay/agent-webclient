@@ -39,6 +39,7 @@ jest.mock("@/features/timeline/components/TimelineRow", () => {
 
 jest.mock("@/features/timeline/lib/timelineDisplay", () => ({
   buildTimelineDisplayItems: jest.fn(() => []),
+  nodesForDetailLevel: jest.fn((nodes: unknown[]) => nodes),
 }));
 
 jest.mock("@/shared/ui/MaterialIcon", () => {
@@ -152,7 +153,7 @@ function findButton(html: string, label: string): string {
 describe("BtwTab composer controls", () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    useAppState.mockReturnValue({ chatId: "chat_1" });
+    useAppState.mockReturnValue({ chats: [], agents: [], workerIndexByKey: new Map(), workerSelectionKey: "", chatAgentById: new Map(), chatId: "chat_1" });
   });
 
   it("renders spinning status icon while running", () => {

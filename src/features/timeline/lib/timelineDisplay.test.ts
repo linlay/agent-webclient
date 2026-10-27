@@ -1,6 +1,6 @@
 import type { AgentEvent } from "@/shared/contracts/agentEvents";
 import type { TimelineNode } from "@/features/timeline/lib/timelineState";
-import { buildTimelineDisplayItems } from '@/features/timeline/lib/timelineDisplay';
+import { buildTimelineDisplayItems, nodesForDetailLevel } from '@/features/timeline/lib/timelineDisplay';
 
 function createNode(partial: Partial<TimelineNode> & Pick<TimelineNode, 'id' | 'kind' | 'ts'>): TimelineNode {
   return {
@@ -588,4 +588,23 @@ it('keeps consecutive run_query calls as separate timeline tool rows', () => {
   ];
   const run = buildTimelineDisplayItems(nodes, []).find(item => item.kind === 'run');
   expect(run?.kind === 'run' ? run.renderEntries.map(entry => entry.kind) : []).toEqual(['node', 'node']);
+});
+
+describe('nodesForDetailLevel', () => {
+  const nodes: TimelineNode[] = [
+    { id: 'c', kind: 'content', ts: 1 },
+    { id: 'r', kind: 'thinking', ts: 2 },
+    { id: 't', kind: 'tool', ts: 3 },
+    { id: 'model_retry_current', kind: 'message', role: 'system', ts: 4 },
+    { id: 'run_activity_current', kind: 'message', role: 'system', systemMessageLevel: 'activity', ts: 5 },
+  ];
+  it('summary shows content and the activity line only', () => {
+    expect(nodesForDetailLevel(nodes, 'summary').map((node) => node.id)).toEqual(['c', 'run_activity_current']);
+  });
+  it('none renders like summary; Platform already left only announcements', () => {
+    expect(nodesForDetailLevel(nodes, 'none').map((node) => node.id)).toEqual(['c', 'run_activity_current']);
+  });
+  it('full shows details and hides the activity line', () => {
+    expect(nodesForDetailLevel(nodes, 'full').map((node) => node.id)).toEqual(['c', 'r', 't', 'model_retry_current']);
+  });
 });

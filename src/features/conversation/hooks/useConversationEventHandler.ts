@@ -1,3 +1,4 @@
+import { normalizeEventDetailLevel } from "@/shared/data/eventDetailLevel";
 import { recordRenderBreadcrumb } from "@/shared/utils/renderDiagnostics";
 import { useCallback, useEffect, useRef } from "react";
 import { useAppContext } from "@/app/state/AppContext";
@@ -429,6 +430,24 @@ export function useConversationEventHandler(): {
         return;
       }
 
+      // The summary level has no usage.snapshot; a Run terminal event carries
+      // the final run and chat totals in the same shape.
+      if ((type === "run.complete" || type === "run.cancel" || type === "run.error") && !event.taskId) {
+        const terminalUsage = event.usage as AIUsageSnapshotEvent["usage"] | undefined;
+        if (terminalUsage && (terminalUsage.run || terminalUsage.chat)) {
+          const previous = state.usageSnapshot;
+          dispatch({
+            type: "SET_USAGE_SNAPSHOT",
+            snapshot: {
+              ...previous, type: "usage.snapshot" as AIUsageSnapshotEvent["type"],
+              chatId: eventChatId, runId: toText(event.runId) || previous?.runId || "",
+              timestamp: event.timestamp, seq: event.seq,
+              usage: { ...previous?.usage, ...terminalUsage },
+            },
+          });
+        }
+      }
+
       const awaitingFallbackAgentKey = resolveRunAgentKey({
         runId: toText(event.runId) || cache.runId || state.runId,
         runAgentById: state.runAgentById,
@@ -536,6 +555,13 @@ export function useConversationEventHandler(): {
 
       if (type === "run.start") {
         const runStartChatId = toText(event.chatId);
+        const display = event.display as { defaultDetail?: unknown; effectiveDetail?: unknown } | undefined;
+        if (runStartChatId && display && (display.defaultDetail === "summary" || display.defaultDetail === "full" || display.defaultDetail === "none")) {
+          dispatch({ type: "UPSERT_CHAT", chat: { chatId: runStartChatId, display: {
+            defaultDetail: display.defaultDetail,
+            effectiveDetail: normalizeEventDetailLevel(display.effectiveDetail),
+          } } });
+        }
         if (runStartChatId && toText(state.chatId) !== runStartChatId) {
           dispatch({ type: "SET_CHAT_ID", chatId: runStartChatId });
         }

@@ -13,6 +13,7 @@ import {
   isSlashCommandDisabled,
   parseBTWSlashInput,
   parseCompactSlashInput,
+  parseDetailSlashInput,
   shouldShowSlashCommandPalette,
 } from '@/features/composer/lib/slashCommands';
 
@@ -61,7 +62,8 @@ describe('slashCommands', () => {
     expect(getFilteredSlashCommands('btw').map((item) => item.id)).toEqual(['btw']);
     expect(getFilteredSlashCommands('side').map((item) => item.id)).toEqual(['btw']);
     expect(getFilteredSlashCommands('顺便').map((item) => item.id)).toEqual(['btw']);
-    expect(getFilteredSlashCommands('detail')).toEqual([]);
+    // /detail now switches a past Chat's delivery level; the old Agent detail popup stays removed.
+    expect(getFilteredSlashCommands('detail').map((item) => item.id)).toEqual(['detail']);
     expect(getFilteredSlashCommands('switch')).toEqual([]);
   });
 
@@ -119,6 +121,24 @@ describe('slashCommands', () => {
       'bbb',
       'ccc',
     ]);
+  });
+
+  it('parses /detail as the chooser or a direct level', () => {
+    expect(parseDetailSlashInput('/detail')).toBe('chooser');
+    expect(parseDetailSlashInput('/detail FULL')).toBe('full');
+    expect(parseDetailSlashInput('/detail none ')).toBe('none');
+    expect(parseDetailSlashInput('/detail verbose')).toBeNull();
+    expect(parseDetailSlashInput('/details')).toBeNull();
+  });
+
+  it('allows /detail only for an idle active Chat', () => {
+    const idle = {
+      streaming: false, hasLatestQuery: true, isFrontendActive: false, canUsePlanningMode: false,
+      canUseVoiceMode: false, hasActiveChat: true, hasCurrentWorker: true, commandOverlayOpen: false, canShowUsage: true,
+    };
+    expect(isSlashCommandDisabled('detail', idle)).toBe(false);
+    expect(isSlashCommandDisabled('detail', { ...idle, streaming: true })).toBe(true);
+    expect(isSlashCommandDisabled('detail', { ...idle, hasActiveChat: false })).toBe(true);
   });
 
   it('parses only the canonical btw command and optional inline question', () => {

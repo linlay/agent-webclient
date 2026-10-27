@@ -16,6 +16,23 @@ import {
   ensureMappedNode,
 } from "@/features/events/lib/processors/eventProcessorShared";
 import { t } from "@/shared/i18n";
+import type { ContentViewBinding } from "@/shared/contracts/contentSegments";
+import { readViewReference } from "@/shared/contracts/view";
+
+/** Reads content.view payloads or content.snapshot.views entries. */
+function readViewBindings(values: unknown[]): ContentViewBinding[] {
+  const bindings: ContentViewBinding[] = [];
+  for (const value of values) {
+    if (!value || typeof value !== "object") continue;
+    const item = value as Record<string, unknown>;
+    if (typeof item.index !== "number" || !Number.isInteger(item.index) || item.index < 0) continue;
+    const view = readViewReference(item.view);
+    const viewError = typeof item.viewError === "string" ? item.viewError : undefined;
+    if (!view && !viewError) continue;
+    bindings.push({ index: item.index, ...(view ? { view } : {}), ...(viewError ? { viewError } : {}) });
+  }
+  return bindings;
+}
 
 export function processContentEvent(
   event: AgentEvent,
@@ -53,6 +70,7 @@ export function processContentEvent(
         contentId,
         text,
         segments: text ? parseContentSegments(contentId, text) : [],
+        viewBindings: existing?.viewBindings,
         ts: timestamp,
       },
     });
@@ -85,6 +103,7 @@ export function processContentEvent(
         contentId,
         text: newText,
         segments: parseContentSegments(contentId, newText),
+        viewBindings: existing?.viewBindings,
         ts: timestamp,
       },
     });
@@ -118,6 +137,7 @@ export function processContentEvent(
         contentId,
         text: finalText,
         segments: parseContentSegments(contentId, finalText),
+        viewBindings: existing?.viewBindings,
         status: "completed",
         ...streamEndFailure(event, existing),
         ts: timestamp,
@@ -150,9 +170,38 @@ export function processContentEvent(
         contentId,
         text,
         segments: parseContentSegments(contentId, text),
+        viewBindings: Array.isArray(event.views)
+          ? Object.fromEntries(readViewBindings(event.views).map((binding) => [binding.index, binding]))
+          : existing?.viewBindings,
         status: "completed",
         ...streamEndFailure(event, existing),
         ts: timestamp,
+      },
+    });
+    return commands;
+  }
+
+  if (type === "content.view" && event.contentId) {
+    const contentId = String(event.contentId);
+    const nodeId = ensureMappedNode({
+      reuseTerminal: false,
+      currentNodeId: state.getContentNodeId(contentId),
+      getNode: state.getTimelineNode,
+      setMapCommand: { cmd: "SET_CONTENT_NODE_ID", contentId, nodeId: "" },
+      prefix: "content",
+      commands,
+      state,
+    });
+    const binding = readViewBindings([event])[0];
+    const existing = state.getTimelineNode(nodeId);
+    if (!binding) return commands;
+    const text = state.getNodeText(nodeId);
+    commands.push({
+      cmd: "SET_TIMELINE_NODE",
+      id: nodeId,
+      node: {
+        ...(existing || { id: nodeId, kind: "content", ...applyTaskBindingToNode(event, state, existing), contentId, text, segments: parseContentSegments(contentId, text), ts: timestamp }),
+        viewBindings: { ...existing?.viewBindings, [binding.index]: binding },
       },
     });
     return commands;

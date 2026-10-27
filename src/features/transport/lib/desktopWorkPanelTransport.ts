@@ -81,6 +81,9 @@ export class DesktopWorkPanelTransport implements WorkPanelTransport {
     if (!capabilityResult.capabilities.includes("workpanel.open")) {
       throw new Error("Current Desktop surface cannot open WorkPanel items");
     }
+    if (descriptor.kind === "webclient" && descriptor.module === "view" && !capabilityResult.capabilities.includes("workpanel.view")) {
+      throw new Error(t("workPanel.error.viewUnsupported"));
+    }
     const result = await this.bridge.openItem({
       version: AGENT_WEBCLIENT_BRIDGE_VERSION,
       descriptor,

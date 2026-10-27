@@ -1,4 +1,4 @@
-import { setModelRetryTimeline } from "@/features/timeline/lib/timelineState";
+import { setModelRetryTimeline, setRunActivityTimeline } from "@/features/timeline/lib/timelineState";
 import type { AgentEvent } from "@/shared/contracts/agentEvents";
 import type { FileChangeSummary } from "@/features/overview/lib/overviewState";
 import type { Plan, PlanRuntime } from "@/features/plan/lib/planState";
@@ -206,6 +206,9 @@ function applyCommands(state: TestState, commands: EventCommand[]): void {
         break;
       case 'SET_MODEL_RETRY':
         Object.assign(state, setModelRetryTimeline(state, command.node));
+        break;
+      case 'SET_RUN_ACTIVITY':
+        Object.assign(state, setRunActivityTimeline(state, command.node));
         break;
       case 'SYSTEM_MESSAGE':
         state.timelineNodes.set(command.nodeId, {
@@ -1833,15 +1836,15 @@ describe("model retry activity", () => {
       expect((commands[0] as {node: {text: string}}).node.text).toContain("1/5");
     }
   });
-  it("does not turn normal activity into timeline messages", () => {
-    expect(processStreamEvent({type: "run.activity", phase: "model_call", status: "running"}, buildProcessorState(createState()), {mode: "live", reasoningExpandedDefault: false})).toEqual([]);
+  it("does not turn an empty activity into a timeline message", () => {
+    expect(processStreamEvent({type: "run.activity", runId: "r"}, buildProcessorState(createState()), {mode: "live", reasoningExpandedDefault: false})).toEqual([{cmd: "SET_RUN_ACTIVITY"}]);
   });
 });
 
 
 describe("transient model retry status", () => {
   const retry = (attempt: number, error: Record<string, unknown> = {code: "provider_rate_limited"}): AgentEvent => ({
-    type: "run.activity", phase: "model_call", status: "retrying", runId: "r", timestamp: attempt,
+    type: "run.activity", runId: "r", timestamp: attempt,
     retry: {attempt, maxAttempts: 6, delayMs: attempt === 2 ? 500 : 2000, error},
   });
   it("replaces attempts and preserves unrelated messages", () => {
@@ -1854,8 +1857,7 @@ describe("transient model retry status", () => {
     expect(state.timelineNodes.get("model_retry_current")?.text).toContain("限流");
   });
   it.each([
-    {type: "run.activity", phase: "model_call", status: "running"},
-    {type: "run.activity", phase: "model_call", status: "completed"},
+    {type: "run.activity", message: "正在回复"},
     {type: "content.delta", contentId: "c", delta: "hello"},
     {type: "run.complete"}, {type: "run.cancel"}, {type: "run.error", error: {code: "provider_rate_limited"}},
     {type: "run.start"},
@@ -1868,11 +1870,10 @@ describe("transient model retry status", () => {
       expect(state.timelineOrder).not.toContain("model_retry_current");
     }
   });
-  it("keeps waiting status and ignores another task recovering", () => {
+  it("ignores another task recovering", () => {
     const state = createState();
     processAndApply(state, retry(2), "live", false);
-    processAndApply(state, {type: "run.activity", phase: "model_call", status: "waiting", runId: "r"}, "live", false);
-    processAndApply(state, {type: "run.activity", phase: "model_call", status: "running", runId: "r", taskId: "other"}, "live", false);
+    processAndApply(state, {type: "run.activity", message: "正在回复", runId: "r", taskId: "other"}, "live", false);
     expect(state.timelineOrder).toContain("model_retry_current");
   });
   it.each([
@@ -1896,4 +1897,40 @@ it('projects wait updates and ignores a late wait after its unique result', () =
  expect(state.timelineNodes.get('tool_0')?.toolWait).toBeUndefined();
  processAndApply(state,{type:'tool.wait',runId:'run_1',toolId:'wait_1',toolName:'wait',timestamp:103,startedAt:100,deadlineAt:60100},'live',true);
  expect(state.timelineNodes.get('tool_0')?.status).toBe('success');
+});
+
+describe("run progress activity", () => {
+  const activity = (message: string, extra: Record<string, unknown> = {}): AgentEvent => ({
+    type: "run.activity", runId: "r", timestamp: 1, seq: 0, message, ...extra,
+  });
+  it("keeps only the latest activity at the timeline end", () => {
+    const state = createState();
+    state.timelineNodes.set("other", {id: "other", kind: "message", ts: 0});
+    state.timelineOrder.push("other");
+    processAndApply(state, activity("正在思考"), "live", false);
+    processAndApply(state, activity("正在调用「网页抓取」"), "live", false);
+    expect(state.timelineOrder).toEqual(["other", "run_activity_current"]);
+    const node = state.timelineNodes.get("run_activity_current");
+    expect(node).toMatchObject({kind: "message", role: "system", systemMessageLevel: "activity", text: "正在调用「网页抓取」", runId: "r"});
+  });
+  it.each([{type: "run.complete"}, {type: "run.cancel"}, {type: "run.error", error: {code: "x"}}, {type: "run.start"}])(
+    "clears on $type", (event) => {
+      const state = createState();
+      processAndApply(state, activity("正在思考"), "live", false);
+      processAndApply(state, {...event, runId: "r", timestamp: 2} as AgentEvent, "live", false);
+      expect(state.timelineOrder).not.toContain("run_activity_current");
+    });
+  it("hides the line when the activity message is empty", () => {
+    const state = createState();
+    processAndApply(state, activity("正在思考"), "live", false);
+    processAndApply(state, activity(""), "live", false);
+    expect(state.timelineOrder).not.toContain("run_activity_current");
+  });
+  it("is not rebuilt from history and does not become the retry notice", () => {
+    const state = createState();
+    processAndApply(state, activity("正在思考"), "replay", false);
+    expect(state.timelineOrder).toEqual([]);
+    processAndApply(state, activity("正在思考"), "live", false);
+    expect(state.timelineNodes.has("model_retry_current")).toBe(false);
+  });
 });

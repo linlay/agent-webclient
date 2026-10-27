@@ -84,6 +84,7 @@ export interface CompactChatResponse {
 }
 
 export interface QueryStreamParams {
+  primary?: boolean;
   requestId: string;
   message: string;
   planningMode?: boolean;

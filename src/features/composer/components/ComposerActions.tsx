@@ -26,6 +26,7 @@ import { useAgentConnectors } from "@/features/connectors/hooks/useAgentConnecto
 import { useConnectorPickerCatalog } from "@/features/connectors/hooks/useConnectorPickerCatalog";
 import { ConnectorIcon } from "@/features/connectors/components/ConnectorIcon";
 import { AgentConnectorPicker } from "@/features/connectors/components/AgentConnectorPicker";
+import { orderConnectorsBuiltinLast } from "@/features/connectors/lib/connectorSelection";
 import { useOptionalAppContext } from "@/app/state/AppContext";
 const presentationClasses = bindCssModuleClasses({
   ...timelinePresentation,
@@ -210,6 +211,11 @@ const ComposerActionsPure: React.FC<
 
   const [connectorPickerOpen, setConnectorPickerOpen] = useState(false);
   const [connectorSearch, setConnectorSearch] = useState("");
+  // 堆叠只取前几个已启用连接器，索引用于绝对定位的层叠与展开顺序
+  const connectorStackItems = enabledConnectors.slice(
+    0,
+    CONNECTOR_STACK_MAX_ICONS,
+  );
   const voiceButtonStateClass = speechListening
     ? VOICE_BUTTON_STATE_CLASS.listening
     : VOICE_BUTTON_STATE_CLASS.idle;
@@ -335,6 +341,11 @@ const ComposerActionsPure: React.FC<
                     className={presentationClasses(
                       "composer-connector-stack-btn",
                     )}
+                    // 数量与序号交给 CSS 计算堆叠/展开偏移，展开只改 transform 不占布局
+                    style={{
+                      "--connector-avatar-count": connectorStackItems.length,
+                    } as React.CSSProperties}
+                    data-expanded={connectorPickerOpen ? "true" : undefined}
                     disabled={interactionDisabled}
                     aria-label={t("composer.addMenu.section.connectors")}
                   >
@@ -343,12 +354,15 @@ const ComposerActionsPure: React.FC<
                         "composer-connector-avatar-stack",
                       )}
                     >
-                      {enabledConnectors.slice(0, CONNECTOR_STACK_MAX_ICONS).map((connector) => (
+                      {connectorStackItems.map((connector, index) => (
                         <span
                           key={connector.id}
                           className={presentationClasses(
                             "composer-connector-avatar-item",
                           )}
+                          style={{
+                            "--connector-avatar-index": index,
+                          } as React.CSSProperties}
                           title={connector.name || connector.id}
                         >
                           <ConnectorIcon item={connector} size={16} />
@@ -491,11 +505,11 @@ const ComposerActionsWithConnectors: React.FC<
     if (!connectorSelection.data?.connectorIds?.length) return [];
     const selectedSet = new Set(connectorSelection.data.connectorIds);
     const available = connectorSelection.availableIds;
-    // 与 AgentConnectorPicker 列表顺序保持一致：沿用目录原始顺序，已启用项相对顺序对齐 picker。
-    return connectorCatalog.items.filter(
+    // 与弹出列表共用内置沉底规则，再截取最多三个已启用图标。
+    return orderConnectorsBuiltinLast(connectorCatalog.items.filter(
       (item) =>
         selectedSet.has(item.id) && (!available || available.includes(item.id)),
-    );
+    ));
   }, [
     connectorSelection.data?.connectorIds,
     connectorSelection.availableIds,

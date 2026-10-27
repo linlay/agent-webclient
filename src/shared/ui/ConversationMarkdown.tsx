@@ -116,7 +116,9 @@ export const ConversationMarkdown: React.FC<ConversationMarkdownProps> = ({
     () => ({
       gfm: true,
       breaks: true,
-      extensions: [markdownLocalMediaExtension, ...(latexExtensions || [])],
+      // Plugin and renderer package entrypoints can expose distinct marked
+      // declaration identities in the standalone export build.
+      extensions: [markdownLocalMediaExtension, ...(latexExtensions || [])] as NonNullable<XMarkdownProps["config"]>["extensions"],
     }),
     [latexExtensions],
   );

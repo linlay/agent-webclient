@@ -92,7 +92,7 @@ export const WorkerConversationPreviewList: React.FC<WorkerActionHandlers & {
     <div className={WORKER_CHAT_PREVIEW_LIST_CLASS}>
       {showHeader && (
         <div className={WORKER_POPOVER_HEADER_CLASS}>
-          <div className={WORKER_POPOVER_HEADER_MAIN_CLASS}>
+          <div data-agent-identity="" className={WORKER_POPOVER_HEADER_MAIN_CLASS}>
             <AgentIcon
               icon={icon}
               type={row.type}

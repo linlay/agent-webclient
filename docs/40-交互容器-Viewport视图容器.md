@@ -4,7 +4,7 @@
 统一使用 `view` 引用：source 为 builtin/connector，renderer 为 native/html/qlc。内置 native 组件由宿主渲染；HTML 与 QLC 从 `/api/view` 获取，通过隔离 iframe 展示。旧 viewport 字段、接口和 Markdown viewport 块已硬切移除。
 
 ## 核心流程
-Markdown 的 `view` fence 生成 view segment，由 `ViewEmbed` 加载模板并发送 `view_init/view_update`。内置引用可写 `{"view":{"key":"platform_control_review"},"payload":{}}`；连接器引用使用 connectorId/key，历史版本通过 hash 固定。旧 viewport fence 保留为普通 Markdown，不请求模板。
+Markdown 的 ` ```view key=<connectorId>/<viewKey> ` fence 生成 view segment，正文为数据；平台绑定的快照 hash 到达后由 `ViewEmbed` 加载模板并发送 `view_init/view_update`，见 [VIEW连接器](46-交互容器-VIEW连接器.md#markdown-view-块)。内置 VIEW 不用于 Markdown；旧 viewport fence 与旧 JSON 信封保留为普通 Markdown，不请求模板。
 
 HITL 表单继续使用 `forms[]` 和 `params[]`。`AwaitingHtmlContainer` 通过统一 view loader 获取 HTML，再使用 awaiting_init/update/collect 协议；展示 VIEW 没有提交能力。Team 的 builtin/team-hitl 使用宿主成员组件，汇总后一次提交。
 

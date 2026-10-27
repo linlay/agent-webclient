@@ -1,3 +1,4 @@
+import type { ViewReference } from "@/shared/contracts/view";
 import { getViewerTargetKey } from "@/features/viewers/lib/viewerTarget";
 import type { ViewerTarget } from "@/features/viewers/lib/viewerTarget";
 import type { TimelineSource } from "@/features/timeline/lib/timelineState";
@@ -8,6 +9,7 @@ export type RightSidebarTabKey =
   | "btw"
   | "debug"
   | "viewer"
+  | "viewPreview"
   | "documentPreview"
   | "sourceDetail"
   | "planningPreview"
@@ -29,7 +31,19 @@ export interface SkillViewerState {
   label: string;
 }
 
+export interface ViewPreviewState {
+  key: string;
+  chatId: string;
+  view?: ViewReference;
+  payloadRaw: string;
+  viewError?: string;
+  rawData?: string;
+  runId?: string;
+}
+
 export interface ViewersState {
+  viewPreviews: ViewPreviewState[];
+  activeViewPreviewKey: string;
   rightSidebarOpen: boolean;
   rightSidebarOpenTab: RightSidebarTabKey | null;
   activeSourceDetail: TimelineSource | null;
@@ -47,6 +61,10 @@ export interface ViewersState {
 }
 
 export type ViewersAction =
+  | { type: "OPEN_VIEW_PREVIEW"; preview: ViewPreviewState }
+  | { type: "UPDATE_VIEW_PREVIEW"; preview: ViewPreviewState }
+  | { type: "ACTIVATE_VIEW_PREVIEW"; key: string }
+  | { type: "CLOSE_VIEW_PREVIEW"; key: string }
   | { type: "OPEN_DOCUMENT_PREVIEW"; preview: DocumentPreviewTabState }
   | { type: "CLOSE_DOCUMENT_PREVIEW"; key: string }
   | { type: "ACTIVATE_DOCUMENT_PREVIEW"; key: string }
@@ -56,7 +74,7 @@ export type ViewersAction =
   | { type: "CLOSE_RIGHT_SIDEBAR" };
 
 export function createInitialViewersState(): ViewersState {
-  return { rightSidebarOpen: false, rightSidebarOpenTab: null, activeSourceDetail: null, planningPreviews: [], webPreviews: [], webPreviewRefreshRevisionByUrl: new Map(), activeWebPreviewUrl: "", activeViewerKey: "", activePlanningPreviewNodeId: "", skillTabs: [], activeSkillId: "", viewerTabs: [], documentPreviewTabs: [], activeDocumentPreviewKey: "" };
+  return { viewPreviews: [], activeViewPreviewKey: "", rightSidebarOpen: false, rightSidebarOpenTab: null, activeSourceDetail: null, planningPreviews: [], webPreviews: [], webPreviewRefreshRevisionByUrl: new Map(), activeWebPreviewUrl: "", activeViewerKey: "", activePlanningPreviewNodeId: "", skillTabs: [], activeSkillId: "", viewerTabs: [], documentPreviewTabs: [], activeDocumentPreviewKey: "" };
 }
 
 export function reduceViewersState<S extends ViewersState>(state: S, action: ViewersAction): S;
@@ -64,6 +82,28 @@ export function reduceViewersState<S extends ViewersState>(state: S, action: { t
 export function reduceViewersState<S extends ViewersState>(state: S, input: { type: string }): S | null {
   const action = input as ViewersAction;
   switch (action.type) {
+    case "OPEN_VIEW_PREVIEW":
+    case "UPDATE_VIEW_PREVIEW": {
+      const index = state.viewPreviews.findIndex(preview => preview.key === action.preview.key);
+      if (action.type === "UPDATE_VIEW_PREVIEW" && index < 0) return state;
+      const viewPreviews = index < 0 ? [...state.viewPreviews, action.preview]
+        : state.viewPreviews.map((preview, i) => i === index ? action.preview : preview);
+      return { ...state, viewPreviews, ...(action.type === "OPEN_VIEW_PREVIEW" ? {
+        activeViewPreviewKey: action.preview.key, rightSidebarOpen: true, rightSidebarOpenTab: "viewPreview" as const,
+      } : {}) };
+    }
+    case "ACTIVATE_VIEW_PREVIEW":
+      return state.viewPreviews.some(preview => preview.key === action.key)
+        ? { ...state, activeViewPreviewKey: action.key, rightSidebarOpen: true, rightSidebarOpenTab: "viewPreview" }
+        : state;
+    case "CLOSE_VIEW_PREVIEW": {
+      const viewPreviews = state.viewPreviews.filter(preview => preview.key !== action.key);
+      const activeViewPreviewKey = state.activeViewPreviewKey === action.key
+        ? viewPreviews[viewPreviews.length - 1]?.key || "" : state.activeViewPreviewKey;
+      return { ...state, viewPreviews, activeViewPreviewKey,
+        rightSidebarOpenTab: state.rightSidebarOpenTab === "viewPreview" && !activeViewPreviewKey
+          ? "overview" : state.rightSidebarOpenTab };
+    }
     case "OPEN_DOCUMENT_PREVIEW": {
       const previews = state.documentPreviewTabs;
       const index = previews.findIndex((preview) => preview.key === action.preview.key);

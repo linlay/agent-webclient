@@ -43,8 +43,10 @@ interface ToolPillProps {
 
 export interface ToolPillRecord {
   streamError?: string;
+  runId?: string;
   view?: TimelineNode["view"];
   viewChatId?: string;
+  viewSourceId?: string;
   viewError?: string;
   key: string;
   title: string;
@@ -249,10 +251,12 @@ export function buildToolPillRecords(
       Boolean(toolOutputText(toolOutput));
     return {
       key: node.id,
+      ...(node.runId ? { runId: node.runId } : {}),
       streamError: node.errorDetail?.message,
       ...(node.view
         ? {
             view: node.view,
+            ...(node.toolId ? { viewSourceId: node.toolId } : {}),
             viewChatId: node.viewChatId,
             viewError: node.viewError,
           }
@@ -594,6 +598,7 @@ export const ToolPill: React.FC<ToolPillProps> = ({ node, toolGroup }) => {
                   record.viewChatId || interaction.surfaceContext?.chatId || "",
                   record.viewError,
                   resultText,
+                  { id: record.viewSourceId || "", runId: record.runId },
                 )}
                 <Flex className="tool-call-copy" align="center" gap={4}>
                   {!!record.durationMs && (

@@ -1,3 +1,5 @@
+import { isDesktopAppMode } from "@/shared/utils/routing";
+import { shouldCreatePrimaryChat } from "../lib/primaryChatIntent";
 import { referenceIds, queryReferences } from "@/shared/contracts/references";
 import { loadKBaseOptions, unavailableKbaseIds } from "@/features/kbases/lib/kbaseOptions";
 import { MAX_KBASE_REFERENCES } from "@/features/kbases/lib/kbaseSelection";
@@ -398,6 +400,15 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
       }
 
       const selectedAgentKey = selectedOwner?.kind === "agent" ? selectedOwner.agentKey : "";
+      const primary = shouldCreatePrimaryChat({
+        desktop: isDesktopAppMode(),
+        pathname: typeof window === "undefined" ? "" : window.location.pathname,
+        search: typeof window === "undefined" ? "" : window.location.search,
+        agentKey: selectedAgentKey,
+        isNewChatQuery,
+        primaryNavigation: stateRef.current.primaryNavigation === true,
+        hasPrimary: !stateRef.current.agents.some(agent => agent.key === selectedAgentKey && !agent.primaryChat?.chatId),
+      });
 
       const kbaseReferenceIds = referenceIds(normalizedReferences,"kbase");
       const validationChatId = stateRef.current.chatId;
@@ -758,6 +769,7 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
           params: Object.keys(params).length > 0 ? params : undefined,
           planningMode,
           editingMode,
+          ...(primary ? { primary: true } : {}),
 
           signal: abortController.signal,
           onEvent: sessionHandleEvent,

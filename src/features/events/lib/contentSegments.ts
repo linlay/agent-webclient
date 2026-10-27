@@ -1,5 +1,3 @@
-import { readViewReference } from "@/shared/contracts/view";
-import { isObjectJson, safeJsonParse } from '@/shared/utils/safeJsonParse';
 import type { ContentSegment } from '@/shared/contracts/contentSegments';
 
 export type { ContentSegment } from '@/shared/contracts/contentSegments';
@@ -10,12 +8,6 @@ function pushTextSegment(segments: ContentSegment[], text: string): void {
   const normalized = String(text ?? '').trim();
   if (!normalized) return;
   segments.push({ kind: 'text', text: normalized });
-}
-
-function matchesFenceHeader(rawHeader: string, token: string): boolean {
-  const lower = String(rawHeader || '').trim().toLowerCase();
-  if (lower === `\`\`\`${token}`) return true;
-  return lower.startsWith(`\`\`\`${token} `) || lower.startsWith(`\`\`\`${token}\t`);
 }
 
 function matchesPendingSpecialFenceHeader(rawHeader: string): boolean {
@@ -62,39 +54,6 @@ export function stripPendingSpecialFenceTail(text: string): string {
   return raw.slice(0, pendingStart).replace(/[ \t]*\n?$/, '');
 }
 
-function findNextSpecialFence(raw: string, fromIndex: number): { kind: 'view' | 'ttsVoice'; start: number; contentStart: number } | null {
-  let cursor = Math.max(0, fromIndex || 0);
-  while (cursor < raw.length) {
-    const start = raw.indexOf('```', cursor);
-    if (start === -1) return null;
-
-    const lineEnd = raw.indexOf('\n', start);
-    const headerEnd = lineEnd === -1 ? raw.length : lineEnd + 1;
-    const headerLine = raw.slice(start, lineEnd === -1 ? raw.length : lineEnd);
-
-    if (matchesFenceHeader(headerLine, 'view')) return { kind: 'view', start, contentStart: headerEnd };
-    if (matchesFenceHeader(headerLine, 'tts-voice')) {
-      return { kind: 'ttsVoice', start, contentStart: headerEnd };
-    }
-
-    cursor = start + 3;
-  }
-
-  return null;
-}
-
-function findClosingFence(raw: string, contentStart: number): { start: number; end: number } | null {
-  const closingRegex = /(^|\n)```[ \t]*(?=\n|$)/g;
-  closingRegex.lastIndex = Math.max(0, contentStart || 0);
-  const match = closingRegex.exec(raw);
-  if (!match) return null;
-
-  const start = match.index + (match[1] ? match[1].length : 0);
-  const lineEnd = raw.indexOf('\n', start);
-  const end = lineEnd === -1 ? raw.length : lineEnd + 1;
-  return { start, end };
-}
-
 export function stripSpecialBlocksFromText(text: string): string {
   const raw = String(text ?? '');
   if (!raw.trim()) return '';
@@ -105,10 +64,63 @@ export function stripSpecialBlocksFromText(text: string): string {
   return merged.replace(/\n{3,}/g, '\n\n').trim();
 }
 
-export function viewSignature(contentId: string, block: { key?: string; payloadRaw?: string }): string {
-  return `${contentId || 'content'}::${block?.key || ''}::${block?.payloadRaw || ''}`;
+const VIEW_ID = /^[a-z0-9][a-z0-9._-]*$/;
+export const MAX_VIEW_DATA_BYTES = 256 * 1024;
+
+interface FenceOpen { char: string; width: number; info: string }
+
+function fenceOpen(line: string): FenceOpen | null {
+  const value = line.replace(/\r$/, '');
+  const char = value[0];
+  if (char !== '`' && char !== '~') return null;
+  let width = 0;
+  while (width < value.length && value[width] === char) width += 1;
+  return width >= 3 ? { char, width, info: value.slice(width) } : null;
 }
 
+function fenceCloses(line: string, open: FenceOpen): boolean {
+  const value = line.replace(/[ \t\r]+$/, '');
+  return value.length >= open.width && [...value].every((char) => char === open.char);
+}
+
+/** Returns the attribute text after an exact ```<word> header, or null. */
+function specialInfo(open: FenceOpen, word: string): string | null {
+  if (open.char !== '`' || open.width !== 3) return null;
+  const head = open.info.slice(0, word.length);
+  const rest = open.info.slice(word.length);
+  if (head.toLowerCase() !== word || (rest !== '' && rest[0] !== ' ' && rest[0] !== '\t')) return null;
+  return rest;
+}
+
+/** Reads the single key=<connectorId>/<viewKey>; other attributes are ignored. */
+function parseViewKey(attrs: string): string | undefined {
+  const keys = attrs.split(/\s+/).filter((field) => field.startsWith('key='));
+  if (keys.length !== 1) return undefined;
+  const key = keys[0].slice('key='.length);
+  const [connectorId, viewKey, ...extra] = key.split('/');
+  if (extra.length !== 0 || !VIEW_ID.test(connectorId || '') || !VIEW_ID.test(viewKey || '')) return undefined;
+  return key;
+}
+
+function viewDataError(body: string): 'view_data_invalid' | undefined {
+  if (new TextEncoder().encode(body).length > MAX_VIEW_DATA_BYTES || (body[0] !== '{' && body[0] !== '[')) return 'view_data_invalid';
+  try {
+    JSON.parse(body);
+    return undefined;
+  } catch {
+    return 'view_data_invalid';
+  }
+}
+
+/**
+ * Splits assistant Markdown into text, VIEW and tts-voice segments.
+ *
+ * VIEW grammar mirrors agent-platform internal/view.ParseMarkdownBlocks and is
+ * checked against the shared golden cases: fences start at column 0, a VIEW
+ * fence is exactly ```view with one key=<connectorId>/<viewKey> (other
+ * attributes are ignored), its body is one JSON object or array (the view
+ * input), and fences nested in other code blocks stay code. `index` counts closed VIEW fences, so it matches the platform binding.
+ */
 export function parseContentSegments(contentId: string, text: string): ContentSegment[] {
   const raw = stripPendingSpecialFenceTail(String(text ?? ''));
   if (!raw.trim()) return [];
@@ -118,42 +130,66 @@ export function parseContentSegments(contentId: string, text: string): ContentSe
     return [{ kind: 'text', text: raw.trim() }];
   }
 
+  const lines = raw.split('\n');
+  const offsets: number[] = [];
+  let position = 0;
+  for (const line of lines) {
+    offsets.push(position);
+    position += line.length + 1;
+  }
+  const lineEnd = (index: number) => Math.min(raw.length, offsets[index] + lines[index].length + 1);
+
   const segments: ContentSegment[] = [];
-  let cursor = 0;
-
-  while (cursor < raw.length) {
-    const fence = findNextSpecialFence(raw, cursor);
-    if (!fence) {
-      pushTextSegment(segments, raw.slice(cursor));
-      break;
+  let textStart = 0;
+  let viewIndex = 0;
+  for (let i = 0; i < lines.length; i += 1) {
+    const open = fenceOpen(lines[i]);
+    if (!open) continue;
+    let end = -1;
+    for (let j = i + 1; j < lines.length; j += 1) {
+      if (fenceCloses(lines[j], open)) { end = j; break; }
     }
-
-    pushTextSegment(segments, raw.slice(cursor, fence.start));
-    const closingFence = findClosingFence(raw, fence.contentStart);
-
-    if (fence.kind === 'view') {
-      if (!closingFence) { pushTextSegment(segments, raw.slice(fence.start)); break; }
-      const block = safeJsonParse(raw.slice(fence.contentStart, closingFence.start), null, isObjectJson);
-      const rawView = isObjectJson(block?.view) ? block.view : undefined;
-      const ref = readViewReference(rawView && { ...rawView, source: rawView.source || (rawView.connectorId ? "connector" : "builtin") });
-      if (ref) segments.push({ kind: 'view', view: ref, signature: `${contentId}::view::${fence.start}`, payloadRaw: JSON.stringify(block?.payload ?? {}) });
-      else pushTextSegment(segments, raw.slice(fence.start, closingFence.end));
-      cursor = closingFence.end;
+    const start = offsets[i];
+    const bodyStart = lineEnd(i);
+    const viewAttrs = specialInfo(open, 'view');
+    const isVoice = viewAttrs === null && specialInfo(open, 'tts-voice') !== null;
+    if (viewAttrs === null && !isVoice) {
+      if (end < 0) break;
+      i = end;
       continue;
     }
-
-    const textEnd = closingFence ? closingFence.start : raw.length;
-    const blockText = raw.slice(fence.contentStart, textEnd);
-    segments.push({
-      kind: 'ttsVoice',
-      signature: `${contentId || 'content'}::tts-voice::${fence.start}`,
-      text: blockText,
-      closed: Boolean(closingFence),
-      startOffset: fence.start,
-    });
-
-    cursor = closingFence ? closingFence.end : raw.length;
+    pushTextSegment(segments, raw.slice(textStart, start));
+    const closed = end >= 0;
+    const bodyEnd = closed ? offsets[end] : raw.length;
+    const blockEnd = closed ? lineEnd(end) : raw.length;
+    if (isVoice) {
+      segments.push({
+        kind: 'ttsVoice',
+        signature: `${contentId || 'content'}::tts-voice::${start}`,
+        text: raw.slice(bodyStart, bodyEnd),
+        closed,
+        startOffset: start,
+      });
+    } else {
+      const key = parseViewKey(viewAttrs as string);
+      const body = raw.slice(bodyStart, bodyEnd).trim();
+      segments.push({
+        kind: 'view',
+        index: viewIndex,
+        signature: `${contentId || 'content'}::view::${viewIndex}`,
+        key,
+        payloadRaw: body,
+        text: raw.slice(start, blockEnd),
+        closed,
+        error: key ? viewDataError(body) : 'invalid_view',
+      });
+      if (closed) viewIndex += 1;
+    }
+    textStart = blockEnd;
+    if (!closed) break;
+    i = end;
   }
+  pushTextSegment(segments, raw.slice(textStart));
 
   if (segments.length === 0) {
     segments.push({ kind: 'text', text: raw.trim() });

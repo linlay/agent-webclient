@@ -1,3 +1,8 @@
+import {
+  RIGHT_SIDEBAR_MIN_WIDTH, RIGHT_SIDEBAR_COLLAPSED_MAIN_GAP,
+  clampRightSidebarLayoutWidth, rightSidebarWidthFromDrag,
+} from "@/features/viewers/lib/rightSidebarLayout";
+import { ViewEmbed } from "@/features/timeline/components/ViewEmbed";
 import libraryPresentation from "@/shared/ui/Presentation.module.css";
 import { bindCssModuleClasses } from "@/shared/utils/cssModuleClasses";
 import sharedPresentation from "@/shared/ui/Presentation.module.css";
@@ -47,8 +52,6 @@ type RightSidebarTabsKey = string;
 
 const RIGHT_SIDEBAR_WIDTH_STORAGE_KEY = "agent-webclient:right-sidebar-width";
 const RIGHT_SIDEBAR_DEFAULT_WIDTH = 320;
-const RIGHT_SIDEBAR_MIN_WIDTH = 280;
-const RIGHT_SIDEBAR_MAIN_MIN_WIDTH = 420;
 const RIGHT_SIDEBAR_SSR_VIEWPORT_WIDTH = 1280;
 
 function getRightSidebarMaxWidth(): number {
@@ -56,9 +59,11 @@ function getRightSidebarMaxWidth(): number {
     typeof window === "undefined"
       ? RIGHT_SIDEBAR_SSR_VIEWPORT_WIDTH
       : window.innerWidth;
+  const mainLeft = typeof document === "undefined" ? 0
+    : document.querySelector(".app-shell-center")?.getBoundingClientRect().left || 0;
   return Math.max(
     RIGHT_SIDEBAR_MIN_WIDTH,
-    viewportWidth - RIGHT_SIDEBAR_MAIN_MIN_WIDTH,
+    viewportWidth - mainLeft - RIGHT_SIDEBAR_COLLAPSED_MAIN_GAP,
   );
 }
 
@@ -66,7 +71,7 @@ function clampRightSidebarWidth(
   width: number,
   maxWidth = getRightSidebarMaxWidth(),
 ): number {
-  return Math.min(Math.max(width, RIGHT_SIDEBAR_MIN_WIDTH), maxWidth);
+  return clampRightSidebarLayoutWidth(width, maxWidth);
 }
 
 function readStoredRightSidebarWidth(): number {
@@ -125,6 +130,7 @@ export const RightSidebar: React.FC = () => {
   const dispatch = useAppDispatch();
   const state = useAppState();
   const { discardBTW, getSession } = useBTW();
+  const viewPreviews = state.viewPreviews;
   const viewerTabs = state.viewerTabs;
   const documentPreviewTabs = state.documentPreviewTabs;
   const sourceDetail = state.activeSourceDetail;
@@ -140,7 +146,9 @@ export const RightSidebar: React.FC = () => {
   );
   const desktopSidebarVisible = state.rightSidebarOpen;
   const selectedPanel =
-    state.rightSidebarOpenTab === "debug" && debugPanelEnabled
+    state.rightSidebarOpenTab === "viewPreview" && viewPreviews.length > 0
+      ? `viewPreview:${viewPreviews.find(preview => preview.key === state.activeViewPreviewKey)?.key || viewPreviews[viewPreviews.length - 1].key}`
+      : state.rightSidebarOpenTab === "debug" && debugPanelEnabled
       ? "debug"
       : state.rightSidebarOpenTab === "btw" && hasBTWSession
         ? "btw"
@@ -183,7 +191,8 @@ export const RightSidebar: React.FC = () => {
                     }`
                   : "overview";
   const activePanel: RightSidebarTabKey =
-    selectedPanel === "debug"
+    selectedPanel.startsWith("viewPreview:") ? "viewPreview"
+      : selectedPanel === "debug"
       ? "debug"
       : selectedPanel.startsWith("documentPreview:")
         ? "documentPreview"
@@ -238,11 +247,14 @@ export const RightSidebar: React.FC = () => {
       setSidebarWidth((width) => clampRightSidebarWidth(width, nextMaxWidth));
     };
 
+    handleWindowResize();
     window.addEventListener("resize", handleWindowResize);
     return () => window.removeEventListener("resize", handleWindowResize);
-  }, []);
+  }, [state.leftDrawerOpen]);
 
+  const preferredSidebarWidthRef = React.useRef(sidebarWidth);
   const updateSidebarWidth = React.useCallback((width: number) => {
+    preferredSidebarWidthRef.current = width;
     const nextMaxWidth = getRightSidebarMaxWidth();
     const nextWidth = clampRightSidebarWidth(width, nextMaxWidth);
     setSidebarMaxWidth(nextMaxWidth);
@@ -258,17 +270,19 @@ export const RightSidebar: React.FC = () => {
       resizeStartWidthRef.current = sidebarWidth;
     },
     onResize: (delta) =>
-      updateSidebarWidth(resizeStartWidthRef.current + delta),
+      updateSidebarWidth(rightSidebarWidthFromDrag(resizeStartWidthRef.current, delta, getRightSidebarMaxWidth())),
     onResizeEnd: (delta) => {
       persistRightSidebarWidth(
-        updateSidebarWidth(resizeStartWidthRef.current + delta),
+        updateSidebarWidth(rightSidebarWidthFromDrag(resizeStartWidthRef.current, delta, getRightSidebarMaxWidth())),
       );
     },
   });
 
   const handleCloseTab = React.useCallback(
     (key: React.Key) => {
-      if (key === "btw") {
+      if (typeof key === "string" && key.startsWith("viewPreview:")) {
+        dispatch({ type: "CLOSE_VIEW_PREVIEW", key: key.slice("viewPreview:".length) });
+      } else if (key === "btw") {
         if (state.chatId) {
           discardBTW(state.chatId);
         }
@@ -372,9 +386,9 @@ export const RightSidebar: React.FC = () => {
       let nextWidth: number | null = null;
 
       if (event.key === "ArrowLeft") {
-        nextWidth = sidebarWidth + 16;
+        nextWidth = Math.max(sidebarWidth, preferredSidebarWidthRef.current) + 16;
       } else if (event.key === "ArrowRight") {
-        nextWidth = sidebarWidth - 16;
+        nextWidth = rightSidebarWidthFromDrag(sidebarWidth, -16, sidebarMaxWidth);
       } else if (event.key === "Home") {
         nextWidth = RIGHT_SIDEBAR_MIN_WIDTH;
       } else if (event.key === "End") {
@@ -427,6 +441,22 @@ export const RightSidebar: React.FC = () => {
           </Flex>
         ),
         children: <SourceDetailTab />,
+      });
+    }
+
+    for (const preview of viewPreviews) {
+      const { key, ...viewProps } = preview;
+      items.push({
+        key: `viewPreview:${preview.key}`,
+        label: <Flex align="center" gap={4}>
+          <MaterialIcon name="preview" />
+          <Typography.Text ellipsis className={[libraryPresentation.typography, "tw:!max-w-[100px]"].filter(Boolean).join(" ")}>
+            {preview.view?.key || t("view.header.title")}
+          </Typography.Text>
+        </Flex>,
+        children: <div className="tw:h-full tw:min-h-0 tw:px-3 tw:pb-3">
+          <ViewEmbed key={key} {...viewProps} allowExpand={false} onClose={() => dispatch({ type: "CLOSE_VIEW_PREVIEW", key: preview.key })} />
+        </div>,
       });
     }
 
@@ -543,6 +573,7 @@ export const RightSidebar: React.FC = () => {
     return items;
   }, [
     hasBTWSession,
+    viewPreviews,
     viewerTabs,
     documentPreviewTabs,
     getDocumentPreviewRef,
@@ -560,7 +591,9 @@ export const RightSidebar: React.FC = () => {
 
   const handleTabChange = React.useCallback(
     (key: string) => {
-      if (key.startsWith("documentPreview:")) {
+      if (key.startsWith("viewPreview:")) {
+        dispatch({ type: "ACTIVATE_VIEW_PREVIEW", key: key.slice("viewPreview:".length) });
+      } else if (key.startsWith("documentPreview:")) {
         dispatch({ type: "ACTIVATE_DOCUMENT_PREVIEW", key: key.slice("documentPreview:".length) });
       } else if (key.startsWith("viewer:")) {
         dispatch({
@@ -599,6 +632,7 @@ export const RightSidebar: React.FC = () => {
   return (
     <aside
       className={`sidebar right-sidebar ${desktopSidebarVisible ? "is-open" : ""}`}
+      data-main-chat-collapsed={desktopSidebarVisible && sidebarWidth >= sidebarMaxWidth ? "true" : undefined}
     >
       <button
         type="button"

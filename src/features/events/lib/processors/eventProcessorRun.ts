@@ -1,5 +1,5 @@
 import { readReferences, readRequestQueryText } from "@/features/events/lib/eventFields";
-import { MODEL_RETRY_NODE_ID } from "@/shared/ui/modelRetry";
+import { MODEL_RETRY_NODE_ID, RUN_ACTIVITY_NODE_ID } from "@/shared/ui/modelRetry";
 import type { AgentEvent, AIContextCompactEvent } from "@/shared/contracts/agentEvents";
 import type {
   EventCommand,
@@ -23,8 +23,22 @@ export function processRunEvent(
   const type = toText(event.type);
 
   if (type === "run.activity") {
-    if (event.phase !== "model_call" || event.status !== "retrying") return commands;
     const retry = event.retry as Record<string, unknown> | undefined;
+    if (!retry) {
+      // A progress activity replaces the previous one; it is live only. An
+      // empty message means the user is reading output, so the line goes.
+      const text = toText(event.message);
+      if (config.mode === "replay") return commands;
+      if (!text) {
+        commands.push({cmd: "SET_RUN_ACTIVITY"});
+        return commands;
+      }
+      commands.push({cmd: "SET_RUN_ACTIVITY", node: {
+        id: RUN_ACTIVITY_NODE_ID, kind: "message", role: "system", systemMessageLevel: "activity",
+        runId: toText(event.runId) || state.runId, taskId: toText(event.taskId), ts: timestamp, text,
+      }});
+      return commands;
+    }
     const delayMs = Number(retry?.delayMs);
     const attempt = Number(retry?.attempt);
     const maxAttempts = Number(retry?.maxAttempts);

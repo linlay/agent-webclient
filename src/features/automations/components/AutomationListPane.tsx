@@ -91,7 +91,7 @@ export function AutomationListPane({
     const agent = agentByKey.get(String(item.agentKey || ""));
     const last = item.lastExecution;
     return (
-      <button
+      <button data-agent-identity=""
         type="button"
         key={item.id}
         className={`${styles.automationItem} ${item.id === selectedId ? styles.active : ""}`}
@@ -114,7 +114,7 @@ export function AutomationListPane({
             <span className={styles.itemWorker}>
               {((
                 <AgentIcon
-                  icon={agent?.icon}
+                  icon={agent?.icon} mode={agent?.mode}
                   type="agent"
                   props={{
                     icon: { width: 14, height: 14 },

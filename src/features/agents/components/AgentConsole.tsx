@@ -1,3 +1,5 @@
+import { defaultAgentIconName } from "@/shared/icons/agentAppearance";
+import { ExecuteAgentModal } from "@/features/execute/components/ExecuteAgentModal";
 import { skillDisplayName } from "@/shared/utils/skillDisplayName";
 import { EditMenuButton } from "@/shared/ui/EditMenuButton";
 import { useResourceAssistant } from "@/features/resource-assistant/hooks/useResourceAssistant";
@@ -186,6 +188,8 @@ const AGENT_SECTION_NAV_ACTIONS_CLASS_NAME =
 const AGENT_SECTION_NAV_SAVE_CLASS_NAME = "agent-section-nav-save tw:flex-none";
 const AGENT_UNEDITABLE_CLASS_NAME =
   "agent-console-uneditable tw:flex tw:items-center tw:gap-2 tw:rounded-control tw:border tw:px-3 tw:py-2.5 tw:text-xs tw:text-accent-danger tw:[border-color:color-mix(in_srgb,var(--accent-danger)_26%,var(--line-soft))] tw:bg-[color-mix(in_srgb,var(--accent-danger)_6%,transparent)]";
+// Agent Platform uses this input limit for a model that declares none.
+const DEFAULT_MODEL_CONTEXT_WINDOW = 128000;
 export const AgentConsole: React.FC<AgentConsoleProps> = ({
   selectedAgentKey = "",
   onSelectAgentKey,
@@ -219,8 +223,10 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
   });
   const [formMode, setFormMode] = useState<AgentFormMode>("create");
   const [editorMode, setEditorMode] = useState<AgentEditorMode>("structured");
+  const iconCustomizedRef = useRef(false);
   const [iconEditorOpen, setIconEditorOpen] = useState(false);
   const [form, setForm] = useState<AgentFormState>(createEmptyAgentForm);
+  const [executeAgentKey, setExecuteAgentKey] = useState("");
   const [detail, setDetail] = useState<EditableAgentDetail | null>(null);
   const [loadingList, setLoadingList] = useState(false);
   const [loadingDetail, setLoadingDetail] = useState(false);
@@ -281,7 +287,8 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
         item.label || item.key,
       ]),
     );
-    return ["GENERAL", "CODER", "KBASE", "TEAM"].map((value) => ({
+    // EXECUTOR is created here only; the New Project dialog never offers it.
+    return ["GENERAL", "CODER", "KBASE", "TEAM", "EXECUTOR"].map((value) => ({
       value,
       label: availableModes.get(value) || value,
     }));
@@ -485,10 +492,10 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
   );
   const selectedIconValue = useMemo(() => {
     if (form.iconKind === "image") return form.iconImage;
-    if (form.iconKind === "builtin" && form.iconName)
-      return { name: form.iconName };
+    if (form.iconKind === "builtin")
+      return { name: form.iconName || defaultAgentIconName(form.mode), ...(form.iconColor?.trim() ? { color: form.iconColor.trim() } : {}) };
     return undefined;
-  }, [form.iconImage, form.iconKind, form.iconName]);
+  }, [form.iconImage, form.iconKind, form.iconName, form.iconColor, form.mode]);
   const detailDiagnostics = useMemo(
     () => readAdminAgentDiagnostics(detail),
     [detail],
@@ -611,6 +618,7 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
   );
 
   const resetToCreate = useCallback(() => {
+    iconCustomizedRef.current = false;
     sourceLoadSeqRef.current += 1;
     loadedDetailKeyRef.current = "";
     setFormMode("create");
@@ -880,6 +888,7 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
   }, [formMode, effectiveSelectedKey, loadingList, resetToCreate, localAgents.length]);
 
   const updateForm = (patch: Partial<AgentFormState>) => {
+    if ("iconKind" in patch || "iconName" in patch || "iconImage" in patch) iconCustomizedRef.current = true;
     setForm((current) => ({ ...current, ...patch }));
     setStructuredDirty(true);
     setFormError("");
@@ -1127,6 +1136,9 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
   );
 
   const setMode = (mode: string) => {
+    if (formMode === "create" && !iconCustomizedRef.current) {
+      setForm(current => ({ ...current, iconKind: "builtin", iconName: defaultAgentIconName(mode) }));
+    }
     if (mode === "PROXY" && !form.proxyConfigText.trim()) {
       updateForm({
         mode,
@@ -1418,6 +1430,33 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
                 </div>
               )}
               <div className={AGENT_SECTION_NAV_ACTIONS_CLASS_NAME}>
+                {effectiveSelectedKey && formMode === "edit" && (
+                  <UiButton
+                    size="sm"
+                    variant="ghost"
+                    disabled={
+                      loadingDetail || savingForm || deleting || !detail ||
+                      isInvalidAdminAgent(detail) ||
+                      !(
+                        ("toolBindings" in detail && detail.toolBindings?.some(
+                          tool => tool.name === "result_submit" && tool.active && !tool.excluded,
+                        )) ||
+                        ("tools" in detail && detail.tools?.includes("result_submit"))
+                      )
+                    }
+                    onClick={() => setExecuteAgentKey(effectiveSelectedKey)}
+                  >
+                    <MaterialIcon name="play_circle" />{t("execute.title")}
+                  </UiButton>
+                )}
+                {executeAgentKey && (
+                  <ExecuteAgentModal
+                    key={executeAgentKey}
+                    agentKey={executeAgentKey}
+                    agentName={detail?.name}
+                    onClose={() => setExecuteAgentKey("")}
+                  />
+                )}
 
                 {effectiveSelectedKey && (
                   <EditMenuButton
@@ -1546,6 +1585,7 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
                 queryModelButtonStateClass={queryModelButtonStateClass}
                 showFastBadge={showFastBadge}
                 selectedModelLabel={selectedModelLabel}
+                selectedModelContextWindow={selectedModel ? selectedModel.contextWindow || DEFAULT_MODEL_CONTEXT_WINDOW : undefined}
                 selectedReasoningLabel={selectedReasoningLabel}
                 contextTagOptions={contextTagOptions}
                 connectors={<AgentConnectorCapabilities key={form.key} {...connectorCapabilities}

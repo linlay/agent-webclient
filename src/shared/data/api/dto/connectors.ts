@@ -16,6 +16,9 @@ export interface ConnectorMcpStatus {
 export type ConnectorAuthMode = "none" | "self" | "token" | "mcp" | "oneid";
 
 export interface ConnectorSummary {
+  /** Invalid packages remain in the admin catalog for diagnosis and deletion. */
+  status?: string;
+  error?: string;
   tools?: AdminToolSummary[];
   id: string;
   name: string;
@@ -34,6 +37,8 @@ export interface ConnectorSummary {
   builtin?: boolean;
   readOnly?: boolean;
   canDelete?: boolean;
+  /** Number of distinct Agents with saved mounts; active leases are checked on deletion. */
+  mountedAgentCount?: number;
   hasNative?: boolean;
   nativeTools?: string[];
   mutuallyExclusiveWith?: string[];

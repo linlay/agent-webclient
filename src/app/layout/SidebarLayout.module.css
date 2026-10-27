@@ -12,6 +12,8 @@
 }
 
 :global(.right-sidebar) {
+    z-index: 1;
+    box-shadow: -10px 0 28px rgb(15 23 42 / 8%);
     width: var(--right-sidebar-width);
     right: 0;
     left: auto;

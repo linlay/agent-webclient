@@ -1,3 +1,4 @@
+import { effectiveAgentIcon } from "@/shared/icons/agentAppearance";
 import React, { useEffect, useMemo, useState } from "react";
 import { Dropdown } from "antd";
 import { useAppContext } from "@/app/state/AppContext";
@@ -38,7 +39,7 @@ export function SidebarAgentNavigation(props: {
   const generalChats = selectGeneralSidebarChats({ chats: state.chats, agents: state.agents, fetchedIds: preview.fetchedIds, pinnedOrder: state.chatPinnedOrder, sort });
   const generalLimit = preview.limits.general || GENERAL_CHAT_LIMIT;
   const selectedGeneral = groups.general.find(row => row.key === props.generalAgentKey);
-  const icons = new Map(state.agents.map(agent => [agent.key, agent.icon]));
+  const icons = new Map(state.agents.map(agent => [agent.key, effectiveAgentIcon(agent.icon, agent.mode)]));
   const allProjectsExpanded = groups.projects.length > 0 && groups.projects.every(row => expanded.has(row.key));
   const toggleAllProjects = () => setExpanded(value => {
     const next = new Set(value);
@@ -84,9 +85,11 @@ export function SidebarAgentNavigation(props: {
         <div className={styles.headingActions}>
           {selectedGeneral && <Dropdown trigger={["click"]} menu={{ selectedKeys: [selectedGeneral.key],
             onClick: ({ key }) => props.onSelectGeneralAgent(key),
-            items: groups.general.map(row => ({ key: row.key, label: row.displayName,
-              icon: <AgentIcon type="agent" icon={icons.get(row.sourceId)} props={{ icon: { width: 16, height: 16 }, avatar: { size: 16 } }} /> })) }}>
-            <UiButton className={`${styles.agentSelector} ${styles.headingHoverAction}`} size="mini" variant="ghost" title={t("leftSidebar.navigation.chooseAgent")}>
+            items: groups.general.map(row => ({ key: row.key, label: <span className={styles.agentMenuIdentity}>
+              <AgentIcon interactive={false} type="agent" icon={icons.get(row.sourceId)} props={{ icon: { width: 16, height: 16 }, avatar: { size: 16 } }} />
+              <span>{row.displayName}</span>
+            </span> })) }}>
+            <UiButton data-agent-pointer-idle="" data-agent-identity="" className={`${styles.agentSelector} ${styles.headingHoverAction}`} size="mini" variant="ghost" title={t("leftSidebar.navigation.chooseAgent")}>
               <AgentIcon type="agent" icon={icons.get(selectedGeneral.sourceId)} props={{ icon: { width: 14, height: 14 }, avatar: { size: 14 } }} />
               <span>{selectedGeneral.displayName}</span><MaterialIcon name="expand_more" />
             </UiButton>
@@ -137,7 +140,7 @@ export function SidebarAgentNavigation(props: {
         return <div className={styles.project} key={row.key}>
           <div className={styles.projectHead}>
             <WorkerActionsMenu row={row} trigger={["contextMenu"]} {...props.workerActions}>
-              <div className={`${styles.projectButton} ${state.workerSelectionKey === row.key ? styles.selectedProject : ""}`} role="button" tabIndex={0}
+              <div data-agent-pointer-idle="" data-agent-identity="" className={`${styles.projectButton} ${state.workerSelectionKey === row.key ? styles.selectedProject : ""}`} role="button" tabIndex={0}
                 aria-label={row.displayName} aria-expanded={open} onClick={() => toggleProject(row)}
                 onKeyDown={event => { if (event.key === " " || event.key === "Enter") { event.preventDefault(); toggleProject(row); } }}>
                 <AgentIcon type="agent" icon={icons.get(row.sourceId)} props={{ icon: { width: 18, height: 18 }, avatar: { size: 18 } }} />

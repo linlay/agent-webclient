@@ -69,9 +69,9 @@ function AutomationAgentOption({
   const role = agent?.role?.trim() || "";
   const iconSize = compact ? 16 : 20;
   return (
-    <span className={`automation-agent-option${compact ? " is-compact" : ""}`}>
+    <span data-agent-identity="" className={`automation-agent-option${compact ? " is-compact" : ""}`}>
       <AgentIcon
-        icon={agent?.icon}
+        icon={agent?.icon} mode={agent?.mode}
         type="agent"
         props={{
           icon: {

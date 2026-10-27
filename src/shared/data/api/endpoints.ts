@@ -108,6 +108,8 @@ export function buildQueryPayload(options: QueryStreamParams): Record<string, un
     message: options.message,
   };
 
+  if (options.primary === true) body.primary = true;
+
   // Omitted means false on the Platform; the entry decides whether it is set.
   if (options.planningMode === true) {
     body.planningMode = true;
@@ -175,6 +177,9 @@ const PLATFORM_WS_BACKENDS = ["platform"] as const;
 const PLATFORM_AND_GATEWAY_WS_BACKENDS = ["platform", "gateway"] as const;
 
 export const dataEndpoints = createEndpointRegistry({
+  execute: defineEndpoint<import("./dto/execute").ExecuteRequest>({
+    key: "agents.execute", path: "/api/execute", method: "POST", transport: "http",
+  }),
   accessLevelUpdate: defineEndpoint<AccessLevelUpdateParams, Record<string, unknown>>({
     key: "accessLevel.update",
     path: "/api/access-level",
@@ -1104,6 +1109,18 @@ export const dataEndpoints = createEndpointRegistry({
     transport: "auto",
     wsBackends: PLATFORM_AND_GATEWAY_WS_BACKENDS,
     payload: (params) => ({ ...params }),
+  }),
+  viewQuery: defineEndpoint<import("@/shared/contracts/view").ViewQueryRequest, import("@/shared/contracts/view").ViewQueryRequest>({
+    key: "view.query",
+    path: "/api/view/query",
+    method: "POST",
+    transport: "auto",
+    wsBackends: PLATFORM_WS_BACKENDS,
+    payload: (params) => params,
+  }),
+  viewInvoke: defineEndpoint<import("@/shared/contracts/view").ViewActionRequest, import("@/shared/contracts/view").ViewActionRequest>({
+    key: "view.invoke", path: "/api/view/invoke", method: "POST", transport: "auto",
+    wsBackends: PLATFORM_WS_BACKENDS, payload: params => params,
   }),
   voiceCapabilities: defineEndpoint({
     key: "voice.capabilities",

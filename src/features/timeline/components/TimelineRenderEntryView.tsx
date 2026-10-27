@@ -119,7 +119,7 @@ export const TimelineRenderEntryView: React.FC<
 
   return (
     <section className={TASK_GROUP_CLASS_NAME}>
-      <Flex
+      <Flex data-agent-identity=""
         className={[
           TASK_GROUP_HEADER_CLASS_NAME,
           expanded ? TASK_GROUP_HEADER_EXPANDED_CLASS_NAME : "",
@@ -141,7 +141,7 @@ export const TimelineRenderEntryView: React.FC<
         {taskAgent ? (
           <span className={TASK_GROUP_AGENT_CLASS_NAME}>
             <AgentIcon
-              icon={taskAgent.icon}
+              icon={taskAgent.icon} mode={taskAgent.mode}
               type="agent"
               props={{
                 icon: {

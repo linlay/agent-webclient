@@ -88,7 +88,7 @@ const AppShellContent: React.FC = () => {
             id="app"
           >
             <LeftSidebar />
-            <div className={APP_SHELL_CENTER_CLASS}>
+            <div data-agent-pointer-surface={!state.chatId ? "" : undefined} className={APP_SHELL_CENTER_CLASS}>
               <TopNav />
               <ConnectedConversationStage
                 surfaceMode="main"

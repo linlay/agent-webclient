@@ -20,6 +20,7 @@ import { UiButton } from "@/shared/ui/UiButton";
 import { useI18n } from "@/shared/i18n";
 import { useTimelineInteraction, useTimelineContextMenuTarget } from "./TimelineInteractionContext";
 import { useTimelineCopy } from "./TimelineInteractionContext";
+import { ViewHeader } from "./ViewHeader";
 const presentationClasses = bindCssModuleClasses({ ...timelinePresentation });
 
 
@@ -170,7 +171,24 @@ export const ContentBlock: React.FC<ContentBlockProps> = ({ node }) => {
 					);
 				}
 
-					if (segment.kind === "view" && segment.view) return <React.Fragment key={segment.signature}>{interaction?.renderContentView?.(segment, chatId)}</React.Fragment>;
+				if (segment.kind === "view") {
+					// Only the platform binding names the frozen snapshot. Without one,
+					// wait while the content streams, then fall back to the raw block.
+					const binding = segment.closed && segment.index !== undefined ? node.viewBindings?.[segment.index] : undefined;
+					const settled = node.status === "completed" || node.status === "failed";
+					if (binding && interaction?.renderContentView) {
+						return <React.Fragment key={segment.signature}>{interaction.renderContentView(segment, chatId, binding, node.runId, node.contentId)}</React.Fragment>;
+					}
+					if (!settled && interaction?.renderContentView && interaction.conversationActive) {
+						return <div key={segment.signature} className="tw:my-2"><ViewHeader dynamic /><div role="status" className="tw:text-sm tw:opacity-70">{t("view.loading")}</div></div>;
+					}
+					return (
+						<div key={segment.signature || idx} className={markdownClassName}>
+							<ViewHeader dynamic />
+							{renderMarkdown({ content: segment.text || "", chatId, teamChat })}
+						</div>
+					);
+				}
 
 				if (segment.kind === "ttsVoice") {
 					if (interaction?.readOnly) {

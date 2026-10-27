@@ -27,6 +27,9 @@ export function toConversationListItems(items: readonly TimelineDisplayItem[]): 
       : { kind: "standalone", key: item.key, item });
 }
 
+/** 未显式配置时的贴底容差，保持预览等其它 Surface 的既有行为。 */
+const DEFAULT_AT_BOTTOM_THRESHOLD_PX = 100;
+
 export interface ConversationStageProps {
   items: ConversationListItem[];
   agents: Agent[];
@@ -50,6 +53,8 @@ export interface ConversationStageProps {
     scrollerRef?: (element: HTMLElement | Window | null) => void;
     followOutput?: (atBottom: boolean) => "auto" | false;
     atBottomStateChange?: (atBottom: boolean) => void;
+    totalListHeightChanged?: (height: number) => void;
+    atBottomThreshold?: number;
     rangeChanged?: (range: ListRange) => void;
     isScrolling?: (scrolling: boolean) => void;
     Footer?: React.ComponentType<{ context: unknown }>;
@@ -80,8 +85,11 @@ export function ConversationStage({
     scrollerRef={viewport?.scrollerRef}
     increaseViewportBy={typeof window === "undefined" ? 0 : window.innerHeight}
     followOutput={viewport?.followOutput}
-    atBottomThreshold={200}
+    atBottomThreshold={
+      viewport?.atBottomThreshold ?? DEFAULT_AT_BOTTOM_THRESHOLD_PX
+    }
     atBottomStateChange={viewport?.atBottomStateChange}
+    totalListHeightChanged={viewport?.totalListHeightChanged}
     rangeChanged={viewport?.rangeChanged}
     isScrolling={viewport?.isScrolling}
     className={viewport?.mode === "document" ? "conversation-stage-virtuoso" : `conversation-stage-virtuoso tw:h-full ${SCROLLBAR_THIN_CLASS_NAME}`}

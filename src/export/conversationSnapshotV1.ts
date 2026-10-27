@@ -63,14 +63,17 @@ export interface ConversationSnapshotV1 {
     startedAt: number;
     endedAt?: number;
     outcome: "running" | "completed" | "failed" | "cancelled";
-    assistant?: { name: string; iconName?: string };
+    assistant?: { name: string; iconName?: string; mode?: string; iconColor?: string };
     nodes: SnapshotNodeV1[];
     tasks?: Array<{
       id: string;
       name: string;
       subAgentKey?: string;
+      taskAgentKey?: string;
       subAgentName?: string;
       subAgentIconName?: string;
+      subAgentMode?: string;
+      subAgentIconColor?: string;
       status: string;
       durationMs?: number;
       error?: string;
@@ -308,7 +311,7 @@ export function snapshotV1PreviewData(
         taskId: task.id,
         taskName: task.name,
         taskGroupId: task.id,
-        subAgentKey: task.subAgentKey,
+        subAgentKey: task.subAgentKey || task.taskAgentKey,
         runId: turn.runId,
         status: task.status,
         durationMs: task.durationMs,

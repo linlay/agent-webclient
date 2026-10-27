@@ -644,6 +644,24 @@ describe('shouldSyncLiveCache', () => {
 });
 
 describe('useConversationEventHandler live chat binding', () => {
+  it('uses delivery metadata for the active Chat without changing its owner', () => {
+    const restoreWindow = installSessionStorage();
+    try {
+      const stateRef = {current:createInitialState()};
+      stateRef.current.chatId = 'chat_1';
+      stateRef.current.chats = [{chatId:'chat_1',agentKey:'cutej'}];
+      const dispatch = jest.fn(action => {stateRef.current = appReducer(stateRef.current,action);});
+      useAppContext.mockReturnValue({dispatch,stateRef});
+      let handler: ReturnType<typeof useConversationEventHandler> | null = null;
+      const Harness = () => {handler = useConversationEventHandler();return null;};
+      renderToStaticMarkup(React.createElement(Harness));
+      handler!.handleEvent({type:'run.start',chatId:'chat_1',runId:'run_1',agentKey:'cutej',timestamp:100,display:{defaultDetail:'summary',effectiveDetail:'full'}});
+      expect(stateRef.current.chats[0]).toMatchObject({agentKey:'cutej',display:{defaultDetail:'summary',effectiveDetail:'full'}});
+      handler!.handleEvent({type:'run.start',chatId:'other',runId:'run_2',timestamp:101,display:{defaultDetail:'full',effectiveDetail:'full'}});
+      expect(stateRef.current.chats).toHaveLength(1);
+    } finally {restoreWindow();}
+  });
+
   beforeEach(() => {
     jest.clearAllMocks();
   });

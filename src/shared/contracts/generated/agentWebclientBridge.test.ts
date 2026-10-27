@@ -40,10 +40,10 @@ describe("generated Agent WebClient bridge contract", () => {
     );
     expect(isAgentWebclientSurfaceKind("agent-management")).toBe(true);
     expect(source).toContain(
-      "sha256:f068b56e8e57b50387bc50754a663e2e6eba033378cc7fadc41c857852d1b11c",
+      "sha256:4b4da843fc13dae31fd6425ae1aa08cf00369d44622e68ad3b3047c138610edb",
     );
     expect(createHash("sha256").update(canonicalSource).digest("hex")).toBe(
-      "989a65b8ec60d880043677937f3ed8967782cb1fa8d76412d8f3e3b80dcf1ade",
+      "6c5ee87eba9d1107793da370cd3136bdb477362df62f47868c42052e3db49ef8",
     );
   });
 

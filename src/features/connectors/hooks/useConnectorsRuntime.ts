@@ -4,7 +4,7 @@ import { useBlocker } from "react-router-dom";
 import { usePushTransport } from "@/features/transport/hooks/useRealtimeTransport";
 import { fetchConnectorCatalog, isConnectorCatalogUpdate } from "@/features/connectors/lib/connectorCatalog";
 import { parseConnectorDefinition } from "@/features/connectors/lib/connectorDefinition";
-import { ApiError, deleteConnector, getConnectorDefinition, importConnectorArchive, importConnectorMCP, updateConnectorDefinition } from "@/shared/data";
+import { ApiError, invalidateAgentDetail, deleteConnector, getConnectorDefinition, importConnectorArchive, importConnectorMCP, updateConnectorDefinition } from "@/shared/data";
 import type { AdminToolSummary, ConnectorDefinition, ConnectorDefinitionFile, ConnectorSummary, ImportConnectorMCPRequest } from "@/shared/data";
 import { useI18n } from "@/shared/i18n";
 import { connectorNavigationPath, type ConnectorNavigationApproval } from "../lib/connectorNavigation";
@@ -39,11 +39,14 @@ export function useConnectorsRuntime(routeId: string, onRouteIdChange: (id: stri
   const selected = currentItem || (dirty && selectionRef.current?.id === requestedId ? selectionRef.current : !routeId ? items[0] : undefined);
   selectionRef.current = selected;
   const selectedId = selected?.id || "";
+  const invalid = selected?.status === "invalid";
+  const validationError = invalid ? selected?.error || "" : "";
   const readOnly = selected?.readOnly === true || selected?.builtin === true;
   const canDelete = !!selected && selected.canDelete !== false && !readOnly;
   const activeFile = dirty && detail?.id === selectedId ? detail.file : (file === "mcp.json" && !selected?.hasMcp) || (file === "cli.json" && !selected?.hasCli) || (file === "view.json" && !selected?.hasView) || (file === "native.json" && !selected?.hasNative) ? "connector.json" : file;
   const catalogRequest = useRef(0);
   const detailRequest = useRef(0);
+  const detailLoadScope = useRef("");
   const catalogBusy = useRef(false);
   const savingRef = useRef(false);
   const importingRef = useRef(false);
@@ -136,25 +139,39 @@ export function useConnectorsRuntime(routeId: string, onRouteIdChange: (id: stri
   }, [push, refreshCatalog]);
 
   useEffect(() => {
+    const scope = JSON.stringify([selectedId, activeFile, revision]);
+    const preserveDraft = detailLoadScope.current === scope && dirtyRef.current;
+    detailLoadScope.current = scope;
     const request = ++detailRequest.current;
+    if (preserveDraft) {
+      setError(invalid ? t("connectors.status.invalid") : "");
+      if (invalid) setErrorDetails(connectorErrorDetails(new Error(validationError)));
+      return;
+    }
     setDetail(null);
     setDraft("");
     setError("");
     setMessage("");
-    setDetailLoading(!!selectedId);
-    if (selectedId) {
+    setDetailLoading(!!selectedId && !invalid);
+    if (invalid) {
+      setError(t("connectors.status.invalid"));
+      setErrorDetails(connectorErrorDetails(new Error(validationError)));
+    } else if (selectedId) {
       void getConnectorDefinition({ id: selectedId, file: activeFile }).then(response => {
         if (request !== detailRequest.current) return;
         setDetail(response.data);
         setDraft(response.data.content);
       }).catch(cause => {
-        if (request === detailRequest.current) setError(cause instanceof Error ? cause.message : String(cause));
+        if (request === detailRequest.current) {
+          setError(cause instanceof Error ? cause.message : String(cause));
+          setErrorDetails(connectorErrorDetails(cause));
+        }
       }).finally(() => {
         if (request === detailRequest.current) setDetailLoading(false);
       });
     }
     return () => { detailRequest.current += 1; };
-  }, [selectedId, activeFile, revision]);
+  }, [selectedId, activeFile, revision, invalid, validationError]);
 
   useEffect(() => {
     const beforeUnload = (event: BeforeUnloadEvent) => {
@@ -248,7 +265,8 @@ export function useConnectorsRuntime(routeId: string, onRouteIdChange: (id: stri
     catalogRequest.current += 1;
     catalogBusy.current = false;
     try {
-      await deleteConnector(targetId);
+      try { await deleteConnector(targetId); }
+      finally { invalidateAgentDetail(); }
       if (isSelected) {
         detailRequest.current += 1;
         dirtyRef.current = false;
@@ -292,7 +310,7 @@ export function useConnectorsRuntime(routeId: string, onRouteIdChange: (id: stri
     const target = id ? items.find(item => item.id === id) : selected;
     if (!target || pendingDeletion || savingRef.current || importingRef.current || deletingRef.current) return null;
     if (target.canDelete === false || target.readOnly === true || target.builtin === true) return null;
-    const prompt = t("connectors.delete.confirm", { name: target.name, id: target.id })
+    const prompt = t((target.mountedAgentCount ?? 0) > 0 ? "connectors.delete.confirmMounted" : "connectors.delete.confirm", { name: target.name, id: target.id, count: target.mountedAgentCount ?? 0 })
       + (target.id === selectedId && dirtyRef.current ? "\n\n" + t("connectors.delete.unsaved") : "");
     if (!window.confirm(prompt)) return null;
     return deleteTarget(target);

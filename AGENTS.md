@@ -187,6 +187,7 @@ Git 提交与推送规范：
 - [61-页面能力-Archive归档页面](docs/61-页面能力-Archive归档页面.md)
 - [62-页面能力-Automation页面](docs/62-页面能力-Automation页面.md)
 - [63-页面能力-Project文件浏览器](docs/63-页面能力-Project文件浏览器.md)
+- [64-页面能力-Execute执行测试](docs/64-页面能力-Execute执行测试.md)
 
 ### 70+ 周边能力与交付
 - [70-语音能力-语音输入ASR与TTS](docs/70-语音能力-语音输入ASR与TTS.md)
@@ -197,7 +198,7 @@ Git 提交与推送规范：
 - [91-交付运维-版本化打包与部署](docs/91-交付运维-版本化打包与部署.md)
 - [92-质量验证-手工测试用例](docs/92-质量验证-手工测试用例.md)
 
-VIEW 使用 `/api/view` 与 `view: {source,key,connectorId?,version?,hash?,renderer?}`；HTTP/WS 共享契约。新 VIEW iframe 仅 `allow-scripts`，表单只能响应宿主收集，结果 VIEW 无提交能力。QLC 当前为 JSON 兜底，旧 viewport 接口与字段已移除；详见 [VIEW连接器](docs/46-交互容器-VIEW连接器.md)。
+VIEW 使用 `/api/view` 与 `view: {source,key,connectorId?,version?,hash?,renderer?}`；HTTP/WS 共享契约，连接器只按事件 hash 读取快照。Markdown VIEW 块为 ` ```view key=<connectorId>/<viewKey> ` 加 JSON 数据，只渲染平台 `content.view`/`content.snapshot.views` 绑定的块，语法与平台共用 golden 用例；带 `query=<name>` 的块正文是参数，`ViewEmbed` 经 `/api/view/query`（带内容节点 runId）执行快照声明的查询，模板用 `viewHost.query()` 重新查询（返回 `{data, executedAt}`，同名查询以最后一次为准）；内置与外部连接器的 native/cli/mcp 查询共用同一接口。新 VIEW iframe 仅 `allow-scripts`，HITL 表单只响应宿主收集；display VIEW 仅可通过 viewHost.invoke 请求快照声明的 actions，必须经宿主确认、平台实时鉴权及幂等收据执行，保留 CSP 禁止原生表单和网络直连。QLC 当前为 JSON 兜底，旧 viewport 接口与字段已移除；详见 [VIEW连接器](docs/46-交互容器-VIEW连接器.md)。
 
 运行中附件 steer 复用 `/api/upload` 与 `references`：支持纯图片、HTML/MD 等普通文件与混合附件；待发送队列、取消/拒绝恢复、实时与历史时间线均保留附件。同一主 Chat 的首次 query 要求非空正文，后续 query 可只带有效文件或选区引用；空正文且无引用的 query 仅在已有主 query 历史、服务端 Chat 明确 `canContinue:true` 且无活动 Run 或待处理 awaiting 时允许；Run 结束后，已有主 query 历史的纯引用排队项也可转为后续 query；缺少历史确认时恢复输入区等待正文。详见 [消息发送路由与运行控制](docs/22-对话输入-消息发送路由与运行控制.md)。
 
@@ -232,3 +233,5 @@ TEAM 与普通 Agent 共用 agentKey 身份、目录、管理和运行控制。�
 Agent 管理表单支持 `interactionConfig.showPlanningMode/showEditingMode/showTerminal` 三个入口开关，只保存显式覆盖（包括 false）；未配置字段与恢复默认值仍交由 Platform 解析。
 
 当前语音统一开关 isVoiceEnabled() 固定关闭；宿主 VOICE_ENABLED 不改变入口，useVoiceRuntime 跳过初始化和事件监听。保留语音实现，测试通过显式输入或模块注入验证启用路径。
+
+过程展示由 Platform 解析的 interactionConfig.defaultDetail 决定（agent.yml 覆盖 agent-settings.yml mode 配置，兜底 summary）；WebClient 普通 query/attach/chat 不发送 detail，不读取旧全局 detail 偏好。历史 /api/chat.display 与下发 run.start.display 区分 defaultDetail/effectiveDetail，Desktop full 订阅按 defaultDetail 展示；Agent 管理表单只保存显式覆盖，删除 defaultDetail 恢复继承。详见界面基础专题。

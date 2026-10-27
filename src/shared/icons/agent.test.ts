@@ -14,43 +14,11 @@ import { AGENT_ICON_NAMES, AgentIcon } from "./agent";
 
 describe("AgentIcon", () => {
   it("exposes the new built-in icon names", () => {
-    expect(AGENT_ICON_NAMES).toEqual([
-      "folder",
-      "chat",
-      "wave",
-      "focus",
-      "library",
-      "coder",
-      "kbase",
-      "canvas",
-      "ide",
-      "fast",
-      "peaks",
-      "flux",
-      "pulse",
-      "spark",
-      "horizon",
-      "emit",
-      "database",
-      "stratus",
-      "sentinel",
-      "identity",
-      "spectrum",
-      "chime",
-      "sol",
-      "atlas",
-      "chronos",
-      "statue",
-      "portal",
-      "resonance",
-      "luna",
-      "cortex",
-      "terminal",
-    ]);
+    expect(AGENT_ICON_NAMES).toEqual(["general", "coder", "kbase", "team", "executor", "proxy"]);
     expect(AGENT_ICON_NAMES).not.toContain("ledger");
   });
 
-  it("renders a known built-in icon as an image", () => {
+  it("renders a known built-in icon as an inline SVG", () => {
     const html = renderToStaticMarkup(
       React.createElement(AgentIcon, {
         icon: { name: "coder" },
@@ -58,11 +26,11 @@ describe("AgentIcon", () => {
       }),
     );
 
-    expect(html).toContain("<img");
+    expect(html).toContain("<svg");
     expect(html).toContain('data-agent-icon-source="builtin"');
   });
 
-  it("falls back to the default agent image for unknown agent icons", () => {
+  it("falls back to the default agent graphic for unknown agent icons", () => {
     const html = renderToStaticMarkup(
       React.createElement(AgentIcon, {
         icon: { name: "ledger" },
@@ -70,7 +38,7 @@ describe("AgentIcon", () => {
       }),
     );
 
-    expect(html).toContain("<img");
+    expect(html).toContain("<svg");
     expect(html).toContain('data-agent-icon-source="default"');
   });
 

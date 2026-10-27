@@ -21,6 +21,7 @@ import {
 } from '@/features/chats/lib/chatSummary';
 import { upsertAgentSummary } from '@/features/workers/lib/agentSummary';
 import { readSidebarAgents } from '@/features/workers/lib/sidebarAgentData';
+import { readStoredGeneralAgentKey } from '../lib/generalAgentPreference';
 
 const INITIAL_AGENT_CHAT_LIMIT = 5;
 type AgentListRequestOptions = {
@@ -91,7 +92,7 @@ export function shouldStartInitialWorkerRefresh(input: {
 }
 
 export function useWorkerData(input: {
-  loadChat: (chatId: string, options?: { focusComposerOnComplete?: boolean }) => Promise<void>;
+  loadChat: (chatId: string, options?: { focusComposerOnComplete?: boolean; forceReload?: boolean }) => Promise<void>;
   selectWorkerConversation: (workerKey: string, options?: {
     focusComposerOnComplete?: boolean;
     preferNewChat?: boolean;
@@ -130,6 +131,10 @@ export function useWorkerData(input: {
     if (isCopilotPath(currentPathname())) {
       const firstAgentKey = rows.find((row) => row.type === 'agent')?.key || '';
       if (firstAgentKey) return firstAgentKey;
+    } else {
+      const savedKey = readStoredGeneralAgentKey();
+      const savedGeneral = rows.find(row => row.key === savedKey && !row.workspaceDir?.trim());
+      if (savedGeneral) return savedGeneral.key;
     }
     return rows[0]?.key || '';
   }, [stateRef]);
@@ -333,7 +338,10 @@ export function useWorkerData(input: {
     const handler = (e: Event) => {
       const chatId = (e as CustomEvent).detail?.chatId;
       const focusComposerOnComplete = Boolean((e as CustomEvent).detail?.focusComposerOnComplete);
-      if (chatId) loadChat(chatId, { focusComposerOnComplete }).catch(() => undefined);
+      const forceReload = (e as CustomEvent).detail?.forceReload === true;
+      const detail = (e as CustomEvent).detail?.detail;
+      const level = detail === 'summary' || detail === 'full' || detail === 'none' ? detail : undefined;
+      if (chatId) loadChat(chatId, { focusComposerOnComplete, ...(forceReload ? { forceReload } : {}), ...(level ? { detail: level } : {}) }).catch(() => undefined);
     };
     window.addEventListener('agent:load-chat', handler);
     return () => window.removeEventListener('agent:load-chat', handler);

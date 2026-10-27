@@ -8,6 +8,13 @@ import {
 } from "@/shared/data/api/endpoints";
 
 describe("endpoint payload builders", () => {
+  it("sends primary only when explicitly requested for creation", () => {
+    const base = { requestId: "req", message: "hello", owner: { kind: "agent" as const, agentKey: "a" } };
+    expect(buildQueryPayload({ ...base, primary: true })).toMatchObject({ primary: true });
+    expect(buildQueryPayload({ ...base, primary: false })).not.toHaveProperty("primary");
+    expect(buildQueryPayload(base)).not.toHaveProperty("primary");
+  });
+
   it("keeps Agent interaction capabilities out of query payloads", () => {
     const options = {requestId: "req_interaction", message: "hello", owner: { kind: "agent" as const, agentKey: "demo-agent" }, interactionConfig: {
         model: true, accessLevel: true, connectors: true,

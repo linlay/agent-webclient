@@ -321,6 +321,13 @@
 }
 
 .composer-connector-stack-btn {
+    /* 图标始终绝对定位在堆叠容器内：默认重叠成堆，hover 时仅靠 transform 展开，
+       容器宽度不随展开变化，因此不会推动同行其他控件 */
+    --connector-avatar-size: 16px;
+    --connector-avatar-step: 10px;
+    --connector-avatar-spread-step: 15px;
+    position: relative;
+    z-index: 1;
     display: inline-flex;
     align-items: center;
     gap: 0;
@@ -328,13 +335,35 @@
     height: 24px;
     border-radius: 9999px;
     border: none;
-    background: color-mix(in srgb, var(--bg-elev-2) 90%, var(--bg-input));
+    background: transparent;
     cursor: pointer;
     transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
     user-select: none;
 }
 
-.composer-connector-stack-btn:hover {
+/* hover 底板跟随图标一起向右延展，只改变绘制范围，不参与布局 */
+.composer-connector-stack-btn::before {
+    content: "";
+    position: absolute;
+    z-index: 0;
+    inset: 0;
+    border-radius: 9999px;
+    background: transparent;
+    pointer-events: none;
+    transition: background 0.15s ease, right 0.2s cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+
+.composer-connector-stack-btn:hover,
+.composer-connector-stack-btn:focus-visible,
+.composer-connector-stack-btn[data-expanded="true"] {
+    z-index: 5;
+}
+
+.composer-connector-stack-btn:hover::before,
+.composer-connector-stack-btn:focus-visible::before,
+.composer-connector-stack-btn[data-expanded="true"]::before {
+    /* 右缘跟随最后一个图标外扩：(右侧留白 - 呼吸位) + (数量 - 1) * (堆叠步长 - 展开步长)，单个图标时不外扩 */
+    right: min(0px, calc(4px + (var(--connector-avatar-count, 1) - 1) * (var(--connector-avatar-step) - var(--connector-avatar-spread-step))));
     background: var(--bg-hover);
 }
 
@@ -350,24 +379,35 @@
 }
 
 .composer-connector-avatar-stack {
-    display: inline-flex;
-    align-items: center;
     position: relative;
+    display: block;
+    flex: none;
+    width: calc(var(--connector-avatar-size) + (var(--connector-avatar-count, 1) - 1) * var(--connector-avatar-step));
+    height: var(--connector-avatar-size);
 }
 
 .composer-connector-avatar-item {
-    position: relative;
+    position: absolute;
+    top: 50%;
+    left: 0;
+    z-index: calc(var(--connector-avatar-index, 0) + 1);
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    width: var(--connector-avatar-size);
+    height: var(--connector-avatar-size);
     border-radius: 50%;
     background: var(--bg-elev-1);
     box-shadow: 0 0 0 1.5px var(--bg-elev-2);
     overflow: hidden;
+    transform: translate3d(calc(var(--connector-avatar-index, 0) * var(--connector-avatar-step)), -50%, 0);
+    transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.3, 1);
 }
 
-.composer-connector-avatar-item + .composer-connector-avatar-item {
-    margin-left: -6px;
+.composer-connector-stack-btn:hover .composer-connector-avatar-item,
+.composer-connector-stack-btn:focus-visible .composer-connector-avatar-item,
+.composer-connector-stack-btn[data-expanded="true"] .composer-connector-avatar-item {
+    transform: translate3d(calc(var(--connector-avatar-index, 0) * var(--connector-avatar-spread-step)), -50%, 0);
 }
 
 .composer-connector-picker-popover :global(.ant-popover-inner) {

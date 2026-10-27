@@ -63,14 +63,12 @@ const MODE_LABEL: Record<string, string> = {
   REACT: "GENERAL",
   CODER: "CODER",
   KBASE: "KBASE",
-  PLAN_EXECUTE: "P-E",
+  EXECUTOR: "EXECUTOR",
   PROXY: "PROXY",
 };
 
 function normalizeModeKey(value: string): string {
   const upper = value.trim().toUpperCase();
-  if (upper === "PLAN-EXECUTE" || upper === "PLAN_EXECUTE")
-    return "PLAN_EXECUTE";
   if (upper === "ACP-PROXY" || upper === "ACP_PROXY" || upper === "PROXY")
     return "PROXY";
   return upper;
@@ -189,7 +187,7 @@ const SortableAgentListItem: React.FC<{
     </Flex>
   );
   const itemNode = (
-    <div
+    <div data-agent-identity=""
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
       role="button"
@@ -213,7 +211,7 @@ const SortableAgentListItem: React.FC<{
           {...listeners}
         >
           <AgentIcon
-            icon={agent.icon}
+            icon={agent.icon} mode={agent.mode}
             type="agent"
             props={{
               icon: {

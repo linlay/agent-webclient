@@ -8,9 +8,10 @@ export interface WorkerQuickActionsProps {
   onOpenMemory: () => void;
   onNewChat: () => void;
   newChatDisabled?: boolean;
+  hideNewChat?: boolean;
 }
 
-export function WorkerQuickActions({ onOpenCommand, onOpenMemory, onNewChat, newChatDisabled }: WorkerQuickActionsProps) {
+export function WorkerQuickActions({ onOpenCommand, onOpenMemory, onNewChat, newChatDisabled, hideNewChat }: WorkerQuickActionsProps) {
   const { t } = useI18n();
   return (
     <div className={`${styles.actions} left-sidebar-buttons`}>
@@ -28,10 +29,10 @@ export function WorkerQuickActions({ onOpenCommand, onOpenMemory, onNewChat, new
           <span>{t("leftSidebar.quickActions.memory")}</span>
         </UiButton>
       </div>
-      <UiButton className={styles.newChat} size="sm" variant="ghost" onClick={onNewChat} disabled={newChatDisabled}>
+      {!hideNewChat && <UiButton className={styles.newChat} size="sm" variant="ghost" onClick={onNewChat} disabled={newChatDisabled}>
         <MaterialIcon name="edit_square" className="tw:text-[16px]" />
         <span>{t("globalSearch.action.newConversation")}</span>
-      </UiButton>
+      </UiButton>}
     </div>
   );
 }

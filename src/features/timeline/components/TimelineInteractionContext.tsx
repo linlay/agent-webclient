@@ -2,11 +2,13 @@ import { copyWebText } from "@/shared/utils/webClipboard";
 import React, { createContext, useContext } from "react";
 import type { TimelineAttachment, TimelineNode, TimelineSource } from "@/features/timeline/lib/timelineState";
 import type { OpenTargetIntent } from "@/features/surfaces/lib/openTarget";
-import type { ContentSegment } from "@/shared/contracts/contentSegments";
+import type { ContentSegment, ContentViewBinding } from "@/shared/contracts/contentSegments";
 import type { MarkdownContentProps } from "@/features/viewers/components/MarkdownContent";
 import type { DesktopContextMenuTargetDescriptor } from "@/shared/data/desktop/desktopContextMenu";
+import type { RunActivityAppearance } from "../lib/runActivityAppearance";
 
 export interface TimelineInteractionValue {
+  activityAppearance?: RunActivityAppearance;
   conversationActive?: boolean;
   copyText?: (text: string) => Promise<void>;
   getRunStatus?: (node: TimelineNode) => import("../lib/imageGenerationDisplay").ImageGenerationRuntime;
@@ -27,9 +29,10 @@ export interface TimelineInteractionValue {
   openSource?: (source: TimelineSource, node?: TimelineNode) => void;
   openTarget?: (target: OpenTargetIntent) => void;
   replayVoice?: (node: TimelineNode, signature: string, text: string) => void;
-  renderToolView?: (view: NonNullable<TimelineNode["view"]>, chatId: string, error: string | undefined, payloadRaw: string) => React.ReactNode;
+  renderToolView?: (view: NonNullable<TimelineNode["view"]>, chatId: string, error: string | undefined, payloadRaw: string, node?: { id: string; runId?: string }) => React.ReactNode;
   renderToolOutput?: (output: NonNullable<TimelineNode["toolOutput"]>) => React.ReactNode;
-  renderContentView?: (segment: ContentSegment, chatId: string) => React.ReactNode;
+  /** Renders a Markdown VIEW block after the platform bound it to a snapshot. */
+  renderContentView?: (segment: ContentSegment, chatId: string, binding: ContentViewBinding, runId?: string, sourceId?: string) => React.ReactNode;
   renderMarkdown?: (props: MarkdownContentProps) => React.ReactNode;
   renderAttachment?: (attachment: TimelineAttachment, options: {
     density?: "default" | "compact";

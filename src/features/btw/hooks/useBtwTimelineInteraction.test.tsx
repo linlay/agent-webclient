@@ -197,8 +197,9 @@ const InteractionProbe: React.FC = () => {
         truncated: false,
       })}
       {interaction?.renderContentView?.(
-        { kind: "view", view, payloadRaw: "{}" },
+        { kind: "view", index: 0, key: "crm/card", payloadRaw: "{}", closed: true },
         "chat-1",
+        { index: 0, view },
       )}
       {interaction?.renderMarkdown?.({ content: "Answer", chatId: "chat-1" })}
     </div>

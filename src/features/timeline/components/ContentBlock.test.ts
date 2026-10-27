@@ -2,6 +2,7 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import type { TimelineNode } from "@/features/timeline/lib/timelineState";
 import { ContentBlock } from "./ContentBlock";
+import { parseContentSegments } from "@/features/events/lib/contentSegments";
 import { TimelineInteractionProvider } from "./TimelineInteractionContext";
 import type { MarkdownContentProps } from "@/features/viewers/components/MarkdownContent";
 
@@ -80,5 +81,47 @@ describe("ContentBlock presentation boundary", () => {
     ] });
     expect(html).toContain("Spoken answer");
     expect(html).not.toContain("button");
+  });
+});
+
+describe("ContentBlock Markdown VIEW blocks", () => {
+  const raw = "```view key=crm/orders\n{\"items\":[]}\n```";
+  const hash = "a".repeat(64);
+  function renderView(node: TimelineNode, conversationActive: boolean) {
+    const rendered: unknown[] = [];
+    const html = renderToStaticMarkup(React.createElement(TimelineInteractionProvider, {
+      value: {
+        conversationActive,
+        renderMarkdown: (props) => React.createElement("div", { className: "x-markdown" }, props.content),
+        renderContentView: (segment, _chatId, binding) => {
+          rendered.push({ payloadRaw: segment.payloadRaw, binding });
+          return React.createElement("div", { className: "x-view" });
+        },
+      },
+    }, React.createElement(ContentBlock, { node })));
+    return { html, rendered };
+  }
+  function viewNode(extra: Partial<TimelineNode>): TimelineNode {
+    return { ...content(raw), contentId: "c1", segments: parseContentSegments("c1", raw), ...extra };
+  }
+
+  it("renders a bound block with its frozen view and data", () => {
+    const binding = { index: 0, view: { source: "connector" as const, connectorId: "crm", key: "orders", hash } };
+    const { html, rendered } = renderView(viewNode({ viewBindings: { 0: binding }, status: "completed" }), false);
+    expect(html).toContain("x-view");
+    expect(rendered).toEqual([{ payloadRaw: '{"items":[]}', binding }]);
+  });
+
+  it("waits for the binding while the content streams", () => {
+    const { html, rendered } = renderView(viewNode({}), true);
+    expect(html).toContain('role="status"');
+    expect(rendered).toEqual([]);
+  });
+
+  it("falls back to the raw block when settled without a binding", () => {
+    const { html, rendered } = renderView(viewNode({ status: "completed" }), false);
+    expect(html).toContain("x-markdown");
+    expect(html).toContain("```view key=crm/orders");
+    expect(rendered).toEqual([]);
   });
 });
