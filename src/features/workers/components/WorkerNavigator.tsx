@@ -96,6 +96,7 @@ const WORKER_COLLAPSED_NAME_CLASS =
   "worker-collapsed-name tw:inline-block tw:max-w-full tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:text-left tw:align-top tw:text-[10px] tw:leading-[1.2]";
 
 const LEFT_SIDEBAR_WIDTH_STORAGE_KEY = "agent-webclient:left-sidebar-width";
+const GENERAL_AGENT_STORAGE_KEY = "agent-webclient:general-agent-key";
 const LEFT_SIDEBAR_DEFAULT_WIDTH = 260;
 const LEFT_SIDEBAR_MIN_WIDTH = 260;
 const LEFT_SIDEBAR_MAIN_MIN_WIDTH = 420;
@@ -161,6 +162,23 @@ function persistLeftSidebarWidth(width: number): void {
   }
 }
 
+function readStoredGeneralAgentKey(): string {
+  if (typeof window === "undefined") return "";
+  try {
+    return window.localStorage.getItem(GENERAL_AGENT_STORAGE_KEY)?.trim() || "";
+  } catch {
+    return "";
+  }
+}
+
+function persistGeneralAgentKey(workerKey: string): void {
+  try {
+    window.localStorage.setItem(GENERAL_AGENT_STORAGE_KEY, workerKey);
+  } catch {
+    // Agent selection remains usable when storage is unavailable.
+  }
+}
+
 interface WorkerNavigatorProps {
   onOpenProject: (agentKey: string) => void;
   onOpenCommand: (type: "automation" | "agents" | "kbases") => void;
@@ -199,7 +217,7 @@ export const WorkerNavigator: React.FC<WorkerNavigatorProps> = ({
     dispatch({ type: "SET_PRIMARY_NAVIGATION", enabled });
     try { window.localStorage.setItem("agent:primary-navigation", String(enabled)); } catch { /* Optional preference. */ }
   };
-  const [generalAgentKey, setGeneralAgentKey] = useState("");
+  const [generalAgentKey, setGeneralAgentKey] = useState(readStoredGeneralAgentKey);
   const [historyAgentKey, setHistoryAgentKey] = useState("");
   const [historyOpen, setHistoryOpen] = useState(false);
   const [settingsMenuOpen, setSettingsMenuOpen] = useState(false);
@@ -297,10 +315,12 @@ export const WorkerNavigator: React.FC<WorkerNavigatorProps> = ({
   const currentGeneralKey = generalWorkers.some(row => row.key === generalAgentKey)
     ? generalAgentKey : generalWorkers[0]?.key || "";
   useEffect(() => {
-    if (generalWorkers.some(row => row.key === state.workerSelectionKey)) {
+    // Keep a valid saved choice when routing or initial hydration selects another Agent.
+    if (!generalWorkers.some(row => row.key === generalAgentKey) &&
+      generalWorkers.some(row => row.key === state.workerSelectionKey)) {
       setGeneralAgentKey(state.workerSelectionKey);
     }
-  }, [state.workerSelectionKey, state.workerRows, state.agents]);
+  }, [generalAgentKey, state.workerSelectionKey, state.workerRows, state.agents]);
 
   useEffect(() => {
     if (!settingsMenuOpen) return;
@@ -700,7 +720,7 @@ export const WorkerNavigator: React.FC<WorkerNavigatorProps> = ({
                 />
                 <SidebarAgentNavigation
                   generalAgentKey={currentGeneralKey}
-                  onSelectGeneralAgent={(key) => { setGeneralAgentKey(key); handleSelectWorker(key); }}
+                  onSelectGeneralAgent={(key) => { setGeneralAgentKey(key); persistGeneralAgentKey(key); handleSelectWorker(key); }}
                   onNewConversation={(key) => startNewConversationForWorker(key, { focusComposerOnComplete: true })}
                   onNewProject={agentProjectCreate.begin}
                   creatingProject={agentProjectCreate.open}
