@@ -791,6 +791,29 @@ describe("required libraries through message actions", () => {
   if (expected) expect(input.primary).toBe(true);
   else expect(input).not.toHaveProperty("primary");
  });
+ it.each([false, true])("Desktop primary intent is explicit even when standalone preference is %s", async preference => {
+  const previousConfig = globalThis.__AGENT_WEBCLIENT_RUNTIME_CONFIG__;
+  const previousWindow = (globalThis as { window?: unknown }).window;
+  Object.defineProperty(globalThis, "window", { configurable: true, value: { location: { pathname: "/agent/general", search: "" } } });
+  globalThis.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = { DESKTOP_APP: true };
+  try {
+    const { stateRef, actions } = harness();
+    stateRef.current.primaryNavigation = preference;
+    window.location.search = "?newChat=1793000000000";
+    await actions.sendMessage("ordinary");
+    expect(startQuery.mock.calls[0][0]).not.toHaveProperty("primary");
+    startQuery.mockClear();
+    window.location.search = "?newChat=1793000000001&primaryNewChat=true";
+    stateRef.current.chatId = "upload-placeholder";
+    stateRef.current.chats = [{ chatId: "upload-placeholder", agentKey: "general" }];
+    await actions.sendMessage("primary");
+    expect(startQuery.mock.calls[0][0]).toMatchObject({ primary: true, chatId: "upload-placeholder" });
+  } finally {
+    globalThis.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = previousConfig;
+    if (previousWindow === undefined) delete (globalThis as { window?: unknown }).window;
+    else Object.defineProperty(globalThis, "window", { configurable: true, value: previousWindow });
+  }
+ });
  it("keeps knowledge library names in the live timeline while sending ID-only references", async () => {
   const {stateRef, actions} = harness();
   let finish!: (result: {reason: string; lastSeq: number}) => void;

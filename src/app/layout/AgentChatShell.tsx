@@ -229,6 +229,10 @@ export function createExplicitNewChatRoute(
   );
   const url = new URL(baseRoute, "http://agent-webclient.local");
   url.searchParams.set("newChat", normalizedNewChat);
+  if (searchParams.getAll("primaryNewChat").length === 1 && searchParams.get("primaryNewChat") === "true" &&
+      searchParams.get("newChat") === normalizedNewChat && !searchParams.has("chatId")) {
+    url.searchParams.set("primaryNewChat", "true");
+  }
   return `${url.pathname}${url.search}`;
 }
 

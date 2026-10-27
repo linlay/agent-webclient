@@ -132,3 +132,7 @@ WebClient 等待匹配 requestId 的宿主响应；桥接缺失、拒绝、发�
 ## 侧栏 awaiting 数字快捷键
 
 Desktop 侧栏保留 Chat 行焦点和上下方向键导航，只向当前已提交身份的 Main Chat 定向投递普通数字键。WebClient 同时核对 Router、已加载 Chat 与当前渲染的 active awaiting；切换中、提交中、已解决、模态层或 guest 已取得焦点时拒绝转发，不排队或重试。有效数字复用 awaiting 原有键盘处理与提交规则，Desktop 不解析选项、不直接提交答案。延迟选项自动聚焦只在 guest 仍拥有焦点时执行，不能从侧栏抢回焦点；macOS 与 Windows 共用此语义，双方与 Program Bundle 配套发布。
+
+## Desktop 主要对话入口
+
+Desktop 完整导航仍为默认视图。宿主从主要对话列表中没有 Platform primaryChat 的 Agent 进入新 Chat 时，在同一 newChat nonce 路由携带一次性 primaryNewChat=true。WebClient 只在匹配路由 Agent 的首次 query（包含上传占位 Chat）发送 primary:true；普通新建、历史续聊、Copilot 与旁聊不继承 Standalone 的主要导航偏好。该标记随 canonical Chat 路由收敛移除，不写入全局偏好，不在 Main/Broker 自动注入 query。Platform 继续拥有指针和活动 Run 冲突校验，拒绝后不自动重发。
