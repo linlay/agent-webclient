@@ -65,7 +65,7 @@ QLC 当前提供 JSON 展示和 JSON 表单兜底，尚未解释专有控件。�
 
 ## Desktop WorkPanel 承载
 
-Desktop 的侧栏入口打开独立 View Surface，Dialog 和普通浏览器侧栏保持原交互。View Surface 与内嵌、Dialog 共用 ViewEmbed，所以 viewHost 查询、写入确认、CSP、错误和幂等语义一致；执行仍归 Agent Platform，HTML 不获得本机命令接口。
+Desktop 模式的内嵌 VIEW 始终显示侧栏入口，包含使用 AgentChatShell 的主聊天；按钮显示不依赖 surfaceMode=main 或浏览器 RightSidebar。侧栏入口打开独立 View Surface，Dialog 和普通浏览器侧栏保持原交互；独立 WorkPanel 页面与展开 Dialog 不再显示嵌套的打开按钮。View Surface 与内嵌、Dialog 共用 ViewEmbed，所以 viewHost 查询、写入确认、CSP、错误和幂等语义一致；执行仍归 Agent Platform，HTML 不获得本机命令接口。
 
 标签使用 Chat、Run、协议 contentId/toolId 和块序号定位。URL/descriptor 不传 HTML 或大 payload，独立页面按 Chat 回放恢复绑定的快照和原始数据。同源 BroadcastChannel 只同步当前聊天中已绑定实例的数据，并按每次页面请求身份、发布者 generation 和序号丢弃迟到内容；源页面重建时重新握手，关闭时释放，不增开 live Run 订阅。通道不构成执行授权，Platform 继续验证模板与声明。时间线渲染计数器和 React useId 不能用于 Desktop 恢复。
 

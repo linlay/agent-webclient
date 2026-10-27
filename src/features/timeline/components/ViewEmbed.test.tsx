@@ -157,7 +157,7 @@ test("dynamic queries show pending and failed states, then a successful retry", 
   const { host, frame, cleanup } = await mount({ runId: "run-1" });
   try {
     const header = host.querySelector(".view-header")!;
-    expect(header.textContent).toContain("view.header.dynamic");
+    expect(header.textContent).toBe("view.header.title");
     await request(frame, "first");
     expect(header.textContent).toContain("view.header.querying");
     await act(async () => { reject(new Error("offline")); });
@@ -192,7 +192,7 @@ test("template errors still have a header and raw data fallback", async () => {
   const root = createRoot(host);
   await act(async () => root.render(<ViewEmbed chatId="chat" view={view} payloadRaw="{}" rawData="original" runId="run-1" viewError="view_not_found" />));
   try {
-    expect(host.querySelector(".view-header")?.textContent).toContain("view.header.dynamic");
+    expect(host.querySelector(".view-header")?.textContent).toBe("view.header.title");
     expect(host.querySelector('[role="alert"]')).not.toBeNull();
     expect(host.querySelector("pre")?.textContent).toBe("original");
   } finally { act(() => root.unmount()); }
@@ -267,7 +267,8 @@ test("query time opens the explanation in a popover without a separate informati
     expect(document.body.textContent).not.toContain("view.header.dynamicHelp");
     const time = header.querySelector(".view-query-time") as HTMLButtonElement;
     expect(time.querySelector("time")).not.toBeNull();
-    expect(time.parentElement).toBe(header.lastElementChild);
+    expect(time.parentElement).toBe(header);
+    expect(time.previousElementSibling).toBe(header.firstElementChild);
     await act(async () => { time.click(); });
     expect(document.querySelector(".ant-popover")?.textContent).toContain("view.header.dynamicHelp");
   } finally { cleanup(); }
@@ -318,10 +319,10 @@ test("viewer writes require own frame, declaration and trusted host confirmation
 });
 
 
-test("Desktop sidebar opens a semantic View WorkPanel tab and leaves the browser sidebar untouched", async () => {
+test("Desktop exposes the View WorkPanel button even when the Agent page has no browser sidebar", async () => {
   mockDesktop = true;
   mockOpenDescriptor.mockResolvedValue({ ok: true });
-  const { host, cleanup } = await mount({ runId: "run-1", sourceId: "content-id", viewIndex: "0" }, true);
+  const { host, cleanup } = await mount({ runId: "run-1", sourceId: "content-id", viewIndex: "0" });
   try {
     await act(async () => (host.querySelector('button[aria-label="view.header.openSidebar"]') as HTMLButtonElement).click());
     expect(mockOpenDescriptor).toHaveBeenCalledWith({ kind: "webclient", module: "view", title: view.key,
@@ -334,10 +335,28 @@ test("Desktop sidebar opens a semantic View WorkPanel tab and leaves the browser
 test("a Desktop open failure is shown inline without falling back to the browser sidebar", async () => {
   mockDesktop = true;
   mockOpenDescriptor.mockRejectedValue(new Error("Upgrade Desktop"));
-  const { host, cleanup } = await mount({ runId: "run-1", sourceId: "content-id", viewIndex: "0" }, true);
+  const { host, cleanup } = await mount({ runId: "run-1", sourceId: "content-id", viewIndex: "0" });
   try {
     await act(async () => (host.querySelector('button[aria-label="view.header.openSidebar"]') as HTMLButtonElement).click());
     expect(host.querySelector('[role="alert"]')?.textContent).toContain("Upgrade Desktop");
     expect(mockDispatch).not.toHaveBeenCalled();
+  } finally { cleanup(); }
+});
+
+
+test("standalone Agent views without a browser sidebar retain only the Dialog button", async () => {
+  const { host, cleanup } = await mount({ runId: "run-1" });
+  try {
+    expect(host.querySelector('button[aria-haspopup="dialog"]')).not.toBeNull();
+    expect(host.querySelector('button[aria-label="view.header.openSidebar"]')).toBeNull();
+  } finally { cleanup(); }
+});
+
+test("expanded Desktop views do not show nested presentation controls", async () => {
+  mockDesktop = true;
+  const { host, cleanup } = await mount({ runId: "run-1", allowExpand: false, fill: true });
+  try {
+    expect(host.querySelector('button[aria-haspopup="dialog"]')).toBeNull();
+    expect(host.querySelector('button[aria-label="view.header.openSidebar"]')).toBeNull();
   } finally { cleanup(); }
 });

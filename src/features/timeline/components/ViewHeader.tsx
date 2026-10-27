@@ -41,19 +41,21 @@ export function ViewHeader({ dynamic = false, status, onExpand, onOpenSidebar, c
       </svg>
       {t("view.header.title")}
     </span>
-    <span aria-hidden="true" className="tw:opacity-50">·</span>
-    <Popover trigger="click" content={help} placement="bottomLeft" destroyOnHidden>
-      <button type="button" className={`tw:shrink-0 tw:cursor-pointer tw:rounded tw:border-0 tw:bg-transparent tw:p-0 tw:text-xs tw:leading-5 tw:focus-visible:outline tw:focus-visible:outline-2 ${dynamic ? "tw:text-[var(--accent-electric)]" : "tw:text-ink-muted"}`}>
-        {t(dynamic ? "view.header.dynamic" : "view.header.message")}
+    {!dynamic && <>
+      <span aria-hidden="true" className="tw:opacity-50">·</span>
+      <Popover trigger="click" content={help} placement="bottomLeft" destroyOnHidden>
+        <button type="button" className="tw:shrink-0 tw:cursor-pointer tw:rounded tw:border-0 tw:bg-transparent tw:p-0 tw:text-xs tw:leading-5 tw:focus-visible:outline tw:focus-visible:outline-2 tw:text-ink-muted">
+          {t("view.header.message")}
+        </button>
+      </Popover>
+    </>}
+    {date && <Popover trigger="click" content={help} placement="bottomLeft" destroyOnHidden>
+      <button type="button" className="view-query-time tw:max-w-[40vw] tw:cursor-pointer tw:truncate tw:rounded tw:border-0 tw:bg-transparent tw:p-0 tw:text-xs tw:leading-5 tw:text-ink-muted tw:focus-visible:outline tw:focus-visible:outline-2" title={date.toLocaleString(locale)}>
+        <time dateTime={date.toISOString()}>{t(status?.failed ? "view.header.lastSuccess" : "view.header.queriedAt", { time: time || "" })}</time>
       </button>
-    </Popover>
+    </Popover>}
     <span role="status" aria-live="polite" className="tw:min-w-0 tw:truncate">{state && t(`view.header.${state}`)}</span>
     <div className="tw:ml-auto tw:flex tw:min-w-0 tw:shrink-0 tw:items-center tw:gap-2">
-      {date && <Popover trigger="click" content={help} placement="bottomRight" destroyOnHidden>
-        <button type="button" className="view-query-time tw:max-w-[40vw] tw:cursor-pointer tw:truncate tw:rounded tw:border-0 tw:bg-transparent tw:p-0 tw:text-xs tw:leading-5 tw:text-ink-muted tw:focus-visible:outline tw:focus-visible:outline-2" title={date.toLocaleString(locale)}>
-          <time dateTime={date.toISOString()}>{t(status?.failed ? "view.header.lastSuccess" : "view.header.queriedAt", { time: time || "" })}</time>
-        </button>
-      </Popover>}
       {onExpand && <UiButton variant="ghost" size="mini" iconOnly disabled={!canExpand}
         aria-label={t("view.header.expand")} title={t("view.header.expand")} aria-haspopup="dialog"
         onClick={onExpand} className="tw:!h-6 tw:!w-6 tw:shrink-0 tw:!text-ink-muted">

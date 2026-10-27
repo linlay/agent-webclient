@@ -1,4 +1,5 @@
 import { AgentIcon } from "@/shared/icons/agent";
+import { isDesktopAppMode } from "@/shared/utils/routing";
 import { useRunActivityTimeline } from "../hooks/useRunActivityTimeline";
 import { resolveRunActivityAppearance } from "../lib/runActivityAppearance";
 import { chatDetailLevel } from "@/features/chats/lib/chatDetailLevel";
@@ -490,7 +491,7 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
   const { t } = useI18n();
   const message = useAppMessage();
   const state = useAppState();
-  useViewPreviewPublisher(surfaceMode === "main" ? state.chatId : "", state.timelineNodes);
+  useViewPreviewPublisher(isDesktopAppMode() || surfaceMode === "main" ? state.chatId : "", state.timelineNodes);
   const dispatch = useAppDispatch();
   const appContext = useOptionalAppContext();
   const openTarget = useOpenTarget();

@@ -47,7 +47,7 @@ export function ViewEmbed({ chatId, view, payloadRaw, viewError, rawData, runId,
   fill?: boolean;
   /** Expanded hosts keep metadata without nested presentation controls. */
   allowExpand?: boolean;
-  /** Only surfaces with the existing right sidebar expose this action. */
+  /** Browser surfaces opt into their sidebar; Desktop always offers its WorkPanel. */
   allowSidebar?: boolean;
   /** Expanded hosts merge the close action into the single VIEW header. */
   onClose?: () => void;
@@ -248,7 +248,7 @@ export function ViewEmbed({ chatId, view, payloadRaw, viewError, rawData, runId,
     <div className={onClose || fill ? "tw:shrink-0" : undefined}>
     <ViewHeader dynamic={Boolean(runId && view?.source === "connector")} status={queryStatus}
       onExpand={allowExpand ? () => setExpanded(true) : undefined}
-      onOpenSidebar={allowExpand && allowSidebar && (desktop || dispatch) ? () => { if (!opening) void openSidebar(); } : undefined}
+      onOpenSidebar={allowExpand && (desktop || (allowSidebar && dispatch)) ? () => { if (!opening) void openSidebar(); } : undefined}
       canExpand={Boolean(html) && !error} onClose={onClose} />
     </div>
     <div className={onClose || fill ? "view-dialog-scroll tw:min-h-0 tw:flex-1 tw:overflow-auto" : undefined}>
