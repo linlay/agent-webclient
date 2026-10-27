@@ -439,9 +439,6 @@ export function normalizeModeForForm(value: unknown): string {
     case "ACP-PROXY":
     case "ACP_PROXY":
       return "PROXY";
-    case "PLAN-EXECUTE":
-    case "PLAN_EXECUTE":
-      return "PLAN_EXECUTE";
     case "ONESHOT":
     // REACT is the spelling used before the general type was renamed; Agent
     // Platform still accepts it and older agent files may carry it.

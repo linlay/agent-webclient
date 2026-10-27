@@ -64,14 +64,11 @@ const MODE_LABEL: Record<string, string> = {
   CODER: "CODER",
   KBASE: "KBASE",
   EXECUTOR: "EXECUTOR",
-  PLAN_EXECUTE: "P-E",
   PROXY: "PROXY",
 };
 
 function normalizeModeKey(value: string): string {
   const upper = value.trim().toUpperCase();
-  if (upper === "PLAN-EXECUTE" || upper === "PLAN_EXECUTE")
-    return "PLAN_EXECUTE";
   if (upper === "ACP-PROXY" || upper === "ACP_PROXY" || upper === "PROXY")
     return "PROXY";
   return upper;

@@ -1282,7 +1282,7 @@ describe("buildAgentListSummary", () => {
         key: "agent-a",
         name: "Agent A",
         meta: {
-          mode: "PLAN_EXECUTE",
+          mode: "CODER",
         },
         modelConfig: {
           modelKey: "gpt-5",
@@ -1295,7 +1295,7 @@ describe("buildAgentListSummary", () => {
         },
       }),
     ).toEqual({
-      mode: "PLAN_EXECUTE",
+      mode: "CODER",
       modelKey: "gpt-5",
       toolsCount: 2,
       skillsCount: 1,

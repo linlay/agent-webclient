@@ -865,8 +865,6 @@ export const zhCNMessages = {
   "agentConsole.field.teamParallel": "最多同时执行的成员数（1–5）",
   "agentConsole.mode.react.label": "通用",
   "agentConsole.mode.react.description": "探索、查询和调用工具。",
-  "agentConsole.mode.planExecute.label": "PLAN-EXECUTE",
-  "agentConsole.mode.planExecute.description": "先规划再执行，适合复杂任务",
   "agentConsole.mode.coder.label": "编程",
   "agentConsole.mode.coder.description": "处理代码与项目文件。",
   "agentConsole.mode.kbase.label": "知识库",

@@ -805,8 +805,6 @@ export const enUSMessages = {
   "agentConsole.field.teamParallel": "Maximum concurrent members (1–5)",
   "agentConsole.mode.react.label": "General",
   "agentConsole.mode.react.description": "Explore, search, and use tools.",
-  "agentConsole.mode.planExecute.label": "PLAN-EXECUTE",
-  "agentConsole.mode.planExecute.description": "Plan first, then execute complex work.",
   "agentConsole.mode.coder.label": "Coder",
   "agentConsole.mode.coder.description": "Work with code and project files.",
   "agentConsole.mode.kbase.label": "Knowledge base",
