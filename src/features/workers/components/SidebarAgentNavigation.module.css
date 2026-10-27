@@ -8,7 +8,8 @@
 .iconButton.iconButton { width: 24px; height: 24px; padding: 0; color: var(--text-muted); }
 .iconButton svg { width: 16px; height: 16px; }
 .agentSelector.agentSelector { padding: 0 4px; max-width: 110px; font-size: 11px; }
-.agentSelector :global(.ui-btn-label) { gap: 4px; min-width: 0; }
+.agentSelector :global(.ui-btn-label) { gap: 6px; min-width: 0; }
+.agentMenuIdentity { display: inline-flex; align-items: center; gap: 8px; }
 .agentSelector :global(.ui-btn-label) > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .agentSelector svg { flex-shrink: 0; width: 14px; height: 14px; }
 .footer { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; min-height: 28px; padding: 0 8px; }

@@ -85,8 +85,10 @@ export function SidebarAgentNavigation(props: {
         <div className={styles.headingActions}>
           {selectedGeneral && <Dropdown trigger={["click"]} menu={{ selectedKeys: [selectedGeneral.key],
             onClick: ({ key }) => props.onSelectGeneralAgent(key),
-            items: groups.general.map(row => ({ key: row.key, label: row.displayName,
-              icon: <AgentIcon type="agent" icon={icons.get(row.sourceId)} props={{ icon: { width: 16, height: 16 }, avatar: { size: 16 } }} /> })) }}>
+            items: groups.general.map(row => ({ key: row.key, label: <span className={styles.agentMenuIdentity}>
+              <AgentIcon interactive={false} type="agent" icon={icons.get(row.sourceId)} props={{ icon: { width: 16, height: 16 }, avatar: { size: 16 } }} />
+              <span>{row.displayName}</span>
+            </span> })) }}>
             <UiButton data-agent-pointer-idle="" data-agent-identity="" className={`${styles.agentSelector} ${styles.headingHoverAction}`} size="mini" variant="ghost" title={t("leftSidebar.navigation.chooseAgent")}>
               <AgentIcon type="agent" icon={icons.get(selectedGeneral.sourceId)} props={{ icon: { width: 14, height: 14 }, avatar: { size: 14 } }} />
               <span>{selectedGeneral.displayName}</span><MaterialIcon name="expand_more" />
