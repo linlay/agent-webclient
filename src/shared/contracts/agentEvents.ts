@@ -591,11 +591,16 @@ export interface AIAwaitAskEvent extends AIBaseEvent {
   plan?: AIAwaitPlan;
 }
 
+export interface AIAwaitApprovalAnswer extends AIAwaitApprovalSubmitParamData {
+  command?: string;
+  description?: string;
+}
+
 export interface AIAwaitAnswerEvent extends AIBaseEvent {
   type: AIAwaitEventTypeEnum.Answer;
   status: "answered" | "error";
   answers?: AIAwaitQuestionSubmitParamData[];
-  approvals?: AIAwaitApprovalSubmitParamData[];
+  approvals?: AIAwaitApprovalAnswer[];
   form?: AIAwaitFormAnswer;
   plan?: AIAwaitPlanSubmitParamData;
   error?: AIAwaitAnswerError;
