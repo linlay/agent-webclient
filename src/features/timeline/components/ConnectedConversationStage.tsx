@@ -1432,7 +1432,7 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
     </span>
   );
   const emptyStateContent = !state.chatId && showEmptyState && (
-    <div data-agent-pointer-surface="" className={TIMELINE_EMPTY_CLASS_NAME}>
+    <div className={TIMELINE_EMPTY_CLASS_NAME}>
       {greeting ? greeting.split("${agent}").map((part, index) => (
         <React.Fragment key={index}>
           {index > 0 && emptyAgentIdentity}

@@ -784,6 +784,8 @@ export const WorkerNavigator: React.FC<WorkerNavigatorProps> = ({
                               ? WORKER_COLLAPSED_ICON_STATE_CLASS.active
                               : WORKER_COLLAPSED_ICON_STATE_CLASS.idle
                           }`}
+                          data-agent-identity=""
+                          data-agent-pointer-idle=""
                           aria-label={item.displayName}
                           onClick={() => handleSelectCollapsedWorker(item.key)}
                         >

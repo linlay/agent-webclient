@@ -3,10 +3,10 @@ import type { AgentIconName } from "./agentAppearance";
 export type PointerAgentName = "general" | "coder" | "kbase" | "team";
 export type AgentPointerMood = "rest" | "follow" | "round" | "wink" | "think" | "read" | "side";
 export const POINTER_AGENT_PROFILES = {
-  general: { range: 1.05, lag: .14, head: 5.5 },
-  coder: { range: .8, lag: .18, head: 3 },
-  kbase: { range: .85, lag: .09, head: 3.5 },
-  team: { range: .95, lag: .12, head: 3 },
+  general: { range: 1.05, lag: .14, head: 7.5 },
+  coder: { range: .8, lag: .18, head: 4.5 },
+  kbase: { range: .85, lag: .09, head: 5 },
+  team: { range: .95, lag: .12, head: 4.5 },
 } as const;
 export function supportsAgentPointer(name: AgentIconName): name is PointerAgentName {
   return Object.hasOwn(POINTER_AGENT_PROFILES, name);
@@ -29,9 +29,9 @@ export function agentPointerTarget(input: {
   }
   return {
     mood,
-    x: active ? (focused ? 0 : Math.tanh(dx / 140) * 9 * profile.range) : 0,
-    y: active ? (focused ? -3 : Math.tanh(dy / 125) * 6 * profile.range) : 0,
-    angle: active ? Math.max(-1, Math.min(1, dx / 120)) * profile.head * (small ? .4 : 1) : 0,
-    lift: active ? (mood === "round" ? -3 : mood === "wink" ? -4 : -1.3) * (small ? .5 : 1) : 0,
+    x: active ? (focused ? 0 : Math.tanh(dx / 140) * 13 * profile.range) : 0,
+    y: active ? (focused ? -3 : Math.tanh(dy / 125) * 9 * profile.range) : 0,
+    angle: active ? Math.max(-1, Math.min(1, dx / 120)) * profile.head * (small ? .6 : 1) : 0,
+    lift: active ? (mood === "round" ? -4 : mood === "wink" ? -5.5 : -1.8) * (small ? .65 : 1) : 0,
   };
 }

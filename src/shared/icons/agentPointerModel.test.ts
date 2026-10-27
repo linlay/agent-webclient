@@ -9,8 +9,8 @@ it("supports the four approved resting characters only", () => {
 it("caps extreme pointer positions and reduces head motion in sidebar sizes", () => {
   const small = agentPointerTarget({ ...input, dx: 100_000, dy: -100_000 });
   const large = agentPointerTarget({ ...input, width: 146, dx: 100_000, dy: -100_000 });
-  expect(small.x).toBeLessThanOrEqual(9 * POINTER_AGENT_PROFILES.general.range);
-  expect(Math.abs(small.y)).toBeLessThanOrEqual(6 * POINTER_AGENT_PROFILES.general.range);
+  expect(small.x).toBeLessThanOrEqual(13 * POINTER_AGENT_PROFILES.general.range);
+  expect(Math.abs(small.y)).toBeLessThanOrEqual(9 * POINTER_AGENT_PROFILES.general.range);
   expect(Math.abs(small.angle)).toBeLessThan(Math.abs(large.angle));
 });
 it("chooses distinct near, greeting, stationary, downward and side reactions", () => {

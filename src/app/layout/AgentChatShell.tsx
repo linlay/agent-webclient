@@ -892,6 +892,7 @@ const AgentChatShellContent: React.FC = () => {
           ]
             .filter(Boolean)
             .join(" ")}
+          data-agent-pointer-surface={!chatId ? "" : undefined}
           id="app"
         >
           <TopNav surface="agent" />

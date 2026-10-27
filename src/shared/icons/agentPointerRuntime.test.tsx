@@ -33,9 +33,9 @@ afterEach(() => {
   Object.defineProperty(window, "IntersectionObserver", { configurable: true, value: oldObserver });
   Object.defineProperty(window, "ResizeObserver", { configurable: true, value: oldSizes });
 });
-function render(names: AgentIconName[] = ["general"], options: { surface?: boolean; disabled?: boolean } = {}) {
+function render(names: AgentIconName[] = ["general"], options: { surface?: boolean; disabled?: boolean; idle?: boolean } = {}) {
   act(() => root.render(<React.StrictMode><div data-agent-pointer-surface={options.surface ? "" : undefined}>
-    {names.map(name => <button key={name} data-agent-identity="" aria-label={name}>
+    {names.map(name => <button key={name} data-agent-pointer-idle={options.idle ? "" : undefined} data-agent-identity="" aria-label={name}>
       <AgentIcon type="agent" icon={{ name, color: "#4370b4" }} interactive={!options.disabled} />{name}
     </button>)}<span id="surface-target">Surface content</span>
   </div></React.StrictMode>));
@@ -43,7 +43,7 @@ function render(names: AgentIconName[] = ["general"], options: { surface?: boole
 function frames(count: number) {
   act(() => { for (let index = 0; index < count; index++) { now += 16.67; const pending = [...queue.values()]; queue.clear(); pending.forEach(callback => callback(now)); } });
 }
-function move(x = 200, y = 117, target: EventTarget = document) {
+function move(x = 200, y = 117, target: EventTarget = host.querySelector("button") || document) {
   act(() => target.dispatchEvent(new MouseEvent("pointermove", { bubbles: true, clientX: x, clientY: y })));
 }
 function icon() { return host.querySelector<SVGSVGElement>("[data-agent-avatar]")!; }
@@ -151,4 +151,19 @@ it("keeps the new default eye geometry when the configured icon changes during t
   const shape = icon().querySelector("[data-agent-gaze] rect")!;
   expect(["x", "y", "width", "height"].map(key => shape.getAttribute(key))).toEqual(["74", "79", "14", "25"]);
   expect(icon().dataset.agentIconName).toBe("coder");
+});
+
+it("only follows within its own row, even if a neighboring avatar is nearby", () => {
+  render(["general", "coder"], { idle: true });
+  move(125, 117, host.querySelectorAll("button")[1]); frames(15);
+  const icons = host.querySelectorAll<SVGSVGElement>("[data-agent-avatar]");
+  expect(icons[0].dataset.pointerMood).toBe("rest");
+  expect(icons[0].dataset.pointerResting).toBe("true");
+  expect(icons[1].dataset.pointerMood).not.toBe("rest");
+  expect(icons[1].dataset.pointerResting).toBeUndefined();
+  // Leaving mid-greeting must not keep looking at the mouse outside the row.
+  move(125, 117, host.querySelector("#surface-target")!); frames(180);
+  expect(icons[1].dataset.pointerMood).toBe("rest");
+  expect(icons[1].dataset.pointerResting).toBe("true");
+  expect(queue.size).toBe(0);
 });

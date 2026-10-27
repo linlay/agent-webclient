@@ -33,7 +33,7 @@ export function PrimaryChatNavigation(props: {
       const preview = chat ? String(chat.lastRunContent || chat.chatName || t("leftSidebar.navigation.primaryNoReply")).replace(/\s+/g, " ") : t("leftSidebar.navigation.primaryNoChat");
       const status = awaiting ? t("leftSidebar.navigation.primaryAwaiting") : running ? t("leftSidebar.navigation.primaryRunning") : "";
       return <div className={styles.row} key={agent.key}>
-        <button data-agent-identity="" type="button"
+        <button data-agent-pointer-idle="" data-agent-identity="" type="button"
           className={`${styles.item} ${active ? styles.active : ""}`}
           aria-current={active ? "page" : undefined}
           title={`${agent.name}\n${preview}${status ? ` · ${status}` : ""}`}

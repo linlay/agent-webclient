@@ -79,6 +79,11 @@ class AgentPointerRuntime {
     };
     root.dataset.pointerTracking = "true";
     root.dataset.pointerMood = "rest";
+    if (root.closest("[data-agent-pointer-idle]")) {
+      root.dataset.pointerResting = "true";
+      root.style.setProperty("--agent-idle-period", `${22 + Math.random() * 10}s`);
+      root.style.setProperty("--agent-idle-delay", `${Math.random() * 7}s`);
+    }
     this.actors.add(actor); this.observer?.observe(root); this.dirty = true;
     actor.sizeTargets = Array.from(new Set([root, actor.group, ...(actor.surface ? [actor.surface] : [])]));
     for (const target of actor.sizeTargets) {
@@ -93,7 +98,8 @@ class AgentPointerRuntime {
         if (!references) { this.sizes?.unobserve(target); this.sizeReferences.delete(target); }
         else this.sizeReferences.set(target, references);
       }
-      delete root.dataset.pointerTracking; delete root.dataset.pointerMood;
+      delete root.dataset.pointerTracking; delete root.dataset.pointerMood; delete root.dataset.pointerResting;
+      root.style.removeProperty("--agent-idle-period"); root.style.removeProperty("--agent-idle-delay");
       if (!this.actors.size) this.destroy();
     };
   }
@@ -119,7 +125,9 @@ class AgentPointerRuntime {
   };
   private onPointerOut = (event: PointerEvent) => {
     if (event.relatedTarget !== null) return;
-    this.pointer.inside = false; this.pointer.target = null; this.start();
+    this.pointer.inside = false; this.pointer.target = null;
+    for (const actor of this.actors) actor.pulseUntil = 0;
+    this.start();
   };
   private onFocus = (event: FocusEvent) => {
     this.focus = event.type === "focusin" ? event.target as Node : event.relatedTarget as Node | null;
@@ -148,6 +156,7 @@ class AgentPointerRuntime {
     actor.settled = true; actor.angle = 0; actor.lift = 0; actor.motion.style.removeProperty("transform");
     actor.shadow?.style.removeProperty("transform"); actor.shadow?.style.removeProperty("opacity");
     actor.root.dataset.pointerMood = "rest";
+    if (actor.root.closest("[data-agent-pointer-idle]")) actor.root.dataset.pointerResting = "true";
   }
 
   private draw = (now: number) => {
@@ -173,10 +182,13 @@ class AgentPointerRuntime {
       actor.surface = actor.root.closest("[data-agent-pointer-surface]");
       const withinSurface = !!this.pointer.target && !!actor.surface?.contains(this.pointer.target);
       const focused = !!this.focus && actor.group.contains(this.focus);
-      const radius = (actor.width <= 48 ? 140 : 220) * profile.range;
-      const active = focused || now < actor.pulseUntil || (this.pointer.inside && (withinGroup || withinSurface || distance < radius));
+      const inside = this.pointer.inside && (actor.surface ? withinSurface : withinGroup);
+      // Mouse greetings end with the containing row/surface; touch pulses have no pointer target.
+      if (!inside && this.pointer.target) actor.pulseUntil = 0;
+      const active = focused || now < actor.pulseUntil || inside;
       if (!active && actor.settled) continue;
       actor.settled = false;
+      delete actor.root.dataset.pointerResting;
       const near = active && this.pointer.inside && distance < Math.max(10, actor.width * .2);
       if (near && !actor.near) actor.pulseUntil = now + 600;
       actor.near = near;

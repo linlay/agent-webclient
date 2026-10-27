@@ -125,3 +125,30 @@
 :global([data-agent-pointer-disabled]) .avatar * {
     animation: none !important;
 }
+
+/* Sidebar avatars rest for most of each independently staggered cycle. */
+@media (prefers-reduced-motion: no-preference) {
+    .avatar[data-pointer-tracking][data-pointer-resting] .avatarMotion {
+        animation: avatar-idle-turn var(--agent-idle-period, 28s) ease-in-out var(--agent-idle-delay, 0s) infinite !important;
+    }
+    .avatar[data-pointer-tracking][data-pointer-resting] .eyeTrack {
+        animation: avatar-idle-look var(--agent-idle-period, 28s) ease-in-out var(--agent-idle-delay, 0s) infinite;
+    }
+    .avatar[data-pointer-tracking][data-pointer-resting] .eyeBlink {
+        animation: avatar-idle-blink var(--agent-idle-period, 28s) ease-in-out var(--agent-idle-delay, 0s) infinite;
+    }
+}
+@keyframes avatar-idle-turn {
+    0%, 85%, 97%, 100% { transform: rotate(0); }
+    89%, 92% { transform: rotate(-4deg); }
+    94% { transform: rotate(2deg); }
+}
+@keyframes avatar-idle-look {
+    0%, 85%, 97%, 100% { transform: translateX(0); }
+    89%, 92% { transform: translateX(-5px); }
+    94% { transform: translateX(2px); }
+}
+@keyframes avatar-idle-blink {
+    0%, 74%, 75.2%, 100% { transform: scaleY(1); }
+    74.6% { transform: scaleY(.12); }
+}

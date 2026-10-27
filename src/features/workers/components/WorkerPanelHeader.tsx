@@ -102,7 +102,7 @@ export const WorkerPanelHeader: React.FC<WorkerActionHandlers & {
     : t("leftSidebar.terminalActive");
 
   return (
-    <div data-agent-identity=""
+    <div data-agent-pointer-idle="" data-agent-identity=""
       className={`${WORKER_PANEL_HEADER_CLASS} ${isActive ? "is-active" : ""} ${
         row.hasHistory ? "" : "is-empty"
       }`}
