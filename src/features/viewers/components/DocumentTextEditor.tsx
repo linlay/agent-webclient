@@ -5,11 +5,24 @@ import { CodeEditor } from "@/shared/ui/CodeEditor";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { resolveHtmlVisualizationAssets } from "@/shared/utils/htmlVisualizationAssets";
 import { t } from "@/shared/i18n";
+import { useAppMessage } from "@/shared/ui/useAppMessage";
 import type { DocumentContentKind } from "@/shared/types/document";
 import {
   hasDesktopHostBridge,
   postDesktopHostMessage,
 } from "@/shared/data/desktop/desktopHostBridge";
+import { DESKTOP_COMPOSER_REVIEW_DRAFT_EVENT } from "@/shared/data/desktop/desktopContextMenu";
+import { registerViewerCloseGuard } from "@/shared/data/viewerCloseGuard";
+import {
+  AGENT_WEBCLIENT_COMPOSER_DRAFT_ACTION,
+  AGENT_WEBCLIENT_COMPOSER_DRAFT_VERSION,
+  AGENT_WEBCLIENT_WORKPANEL_PREVIEW_REVIEW_PAGE_EVENT,
+  type AgentWebclientComposerDraftAction,
+} from "@/shared/contracts/generated/agentWebclientBridge";
+import { useHtmlElementReview } from "../hooks/useHtmlElementReview";
+import { HTML_ELEMENT_REVIEW_MAX } from "../lib/htmlElementReview";
+import { HtmlElementReviewEditor, HtmlElementReviewPanel } from "./HtmlElementReviewPanel";
+import { HtmlElementReviewToolbar } from "./HtmlElementReviewToolbar";
 
 const MarkdownPreview: React.FC<{
   content: string;
@@ -140,6 +153,8 @@ export const DocumentTextEditor: React.FC<{
   canSave?: boolean;
   saveProfile: DocumentSaveProfile;
   revision: string;
+  reloadToken?: number;
+  closeGuardKey?: string;
   onAnnotationCountChange?: (count: number) => void;
   onChange: (value: string) => void;
   onReload: () => void;
@@ -156,13 +171,17 @@ export const DocumentTextEditor: React.FC<{
   canSave = false,
   saveProfile,
   revision,
+  reloadToken = 0,
+  closeGuardKey = "",
   onAnnotationCountChange,
   onChange,
   onReload,
   onSave,
 }) => {
   const markdown = kind === "document-markdown";
-  const previewable = markdown || kind === "document-html";
+  const isHtml = kind === "document-html";
+  const previewable = markdown || isHtml;
+  const message = useAppMessage();
   const [mode, setMode] = React.useState<MarkdownViewMode>(
     defaultDocumentViewMode(previewable),
   );
@@ -173,9 +192,24 @@ export const DocumentTextEditor: React.FC<{
   const [previewSelection, setPreviewSelection] = React.useState("");
   const [annotations, setAnnotations] = React.useState<TextAnnotation[]>([]);
   const [saveDialogOpen, setSaveDialogOpen] = React.useState(false);
+  const [htmlHandoffBusy, setHtmlHandoffBusy] = React.useState(false);
+  const htmlHandoffBusyRef = React.useRef(false);
+  const annotateButtonRef = React.useRef<HTMLButtonElement | HTMLAnchorElement | null>(null);
+  const wasHtmlReviewingRef = React.useRef(false);
+  const htmlReview = useHtmlElementReview({
+    enabled: isHtml,
+    html: value,
+    fileName: name,
+    revision,
+    reloadToken,
+    onLimitReached: () => message.warning(t("contentViewer.htmlReview.limitReached", {
+      max: HTML_ELEMENT_REVIEW_MAX,
+    })),
+  });
   React.useEffect(() => {
     setMode(defaultDocumentViewMode(previewable));
-  }, [kind, name, previewable]);
+    htmlReview.reset();
+  }, [htmlReview.reset, kind, name, previewable]);
 
   React.useEffect(() => {
     setSelection(null);
@@ -189,9 +223,35 @@ export const DocumentTextEditor: React.FC<{
     })));
   }, [revision]);
 
+  const textAnnotationCount = annotations.filter((annotation) => !annotation.invalid).length;
   React.useEffect(() => {
-    onAnnotationCountChange?.(annotations.filter((annotation) => !annotation.invalid).length);
-  }, [annotations, onAnnotationCountChange]);
+    onAnnotationCountChange?.(textAnnotationCount + htmlReview.protectionCount);
+  }, [htmlReview.protectionCount, onAnnotationCountChange, textAnnotationCount]);
+
+  React.useEffect(() => {
+    if (!isHtml || !closeGuardKey || htmlReview.protectionCount === 0) return;
+    return registerViewerCloseGuard(closeGuardKey, () =>
+      window.confirm(t("contentViewer.htmlReview.closeConfirm")));
+  }, [closeGuardKey, htmlReview.protectionCount, isHtml]);
+
+  React.useEffect(() => {
+    if (wasHtmlReviewingRef.current && !htmlReview.annotating) {
+      annotateButtonRef.current?.focus();
+    }
+    wasHtmlReviewingRef.current = htmlReview.annotating;
+  }, [htmlReview.annotating]);
+
+  React.useEffect(() => {
+    if (!htmlReview.annotating) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      if (htmlReview.pending) htmlReview.cancelPending();
+      else htmlReview.stop();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [htmlReview.annotating, htmlReview.cancelPending, htmlReview.pending, htmlReview.stop]);
 
   React.useEffect(() => {
     const decorations = decorationsRef.current;
@@ -322,6 +382,108 @@ export const DocumentTextEditor: React.FC<{
     setAnnotations([]);
   };
 
+  const switchDocumentMode = (next: MarkdownViewMode) => {
+    if (next === mode) return;
+    if (isHtml && next !== "preview" && (htmlReview.count > 0 || htmlReview.pending)) {
+      if (!window.confirm(t("contentViewer.htmlReview.leaveConfirm"))) return;
+      htmlReview.reset();
+    }
+    if (isHtml && htmlReview.annotating) htmlReview.stop();
+    setMode(next);
+  };
+
+  const startHtmlReview = () => {
+    if (!htmlReview.ready || htmlReview.bridgeFailed) return;
+    if (mode !== "preview") setMode("preview");
+    htmlReview.start();
+  };
+
+  const closeHtmlReviewPanel = () => {
+    htmlReview.closeList();
+  };
+
+  const dispatchHtmlReviewDraft = (action: AgentWebclientComposerDraftAction) =>
+    new Promise<boolean>((resolve) => {
+      let settled = false;
+      let timer: number | undefined;
+      const finish = (ok: boolean) => {
+        if (settled) return;
+        settled = true;
+        window.removeEventListener(
+          AGENT_WEBCLIENT_WORKPANEL_PREVIEW_REVIEW_PAGE_EVENT,
+          onResult,
+        );
+        if (timer !== undefined) window.clearTimeout(timer);
+        resolve(ok);
+      };
+      const onResult = (event: Event) => {
+        const detail = (event as CustomEvent).detail as
+          | { event?: string; requestId?: string; ok?: boolean }
+          | undefined;
+        if (
+          !detail ||
+          detail.event !== "composer-draft-result" ||
+          detail.requestId !== action.requestId
+        ) return;
+        finish(detail.ok !== false);
+      };
+      window.addEventListener(
+        AGENT_WEBCLIENT_WORKPANEL_PREVIEW_REVIEW_PAGE_EVENT,
+        onResult,
+      );
+      timer = window.setTimeout(() => finish(false), 1200);
+      try {
+        window.dispatchEvent(new CustomEvent(DESKTOP_COMPOSER_REVIEW_DRAFT_EVENT, {
+          detail: action,
+        }));
+      } catch {
+        finish(false);
+      }
+    });
+
+  const handoffHtmlReview = async () => {
+    if (htmlHandoffBusyRef.current || htmlReview.pending) return;
+    const prepared = htmlReview.prepareHandoff();
+    if (!prepared) return;
+    htmlHandoffBusyRef.current = true;
+    setHtmlHandoffBusy(true);
+    try {
+      if (prepared.text.length > 50_000) {
+        window.dispatchEvent(new CustomEvent("agent:set-composer-draft", {
+          detail: { draft: prepared.text, append: true },
+        }));
+        window.dispatchEvent(new CustomEvent("agent:focus-composer"));
+      } else {
+        const action: AgentWebclientComposerDraftAction = {
+          action: AGENT_WEBCLIENT_COMPOSER_DRAFT_ACTION,
+          version: AGENT_WEBCLIENT_COMPOSER_DRAFT_VERSION,
+          requestId: `html_review_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+          ownerChatId: chatId,
+          text: prepared.text,
+          reviewData: {
+            version: 1,
+            sourceKind: saveProfile,
+            kind: "html",
+            source: { fileName: name, revision },
+            annotations: prepared.payload.annotations,
+          },
+        };
+        const accepted = await dispatchHtmlReviewDraft(action);
+        if (!accepted) {
+          message.error(t("contentViewer.htmlReview.handoffFailed"));
+          return;
+        }
+      }
+      htmlReview.completeHandoff();
+      message.success(t("contentViewer.htmlReview.handoffSuccess"));
+    } catch {
+      message.error(t("contentViewer.htmlReview.handoffFailed"));
+    } finally {
+      htmlHandoffBusyRef.current = false;
+      setHtmlHandoffBusy(false);
+    }
+  };
+
   const preview = markdown ? (
     <React.Suspense fallback={null}>
       <MarkdownPreview content={value} chatId={chatId} teamChat={teamChat} />
@@ -356,73 +518,151 @@ export const DocumentTextEditor: React.FC<{
     </div>
   );
 
+  const htmlReviewList = htmlReview.annotating ? (
+    <HtmlElementReviewPanel
+      annotations={htmlReview.annotations}
+      invalidIds={htmlReview.invalidIds}
+      canHandoff={htmlReview.canHandoff && !htmlHandoffBusy}
+      submittableCount={htmlReview.submittableCount}
+      onUpdateRequirement={htmlReview.updateRequirement}
+      onRemove={htmlReview.removeAnnotation}
+      onClose={closeHtmlReviewPanel}
+      onHandoff={handoffHtmlReview}
+    />
+  ) : null;
+
   return (
     <div className="tw:flex tw:min-h-[420px] tw:flex-1 tw:flex-col tw:overflow-hidden">
-      <div className="tw:flex tw:items-center tw:justify-between tw:border-b tw:border-line-soft tw:px-2 tw:py-1.5">
-        <Space size={4}>
-          {previewable ? documentViewModes(markdown).map((item) => (
-            <Button
-              key={item}
-              size="small"
-              type={mode === item ? "primary" : "text"}
-              onClick={() => setMode(item)}
+      {htmlReview.annotating ? (
+        <HtmlElementReviewToolbar
+          listOpen={htmlReview.listOpen}
+          count={htmlReview.count}
+          onBack={htmlReview.stop}
+          onToggleList={htmlReview.toggleList}
+          onRefresh={onReload}
+          listContent={htmlReviewList}
+        />
+      ) : (
+        <div className="tw:flex tw:items-center tw:justify-between tw:border-b tw:border-line-soft tw:px-2 tw:py-1.5">
+          <Space size={4}>
+            {previewable ? documentViewModes(markdown).map((item) => (
+              <Button
+                key={item}
+                size="small"
+                type={mode === item ? "primary" : "text"}
+                onClick={() => switchDocumentMode(item)}
+              >
+                {t(`contentViewer.markdown.${item}`)}
+              </Button>
+            )) : null}
+            {isHtml && mode === "preview" ? (
+              <Button
+                ref={annotateButtonRef}
+                size="small"
+                disabled={disabled || !htmlReview.ready || htmlReview.bridgeFailed}
+                title={htmlReview.bridgeFailed
+                  ? t("contentViewer.htmlReview.annotateUnavailable")
+                  : htmlReview.ready
+                    ? undefined
+                    : t("contentViewer.htmlReview.annotatePreparing")}
+                onClick={startHtmlReview}
+              >
+                {htmlReview.count > 0
+                  ? t("contentViewer.htmlReview.annotateCount", { count: htmlReview.count })
+                  : t("contentViewer.htmlReview.annotate")}
+              </Button>
+            ) : null}
+            {(!isHtml && (!markdown || mode === "preview")) || (isHtml && mode === "source") ? (
+              <Button
+                size="small"
+                disabled={markdown && mode === "preview" ? !previewSelection : !selection}
+                onClick={addAnnotation}
+              >
+                {t("contentViewer.annotation.add")}
+              </Button>
+            ) : null}
+          </Space>
+          <Space size={6}>
+            {canSave ? (
+              <Button
+                size="small"
+                type="primary"
+                loading={saving}
+                disabled={!dirty || saving}
+                onClick={() => setSaveDialogOpen(true)}
+              >
+                {t("contentViewer.action.save")}
+              </Button>
+            ) : null}
+            <Dropdown
+              trigger={["click"]}
+              menu={{
+                items: [{
+                  key: "reload",
+                  label: t("contentViewer.action.reload"),
+                  disabled: saving,
+                  onClick: onReload,
+                }],
+              }}
             >
-              {t(`contentViewer.markdown.${item}`)}
-            </Button>
-          )) : null}
-          {!markdown || mode === "preview" ? (
-            <Button
-              size="small"
-              disabled={markdown ? !previewSelection : !selection}
-              onClick={addAnnotation}
-            >
-              {t("contentViewer.annotation.add")}
-            </Button>
-          ) : null}
-        </Space>
-        <Space size={6}>
-          {canSave ? (
-            <Button
-              size="small"
-              type="primary"
-              loading={saving}
-              disabled={!dirty || saving}
-              onClick={() => setSaveDialogOpen(true)}
-            >
-              {t("contentViewer.action.save")}
-            </Button>
-          ) : null}
-          <Dropdown
-            trigger={["click"]}
-            menu={{
-              items: [{
-                key: "reload",
-                label: t("contentViewer.action.reload"),
-                disabled: saving,
-                onClick: onReload,
-              }],
-            }}
-          >
-            <Button
-              size="small"
-              type="text"
-              icon={<MaterialIcon name="more_horiz" />}
-              aria-label={t("contentViewer.action.more")}
-              title={t("contentViewer.action.more")}
-            />
-          </Dropdown>
-        </Space>
-      </div>
+              <Button
+                size="small"
+                type="text"
+                icon={<MaterialIcon name="more_horiz" />}
+                aria-label={t("contentViewer.action.more")}
+                title={t("contentViewer.action.more")}
+              />
+            </Dropdown>
+          </Space>
+        </div>
+      )}
       {mode === "source" ? editor : null}
       {mode === "preview" ? (
-        <div
-          ref={previewRef}
-          className="tw:min-h-0 tw:flex-1 tw:overflow-auto"
-          onMouseUp={capturePreviewSelection}
-          onKeyUp={capturePreviewSelection}
-        >
-          {preview}
-        </div>
+        isHtml ? (
+          <div className="tw:relative tw:flex tw:min-h-0 tw:flex-1 tw:flex-col">
+            {htmlReview.bridgeFailed ? (
+              <div
+                role="alert"
+                className="tw:flex tw:items-center tw:justify-between tw:gap-2 tw:border-b tw:border-line-soft tw:px-2 tw:py-1.5 tw:text-xs tw:text-danger"
+              >
+                <span>{t("contentViewer.htmlReview.bridgeFailed")}</span>
+                <Button
+                  size="small"
+                  type="text"
+                  icon={<MaterialIcon name="refresh" />}
+                  onClick={onReload}
+                >
+                  {t("contentViewer.htmlReview.refresh")}
+                </Button>
+              </div>
+            ) : null}
+            <iframe
+              ref={htmlReview.frameRef}
+              className="tw:min-h-[420px] tw:w-full tw:flex-1 tw:border-0"
+              srcDoc={htmlReview.srcDoc}
+              title={name}
+              sandbox="allow-forms allow-modals allow-scripts"
+              onLoad={htmlReview.onLoad}
+            />
+            {htmlReview.pending ? (
+              <HtmlElementReviewEditor
+                pending={htmlReview.pending}
+                onRequirementChange={htmlReview.setPendingRequirement}
+                onConfirm={htmlReview.confirmPending}
+                onCancel={htmlReview.cancelPending}
+              />
+            ) : null}
+          </div>
+        ) : (
+          <div
+            ref={previewRef}
+            className="tw:min-h-0 tw:flex-1 tw:overflow-auto"
+            onMouseUp={capturePreviewSelection}
+            onKeyUp={capturePreviewSelection}
+          >
+            {preview}
+          </div>
+        )
       ) : null}
       {mode === "split" ? (
         <div className="tw:grid tw:min-h-0 tw:flex-1 tw:grid-cols-2">
@@ -432,7 +672,7 @@ export const DocumentTextEditor: React.FC<{
           </div>
         </div>
       ) : null}
-      {annotations.length ? (
+      {annotations.length && (!isHtml || mode !== "preview") ? (
         <div className="tw:max-h-52 tw:overflow-auto tw:border-t tw:border-line-soft tw:p-2">
           {annotations.map((annotation, index) => (
             <div key={annotation.id} className="tw:mb-2 tw:grid tw:grid-cols-[auto_1fr_auto] tw:items-center tw:gap-2">

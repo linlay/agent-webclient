@@ -19,6 +19,7 @@ import {
   isKnownTextDocumentName,
   type ViewerContentKind,
   type ViewerTarget,
+  getViewerTargetKey,
   viewerContentKindForDocument,
 } from "@/features/viewers/lib/viewerTarget";
 import type { DocumentContentKind } from "@/shared/types/document";
@@ -373,6 +374,7 @@ export const ContentViewerPanel: React.FC<ContentViewerPanelProps> = ({
   const contentKind = workspaceFileResponse?.documentKind || resourceDocumentKind
     ? viewerContentKindForDocument(documentKind)
     : fallbackContentKind;
+  const htmlEditorOwnsPreview = documentKind === "document-html";
   const viewerUrl = fileRequest
     ? workspaceFileResponse?.contentUrl || ""
     : target.type === "resource" ? target.url : "";
@@ -402,7 +404,8 @@ export const ContentViewerPanel: React.FC<ContentViewerPanelProps> = ({
   );
   const viewerHtml = fileRequest ? fileHtml : resourceHtmlContent;
   const htmlReview = useDesktopHtmlPreviewReview({
-    enabled: enableDesktopPreviewReview && contentKind === "html" && viewerHtml !== null,
+    enabled: enableDesktopPreviewReview && contentKind === "html" && viewerHtml !== null
+      && !htmlEditorOwnsPreview,
     fileName: viewerName,
     sourceKey: JSON.stringify(target),
     html: viewerHtml,
@@ -628,8 +631,12 @@ export const ContentViewerPanel: React.FC<ContentViewerPanelProps> = ({
   const documentDirty = editableTextDocument && textContent !== savedTextContent;
   const handleDocumentReload = React.useCallback(() => {
     if (documentSaving || browserImageState.busy) return;
-    if ((documentDirty || browserImageState.dirty || documentAnnotationCount > 0 || browserImageState.annotationCount > 0)
-      && !window.confirm(t("contentViewer.reload.confirmDiscard"))) {
+    const annotationsPresent =
+      documentAnnotationCount > 0 || browserImageState.annotationCount > 0;
+    if ((documentDirty || browserImageState.dirty || annotationsPresent)
+      && !window.confirm(t(annotationsPresent
+        ? "contentViewer.reload.confirmAnnotationsLost"
+        : "contentViewer.reload.confirmDiscard"))) {
       return;
     }
     setDocumentReloadRequest((current) => current + 1);
@@ -883,6 +890,8 @@ export const ContentViewerPanel: React.FC<ContentViewerPanelProps> = ({
               canSave={canSaveDocument}
               saveProfile={documentSaveProfile}
               revision={documentRevision}
+              reloadToken={documentReloadRequest}
+              closeGuardKey={getViewerTargetKey(target)}
               onAnnotationCountChange={setDocumentAnnotationCount}
               onChange={setTextContent}
               onReload={handleDocumentReload}
@@ -925,6 +934,8 @@ export const ContentViewerPanel: React.FC<ContentViewerPanelProps> = ({
               canSave={canSaveDocument}
               saveProfile={documentSaveProfile}
               revision={documentRevision}
+              reloadToken={documentReloadRequest}
+              closeGuardKey={getViewerTargetKey(target)}
               onAnnotationCountChange={setDocumentAnnotationCount}
               onChange={setTextContent}
               onReload={handleDocumentReload}

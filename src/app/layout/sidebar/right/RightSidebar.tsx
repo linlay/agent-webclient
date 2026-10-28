@@ -38,6 +38,7 @@ import { usePanelResize } from "@/shared/ui/usePanelResize";
 import { useI18n } from "@/shared/i18n";
 import { useAppMessage } from "@/shared/ui/useAppMessage";
 import { copyText } from "@/shared/utils/copy";
+import { confirmViewerClose } from "@/shared/data/viewerCloseGuard";
 import { WebPreviewPanel } from "@/features/web-preview/components/WebPreviewPanel";
 import { downloadViewerTarget } from "@/features/viewers/lib/viewerRuntime";
 import { formatAttachmentSize } from "@/features/artifacts/lib/attachmentUtils";
@@ -292,6 +293,7 @@ export const RightSidebar: React.FC = () => {
       } else if (typeof key === "string" && key.startsWith("viewer:")) {
         setViewerContextMenuKey(null);
         const viewerKeyToRemove = key.slice("viewer:".length);
+        if (!confirmViewerClose(viewerKeyToRemove)) return;
         const remaining = viewerTabs.filter(
           (target) => getViewerTargetKey(target) !== viewerKeyToRemove,
         );
