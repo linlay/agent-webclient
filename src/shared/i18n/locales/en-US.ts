@@ -2783,6 +2783,7 @@ export const enUSMessages = {
   "composer.agent.error": "Unable to check Agent status. Please retry.",
   "conversationStage.loadTimeout": "Conversation loading exceeded 15 seconds. Please retry.",
   "conversationStage.scrollToBottom": "Scroll to bottom",
+  "view.action.batchNotice": "{count} actions. Confirm once to submit all entries below in order. Execution stops on failure; successful entries are preserved.",
   "view.action.title": "Submit connector action",
   "view.action.submit": "Submit",
   "view.action.cancel": "Cancel",

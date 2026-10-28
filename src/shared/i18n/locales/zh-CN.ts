@@ -2960,6 +2960,7 @@ export const zhCNMessages = {
   "composer.agent.error": "暂时无法确认 Agent 状态，请重试",
   "conversationStage.loadTimeout": "会话加载超过 15 秒，请重试。",
   "conversationStage.scrollToBottom": "滚动到底部",
+  "view.action.batchNotice": "共 {count} 条操作。确认一次后按下方完整参数依次提交；失败时暂停，已成功的记录保留。",
   "view.action.title": "提交连接器操作",
   "view.action.submit": "确认提交",
   "view.action.cancel": "取消",

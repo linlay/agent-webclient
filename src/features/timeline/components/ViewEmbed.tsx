@@ -30,6 +30,11 @@ function isObject(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 
+// Canonical keys make equal params equal regardless of key order.
+function canonical(value: unknown): unknown {
+  return Array.isArray(value) ? value.map(canonical) : isObject(value) ? Object.fromEntries(Object.keys(value).sort().map(key => [key, canonical(value[key])])) : value;
+}
+
 // Display writes require an explicit declaration and trusted host confirmation.
 // Connector views load only frozen Chat snapshots named by an event hash, and
 // may run only queries their snapshot declares, as the viewing user.
@@ -94,14 +99,13 @@ export function ViewEmbed({ chatId, view, payloadRaw, viewError, rawData, runId,
   const [expanded, setExpanded] = useState(false);
   const [queryStatus, setQueryStatus] = useState<ViewQueryStatus>({ pending: 0, failed: false });
   const generation = useRef(0);
-  const [pendingAction, setPendingAction] = useState<{ name: string; params: Record<string, unknown>; confirm: () => void; cancel: () => void } | null>(null);
+  const [pendingAction, setPendingAction] = useState<{ name: string; params: Record<string, unknown>; entries?: Record<string, unknown>[]; confirm: () => void; cancel: () => void } | null>(null);
   const [actionBusy, setActionBusy] = useState(false);
   const actionPending = useRef(false);
   const actionRequestIDs = useRef(new Map<string, string>());
   const actionable = () => Boolean(runId && chatId && view?.source === "connector" && view.connectorId && view.hash && Object.keys(documentRef.current?.actions || {}).length);
   const actionRequestID = (name: string, params: Record<string, unknown>) => {
     // Canonical keys let remount/reload reuse the same durable write receipt.
-    const canonical = (value: unknown): unknown => Array.isArray(value) ? value.map(canonical) : isObject(value) ? Object.fromEntries(Object.keys(value).sort().map(key => [key, canonical(value[key])])) : value;
     const key = "view-write:" + JSON.stringify([chatId, runId, view?.connectorId, view?.key, view?.hash, name, canonical(params)]);
     let id = actionRequestIDs.current.get(key);
     try { id = id || sessionStorage.getItem(key) || undefined; } catch { /* memory fallback */ }
@@ -109,6 +113,11 @@ export function ViewEmbed({ chatId, view, payloadRaw, viewError, rawData, runId,
     actionRequestIDs.current.set(key, id);
     try { sessionStorage.setItem(key, id); } catch { /* memory fallback */ }
     return id;
+  };
+  const actionParamTitle = (name: string, key: string) => {
+    const properties = documentRef.current?.actions?.[name]?.paramsSchema?.properties;
+    const schema = isObject(properties) ? properties[key] : undefined;
+    return isObject(schema) && typeof schema.title === "string" ? schema.title : key;
   };
   const identity = JSON.stringify([chatId, view?.source, view?.connectorId, view?.key, view?.hash, viewError, runId, sourceId, viewIndex]);
   const queryable = () => Boolean(
@@ -182,23 +191,54 @@ export function ViewEmbed({ chatId, view, payloadRaw, viewError, rawData, runId,
           if (generation.current === current) target.postMessage({ type: "view_invoke_result", id: message.id, ...result }, "*");
         };
         if (!actionable() || typeof message.action !== "string" || !documentRef.current?.actions?.[message.action]) { reply({ ok: false, error: "view_action_unavailable" }); return; }
-        if (!isObject(message.params)) { reply({ ok: false, error: "view_action_params_invalid" }); return; }
+        const batch = message.batch === true;
+        if (batch ? !Array.isArray(message.params) || message.params.length < 1 || message.params.length > 50 || !message.params.every(isObject) : !isObject(message.params)) {
+          reply({ ok: false, error: "view_action_params_invalid" }); return;
+        }
         if (actionPending.current) { reply({ ok: false, error: "view_action_busy" }); return; }
         // Copy the message before asking the user; the frame cannot change it.
         const name: string = message.action;
         let params: Record<string, unknown>;
+        let entries: Record<string, unknown>[] | undefined;
         try {
           const raw = JSON.stringify(message.params);
-          if (raw.length > 65536) throw new Error("too large");
-          params = JSON.parse(raw);
+          if (raw.length > (batch ? 262144 : 65536)) throw new Error("too large");
+          const copy = JSON.parse(raw);
+          // Equal entries would share one request ID: the platform replays the
+          // first receipt, so a duplicate would report success without writing.
+          if (batch && new Set(copy.map((entry: unknown) => JSON.stringify(canonical(entry)))).size !== copy.length) throw new Error("duplicate entries");
+          entries = batch ? copy : undefined;
+          params = batch ? { entries: copy } : copy;
         } catch { reply({ ok: false, error: "view_action_params_invalid" }); return; }
         actionPending.current = true;
         const cancel = () => { actionPending.current = false; setPendingAction(null); reply({ ok: false, error: "view_action_canceled" }); };
-        setPendingAction({ name, params, cancel, confirm: () => {
-          if (generation.current !== current) return;
+        let confirmed = false;
+        setPendingAction({ name, params, entries, cancel, confirm: () => {
+          if (generation.current !== current || confirmed) return;
+          confirmed = true;
           setActionBusy(true);
-          invokeView({ chatId, runId: runId!, view: { connectorId: view!.connectorId!, key: view!.key, hash: view!.hash! }, action: name, params, requestId: actionRequestID(name, params) })
-            .then(result => reply({ ok: true, ...result.data }))
+          const execute = async () => {
+            if (!entries) {
+              const result = await invokeView({ chatId, runId: runId!, view: { connectorId: view!.connectorId!, key: view!.key, hash: view!.hash! }, action: name, params, requestId: actionRequestID(name, params) });
+              reply({ ok: true, ...result.data });
+              return;
+            }
+            const results: ({ ok: true } & ViewActionResult | { ok: false; error: string })[] = [];
+            for (const entry of entries) {
+              // Navigation revokes this frame's remaining batch immediately.
+              if (generation.current !== current) return;
+              try {
+                const result = await invokeView({ chatId, runId: runId!, view: { connectorId: view!.connectorId!, key: view!.key, hash: view!.hash! }, action: name, params: entry, requestId: actionRequestID(name, entry) });
+                results.push({ ok: true, ...result.data });
+                if (result.data.exitCode !== 0 || isObject(result.data.data) && result.data.data.error) break;
+              } catch (error) {
+                results.push({ ok: false, error: errorCode(error) });
+                break;
+              }
+            }
+            reply({ ok: true, data: { results } });
+          };
+          execute()
             .catch(error => reply({ ok: false, error: errorCode(error) }))
             .finally(() => { if (generation.current === current) { actionPending.current = false; setPendingAction(null); setActionBusy(false); } });
         } });
@@ -263,13 +303,19 @@ export function ViewEmbed({ chatId, view, payloadRaw, viewError, rawData, runId,
       sandbox="allow-scripts" className="tw:w-full tw:border-0" style={{ height, colorScheme }}
       onLoad={initialize} />}
     </div>
-    <Modal open={Boolean(pendingAction)} title={t("view.action.title")} okText={t("view.action.submit")} cancelText={t("view.action.cancel")}
+    <Modal width={pendingAction?.entries ? "min(1000px, calc(100vw - 32px))" : undefined} open={Boolean(pendingAction)} title={t("view.action.title")} okText={t("view.action.submit")} cancelText={t("view.action.cancel")}
       confirmLoading={actionBusy} closable={!actionBusy} maskClosable={false} keyboard={!actionBusy} cancelButtonProps={{ disabled: actionBusy }}
       onOk={() => { if (!actionBusy) pendingAction?.confirm(); }} onCancel={() => { if (!actionBusy) pendingAction?.cancel(); }}>
-      <p>{t("view.action.notice")}</p>
+      <p>{t(pendingAction?.entries ? "view.action.batchNotice" : "view.action.notice", { count: pendingAction?.entries?.length || 0 })}</p>
       <p>{resolvedView?.connectorId} / {resolvedView?.key} · {pendingAction?.name}</p>
       <p>{pendingAction && documentRef.current?.actions?.[pendingAction.name]?.description}</p>
-      <pre className="tw:max-h-80 tw:overflow-auto tw:whitespace-pre-wrap">{JSON.stringify(pendingAction?.params, null, 2)}</pre>
+      {pendingAction?.entries ? <div className="tw:max-h-80 tw:overflow-auto">
+        <table className="tw:w-full tw:text-left tw:text-sm"><thead><tr>
+          {Object.keys(Object.assign({}, ...pendingAction.entries)).map(key => <th key={key} className="tw:p-2">{actionParamTitle(pendingAction.name, key)}</th>)}
+        </tr></thead><tbody>{pendingAction.entries.map((entry, index) => <tr key={index}>
+          {Object.keys(Object.assign({}, ...pendingAction.entries!)).map(key => <td key={key} className="tw:p-2 tw:whitespace-pre-wrap">{typeof entry[key] === "string" ? entry[key] as string : JSON.stringify(entry[key])}</td>)}
+        </tr>)}</tbody></table>
+      </div> : <pre className="tw:max-h-80 tw:overflow-auto tw:whitespace-pre-wrap">{JSON.stringify(pendingAction?.params, null, 2)}</pre>}
     </Modal>
     {allowExpand && <Modal open={expanded} title={null} closable={false} aria-label={t("view.header.title")}
       width="min(1280px, calc(100vw - 32px))" centered style={{ paddingBottom: 0 }}

@@ -60,6 +60,8 @@ QLC 当前提供 JSON 展示和 JSON 表单兜底，尚未解释专有控件。�
 
 请求由宿主绑定 Chat、发布 Run 和 VIEW hash；平台检查在线 Chat 所有权、Run 归属、当前 Agent 连接器挂载和当前安装包中的同名动作。动作变更或撤销时拒绝旧快照写入。CLI 使用结构化 argv 和可选 JSON stdin，MCP 只调用包自身组件；凭据仅服务端注入。宿主对同一会话 VIEW、动作和规范化参数复用 sessionStorage 请求 ID，平台收据在调用前持久化；请求不会自动重试或切换传输重放。取消不调用 API；超时或未知结果应回查，不重发。
 
+批量写入使用 `viewHost.invokeBatch(name, entries)`，同一声明动作最多 50 条参数，总参数 JSON 不超过 256K 字符；键序无关的重复条目返回 `view_action_params_invalid`（重复条目共用请求 ID，会被平台收据当成同一次写入）。宿主复制整批参数，在一个汇总表格中展示（列名优先使用动作 paramsSchema 的 title），用户确认一次后依次调用原 `/api/view/invoke`，每条参数保留独立的鉴权、幂等键与收据。取消整批不调用接口；执行期间防止重复确认，遇到错误或非零退出码停止后续记录，切换视图停止余下派发。返回 `{data:{results:[{ok:true,...单条结果}|{ok:false,error}]}}`，未出现在 results 的后续条目尚未提交；模板应保留成功项和未知项，不自动重发。单条 `invoke` 的确认与返回契约不变。
+
 `invoke` 返回 `{data,executedAt,invocationId,exitCode}`，业务错误保留原 JSON 结果供模板识别 outcome。模板应把写入结果与后续回读失败分开展示，不将回读失败解释为写入失败。归档和旧宿主可能无法操作，以平台校验为准；旧快照不会自动增加动作。
 
 
