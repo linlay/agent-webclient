@@ -1677,12 +1677,12 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
   const currentAgent = state.agents.find(agent => agent.key === currentWorker?.sourceId);
   const emptyAgentIdentity = (
     <span className="timeline-empty-agent-identity tw:inline-flex tw:items-baseline tw:gap-2 tw:align-baseline">
-      <span data-agent-identity="" className="timeline-empty-agent-icon tw:inline-flex tw:self-center">
-        <AgentIcon type="agent" icon={currentAgent?.icon} mode={currentAgent?.mode} props={{ icon: { width: 40, height: 40 } }} />
-      </span>
       {canSwitchEmptyAgent ? (
         <TimelineAgentSwitcher currentWorker={currentWorker} options={timelineAgentOptions} />
       ) : <span>{currentWorker?.displayName}</span>}
+      <span data-agent-identity="" className="timeline-empty-agent-icon tw:me-2 tw:inline-flex tw:self-center">
+        <AgentIcon type="agent" icon={currentAgent?.icon} mode={currentAgent?.mode} props={{ icon: { width: 40, height: 40 } }} />
+      </span>
     </span>
   );
   const emptyStateContent = !state.chatId && showEmptyState && (
