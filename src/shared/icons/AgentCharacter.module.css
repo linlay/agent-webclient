@@ -1,5 +1,5 @@
 .icon { display:inline-flex; align-items:center; justify-content:center; width:18px; height:20px; flex:none; color:inherit; --duration:5.6s; }
-.icon svg { display:block; width:22px; height:22px; flex:none; overflow:visible; }
+.icon svg { display:block; width:22px; height:22px; flex:none; overflow:hidden; }
 .stroke { fill:none; stroke:currentColor; stroke-linecap:round; stroke-linejoin:round; }
 .eyes{transform-box:fill-box;transform-origin:center}
 .motion{transform-box:view-box;transform-origin:center;animation-duration:1.15s;animation-timing-function:cubic-bezier(.2,.8,.25,1);animation-fill-mode:both}
@@ -64,91 +64,12 @@
 .icon[data-animated="false"] * { animation:none!important; }
 
 
-/* A low ellipse grounds the character without adding a badge or border. */
-.avatar { overflow: visible; }
-.avatarShadow {
-    opacity: .18;
-    transform-box: fill-box;
-    transform-origin: center;
-}
-.avatarMotion {
-    transform-box: view-box;
-    transform-origin: center;
-}
-.avatar:hover .avatarMotion,
-:global([data-agent-identity]):hover .avatar .avatarMotion,
-:global([data-agent-identity]):focus-within .avatar .avatarMotion {
-    animation: avatar-greeting 3.6s cubic-bezier(.2, .8, .3, 1) infinite;
-}
-.avatar:hover .eyes,
-:global([data-agent-identity]):hover .avatar .eyes,
-:global([data-agent-identity]):focus-within .avatar .eyes {
-    animation: avatar-blink 3.6s ease-in-out infinite;
-}
-.avatar:hover .avatarShadow,
-:global([data-agent-identity]):hover .avatar .avatarShadow,
-:global([data-agent-identity]):focus-within .avatar .avatarShadow {
-    animation: avatar-shadow 3.6s cubic-bezier(.2, .8, .3, 1) infinite;
-}
-@keyframes avatar-shadow {
-    0%, 42%, 100% { transform: scaleX(1); opacity: .18; }
-    9% { transform: scaleX(.82); opacity: .13; }
-    19% { transform: scaleX(1.04); opacity: .2; }
-    29% { transform: scaleX(.94); opacity: .16; }
-    70% { transform: scaleX(.88); opacity: .14; }
-    88% { transform: scaleX(1); opacity: .18; }
-}
-@keyframes avatar-greeting {
-    0%, 42%, 100% { transform: translateY(0) rotate(0); }
-    9% { transform: translateY(-3px) rotate(-6deg); }
-    19% { transform: translateY(1px) rotate(3deg); }
-    29% { transform: translateY(-1px) rotate(-2deg); }
-    70% { transform: translateY(-2px) rotate(2deg); }
-    79% { transform: translateY(0) rotate(-1deg); }
-    88% { transform: translateY(0) rotate(0); }
-}
-@keyframes avatar-blink {
-    0%, 8%, 14%, 65%, 72%, 100% { transform: scaleY(1); }
-    11%, 69% { transform: scaleY(.12); }
-}
+/* The two runtimes own finite WAAPI tracks; static and exported icons never hover-animate. */
+.avatar { overflow: hidden; }
+.avatarShadow { opacity: .18; transform-box: fill-box; transform-origin: center; }
+.avatarMotion { transform-box: view-box; transform-origin: 100px 100px; }
+.eyeTrack { transform-box: view-box; }
+.eyeBlink, .mouth { transform-box: fill-box; transform-origin: center; }
 @media (prefers-reduced-motion: reduce) {
     .avatar, .avatar * { animation: none !important; transition: none; }
-}
-
-/* Pointer tracking owns its clocks; avoid competing with the hover greeting. */
-.eyeTrack { will-change: transform; }
-.eyeBlink { transform-box: fill-box; transform-origin: center; }
-.avatar[data-pointer-tracking] .avatarMotion,
-.avatar[data-pointer-tracking] .eyes,
-.avatar[data-pointer-tracking] .avatarShadow,
-.avatar[data-agent-pointer-disabled] *,
-:global([data-agent-pointer-disabled]) .avatar * {
-    animation: none !important;
-}
-
-/* Sidebar avatars rest for most of each independently staggered cycle. */
-@media (prefers-reduced-motion: no-preference) {
-    .avatar[data-pointer-tracking][data-pointer-resting] .avatarMotion {
-        animation: avatar-idle-turn var(--agent-idle-period, 28s) ease-in-out var(--agent-idle-delay, 0s) infinite !important;
-    }
-    .avatar[data-pointer-tracking][data-pointer-resting] .eyeTrack {
-        animation: avatar-idle-look var(--agent-idle-period, 28s) ease-in-out var(--agent-idle-delay, 0s) infinite;
-    }
-    .avatar[data-pointer-tracking][data-pointer-resting] .eyeBlink {
-        animation: avatar-idle-blink var(--agent-idle-period, 28s) ease-in-out var(--agent-idle-delay, 0s) infinite;
-    }
-}
-@keyframes avatar-idle-turn {
-    0%, 85%, 97%, 100% { transform: rotate(0); }
-    89%, 92% { transform: rotate(-4deg); }
-    94% { transform: rotate(2deg); }
-}
-@keyframes avatar-idle-look {
-    0%, 85%, 97%, 100% { transform: translateX(0); }
-    89%, 92% { transform: translateX(-5px); }
-    94% { transform: translateX(2px); }
-}
-@keyframes avatar-idle-blink {
-    0%, 74%, 75.2%, 100% { transform: scaleY(1); }
-    74.6% { transform: scaleY(.12); }
 }

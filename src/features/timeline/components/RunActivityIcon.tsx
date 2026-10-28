@@ -1,124 +1,60 @@
-import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { RunActivityFace } from "./RunActivityFace";
-import {
-  RUN_ACTIVITY_EXPRESSIONS,
-  type RunActivityAppearance,
-  type RunActivityExpression,
-  type RunActivityMotion,
-} from "../lib/runActivityAppearance";
+import React, { useEffect, useRef } from "react";
+import { AgentDefaultPose } from "@/shared/icons/AgentDefaultPose";
+import { AGENT_WORK_MOTIONS, chooseAgentMotion, playAgentMotion, type AgentMotionPlayback, type AgentWorkMotion } from "@/shared/icons/agentMotion";
+import type { RunActivityAppearance } from "../lib/runActivityAppearance";
 import styles from "@/shared/icons/AgentCharacter.module.css";
 
 export interface RunActivityIconProps extends Partial<RunActivityAppearance> {
-  /** Optional fixed expression for previews; live activity chooses all 22 at random. */
-  expression?: RunActivityExpression;
+  /** Optional fixed working motion for previews. Live activities choose only the four work tracks. */
+  motion?: AgentWorkMotion;
   animated?: boolean;
   cycleDurationMs?: number;
   className?: string;
   style?: React.CSSProperties;
 }
-interface Pose { expression: RunActivityExpression; cycle: number; gesture: number; motion: RunActivityMotion; look: number }
-const SEQUENCES = new Set<RunActivityMotion>(["work", "inspect", "drowse", "persevere"]);
-const MOVES: Record<RunActivityAppearance["variant"], readonly RunActivityMotion[]> = {
-  general: ["peek", "tilt", "hop", "stretch"], code: ["nod", "peek", "hop"],
-  knowledge: ["peek", "tilt", "nod"], team: ["hop", "nod", "shake"],
-  agent: ["peek", "hop", "nod"], executor: ["nod", "peek", "hop"],
-};
-const motionFor = (expression: RunActivityExpression): RunActivityMotion => RUN_ACTIVITY_EXPRESSIONS.find(item => item.id === expression)!.move;
-const useBrowserLayoutEffect = typeof document === "undefined" ? useEffect : useLayoutEffect;
 
-/** A long expression clock and short gesture clock keep the character lively. */
-export function RunActivityIcon({ variant = "general", color, expression, animated = true,
-  cycleDurationMs = 5600, className, style }: RunActivityIconProps) {
-  const duration = Number.isFinite(cycleDurationMs) ? Math.max(3000, cycleDurationMs) : 5600;
-  const initial = expression || "curious";
-  const [pose, setPose] = useState<Pose>({ expression: initial, cycle: 0, gesture: 0, motion: motionFor(initial), look: 1 });
-  const element = useRef<HTMLSpanElement>(null);
-
+/** Each activity owns one independent work clock and never joins the pointer/idle runtime. */
+export function RunActivityIcon({ variant = "general", color, motion, animated = true,
+  cycleDurationMs = 12000, className, style }: RunActivityIconProps) {
+  const element = useRef<SVGSVGElement>(null);
+  const interval = Number.isFinite(cycleDurationMs) ? Math.max(4000, cycleDurationMs) : 12000;
   useEffect(() => {
-    let current = expression || "curious";
-    let cycle = 0, gesture = 0, motion = motionFor(current);
-    let nextGesture = 0, endGestures = 0, nextCycle = 0;
-    let suspendedAt: number | undefined;
+    const svg = element.current;
+    if (!svg) return;
     let timer: ReturnType<typeof setTimeout> | undefined;
+    let playback: AgentMotionPlayback | undefined;
+    let current: AgentWorkMotion = motion || "focus";
     const preference = window.matchMedia?.("(prefers-reduced-motion: reduce)");
     let disposed = false;
-    const beginCycle = () => {
-      const now = Date.now();
-      nextGesture = now + 1300 + Math.random() * 450;
-      endGestures = now + duration - 1150;
-      nextCycle = now + duration + 400 + Math.random() * 700;
-    };
-    const publish = () => setPose({ expression: current, cycle, gesture, motion, look: Math.random() < 0.5 ? -1 : 1 });
-    const schedule = () => {
+    const stop = () => { clearTimeout(timer); playback?.cancel(); playback = undefined; };
+    const start = () => {
+      stop();
       if (disposed || !animated || preference?.matches || document.hidden) return;
-      const deadline = nextGesture <= endGestures ? Math.min(nextGesture, nextCycle) : nextCycle;
+      svg.dataset.workMotion = current;
+      playback = playAgentMotion(svg, current, variant);
       timer = setTimeout(() => {
-        if (Date.now() >= nextCycle) {
-          if (!expression) {
-            const index = RUN_ACTIVITY_EXPRESSIONS.findIndex(item => item.id === current);
-            current = RUN_ACTIVITY_EXPRESSIONS[(index + 1 + Math.floor(Math.random() * (RUN_ACTIVITY_EXPRESSIONS.length - 1))) % RUN_ACTIVITY_EXPRESSIONS.length].id;
-          }
-          cycle += 1;
-          motion = motionFor(current);
-          beginCycle();
-        } else {
-          const preferred = motionFor(current);
-          const choices = (SEQUENCES.has(preferred) ? [preferred, "nod", "peek"] as const : MOVES[variant]).filter(item => item !== motion);
-          motion = choices[Math.floor(Math.random() * choices.length)];
-          nextGesture = Date.now() + 1250 + Math.random() * 650;
-        }
-        gesture += 1;
-        publish();
-        schedule();
-      }, Math.max(0, deadline - Date.now()));
+        current = motion || chooseAgentMotion(AGENT_WORK_MOTIONS, current);
+        start();
+      }, interval + Math.random() * 4000);
     };
-    const reset = () => {
-      clearTimeout(timer);
-      const now = Date.now();
-      if (!animated || preference?.matches || document.hidden) {
-        suspendedAt ??= now;
-        return;
-      }
-      if (suspendedAt !== undefined) {
-        const elapsed = now - suspendedAt;
-        nextGesture += elapsed; endGestures += elapsed; nextCycle += elapsed;
-        suspendedAt = undefined;
-      }
-      schedule();
-    };
-    beginCycle(); publish(); reset();
-    preference?.addEventListener("change", reset);
-    document.addEventListener("visibilitychange", reset);
+    start();
+    preference?.addEventListener("change", start);
+    document.addEventListener("visibilitychange", start);
     return () => {
-      disposed = true; clearTimeout(timer);
-      preference?.removeEventListener("change", reset);
-      document.removeEventListener("visibilitychange", reset);
+      disposed = true; stop();
+      preference?.removeEventListener("change", start);
+      document.removeEventListener("visibilitychange", start);
     };
-  }, [variant, expression, animated, duration]);
+  }, [variant, motion, animated, interval]);
 
-  useBrowserLayoutEffect(() => {
-    const group = element.current?.querySelector<SVGGElement>("[data-activity-motion]");
-    if (!group) return;
-    // Only restart the short gesture; its stable child keeps the expression clock.
-    group.classList.remove(styles.motion);
-    group.querySelectorAll(`.${styles.blink}, .${styles.gaze}`).forEach(node => node.classList.remove(styles.blink, styles.gaze));
-    void group.getBoundingClientRect();
-    group.classList.add(styles.motion);
-    group.querySelectorAll(`.${styles.eyes}`).forEach(node => node.classList.add(styles.blink));
-    if (!SEQUENCES.has(motionFor(pose.expression))) {
-      group.querySelectorAll(`.${styles.features}`).forEach(node => node.classList.add(styles.gaze));
-    }
-  }, [pose.gesture, pose.cycle, pose.expression]);
-
-  return <span ref={element} className={[styles.icon, className].filter(Boolean).join(" ")}
-    style={{ ...style, ...(color ? { color } : {}), "--duration": `${duration}ms` } as React.CSSProperties}
-    aria-hidden="true" data-run-activity-icon="" data-variant={variant} data-expression={pose.expression} data-animated={animated}>
-    <svg viewBox="20 35 160 145" fill="currentColor" focusable="false">
-      <g className={styles.motion} data-activity-motion="" data-gesture={pose.gesture} data-move={pose.motion}
-        style={{ "--look": pose.look } as React.CSSProperties}>
-        <g key={`${pose.expression}:${pose.cycle}`} className={styles["expression-cycle"]} data-sequence={motionFor(pose.expression)}>
-          <RunActivityFace variant={variant} expression={pose.expression} />
-        </g>
+  return <span className={[styles.icon, className].filter(Boolean).join(" ")}
+    style={{ ...style, ...(color ? { color } : {}) }} aria-hidden="true"
+    data-run-activity-icon="" data-variant={variant} data-animated={animated}>
+    <svg ref={element} viewBox="20 35 160 145" fill="currentColor" focusable="false" data-work-motion={motion || "focus"}>
+      <ellipse data-agent-shadow="" className={styles.avatarShadow} cx="100" cy={variant === "team" ? 172 : 162}
+        rx="56" ry={variant === "team" ? 6 : 9} fill="currentColor" />
+      <g data-agent-motion="" className={styles.avatarMotion}>
+        <g data-agent-spin="" className={styles.avatarMotion}><AgentDefaultPose variant={variant} /></g>
       </g>
     </svg>
   </span>;
