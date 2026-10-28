@@ -35,6 +35,7 @@ import {
 } from "@/app/state/AppContext";
 import { formatTimelineTime } from "@/features/timeline/components/TimelineRow";
 import { ConversationStage } from "@/features/timeline/components/ConversationStage";
+import { RunActivityPlaceholder } from "@/features/timeline/components/RunActivityPlaceholder";
 import { TimelineInteractionProvider, type TimelineInteractionValue } from "@/features/timeline/components/TimelineInteractionContext";
 import { registerDesktopContextMenuTarget } from "@/shared/data/desktop/desktopContextMenu";
 import { useOpenTarget } from "@/features/surfaces/hooks/useOpenTarget";
@@ -48,6 +49,7 @@ import {
   nodesForDetailLevel,
   type TimelineDisplayItem,
 } from "@/features/timeline/lib/timelineDisplay";
+import { hasDisplayableTimelineItem } from "@/features/timeline/lib/runActivityPlaceholder";
 import {
   buildNodeCollapseTargets,
   buildNodeVirtualIndexMap,
@@ -592,13 +594,17 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
   const detailLevel = chatDetailLevel(state);
   const activityRunId = mainChatRuntime?.runId || state.currentChatActiveRun?.runId || state.runId;
   const activityChatId = expectedChatId || state.chatTransition?.targetChatId || state.chatId;
+  const activityScopeKey = JSON.stringify([activityChatId, activityRunId]);
+  const conversationRunning =
+    activityChatId === state.chatId &&
+    Boolean(isMainChatRunning || state.streaming || state.currentChatActiveRun);
   const rawTimelineNodes = useMemo(() => state.timelineOrder
     .map(id => state.timelineNodes.get(id))
     .filter((node): node is TimelineNode => Boolean(node)), [state.timelineOrder, state.timelineNodes]);
   const activityTimelineNodes = useRunActivityTimeline(rawTimelineNodes, {
-    scopeKey: JSON.stringify([activityChatId, activityRunId]),
+    scopeKey: activityScopeKey,
     runId: activityRunId,
-    active: activityChatId === state.chatId && Boolean(isMainChatRunning || state.streaming || state.currentChatActiveRun),
+    active: conversationRunning,
     detailLevel,
     events: state.events,
   });
@@ -793,6 +799,27 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
       return { kind: "standalone", key: item.key, item };
     });
   }, [displayItems]);
+  const hasDisplayableNode = useMemo(
+    () => hasDisplayableTimelineItem(displayItems),
+    [displayItems],
+  );
+  // Query 行只是会话上下文，不算可展示输出；只有它时仍用进度行过渡。
+  const showActivityPlaceholder = conversationRunning && !hasDisplayableNode;
+  // Keep one component identity while the copy rotates: a new type each render
+  // would remount the placeholder and restart its rotation on every stream tick.
+  const stageFooter = useMemo(() => {
+    if (!showActivityPlaceholder) return ConversationStageBottomSpacer;
+    const padding = virtualItems.length === 0 ? "tw:pt-5" : "tw:pt-1";
+    const StageFooter: React.FC<{ context: unknown }> = () => (
+      <>
+        <div className={padding}>
+          <RunActivityPlaceholder active scopeKey={activityScopeKey} />
+        </div>
+        <ConversationStageBottomSpacer />
+      </>
+    );
+    return StageFooter;
+  }, [activityScopeKey, showActivityPlaceholder, virtualItems.length]);
 
   const virtualItemKeys = useMemo(
     () => virtualItems.map((item) => item.key),
@@ -2004,7 +2031,7 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
               totalListHeightChanged: handleTotalListHeightChanged,
               rangeChanged: handleRangeChanged,
               isScrolling: handleIsScrolling,
-              Footer: ConversationStageBottomSpacer,
+              Footer: stageFooter,
             }}
           />
         )}
