@@ -1211,6 +1211,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
                   disabled={conversationBlocking || (agentExecutionBlocked && agentAvailability.status !== "checking")}
                   isTimelineEmpty={isTimelineEmpty}
                   inputValue={inputValue}
+                  draftScopeKey={state.chatId}
                   placeholder={sampledIntroduction}
                   currentWorkerName={
                     state.voiceChat.currentAgentName ||

@@ -6,6 +6,8 @@ import type { VoiceChatStatus } from "@/features/voice/lib/voiceState";
 import { useI18n } from "@/shared/i18n";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
+import { useComposerPastedText } from "../hooks/useComposerPastedText";
+import { ComposerPastedTexts } from "./ComposerPastedTexts";
 import "@/features/voice/components/VoiceEffects.module.css";
 
 interface ComposerInputProps {
@@ -14,6 +16,7 @@ interface ComposerInputProps {
   disabled?: boolean;
   isTimelineEmpty: boolean;
   inputValue: string;
+  draftScopeKey?: string;
   placeholder?: string;
   currentWorkerName: string;
   voiceStatus: VoiceChatStatus;
@@ -139,6 +142,7 @@ export const ComposerInput: React.FC<ComposerInputProps> = ({
   disabled = false,
   isTimelineEmpty,
   inputValue,
+  draftScopeKey = "",
   placeholder,
   currentWorkerName,
   voiceStatus,
@@ -157,6 +161,7 @@ export const ComposerInput: React.FC<ComposerInputProps> = ({
   textareaRef,
 }) => {
   const { t } = useI18n();
+  const pastedText = useComposerPastedText({ value: inputValue, scopeKey: draftScopeKey, onChange: onInputChange, onFilePaste: onPaste, textareaRef });
   const voiceUserPreview =
     partialUserText || t("composer.voice.userPlaceholder");
   const voiceAssistantPreview =
@@ -234,6 +239,8 @@ export const ComposerInput: React.FC<ComposerInputProps> = ({
           </div>
         ) : (
           <div className={COMPOSER_INPUT_WRAPPER_CLASS}>
+            <ComposerPastedTexts pastes={pastedText.pastes} disabled={disabled || isFrontendActive}
+              onRemove={pastedText.removePaste} onExpand={pastedText.expandPaste} />
             <Tooltip
               title={
                 inputExpanded
@@ -280,9 +287,13 @@ export const ComposerInput: React.FC<ComposerInputProps> = ({
                 maxRows: inputMaxRows,
               }}
               disabled={isFrontendActive || disabled}
-              value={inputValue}
-              onChange={(event) => onInputChange(event.target.value)}
+              value={pastedText.inputValue}
+              onChange={(event) => pastedText.handleInputChange(event.target.value, event.target.selectionStart)}
+              onSelect={pastedText.captureSelection}
+              onBeforeInput={pastedText.captureSelection}
+              onCut={pastedText.captureSelection}
               onKeyDown={(e) => {
+                pastedText.captureSelection(e);
                 if (inputExpanded && e.key === "Enter" && !(e.metaKey && !e.shiftKey && !e.altKey)) return;
                 if (inputExpanded && e.key === "Escape") {
                   setInputExpanded(false);
@@ -290,7 +301,7 @@ export const ComposerInput: React.FC<ComposerInputProps> = ({
                 }
                 onKeyDown(e);
               }}
-              onPaste={disabled ? undefined : onPaste}
+              onPaste={disabled ? undefined : pastedText.handlePaste}
               onDragOver={disabled ? undefined : onDragOver}
               onDrop={disabled ? undefined : onDrop}
               onCompositionStart={onCompositionStart}
