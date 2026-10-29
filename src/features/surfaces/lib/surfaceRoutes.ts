@@ -1,6 +1,9 @@
+import { readAgentWebclientHeaderLayoutBootstrap, type AgentWebclientHeaderLayout } from "@/shared/contracts/generated/agentWebclientBridge";
+
 export type SurfacePresentationContext = {
   lang?: string;
   theme?: string;
+  desktopHeaderLayout?: AgentWebclientHeaderLayout;
 };
 
 export const SURFACE_ROUTE_PATHS = {
@@ -75,6 +78,7 @@ export function readSurfacePresentationContext(
   return {
     lang: clean(params.get("lang")) || undefined,
     theme: clean(params.get("theme")) || undefined,
+    desktopHeaderLayout: readAgentWebclientHeaderLayoutBootstrap(search) ?? undefined,
   };
 }
 
@@ -202,6 +206,10 @@ export function buildSurfaceRoute(
         break;
       case "agent":
         pathname = `/agent/${agentKey}`;
+        if (context.desktopHeaderLayout) {
+          params.set("desktopSidebarCollapsed", context.desktopHeaderLayout.sidebarCollapsed ? "1" : "0");
+          params.set("desktopHeaderLeftInset", String(context.desktopHeaderLayout.headerLeftInset));
+        }
         set(params, "chatId", intent.chatId);
         break;
     }

@@ -59,6 +59,25 @@ const globalWithStorage = globalThis as typeof globalThis & {
 describe("TopNav", () => {
 	const originalLocalStorage = globalWithStorage.localStorage;
 
+  it("reserves Desktop header space only for the Desktop Agent surface", () => {
+    const originalWindow = Object.getOwnPropertyDescriptor(globalThis, "window");
+    Object.defineProperty(globalThis, "window", { configurable: true, value: {
+      location: { search: "?desktopSidebarCollapsed=1&desktopHeaderLeftInset=128" },
+    } });
+    globalWithStorage.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = { DESKTOP_APP: true };
+    try {
+      const agent = renderToStaticMarkup(React.createElement(TopNav, { surface: "agent" }));
+      expect(agent).toContain('style="padding-left:128px"');
+      expect(agent).toContain('data-desktop-sidebar-collapsed="true"');
+      expect(renderToStaticMarkup(React.createElement(TopNav))).not.toContain("padding-left:128px");
+      delete globalWithStorage.__AGENT_WEBCLIENT_RUNTIME_CONFIG__;
+      expect(renderToStaticMarkup(React.createElement(TopNav, { surface: "agent" }))).not.toContain("padding-left:128px");
+    } finally {
+      if (originalWindow) Object.defineProperty(globalThis, "window", originalWindow);
+      else Reflect.deleteProperty(globalThis, "window");
+    }
+  });
+
 	beforeEach(() => {
 		globalWithStorage.localStorage = {
 			getItem: jest.fn(() => null),

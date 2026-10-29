@@ -1,5 +1,11 @@
 # Desktop宿主桥接
 
+## 主聊天顶栏的宿主导航浮层
+
+Desktop 主侧栏收起时，宿主在主聊天顶栏左侧展示搜索、后退、前进与展开按钮。WebClient 的 Agent TopNav 消费独立只读布局桥，为宿主传来的占宽预留空间；普通聊天正文、Composer、Run transport 与 Router 不因该布局更新而重新挂载或导航。
+
+首次文档加载从启动 URL 读取经过有界校验的布局信息；后续折叠变化由顶层 preload 的文档级订阅发送。WebClient 拒绝非法、超界或过期快照，桥撤销时清除预留空间。展示参数只在 Agent Chat 之间生成的 URL 中保留，不传播到 Overview、Copilot 或其他子 Surface；Standalone 不应用 Desktop 布局。快照只表达展示，不授予导航或业务操作权限。契约以 generated Desktop contract 为准，两端同批发布。
+
 ## 当前状态
 WebClient 已消费 v6 canonical generated Desktop contract，通过固定只读全局 `__AGENT_WEBCLIENT_PLATFORM_FRAME_PORT__` 与 `__AGENT_WEBCLIENT_WORKPANEL_BRIDGE__` 接入 Main Broker 和 WorkPanel。Frame Port transport version 固定为 2；现有 Desktop context、截图、文件系统和右键桥接继续服务各自能力，但不作为 realtime fallback。
 
@@ -28,7 +34,7 @@ Main Chat 的 active 恢复只能在 URL 中 canonical `chatId` 与当前已投�
 
 Desktop route bridge 是 Main Chat SPA 导航的权威命令，协议只保留 `READY + APPLIED`。`BaseShell` 中不会随 Chat 子路由卸载的 Router subscriber 完成注册后，通过 page-to-preload 事件 `__desktopServiceWebviewRouteStatus` 发送 `desktopRouteReady(routerLocation)`；React StrictMode 重挂可重复发送，Desktop 幂等处理。Desktop 收到 READY 后才通过现有命令通道发送最新 `desktopRouteChanged(routeRevision, pathname, search, hash)`，Main Chat 命令必须携带正整数 revision，不接受无 revision 兼容导航。浏览器物理 `window.location` 可能已被宿主更新，而 React Router 仍持有旧 `agentKey/chatId/newChat`，因此物理 URL 只能用于宿主观测，不能用于 WebClient bridge 去重。WebClient 仅以 `useLocation()` 判断目标；不匹配时覆盖最新 pending 并调用 `navigate(target, { replace: true, flushSync: true })`，使目标 Router、历史骨架与页面 DOM 在一次同步提交内进入首帧。Router 已精确匹配时立即发送 APPLIED，否则在 location 提交后的 layout effect 中发送 `desktopRouteApplied(routeRevision, routerLocation)`；IPC 收到和 `navigate()` 返回都不代表完成。A→B→C 中 C 覆盖 B pending，B 的迟到 render 不能确认 C。DevTools 诊断固定为 `[desktop-route] router-ready/bridge-received/router-navigate/router-applied`，记录 revision、Router target 与 physical location。Desktop 缺失 READY 或 APPLIED 时可执行一次异常 reload，但 WebClient 不增加 received ACK、定时重发、HTTP、WebSocket、MessagePort 或 Snapshot 协议。
 
-Desktop Main Chat 的普通 `←/→` 工作区快捷键由 WebClient 先做 DOM 语义判定，再以 `desktop:agent-webclient:workspace-arrow-key` 受限消息通知宿主；只在 Agent Chat Shell 安装，不适用于管理页、WorkPanel 或 Standalone。目标位于输入、可编辑内容、按钮、链接、菜单、可聚焦选项、代码/终端，或页面存在 active awaiting/HITL、模态层、非折叠文字选区、修饰键、repeat、IME composition、pointer/drag gesture 时必须放行。active awaiting 采用整页门禁，因为既有 HITL 方向键处理器挂在 window，不能只检查 event target。只有宿主确认消息来自 active、身份已提交且 generation 匹配的 Main Chat surface 后，才把左键解释为左侧栏切换、右键解释为当前 canonical Chat WorkPanel 切换；WebClient 不读取或缓存两侧栏状态。
+Desktop Main Chat 的普通 `←/→` 工作区快捷键由 WebClient 先做 DOM 语义判定，再以 `desktop:agent-webclient:workspace-arrow-key` 受限消息通知宿主；只在 Agent Chat Shell 安装，不适用于管理页、WorkPanel 或 Standalone。目标位于输入、可编辑内容、按钮、链接、菜单、可聚焦选项、代码/终端，或页面存在 active awaiting/HITL、模态层、非折叠文字选区、修饰键、repeat、IME composition、pointer/drag gesture 时必须放行。active awaiting 采用整页门禁，因为既有 HITL 方向键处理器挂在 window，不能只检查 event target。只有宿主确认消息来自 active、身份已提交且 generation 匹配的 Main Chat surface 后，才把左键解释为左侧栏切换、右键解释为当前 canonical Chat WorkPanel 切换；该快捷键链路不读取或缓存两侧栏业务状态；顶栏仅消费宿主的只读展示快照。
 
 Main Chat 从已有 Chat 发起“新对话重问”时，WebClient 通过一次性 `desktop:agent-webclient:new-chat:prepare` 请求提交 `requestId + agentKey + sourceChatId + newChat`。只有匹配的 `desktop:agent-webclient:new-chat:prepared` 成功响应才允许重置和发送。响应表示 Desktop 已把外层 route 与 guest URL 切换到同一 `newChat`，并以无 `ownerChatId` 的 active Main Chat Surface 完成登记；它不表示 query 或 Chat 已创建。失败、超时、来源变化或重复事务不得降级为直接发送。
 
