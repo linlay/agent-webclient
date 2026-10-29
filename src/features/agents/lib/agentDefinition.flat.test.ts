@@ -100,3 +100,16 @@ it("round-trips modelConfig.maxInputTokens and rejects non-integers", () => {
   form.maxInputTokensText = "1.5";
   expect(() => buildDefinition(form, definition, translate)).toThrow("agentConsole.error.maxInputTokensInvalid");
 });
+
+
+it("edits default access without coupling interaction resets or model fields", () => {
+  const definition = { key: "demo", modelConfig: {modelKey: "test"}, accessConfig: {default: "full_access"}, interactionConfig: {accessLevel: false} };
+  const detail: AgentDetailResponse = { key: "demo", name: "Demo", tools: [], skills: [], connectors: [], controls: [], meta: {}, definition };
+  const form = formFromDetail(detail);
+  const translate = ((key: string) => key) as Parameters<typeof buildDefinition>[2];
+  expect(form.defaultAccessLevel).toBe("full_access");
+  form.interactionConfig = undefined;
+  expect(buildDefinition(form, definition, translate).accessConfig).toEqual({default: "full_access"});
+  form.defaultAccessLevel = undefined;
+  expect(buildDefinition(form, definition, translate)).not.toHaveProperty("accessConfig");
+});

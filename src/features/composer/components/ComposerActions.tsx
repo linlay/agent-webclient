@@ -81,6 +81,9 @@ interface ComposerActionsProps extends Omit<
   | "onEditingModeChange"
 > {
   accessLevel: QueryAccessLevel;
+  followsAgentDefault?: boolean;
+  defaultAccessLevel?: QueryAccessLevel;
+  onFollowAgentDefault?: () => void;
   isFrontendActive: boolean;
   isVoiceMode: boolean;
   isStreaming: boolean;
@@ -129,6 +132,9 @@ const ComposerActionsPure: React.FC<
 > = ({
   interactionConfig,
   accessLevel,
+  followsAgentDefault,
+  defaultAccessLevel,
+  onFollowAgentDefault,
   isFrontendActive,
   isVoiceMode,
   isStreaming,
@@ -413,6 +419,9 @@ const ComposerActionsPure: React.FC<
             <QuerySettingsControls
               interactionConfig={interactionConfig}
               accessLevel={accessLevel}
+              followsAgentDefault={followsAgentDefault}
+              defaultAccessLevel={defaultAccessLevel}
+              onFollowAgentDefault={onFollowAgentDefault}
               disabled={true}
               compact={compact}
               modelOverride={modelOverride}
@@ -439,6 +448,9 @@ const ComposerActionsPure: React.FC<
             <QuerySettingsControls
               interactionConfig={interactionConfig}
               accessLevel={accessLevel}
+              followsAgentDefault={followsAgentDefault}
+              defaultAccessLevel={defaultAccessLevel}
+              onFollowAgentDefault={onFollowAgentDefault}
               disabled={interactionDisabled || isFrontendActive}
               compact={compact}
               modelOverride={modelOverride}

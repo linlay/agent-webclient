@@ -298,9 +298,8 @@ export function reduceConversationState(
 		case "SET_COMPOSER_ACCESS_LEVEL":
 			return { ...state, ...updateComposerAccessLevel(state, action.target, action.value, action.initializeOnly) };
 		case "SYNC_COMPOSER_ACCESS_LEVEL":
-			return { ...state, ...updateComposerAccessLevel(state, {
-				scope: resolveComposerAccessScope(state.accessToken), chatId: action.chatId, agentKey: "",
-			}, action.value, action.initializeOnly) };
+			return { ...state, runtimeAccessLevelByChatId: { ...state.runtimeAccessLevelByChatId,
+                [JSON.stringify([resolveComposerAccessScope(state.accessToken), action.chatId])]: action.value } };
 		case "SET_COMPOSER_DRAFT": {
 			return {
 				...state,

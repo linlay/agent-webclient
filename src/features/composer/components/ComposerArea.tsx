@@ -3,7 +3,7 @@ import { bindCssModuleClasses } from "@/shared/utils/cssModuleClasses";
 import composerPresentation from "@/features/composer/components/ComposerPresentation.module.css";
 import { FailedSubmissions } from "./FailedSubmissions";
 import { readComposerModel } from "../lib/composerModelSelection";
-import { composerAccessKey, readComposerAccessLevel, resolveComposerAccessScope } from "../lib/composerAccessLevel";
+import { composerAccessKey, readComposerAccessLevel, readComposerAccessOverride, resolveComposerAccessScope } from "../lib/composerAccessLevel";
 import { SkillIcon } from "@/features/skills/components/SkillIcon";
 import { skillDisplayName, skillPackageDisplayName } from "@/shared/utils/skillDisplayName";
 import { AgentConfigurationLink } from "@/features/composer/components/AgentConfigurationLink";
@@ -279,8 +279,15 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
   const setModelOverride = useCallback((value: QueryModelOverride) => {
     dispatch({ type: "SET_COMPOSER_MODEL", target: accessTarget, value });
   }, [dispatch, accessTarget]);
-  const accessLevel = readComposerAccessLevel(state, accessTarget);
-  const setAccessLevel = useCallback((value: QueryAccessLevel) => {
+  const rawDefaultAccessLevel = currentWorker?.raw?.defaultAccessLevel;
+  const defaultAccessLevel: QueryAccessLevel = rawDefaultAccessLevel === "auto_approve" || rawDefaultAccessLevel === "full_access" ? rawDefaultAccessLevel : "default";
+  const accessOverride = readComposerAccessOverride(state, accessTarget);
+  const observedAccessLevel = state.runtimeAccessLevelByChatId?.[composerAccessKey(accessTarget)];
+  const activeAccess = state.currentChatActiveRun?.chatId === state.chatId ? state.currentChatActiveRun?.accessLevel : undefined;
+  const normalizedActiveAccess: QueryAccessLevel | undefined = activeAccess === "default" || activeAccess === "auto_approve" || activeAccess === "full_access" ? activeAccess : undefined;
+  const accessLevel: QueryAccessLevel = normalizedActiveAccess ||
+    ((isMainChatRunning || Boolean(state.activeAwaiting)) ? observedAccessLevel : undefined) || readComposerAccessLevel(state, accessTarget, defaultAccessLevel);
+  const setAccessLevel = useCallback((value: QueryAccessLevel | undefined) => {
     dispatch({ type: "SET_COMPOSER_ACCESS_LEVEL", target: accessTarget, value });
   }, [dispatch, accessTarget]);
   const hostRequiredSkills = useHostRequiredSkills();
@@ -785,7 +792,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     interruptCurrentRun,
   } = useComposerSend({
     attachmentChatId,
-    accessLevel: interactionConfig.accessLevel ? accessLevel : "default",
+    accessLevel: interactionConfig.accessLevel ? accessOverride : undefined,
     backgroundCommandText: {
       rememberPending: t("composer.background.remember.pending"),
       rememberError: t("composer.background.remember.error"),
@@ -898,12 +905,13 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
 
   const handleAccessLevelChange = useRuntimeAccessLevel({
     accessScopeKey: JSON.stringify([Boolean(state.chatId), composerAccessKey(accessTarget)]),
-    accessLevel: interactionConfig.accessLevel ? accessLevel : "default",
+    accessLevel,
     activeRunId,
     activeRunOwner,
     isRunActive:
       isMainChatRunning || isAwaitingActive || isCurrentChatActiveRun,
     setAccessLevel,
+    restoreAccessLevel: () => setAccessLevel(accessOverride),
     messageApi: message,
     t,
   });
@@ -1246,6 +1254,9 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
                 <ComposerActions
                   interactionConfig={interactionConfig}
                   accessLevel={accessLevel}
+                  followsAgentDefault={accessOverride === undefined}
+                  defaultAccessLevel={defaultAccessLevel}
+                  onFollowAgentDefault={() => { void handleAccessLevelChange(defaultAccessLevel).then(ok => { if (ok) setAccessLevel(undefined); }); }}
                   isFrontendActive={isFrontendActive}
                   isVoiceMode={isVoiceMode}
                   isStreaming={isMainChatRunning}

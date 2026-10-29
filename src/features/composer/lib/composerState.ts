@@ -84,7 +84,7 @@ export type ComposerAction =
   | { type: "SET_SKILL_REJECTION"; rejection: ComposerState["skillRejection"] }
   | { type: "SYNC_COMPOSER_MODEL"; chatId: string; value: QueryModelOverride; initializeOnly?: boolean }
   | { type: "SET_COMPOSER_MODEL"; target: ComposerAccessTarget; value: QueryModelOverride; initializeOnly?: boolean }
-  | { type: "SET_COMPOSER_ACCESS_LEVEL"; target: ComposerAccessTarget; value: QueryAccessLevel; initializeOnly?: boolean }
+  | { type: "SET_COMPOSER_ACCESS_LEVEL"; target: ComposerAccessTarget; value: QueryAccessLevel | undefined; initializeOnly?: boolean }
   | { type: "SYNC_COMPOSER_ACCESS_LEVEL"; chatId: string; value: QueryAccessLevel; initializeOnly?: boolean }
   | { type: "SET_COMPOSER_DRAFT"; draft: string }
   | ComposerSteerAction

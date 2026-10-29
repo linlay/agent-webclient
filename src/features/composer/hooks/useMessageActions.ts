@@ -444,7 +444,7 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
       );
       const interaction = selectedAgent?.interactionConfig as import("@/shared/contracts/interaction").InteractionConfig | undefined;
       if (interaction?.model === false) model = undefined;
-      if (interaction?.accessLevel === false) accessLevel = "default";
+      if (interaction?.accessLevel === false) accessLevel = undefined;
 
       if (!hasSendableQuery(cleanMessage, normalizedReferences, hasQueryHistory(stateRef.current, chatId), canContinueChat(stateRef.current, chatId))) return;
       if (!selectedOwner) {
@@ -581,11 +581,11 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
         });
       };
       const initializeChatAccess = (nextChatId: string) => {
-        if (!isNewChatQuery || !nextChatId) return;
+        if (!isNewChatQuery || !nextChatId || !accessLevel) return;
         dispatch({
           type: "SET_COMPOSER_ACCESS_LEVEL",
           target: { scope: accessScope, chatId: nextChatId, agentKey: "" },
-          value: accessLevel || "default",
+          value: accessLevel,
           initializeOnly: true,
         });
       };

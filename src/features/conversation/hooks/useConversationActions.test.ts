@@ -1647,7 +1647,8 @@ describe('replayEvent tool migration', () => {
         ...(active ? { activeRun: { runId: 'started-run', agentKey: 'cutej', lastSeq: 1 } } : {})
     } });
     await actions.loadChat('started-chat');
-    expect(readComposerAccessLevel(stateRef.current, target)).toBe('auto_approve');
+    expect(readComposerAccessLevel(stateRef.current, target)).toBe('default');
+    expect(stateRef.current.runtimeAccessLevelByChatId?.[JSON.stringify([scope, 'started-chat'])]).toBe('auto_approve');
     expect(readComposerAccessLevel(stateRef.current, { scope, chatId: '', agentKey: 'cutej' })).toBe('full_access');
   });
 

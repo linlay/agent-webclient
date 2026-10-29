@@ -33,16 +33,16 @@ it("rolls back the original Chat after navigation, and ignores older requests in
   const show = (chatId: string) => act(() => root.render(<Harness chatId={chatId} />));
   try {
     show("a");
-    act(() => change("full_access"));
+    act(() => { change("full_access"); });
     show("b");
-    act(() => change("auto_approve"));
+    act(() => { change("auto_approve"); });
     await act(async () => rejections[0]());
     expect(readComposerAccessLevel(state, address("a"))).toBe("default");
     expect(readComposerAccessLevel(state, address("b"))).toBe("auto_approve");
     show("a");
-    act(() => change("auto_approve"));
+    act(() => { change("auto_approve"); });
     show("a");
-    act(() => change("full_access"));
+    act(() => { change("full_access"); });
     await act(async () => rejections[2]());
     expect(readComposerAccessLevel(state, address("a"))).toBe("full_access");
     await act(async () => rejections[3]());

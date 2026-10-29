@@ -60,3 +60,14 @@ it("separates standalone credentials without putting their text into persisted k
   expect(resolveComposerAccessScope("credential-a")).not.toBe(resolveComposerAccessScope("credential-b"));
   expect(resolveComposerAccessScope("credential-a")).not.toContain("credential-a");
 });
+
+
+it("distinguishes following a default from explicitly selecting the same level", () => {
+  let state = restoreComposerAccessLevels();
+  const address = target("chat-follow");
+  expect(readComposerAccessLevel(state, address, "full_access")).toBe("full_access");
+  state = updateComposerAccessLevel(state, address, "default");
+  expect(readComposerAccessLevel(state, address, "full_access")).toBe("default");
+  state = updateComposerAccessLevel(state, address, undefined);
+  expect(readComposerAccessLevel(state, address, "full_access")).toBe("full_access");
+});

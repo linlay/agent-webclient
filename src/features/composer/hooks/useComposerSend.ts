@@ -64,7 +64,7 @@ type ComposerSendAttachmentMeta = {
 
 interface UseComposerSendInput {
   attachmentChatId: string;
-  accessLevel: QueryAccessLevel;
+  accessLevel?: QueryAccessLevel;
   clearComposerAttachments: () => void;
   closeMention: () => void;
   controlParams: Record<string, unknown>;

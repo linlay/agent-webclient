@@ -47,6 +47,7 @@ export type ChoicePresentation = {
   description: string;
 };
 export interface AgentFormState {
+  defaultAccessLevel?: "default" | "auto_approve" | "full_access";
   interactionConfig?: import("@/shared/contracts/interaction").InteractionOverrides;
   key: string;
   name: string;
@@ -699,6 +700,7 @@ export function formFromDetail(detail: EditableAgentDetail): AgentFormState {
   const budget =
     Object.keys(definitionBudget).length > 0 ? definitionBudget : metaBudget;
   return {
+    defaultAccessLevel: asRecord(definition.accessConfig).default as AgentFormState["defaultAccessLevel"],
     key: toText(definition.key) || detail.key,
     name: toText(definition.name) || detail.name || detail.key,
     ...iconFieldsFromValue(definition.icon ?? detail.icon),
@@ -784,6 +786,8 @@ export function buildDefinition(
   } else {
     delete definition.teamConfig;
   }
+  if (form.defaultAccessLevel) definition.accessConfig = { default: form.defaultAccessLevel };
+  else delete definition.accessConfig;
   if (form.interactionConfig) definition.interactionConfig = form.interactionConfig;
   else delete definition.interactionConfig;
 

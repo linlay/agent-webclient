@@ -1,6 +1,11 @@
 import type { I18nMessages } from "@/shared/i18n/types";
 
 export const zhCNMessages = {
+  "composer.query.access.followLabel": "跟随 Agent 默认（{level}）",
+  "agents.access.default": "默认权限档位",
+  "agents.access.platformDefault": "未配置（平台默认）",
+  "agents.access.hint": "省略请求档位时使用此值；子 Agent 按自己的默认值执行。运行中切档不修改此配置。",
+
   "mailbox.attachment": "附件：{name} · @chat/{path}",
   "mailbox.title": "收件箱",
   "mailbox.agent": "收件 Agent",

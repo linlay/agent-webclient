@@ -680,13 +680,14 @@ describe('useConversationEventHandler live chat binding', () => {
       const target = { scope: resolveComposerAccessScope(stateRef.current.accessToken), chatId: 'chat_1', agentKey: '' };
       handler!.handleEvent({ type: 'request.query', chatId: 'chat_1', runId: 'run_1', agentKey: 'cutej', accessLevel: 'auto_approve', timestamp: 100 });
       handler!.handleEvent({ type: 'run.start', chatId: 'chat_1', runId: 'run_1', agentKey: 'cutej', timestamp: 101 });
-      expect(readComposerAccessLevel(stateRef.current, target)).toBe('auto_approve');
+      expect(stateRef.current.runtimeAccessLevelByChatId?.[JSON.stringify([target.scope, target.chatId])]).toBe('auto_approve');
+      expect(readComposerAccessLevel(stateRef.current, target)).toBe('default');
       handler!.handleEvent({ type: 'run.access_level.changed', chatId: 'chat_1', runId: 'run_1', accessLevel: 'full_access', version: 3, timestamp: 102 });
-      expect(readComposerAccessLevel(stateRef.current, target)).toBe('full_access');
+      expect(stateRef.current.runtimeAccessLevelByChatId?.[JSON.stringify([target.scope, target.chatId])]).toBe('full_access');
       handler!.handleEvent({ type: 'run.access_level.changed', chatId: 'chat_1', runId: 'run_1', accessLevel: 'default', version: 2, timestamp: 103 });
       handler!.handleEvent({ type: 'run.access_level.changed', chatId: 'chat_1', runId: 'other-run', accessLevel: 'default', version: 4, timestamp: 104 });
       handler!.handleEvent({ type: 'request.query', chatId: 'chat_1', runId: 'child', taskId: 'task', accessLevel: 'default', timestamp: 105 });
-      expect(readComposerAccessLevel(stateRef.current, target)).toBe('full_access');
+      expect(stateRef.current.runtimeAccessLevelByChatId?.[JSON.stringify([target.scope, target.chatId])]).toBe('full_access');
       expect(stateRef.current.currentChatActiveRun).toMatchObject({ accessLevel: 'full_access', accessLevelVersion: 3 });
     } finally {
       restoreWindow();

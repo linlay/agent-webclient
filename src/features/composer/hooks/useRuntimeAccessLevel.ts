@@ -24,6 +24,7 @@ interface ApplyRuntimeAccessLevelChangeOptions {
   activeRunOwner: RunOwner | null;
   isRunActive?: boolean;
   setAccessLevel: SetAccessLevel;
+  restoreAccessLevel?: () => void;
   messageApi: RuntimeAccessMessageApi;
   t: Translate;
   isLatestRequest?: () => boolean;
@@ -63,19 +64,21 @@ export async function applyRuntimeAccessLevelChange({
   activeRunOwner,
   isRunActive,
   setAccessLevel,
+  restoreAccessLevel,
   messageApi,
   t,
   isLatestRequest,
   requestIdFactory = () => createRequestId("access"),
   updateAccessLevel,
-}: ApplyRuntimeAccessLevelChangeOptions): Promise<void> {
+}: ApplyRuntimeAccessLevelChangeOptions): Promise<boolean> {
   if (nextAccessLevel === previousAccessLevel) {
-    return;
+    setAccessLevel(nextAccessLevel);
+    return true;
   }
 
   setAccessLevel(nextAccessLevel);
   if (!isRunActive || !activeRunId || !activeRunOwner) {
-    return;
+    return true;
   }
 
   try {
@@ -87,18 +90,21 @@ export async function applyRuntimeAccessLevelChange({
       reason: "user toggled permission",
     });
     if (!shouldApplyResult(isLatestRequest)) {
-      return;
+      return false;
     }
     if (response.data?.accepted === false) {
-      setAccessLevel(previousAccessLevel);
+      if (restoreAccessLevel) restoreAccessLevel(); else setAccessLevel(previousAccessLevel);
       void messageApi.warning(formatRejectedMessage(t, response));
+      return false;
     }
+    return true;
   } catch (error) {
     if (!shouldApplyResult(isLatestRequest)) {
-      return;
+      return false;
     }
-    setAccessLevel(previousAccessLevel);
+    if (restoreAccessLevel) restoreAccessLevel(); else setAccessLevel(previousAccessLevel);
     void messageApi.error(formatFailedMessage(t, error));
+    return false;
   }
 }
 
@@ -109,6 +115,7 @@ interface UseRuntimeAccessLevelInput {
   activeRunOwner: RunOwner | null;
   isRunActive: boolean;
   setAccessLevel: SetAccessLevel;
+  restoreAccessLevel?: () => void;
   messageApi: RuntimeAccessMessageApi;
   t: Translate;
 }
@@ -120,9 +127,10 @@ export function useRuntimeAccessLevel({
   activeRunOwner,
   isRunActive,
   setAccessLevel,
+  restoreAccessLevel,
   messageApi,
   t,
-}: UseRuntimeAccessLevelInput): (nextAccessLevel: QueryAccessLevel) => void {
+}: UseRuntimeAccessLevelInput): (nextAccessLevel: QueryAccessLevel) => Promise<boolean> {
   const requestSeqRef = useRef(new Map<string, number>());
   const runs = useRunTransport();
 
@@ -130,13 +138,14 @@ export function useRuntimeAccessLevel({
     (nextAccessLevel: QueryAccessLevel) => {
       const requestSeq = (requestSeqRef.current.get(accessScopeKey) || 0) + 1;
       requestSeqRef.current.set(accessScopeKey, requestSeq);
-      void applyRuntimeAccessLevelChange({
+      return applyRuntimeAccessLevelChange({
         previousAccessLevel: accessLevel,
         nextAccessLevel,
         activeRunId,
         activeRunOwner,
         isRunActive,
         setAccessLevel,
+        restoreAccessLevel,
         messageApi,
         t,
         updateAccessLevel: runs.updateAccessLevel,
@@ -152,6 +161,7 @@ export function useRuntimeAccessLevel({
       messageApi,
       runs,
       setAccessLevel,
+      restoreAccessLevel,
       t,
     ],
   );

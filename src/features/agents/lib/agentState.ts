@@ -21,6 +21,7 @@ export interface AgentControl {
 }
 
 export interface Agent {
+  defaultAccessLevel?: "default" | "auto_approve" | "full_access";
   teamConfig?: { members: string[]; maxParallel?: number };
   key: string;
   name: string;

@@ -5,6 +5,7 @@ import { getGatewaySession } from "@/shared/data/auth/gatewaySession";
 export interface ComposerAccessState {
   accessLevelByChatId: Record<string, QueryAccessLevel>;
   newChatAccessLevelByAgentKey: Record<string, QueryAccessLevel>;
+  runtimeAccessLevelByChatId?: Record<string, QueryAccessLevel>;
 }
 
 export interface ComposerAccessTarget {
@@ -13,7 +14,7 @@ export interface ComposerAccessTarget {
   agentKey: string;
 }
 
-const STORAGE_KEY = "agent-webclient.composer-access.v1";
+const STORAGE_KEY = "agent-webclient.composer-access.v2";
 
 // An opaque credential identifies standalone sessions without persisting the credential.
 function credentialFingerprint(value: string): string {
@@ -39,23 +40,29 @@ export function composerAccessKey(target: ComposerAccessTarget): string {
   return JSON.stringify([target.scope, target.chatId || target.agentKey]);
 }
 
-export function readComposerAccessLevel(state: ComposerAccessState, target: ComposerAccessTarget): QueryAccessLevel {
-  if (!target.chatId && !target.agentKey) return "default";
+export function readComposerAccessOverride(state: ComposerAccessState, target: ComposerAccessTarget): QueryAccessLevel | undefined {
   const values = target.chatId ? state.accessLevelByChatId : state.newChatAccessLevelByAgentKey;
-  return values?.[composerAccessKey(target)] ?? "default";
+  return values?.[composerAccessKey(target)];
+}
+
+export function readComposerAccessLevel(state: ComposerAccessState, target: ComposerAccessTarget, defaultLevel: QueryAccessLevel = "default"): QueryAccessLevel {
+  return readComposerAccessOverride(state, target) ?? defaultLevel;
 }
 
 export function updateComposerAccessLevel(
   state: ComposerAccessState,
   target: ComposerAccessTarget,
-  value: QueryAccessLevel,
+  value: QueryAccessLevel | undefined,
   initializeOnly = false,
 ): ComposerAccessState {
   if (!target.chatId && !target.agentKey) return state;
   const field = target.chatId ? "accessLevelByChatId" : "newChatAccessLevelByAgentKey";
   const key = composerAccessKey(target);
   if (initializeOnly && state[field]?.[key] !== undefined) return state;
-  return { ...state, [field]: { ...state[field], [key]: value } };
+  const values = { ...state[field] };
+  if (value === undefined) delete values[key];
+  else values[key] = value;
+  return { ...state, [field]: values };
 }
 
 function normalizeValues(value: unknown): Record<string, QueryAccessLevel> {
