@@ -78,6 +78,8 @@ jest.mock("@/features/timeline/components/TimelineRow", () => ({
       { "data-testid": "timeline-row", "data-node-id": props.node?.id },
       props.node?.text,
     ),
+  TimelineActivityRow: (props: { text?: string }) =>
+    React.createElement("div", { "data-testid": "timeline-activity-row" }, props.text),
   formatTimelineTime: () => ({ short: "", full: "" }),
 }));
 
