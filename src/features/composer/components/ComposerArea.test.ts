@@ -128,7 +128,7 @@ const mockComposerAttachmentsState = {
 jest.mock("@/features/composer/components/ComposerInput", () => ({
   ComposerInput: (props: Record<string, any>) => {
     mockComposerInputProps.push(props);
-    return React.createElement("div", { className: "composer-input" });
+    return React.createElement("div", { className: "composer-input" }, props.renderAttachments?.(null, 0));
   },
 }));
 
