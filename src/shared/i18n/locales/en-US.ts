@@ -5,6 +5,7 @@ export const enUSMessages = {
   "agents.access.default": "Default permission level",
   "agents.access.platformDefault": "Unspecified (platform default)",
   "agents.access.hint": "Used when a request omits its level. Child Agents use their own defaults. Changing a running level does not save this setting.",
+  "planDialog.executionAccess": "Agent current default execution permission: {level}",
 
   "mailbox.attachment": "Attachment: {name} · @chat/{path}",
   "mailbox.title": "Mailbox",

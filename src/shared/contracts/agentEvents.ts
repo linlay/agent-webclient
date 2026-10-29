@@ -320,6 +320,7 @@ export interface AIAwaitFormSubmitParamData {
 }
 
 export interface AIAwaitPlanSubmitParamData {
+  executionAccessLevel?: "default" | "auto_approve" | "full_access";
   id?: string;
   decision: AIAwaitPlanDecision;
   reason?: string;

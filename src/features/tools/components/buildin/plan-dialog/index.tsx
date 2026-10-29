@@ -1,5 +1,7 @@
 import { Button, Checkbox, CheckboxRef, Flex, Input } from "antd/es";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
+import { getAgent, invalidateAgentDetail } from "@/shared/data";
+import { useOptionalAppContext } from "@/app/state/AppContext";
 import React, {
   forwardRef,
   useCallback,
@@ -35,6 +37,15 @@ export const PlanDialog: React.FC<PlanDialogProps> = ({
   onResolved,
 }) => {
   const { t } = useI18n();
+  const app = useOptionalAppContext();
+  const [executionAccessLevel, setExecutionAccessLevel] = useState(app?.state.agents.find(agent => agent.key === data.agentKey)?.defaultAccessLevel);
+  const refreshExecutionAccess = useCallback(async () => {
+    if (!app || !data.agentKey) return;
+    invalidateAgentDetail(data.agentKey);
+    const response = await getAgent(data.agentKey);
+    if (response.data) setExecutionAccessLevel(response.data.defaultAccessLevel || "default");
+  }, [Boolean(app), data.agentKey]);
+  useEffect(() => { void refreshExecutionAccess().catch(() => {}); }, [refreshExecutionAccess, data.awaitingId]);
   const message = useAppMessage();
   const planQuestionRef = useRef<PlanQuestionRef>(null);
   const [submittingDecision, setSubmittingDecision] =
@@ -66,16 +77,20 @@ export const PlanDialog: React.FC<PlanDialogProps> = ({
       }
       setSubmittingDecision(nextDecision);
       try {
-        await onSubmit({
+        const result = await onSubmit({
           runId: data.runId,
           awaitingId: data.awaitingId,
-          params: [buildPlanSubmitParam(plan, nextDecision, nextReason)],
+          params: [{ ...buildPlanSubmitParam(plan, nextDecision, nextReason), ...(nextDecision === "approve" && executionAccessLevel ? {executionAccessLevel} : {}) }],
         });
+        if (result instanceof Error) await refreshExecutionAccess().catch(() => {});
+      } catch (error) {
+        await refreshExecutionAccess().catch(() => {});
+        throw error;
       } finally {
         setSubmittingDecision(null);
       }
     },
-    [data.awaitingId, data.runId, message, onSubmit, plan, readOnly, reason, t],
+    [data.awaitingId, data.runId, executionAccessLevel, refreshExecutionAccess, message, onSubmit, plan, readOnly, reason, t],
   );
 
   useKeyboard({
@@ -137,6 +152,7 @@ export const PlanDialog: React.FC<PlanDialogProps> = ({
 
   return ready ? (
     <Flex className={hitlDialogClassNames.surface} vertical gap={4}>
+      {executionAccessLevel && <p>{t("planDialog.executionAccess", {level: t(`composer.query.access.${executionAccessLevel}`)})}</p>}
       <PlanQuestion
         ref={planQuestionRef}
         plan={plan}

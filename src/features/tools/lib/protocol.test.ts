@@ -294,3 +294,9 @@ describe('awaiting protocol helpers', () => {
     expect(isAwaitingFrameCloseMessage({ type: 'noop' })).toBe(false);
   });
 });
+
+
+it("preserves the execution permission a user reviewed when approving a plan", () => {
+  expect(toWireAwaitingSubmit("plan", [{decision: "approve", executionAccessLevel: "full_access"}]))
+    .toEqual({param: {decision: "approve", executionAccessLevel: "full_access"}});
+});

@@ -358,6 +358,7 @@ export function toWireAwaitingSubmit(
     param: {
       decision: item.decision,
       ...(reason ? { reason } : {}),
+      ...(mode === 'plan' && item.executionAccessLevel ? { executionAccessLevel: item.executionAccessLevel } : {}),
       ...(mode === 'form' && (data || item.decision === 'approve') ? { data: data ?? {} } : {}),
     },
   };

@@ -5,6 +5,7 @@ export const zhCNMessages = {
   "agents.access.default": "默认权限档位",
   "agents.access.platformDefault": "未配置（平台默认）",
   "agents.access.hint": "省略请求档位时使用此值；子 Agent 按自己的默认值执行。运行中切档不修改此配置。",
+  "planDialog.executionAccess": "Agent 当前默认执行权限：{level}",
 
   "mailbox.attachment": "附件：{name} · @chat/{path}",
   "mailbox.title": "收件箱",
