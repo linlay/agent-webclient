@@ -1454,6 +1454,7 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
                     key={executeAgentKey}
                     agentKey={executeAgentKey}
                     agentName={detail?.name}
+                    defaultAccessLevel={detail ? formFromDetail(detail).defaultAccessLevel : undefined}
                     onClose={() => setExecuteAgentKey("")}
                   />
                 )}

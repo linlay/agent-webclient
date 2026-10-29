@@ -9,7 +9,7 @@ const changed = (version: number, accessLevel: string): AgentEvent => ({
 });
 
 it("restores the latest root Run's inherited permission without falling back to older Runs", () => {
-  expect(resolveRunAccessLevel({ chatId: "chat", events: [query("old", "default"), query("run", "auto_approve")] }))
+  expect(resolveRunAccessLevel({ chatId: "chat", events: [query("old", "ask_for_approval"), query("run", "auto_approve")] }))
     .toEqual({ runId: "run", accessLevel: "auto_approve", version: 1 });
   expect(resolveRunAccessLevel({ chatId: "chat", events: [query("old", "full_access"), query("run")] })).toBeUndefined();
   expect(resolveRunAccessLevel({ chatId: "chat", runId: "missing", events: [query("old", "full_access")] })).toBeUndefined();
@@ -17,15 +17,15 @@ it("restores the latest root Run's inherited permission without falling back to 
 
 it("uses the latest permission version when changes or bootstrap events arrive out of order", () => {
   expect(resolveRunAccessLevel({ chatId: "chat", events: [
-    query("run", "default"), changed(3, "auto_approve"), changed(2, "full_access"), query("run", "default"),
+    query("run", "ask_for_approval"), changed(3, "auto_approve"), changed(2, "full_access"), query("run", "ask_for_approval"),
   ] })).toEqual({ runId: "run", accessLevel: "auto_approve", version: 3 });
   const current = { runId: "run", accessLevel: "full_access" as const, version: 2 };
-  expect(mergeRunAccessLevel(current, { ...current, accessLevel: "default", version: 1 })).toBe(current);
-  expect(mergeRunAccessLevel(current, { runId: "next", accessLevel: "default", version: 1 }).accessLevel).toBe("default");
+  expect(mergeRunAccessLevel(current, { ...current, accessLevel: "ask_for_approval", version: 1 })).toBe(current);
+  expect(mergeRunAccessLevel(current, { runId: "next", accessLevel: "ask_for_approval", version: 1 }).accessLevel).toBe("ask_for_approval");
 });
 
 it("prefers a current active Run snapshot over its older query", () => {
-  expect(resolveRunAccessLevel({ chatId: "chat", events: [query("run", "default"), changed(2, "auto_approve")],
+  expect(resolveRunAccessLevel({ chatId: "chat", events: [query("run", "ask_for_approval"), changed(2, "auto_approve")],
     activeRun: { runId: "run", accessLevel: "full_access", accessLevelVersion: 3 },
   })).toEqual({ runId: "run", accessLevel: "full_access", version: 3 });
 });

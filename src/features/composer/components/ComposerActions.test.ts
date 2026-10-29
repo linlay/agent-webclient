@@ -36,7 +36,7 @@ jest.mock("@/shared/i18n", () => ({
 
 describe("ComposerActions", () => {
   const baseProps = {
-    accessLevel: "default" as const,
+    accessLevel: "ask_for_approval" as const,
     isFrontendActive: false,
     isVoiceMode: false,
     isStreaming: false,

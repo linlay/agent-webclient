@@ -25,7 +25,7 @@ test.each([
   const root = createRoot(container);
   try {
     act(() => root.render(<ComposerActions
-      accessLevel="default" isFrontendActive={false} isVoiceMode={false} isStreaming={false}
+      accessLevel="ask_for_approval" isFrontendActive={false} isVoiceMode={false} isStreaming={false}
       canCaptureDesktopScreenshot={false} isCapturingDesktopScreenshot={false} modelOverride={{}}
       planningMode={false} canUsePlanningMode={false} editingMode={false} canUseEditingMode={false}
       currentChatId="chat" currentAgentKey="agent" isMainChatRunning={running} selectedSkillIds={["word"]}

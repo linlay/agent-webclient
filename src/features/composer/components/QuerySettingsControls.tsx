@@ -44,9 +44,7 @@ const presentationClasses = bindCssModuleClasses({ ...modelPresentation });
 
 interface QuerySettingsControlsProps {
   accessLevel: QueryAccessLevel;
-  followsAgentDefault?: boolean;
   defaultAccessLevel?: QueryAccessLevel;
-  onFollowAgentDefault?: () => void;
   compact?: boolean;
   disabled?: boolean;
   modelOverride: QueryModelOverride;
@@ -56,26 +54,27 @@ interface QuerySettingsControlsProps {
   interactionConfig?: import("@/shared/contracts/interaction").InteractionConfig;
 }
 
-const ACCESS_LEVELS: QueryAccessLevel[] = [
-  "default",
+type EffectiveAccessLevel = Exclude<QueryAccessLevel, "default">;
+const ACCESS_LEVELS: EffectiveAccessLevel[] = [
+  "ask_for_approval",
   "auto_approve",
   "full_access",
 ];
 
-const ACCESS_LEVEL_ICON: Record<QueryAccessLevel, MaterialIconName> = {
-  default: "front_hand",
+const ACCESS_LEVEL_ICON: Record<EffectiveAccessLevel, MaterialIconName> = {
+  ask_for_approval: "front_hand",
   auto_approve: "verified_user",
   full_access: "gpp_maybe",
 };
-const ACCESS_LEVEL_BUTTON_CLASS: Record<QueryAccessLevel, string> = {
-  default: "",
+const ACCESS_LEVEL_BUTTON_CLASS: Record<EffectiveAccessLevel, string> = {
+  ask_for_approval: "",
   auto_approve:
     "tw:!text-[color-mix(in_srgb,var(--accent-warn)_72%,transparent)]",
   full_access:
     "tw:!text-[color-mix(in_srgb,var(--accent-danger)_72%,transparent)]",
 };
-const ACCESS_LEVEL_MENU_ITEM_CLASS: Record<QueryAccessLevel, string> = {
-  default: "query-settings-access-item query-settings-access-item-default tw:text-text-main",
+const ACCESS_LEVEL_MENU_ITEM_CLASS: Record<EffectiveAccessLevel, string> = {
+  ask_for_approval: "query-settings-access-item query-settings-access-item-default tw:text-text-main",
   auto_approve:
     "query-settings-access-item query-settings-access-item-auto_approve tw:text-[color-mix(in_srgb,var(--accent-warn)_72%,transparent)]",
   full_access:
@@ -487,10 +486,8 @@ export function agentSummaryFromModelConfig(
 }
 
 export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
-  accessLevel,
-  followsAgentDefault = false,
-  defaultAccessLevel = "default",
-  onFollowAgentDefault,
+  accessLevel: requestedAccessLevel,
+  defaultAccessLevel = "ask_for_approval",
   compact = false,
   disabled = false,
   modelOverride,
@@ -500,6 +497,9 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
   interactionConfig,
 }) => {
   const { state, dispatch } = useAppContext();
+  const accessLevel = requestedAccessLevel === "default"
+    ? defaultAccessLevel === "default" ? "ask_for_approval" : defaultAccessLevel
+    : requestedAccessLevel;
   const { t } = useI18n();
   const messageApi = useAppMessage();
   const currentWorker = resolveCurrentWorkerSummary(state);
@@ -622,16 +622,13 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
     };
   }, [agentKey, embeddedModelOptions, shouldShowModelControls, loadAttempt]);
 
-  const accessLabel = followsAgentDefault
-    ? t("composer.query.access.followLabel", { level: t(`composer.query.access.${accessLevel}`) })
-    : t(`composer.query.access.${accessLevel}`);
+  const accessLabel = t(`composer.query.access.${accessLevel}`);
   const accessButtonTitle = compact
     ? `${t("composer.query.access.title")} · ${accessLabel}`
     : t("composer.query.access.title");
   const accessItems = useMemo<MenuProps["items"]>(
     () =>
       [
-      ...(onFollowAgentDefault ? [{key: "agent_default", label: t("composer.query.access.followLabel", {level: t(`composer.query.access.${defaultAccessLevel}`)}), extra: followsAgentDefault ? <MaterialIcon name="check" /> : null}] : []),
       ...ACCESS_LEVELS.map((value) => ({
         key: value,
         className: ACCESS_LEVEL_MENU_OPTION_CLASS,
@@ -648,9 +645,9 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
             </span>
           </span>
         ),
-        extra: !followsAgentDefault && value === accessLevel ? <MaterialIcon name="check" /> : null,
+        extra: value === accessLevel ? <MaterialIcon name="check" /> : null,
       }))],
-    [accessLevel, defaultAccessLevel, followsAgentDefault, onFollowAgentDefault, t],
+    [accessLevel, t],
   );
 
   const modelLabelByKey = useMemo(() => {
@@ -954,8 +951,8 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
         menu={{
           className: presentationClasses("query-settings-menu"),
           items: accessItems,
-          onClick: ({ key }) => key === "agent_default" ? onFollowAgentDefault?.() : onAccessLevelChange(key as QueryAccessLevel),
-          selectedKeys: [followsAgentDefault ? "agent_default" : accessLevel],
+          onClick: ({ key }) => onAccessLevelChange(key as QueryAccessLevel),
+          selectedKeys: [accessLevel],
         }}
         placement="topRight"
         trigger={["click"]}

@@ -50,7 +50,7 @@ describe("Composer model refresh click", () => {
   const button = () => document.querySelector<HTMLButtonElement>('[aria-label="composer.query.model.refresh"]')!;
   async function openMenu() {
     await act(async () => root.render(React.createElement(QuerySettingsControls, {
-      accessLevel: "default", modelOverride: { key: "embedded" }, interactionConfig: interactionDefaults("CODER"),
+      accessLevel: "ask_for_approval", modelOverride: { key: "embedded" }, interactionConfig: interactionDefaults("CODER"),
       onAccessLevelChange: jest.fn(), onModelOverrideChange: jest.fn(),
     })));
     await act(async () => container.querySelector<HTMLButtonElement>('[title="composer.query.model.title"]')!.click());
@@ -97,7 +97,7 @@ describe("Composer model refresh click", () => {
     worker.raw = {mode:"REACT", modelOptions, modelKey:"cutej-model", reasoningEffort:"HIGH", serviceTier:"STANDARD"};
     mockRequest.mockResolvedValue({data:{models:[{key:"cutej-model",name:"Cutej Model"}]}});
     await act(async () => root.render(React.createElement(QuerySettingsControls, {
-      accessLevel:"default", modelOverride:{}, interactionConfig:interactionDefaults("REACT"),
+      accessLevel:"ask_for_approval", modelOverride:{}, interactionConfig:interactionDefaults("REACT"),
       onAccessLevelChange:jest.fn(), onModelOverrideChange:jest.fn(),
     })));
     expect(mockRequest).toHaveBeenCalledWith("/api/model-options", {agentKey:"cutej"});
@@ -111,7 +111,7 @@ describe("Composer model refresh click", () => {
     mockRequest.mockResolvedValue({data: {models: [{key: "saved-model", name: "Saved Model"}], reasoningEfforts: [{key: "HIGH", label: "HIGH"}], defaultModelKey: "stale-model", defaultReasoningEffort: "MEDIUM"}});
     const onChange = jest.fn();
     await act(async () => root.render(React.createElement(QuerySettingsControls, {
-      accessLevel: "default", modelOverride: {}, interactionConfig: interactionDefaults(mode),
+      accessLevel: "ask_for_approval", modelOverride: {}, interactionConfig: interactionDefaults(mode),
       onAccessLevelChange: jest.fn(), onModelOverrideChange: onChange,
     })));
     expect(onChange).toHaveBeenLastCalledWith({key: "saved-model", reasoningEffort: "HIGH"});
@@ -134,7 +134,7 @@ describe("Composer model refresh click", () => {
     if (status === "empty") mockRequest.mockResolvedValue({data:{models:[],reasoningEfforts:[]}});
     else mockRequest.mockRejectedValue(new Error("unavailable"));
     await act(async () => root.render(React.createElement(QuerySettingsControls, {
-      accessLevel:"default", modelOverride:{}, interactionConfig:interactionDefaults("REACT"),
+      accessLevel:"ask_for_approval", modelOverride:{}, interactionConfig:interactionDefaults("REACT"),
       onAccessLevelChange:jest.fn(), onModelOverrideChange:jest.fn(),
     })));
     expect(container.textContent).not.toContain("composer.query.model.loading");

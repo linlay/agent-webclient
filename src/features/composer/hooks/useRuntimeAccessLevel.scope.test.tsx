@@ -37,7 +37,7 @@ it("rolls back the original Chat after navigation, and ignores older requests in
     show("b");
     act(() => { change("auto_approve"); });
     await act(async () => rejections[0]());
-    expect(readComposerAccessLevel(state, address("a"))).toBe("default");
+    expect(readComposerAccessLevel(state, address("a"))).toBe("ask_for_approval");
     expect(readComposerAccessLevel(state, address("b"))).toBe("auto_approve");
     show("a");
     act(() => { change("auto_approve"); });

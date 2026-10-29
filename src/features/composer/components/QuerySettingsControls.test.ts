@@ -38,7 +38,7 @@ jest.mock("@/shared/i18n", () => ({
   useI18n: () => ({
     t: (key: string) => {
       const messages: Record<string, string> = {
-        "composer.query.access.default": "请求批准",
+        "composer.query.access.ask_for_approval": "请求批准",
         "composer.query.access.title": "设置本次运行权限",
         "composer.query.model.default": "默认模型",
         "composer.query.model.empty": "暂无可选模型",
@@ -157,7 +157,7 @@ describe("QuerySettingsControls", () => {
   it("shows the access selector for every agent", () => {
     const html = renderToStaticMarkup(
       React.createElement(QuerySettingsControls, {
-        accessLevel: "default",
+        accessLevel: "ask_for_approval",
         modelOverride: {},
         onAccessLevelChange: jest.fn(),
         onModelOverrideChange: jest.fn(),
@@ -198,7 +198,7 @@ describe("QuerySettingsControls", () => {
     });
     const render = (model: boolean | undefined) => renderToStaticMarkup(
       React.createElement(QuerySettingsControls, {
-        accessLevel: "default",
+        accessLevel: "ask_for_approval",
         modelOverride: {},
         onAccessLevelChange: jest.fn(),
         onModelOverrideChange: jest.fn(),
@@ -221,7 +221,7 @@ describe("QuerySettingsControls", () => {
     const html = renderToStaticMarkup(
       React.createElement(QuerySettingsControls, {
         interactionConfig: interactionDefaults("CODER"),
-        accessLevel: "default",
+        accessLevel: "ask_for_approval",
         modelOverride: {
           key: "gpt-5.4",
           reasoningEffort: "MEDIUM",
@@ -246,7 +246,7 @@ describe("QuerySettingsControls", () => {
 
     const html = renderToStaticMarkup(
       React.createElement(QuerySettingsControls, {
-        accessLevel: "default",
+        accessLevel: "ask_for_approval",
         modelOverride: {},
         onAccessLevelChange: jest.fn(),
         onModelOverrideChange: jest.fn(),
@@ -267,7 +267,7 @@ describe("QuerySettingsControls", () => {
     const html = renderToStaticMarkup(
       React.createElement(QuerySettingsControls, {
         interactionConfig: interactionDefaults("CODER"),
-        accessLevel: "default",
+        accessLevel: "ask_for_approval",
         disabled: true,
         modelOverride: {},
         onAccessLevelChange: jest.fn(),
@@ -668,7 +668,7 @@ describe("QuerySettingsControls", () => {
     const html = renderToStaticMarkup(
       React.createElement(QuerySettingsControls, {
         interactionConfig: interactionDefaults("CODER"),
-        accessLevel: "default",
+        accessLevel: "ask_for_approval",
         modelOverride: { key: "coder-model", reasoningEffort: "NONE" },
         onAccessLevelChange: jest.fn(),
         onModelOverrideChange: jest.fn(),
@@ -1178,7 +1178,7 @@ describe("QuerySettingsControls", () => {
   it.each(["REACT", "CODER", "KBASE"])("honors %s detail flags", (mode) => {
     resolveCurrentWorkerSummary.mockReturnValue({type:"agent", sourceId:"agent", raw:{mode}});
     const html = renderToStaticMarkup(React.createElement(QuerySettingsControls, {
-      interactionConfig: interactionDefaults(mode), accessLevel:"default", modelOverride:{},
+      interactionConfig: interactionDefaults(mode), accessLevel:"ask_for_approval", modelOverride:{},
       onAccessLevelChange:jest.fn(), onModelOverrideChange:jest.fn(),
     }));
     if (mode === "KBASE") {

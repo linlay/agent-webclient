@@ -19,8 +19,8 @@ describe("endpoint payload builders", () => {
     const options = {requestId: "req_interaction", message: "hello", owner: { kind: "agent" as const, agentKey: "demo-agent" }, interactionConfig: {
         model: true, accessLevel: true, connectors: true,
         attachment: { localFiles: true, chatRecords: true, skills: true, kbases: true }
-      }, model: { key: "selected-model" }, accessLevel: "default", references: [...(["selected-skill"] || []).map(id => ({type:"skill",id}))]};
-    expect(buildQueryPayload(options)).toEqual({requestId: "req_interaction", message: "hello", agentKey: "demo-agent", model: { key: "selected-model" }, accessLevel: "default", references: [...(["selected-skill"] || []).map(id => ({type:"skill",id}))]});
+      }, model: { key: "selected-model" }, accessLevel: "ask_for_approval", references: [...(["selected-skill"] || []).map(id => ({type:"skill",id}))]};
+    expect(buildQueryPayload(options)).toEqual({requestId: "req_interaction", message: "hello", agentKey: "demo-agent", model: { key: "selected-model" }, accessLevel: "ask_for_approval", references: [...(["selected-skill"] || []).map(id => ({type:"skill",id}))]});
   });
 
   it("builds the minimal Agent query payload", () => {
@@ -96,7 +96,7 @@ describe("endpoint payload builders", () => {
       btwId: "btw_1",
       message: "side question",
       references: [{ name: "spec.md" }],
-      accessLevel: "default",
+      accessLevel: "ask_for_approval",
     stream: true
     });
     expect(payload).toEqual({
@@ -106,7 +106,7 @@ describe("endpoint payload builders", () => {
       btwId: "btw_1",
       message: "side question",
       references: [{ name: "spec.md" }],
-      accessLevel: "default",
+      accessLevel: "ask_for_approval",
     stream: true
     });
     expect(payload).not.toHaveProperty("agentKey");

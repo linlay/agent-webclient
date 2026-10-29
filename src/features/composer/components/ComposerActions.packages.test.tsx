@@ -36,7 +36,7 @@ test("Actions forwards bulk selection and locked member IDs to the real package 
   const onSelectSkills = jest.fn();
   try {
     act(() => root.render(<ComposerActions
-      accessLevel="default" isFrontendActive={false} isVoiceMode={false} isStreaming={false}
+      accessLevel="ask_for_approval" isFrontendActive={false} isVoiceMode={false} isStreaming={false}
       canCaptureDesktopScreenshot={false} isCapturingDesktopScreenshot={false} modelOverride={{}}
       planningMode={false} canUsePlanningMode={false} editingMode={false} canUseEditingMode={false}
       currentChatId="chat" currentAgentKey="agent" isMainChatRunning={false} selectedSkillIds={["word"]}

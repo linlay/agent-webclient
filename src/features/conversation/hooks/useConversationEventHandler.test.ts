@@ -681,12 +681,12 @@ describe('useConversationEventHandler live chat binding', () => {
       handler!.handleEvent({ type: 'request.query', chatId: 'chat_1', runId: 'run_1', agentKey: 'cutej', accessLevel: 'auto_approve', timestamp: 100 });
       handler!.handleEvent({ type: 'run.start', chatId: 'chat_1', runId: 'run_1', agentKey: 'cutej', timestamp: 101 });
       expect(stateRef.current.runtimeAccessLevelByChatId?.[JSON.stringify([target.scope, target.chatId])]).toBe('auto_approve');
-      expect(readComposerAccessLevel(stateRef.current, target)).toBe('default');
+      expect(readComposerAccessLevel(stateRef.current, target)).toBe('ask_for_approval');
       handler!.handleEvent({ type: 'run.access_level.changed', chatId: 'chat_1', runId: 'run_1', accessLevel: 'full_access', version: 3, timestamp: 102 });
       expect(stateRef.current.runtimeAccessLevelByChatId?.[JSON.stringify([target.scope, target.chatId])]).toBe('full_access');
-      handler!.handleEvent({ type: 'run.access_level.changed', chatId: 'chat_1', runId: 'run_1', accessLevel: 'default', version: 2, timestamp: 103 });
-      handler!.handleEvent({ type: 'run.access_level.changed', chatId: 'chat_1', runId: 'other-run', accessLevel: 'default', version: 4, timestamp: 104 });
-      handler!.handleEvent({ type: 'request.query', chatId: 'chat_1', runId: 'child', taskId: 'task', accessLevel: 'default', timestamp: 105 });
+      handler!.handleEvent({ type: 'run.access_level.changed', chatId: 'chat_1', runId: 'run_1', accessLevel: 'ask_for_approval', version: 2, timestamp: 103 });
+      handler!.handleEvent({ type: 'run.access_level.changed', chatId: 'chat_1', runId: 'other-run', accessLevel: 'ask_for_approval', version: 4, timestamp: 104 });
+      handler!.handleEvent({ type: 'request.query', chatId: 'chat_1', runId: 'child', taskId: 'task', accessLevel: 'ask_for_approval', timestamp: 105 });
       expect(stateRef.current.runtimeAccessLevelByChatId?.[JSON.stringify([target.scope, target.chatId])]).toBe('full_access');
       expect(stateRef.current.currentChatActiveRun).toMatchObject({ accessLevel: 'full_access', accessLevelVersion: 3 });
     } finally {

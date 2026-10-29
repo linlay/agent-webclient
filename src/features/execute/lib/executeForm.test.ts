@@ -1,6 +1,6 @@
 import { buildExecuteRequest, exampleSchema, ExecuteValidationError } from "./executeForm";
 
-const base = { agentKey: "demo", message: "Extract tasks", input: "{}", schema: JSON.stringify(exampleSchema), accessLevel: "default" as const, files: [] };
+const base = { agentKey: "demo", message: "Extract tasks", input: "{}", schema: JSON.stringify(exampleSchema), accessLevel: "ask_for_approval" as const, files: [] };
 function invalid(overrides: Partial<Parameters<typeof buildExecuteRequest>[0]>, field: string) {
   try { buildExecuteRequest({ ...base, ...overrides }); throw new Error("expected validation failure"); }
   catch (e) { expect(e).toBeInstanceOf(ExecuteValidationError); expect((e as ExecuteValidationError).field).toBe(field); }

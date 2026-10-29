@@ -1639,7 +1639,7 @@ describe('replayEvent tool migration', () => {
     const scope = resolveComposerAccessScope(state.accessToken);
     const target = { scope, chatId: 'started-chat', agentKey: '' };
     Object.assign(state, updateComposerAccessLevel(state, { scope, chatId: '', agentKey: 'cutej' }, 'full_access'));
-    if (active) Object.assign(state, updateComposerAccessLevel(state, target, 'default'));
+    if (active) Object.assign(state, updateComposerAccessLevel(state, target, 'ask_for_approval'));
     const { actions, stateRef } = createConversationIntentHarness(state);
     getChat.mockResolvedValue({ data: {
       firstAgentKey: 'cutej',
@@ -1647,7 +1647,7 @@ describe('replayEvent tool migration', () => {
         ...(active ? { activeRun: { runId: 'started-run', agentKey: 'cutej', lastSeq: 1 } } : {})
     } });
     await actions.loadChat('started-chat');
-    expect(readComposerAccessLevel(stateRef.current, target)).toBe('default');
+    expect(readComposerAccessLevel(stateRef.current, target)).toBe('ask_for_approval');
     expect(stateRef.current.runtimeAccessLevelByChatId?.[JSON.stringify([scope, 'started-chat'])]).toBe('auto_approve');
     expect(readComposerAccessLevel(stateRef.current, { scope, chatId: '', agentKey: 'cutej' })).toBe('full_access');
   });
@@ -1655,14 +1655,14 @@ describe('replayEvent tool migration', () => {
   it('preserves an explicit next-Run preference when loading completed Chat history', async () => {
     const state = createInitialState();
     const target = { scope: resolveComposerAccessScope(state.accessToken), chatId: 'completed-chat', agentKey: '' };
-    Object.assign(state, updateComposerAccessLevel(state, target, 'default'));
+    Object.assign(state, updateComposerAccessLevel(state, target, 'ask_for_approval'));
     const { actions, stateRef } = createConversationIntentHarness(state);
     getChat.mockResolvedValue({ data: {
       firstAgentKey: 'cutej',
         events: [{ type: 'request.query', chatId: target.chatId, runId: 'run', accessLevel: 'full_access', timestamp: EPOCH_MS }]
     } });
     await actions.loadChat(target.chatId);
-    expect(readComposerAccessLevel(stateRef.current, target)).toBe('default');
+    expect(readComposerAccessLevel(stateRef.current, target)).toBe('ask_for_approval');
   });
 
   it('attaches from activeRun.lastSeq instead of replayed chat event seq', async () => {

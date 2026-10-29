@@ -317,7 +317,7 @@ export function AutomationFormFields({
             value={form.accessLevel}
             onChange={(value: AutomationFormState["accessLevel"]) => onChange({ accessLevel: value })}
             options={[
-              { value: "default", label: t("automationConsole.accessLevel.default") },
+              { value: "ask_for_approval", label: t("automationConsole.accessLevel.ask_for_approval") },
               { value: "auto_approve", label: t("automationConsole.accessLevel.auto_approve") },
               { value: "full_access", label: t("automationConsole.accessLevel.full_access") },
             ]}

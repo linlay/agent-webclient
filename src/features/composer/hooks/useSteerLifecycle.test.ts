@@ -71,7 +71,7 @@ function mount(sendOverrides: Record<string, unknown> = {}, connectQuery = false
   const Harness = () => {
     send = useComposerSend({
       ...mockContext, state: stateRef.current, mainChatRunning,
-      backgroundCommandText: {}, inputValue: '', attachmentChatId: '', accessLevel: 'default',
+      backgroundCommandText: {}, inputValue: '', attachmentChatId: '', accessLevel: 'ask_for_approval',
       clearComposerAttachments: jest.fn(), closeMention: jest.fn(),
       controlParams: {}, hasUploadingAttachments: false, isAwaitingActive: false, isVoiceMode: false,
       modelOverride: {}, skillReferenceAgentKey: '',

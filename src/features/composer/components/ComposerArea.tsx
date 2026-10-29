@@ -281,11 +281,11 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     dispatch({ type: "SET_COMPOSER_MODEL", target: accessTarget, value });
   }, [dispatch, accessTarget]);
   const rawDefaultAccessLevel = currentWorker?.raw?.defaultAccessLevel;
-  const defaultAccessLevel: QueryAccessLevel = rawDefaultAccessLevel === "auto_approve" || rawDefaultAccessLevel === "full_access" ? rawDefaultAccessLevel : "default";
+  const defaultAccessLevel: QueryAccessLevel = rawDefaultAccessLevel === "auto_approve" || rawDefaultAccessLevel === "full_access" ? rawDefaultAccessLevel : "ask_for_approval";
   const accessOverride = readComposerAccessOverride(state, accessTarget);
   const observedAccessLevel = state.runtimeAccessLevelByChatId?.[composerAccessKey(accessTarget)];
   const activeAccess = state.currentChatActiveRun?.chatId === state.chatId ? state.currentChatActiveRun?.accessLevel : undefined;
-  const normalizedActiveAccess: QueryAccessLevel | undefined = activeAccess === "default" || activeAccess === "auto_approve" || activeAccess === "full_access" ? activeAccess : undefined;
+  const normalizedActiveAccess: QueryAccessLevel | undefined = activeAccess === "ask_for_approval" || activeAccess === "auto_approve" || activeAccess === "full_access" ? activeAccess : undefined;
   const accessLevel: QueryAccessLevel = normalizedActiveAccess ||
     ((isMainChatRunning || Boolean(state.activeAwaiting)) ? observedAccessLevel : undefined) || readComposerAccessLevel(state, accessTarget, defaultAccessLevel);
   const setAccessLevel = useCallback((value: QueryAccessLevel | undefined) => {
@@ -793,7 +793,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     interruptCurrentRun,
   } = useComposerSend({
     attachmentChatId,
-    accessLevel: interactionConfig.accessLevel ? accessOverride : undefined,
+    accessLevel: interactionConfig.accessLevel ? accessOverride ?? "default" : "default",
     backgroundCommandText: {
       rememberPending: t("composer.background.remember.pending"),
       rememberError: t("composer.background.remember.error"),
@@ -1260,9 +1260,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
                 <ComposerActions
                   interactionConfig={interactionConfig}
                   accessLevel={accessLevel}
-                  followsAgentDefault={accessOverride === undefined}
                   defaultAccessLevel={defaultAccessLevel}
-                  onFollowAgentDefault={() => { void handleAccessLevelChange(defaultAccessLevel).then(ok => { if (ok) setAccessLevel(undefined); }); }}
                   isFrontendActive={isFrontendActive}
                   isVoiceMode={isVoiceMode}
                   isStreaming={isMainChatRunning}

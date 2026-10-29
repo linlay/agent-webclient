@@ -531,9 +531,9 @@ export const AgentEditor: React.FC<AgentEditorProps> = (props) => {
           <Select id="agent-default-access-level" value={form.defaultAccessLevel || "inherit"}
             options={[
               { value: "inherit", label: t("agents.access.platformDefault") },
-              ...(["default", "auto_approve", "full_access"] as const).map(value => ({value, label: t(`composer.query.access.${value}`)})),
+              ...(["ask_for_approval", "auto_approve", "full_access"] as const).map(value => ({value, label: t(`composer.query.access.${value}`)})),
             ]}
-            onChange={value => updateForm({ defaultAccessLevel: value === "default" || value === "auto_approve" || value === "full_access" ? value : undefined })} />
+            onChange={value => updateForm({ defaultAccessLevel: value === "ask_for_approval" || value === "auto_approve" || value === "full_access" ? value : undefined })} />
           <p className="tw:text-xs tw:text-text-muted">{t("agents.access.hint")}</p>
         </div>
         <div className="field-group">

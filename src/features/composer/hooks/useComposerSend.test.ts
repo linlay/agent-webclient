@@ -641,7 +641,7 @@ describe('useComposerSend active run gate', () => {
 
     const Harness = () => {
       actions = useComposerSend({
-        accessLevel: 'default',
+        accessLevel: 'ask_for_approval',
         attachmentChatId: '',
         backgroundCommandText: {
           rememberPending: '',
@@ -751,7 +751,7 @@ describe('useComposerSend active run gate', () => {
 
     const Harness = () => {
       actions = useComposerSend({
-        accessLevel: 'default',
+        accessLevel: 'ask_for_approval',
         attachmentChatId: '',
         backgroundCommandText: {
           rememberPending: '',
@@ -854,7 +854,7 @@ describe('useComposerSend active run gate', () => {
 
     const Harness = () => {
       actions = useComposerSend({
-        accessLevel: 'default',
+        accessLevel: 'ask_for_approval',
         attachmentChatId: '',
         backgroundCommandText: {
           rememberPending: '',

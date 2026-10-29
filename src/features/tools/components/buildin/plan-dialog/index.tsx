@@ -43,7 +43,7 @@ export const PlanDialog: React.FC<PlanDialogProps> = ({
     if (!app || !data.agentKey) return;
     invalidateAgentDetail(data.agentKey);
     const response = await getAgent(data.agentKey);
-    if (response.data) setExecutionAccessLevel(response.data.defaultAccessLevel || "default");
+    if (response.data) setExecutionAccessLevel(response.data.defaultAccessLevel || "ask_for_approval");
   }, [Boolean(app), data.agentKey]);
   useEffect(() => { void refreshExecutionAccess().catch(() => {}); }, [refreshExecutionAccess, data.awaitingId]);
   const message = useAppMessage();

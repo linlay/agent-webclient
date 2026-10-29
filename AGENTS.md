@@ -239,4 +239,4 @@ Agent 管理表单支持 `interactionConfig.showPlanningMode/showEditingMode/sho
 Mailbox 位于 `features/mailbox`，侧栏菜单打开按收件 Agent、类型与状态过滤的收件箱，使用 `/api/mails` 与 `/api/mails/action`。仅 suspended 的 letter/reply 提供人工重投或丢弃，确认界面显示消费证据与冻结权限。`mail.updated` 刷新收件箱；实时与历史 request.query/request.steer 通过结构化 mailId/mailKind 显示类型、发件会话与结果，普通 wait 支持 reason=mail。
 
 
-Agent 默认权限由 `accessConfig.default` 持久化，使用目录返回 `defaultAccessLevel`。Composer 跟随默认时省略 accessLevel，显式 default 仍发送；运行档位回传只进入 runtimeAccessLevelByChatId，不写显式偏好。v2 偏好不恢复旧 v1，切档不保存 Agent 配置。编辑器清除默认与重置 interactionConfig 独立。
+Agent 默认权限由 `accessConfig.default` 持久化，使用目录返回 `defaultAccessLevel`。Composer 未显式选择时发送 default（后台默认选择器），界面只显示三个具体权限，不显示跟随默认；明确请求审批发送 ask_for_approval；运行档位回传只进入 runtimeAccessLevelByChatId，不写显式偏好。v3 偏好读取 v2 时将旧显式 default 映射为 ask_for_approval，不恢复旧 v1，切档不保存 Agent 配置。编辑器清除默认与重置 interactionConfig 独立。

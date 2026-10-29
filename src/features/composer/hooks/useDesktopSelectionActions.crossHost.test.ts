@@ -190,7 +190,7 @@ it("adds browser side questions to the existing real BTW draft without transfer,
   await act(async () => { expect(await h.actions.handleAction({ action: "ask-in-side-chat", fragment })).toEqual({ ok: true }); });
   expect(h.btw!.sessions.size).toBe(1);
   expect(h.btw!.getSession("chat-a")).toMatchObject({ draft: "unfinished question",
-    draftSelections: [previousFragment, fragment], config: { model, accessLevel: "default" } });
+    draftSelections: [previousFragment, fragment], config: { model, accessLevel: "ask_for_approval" } });
   expect(h.btw!.getSession("chat-a")!.focusToken).toBeGreaterThan(oldFocusToken);
   expect(mockDispatch).toHaveBeenLastCalledWith({ type: "OPEN_RIGHT_SIDEBAR", tab: "btw" });
   expect(mockOpenTarget).not.toHaveBeenCalled();
@@ -246,7 +246,7 @@ it.each(["MacIntel", "Win32"])("Desktop %s starts explanation once on its dedica
   expect(mockStartBtw).toHaveBeenCalledTimes(1);
   expect(mockStartBtw).toHaveBeenCalledWith(expect.objectContaining({
     requestId: "selection_explain-1", chatId: "chat-a", transportPurpose: "selection-explain",
-    message: "selection.explain.prompt", accessLevel: "default", model, references: [{ ...fragment.reference, annotationIndex: 1 }], stream: true,
+    message: "selection.explain.prompt", accessLevel: "ask_for_approval", model, references: [{ ...fragment.reference, annotationIndex: 1 }], stream: true,
     owner: { kind: "agent", agentKey: "agent-a" },
   }));
   await act(async () => { run.identity.resolve(identity("run-host", "canonical-chat")); await action; });

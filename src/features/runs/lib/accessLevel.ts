@@ -10,7 +10,8 @@ export interface RunAccessLevelSnapshot {
 }
 
 function readAccessLevel(value: unknown): QueryAccessLevel | undefined {
-  return value === "default" || value === "auto_approve" || value === "full_access"
+  if (value === "default") return "ask_for_approval"; // Legacy frozen event, never an Agent default lookup.
+  return value === "ask_for_approval" || value === "auto_approve" || value === "full_access"
     ? value : undefined;
 }
 

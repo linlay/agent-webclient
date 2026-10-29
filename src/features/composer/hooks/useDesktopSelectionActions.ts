@@ -61,7 +61,7 @@ export function useDesktopSelectionActions(input: {
 
     if (action === "ask-in-side-chat") {
       if (!desktopMode) {
-        if (!btw?.openBTW({ parentChatId: chatId, model, accessLevel: "default" })) {
+        if (!btw?.openBTW({ parentChatId: chatId, model, accessLevel: "ask_for_approval" })) {
           void messageApi.error(t("selection.action.failed"));
           return { ok: false, code: "surface_not_ready" as const };
         }
@@ -113,7 +113,7 @@ export function useDesktopSelectionActions(input: {
         requestId,
         chatId,
         message: t("selection.explain.prompt"),
-        accessLevel: "default",
+        accessLevel: "ask_for_approval",
         model,
         references: [{ ...fragment.reference, annotationIndex: 1 }],
         stream: true,

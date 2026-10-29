@@ -14,7 +14,7 @@ export interface ComposerAccessTarget {
   agentKey: string;
 }
 
-const STORAGE_KEY = "agent-webclient.composer-access.v2";
+const STORAGE_KEY = "agent-webclient.composer-access.v3";
 
 // An opaque credential identifies standalone sessions without persisting the credential.
 function credentialFingerprint(value: string): string {
@@ -45,7 +45,7 @@ export function readComposerAccessOverride(state: ComposerAccessState, target: C
   return values?.[composerAccessKey(target)];
 }
 
-export function readComposerAccessLevel(state: ComposerAccessState, target: ComposerAccessTarget, defaultLevel: QueryAccessLevel = "default"): QueryAccessLevel {
+export function readComposerAccessLevel(state: ComposerAccessState, target: ComposerAccessTarget, defaultLevel: QueryAccessLevel = "ask_for_approval"): QueryAccessLevel {
   return readComposerAccessOverride(state, target) ?? defaultLevel;
 }
 
@@ -65,19 +65,21 @@ export function updateComposerAccessLevel(
   return { ...state, [field]: values };
 }
 
-function normalizeValues(value: unknown): Record<string, QueryAccessLevel> {
+function normalizeValues(value: unknown, legacy = false): Record<string, QueryAccessLevel> {
   if (!value || typeof value !== "object" || Array.isArray(value)) return {};
-  return Object.fromEntries(Object.entries(value).filter(([, level]) =>
-    level === "default" || level === "auto_approve" || level === "full_access",
+  return Object.fromEntries(Object.entries(value).map(([key, level]) => [key, legacy && level === "default" ? "ask_for_approval" : level]).filter(([, level]) =>
+    level === "ask_for_approval" || level === "auto_approve" || level === "full_access",
   ));
 }
 
 export function restoreComposerAccessLevels(): ComposerAccessState {
   try {
-    const value = JSON.parse(window.sessionStorage.getItem(STORAGE_KEY) || "{}");
+    const stored = window.sessionStorage.getItem(STORAGE_KEY);
+    const value = JSON.parse(stored ?? window.sessionStorage.getItem("agent-webclient.composer-access.v2") ?? "{}");
+    const legacy = stored === null;
     return {
-      accessLevelByChatId: normalizeValues(value?.accessLevelByChatId),
-      newChatAccessLevelByAgentKey: normalizeValues(value?.newChatAccessLevelByAgentKey),
+      accessLevelByChatId: normalizeValues(value?.accessLevelByChatId, legacy),
+      newChatAccessLevelByAgentKey: normalizeValues(value?.newChatAccessLevelByAgentKey, legacy),
     };
   } catch {
     return { accessLevelByChatId: {}, newChatAccessLevelByAgentKey: {} };

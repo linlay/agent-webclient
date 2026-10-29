@@ -26,7 +26,7 @@ export interface BTWInterruptResponse {
   detail: string;
 }
 
-export type QueryAccessLevel = "default" | "auto_approve" | "full_access";
+export type QueryAccessLevel = "default" | "ask_for_approval" | "auto_approve" | "full_access";
 
 export interface AccessLevelUpdateParams {
   requestId: string;

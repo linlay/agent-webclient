@@ -13,6 +13,7 @@ import { interactionDefaults } from "@/shared/contracts/interaction";
 import { updateAgentModelConfig } from "@/shared/data";
 
 let mockModelAllowed = true;
+let mockAccessMenu: any;
 let mockContext: { state: AppState; dispatch: React.Dispatch<AppAction> };
 jest.mock("@/app/state/AppContext", () => ({ useAppContext: () => mockContext }));
 jest.mock("@/features/workers/lib/currentWorker", () => ({ resolveCurrentWorkerSummary: () => ({
@@ -27,19 +28,19 @@ jest.mock("@/shared/data", () => ({
 }));
 jest.mock("antd", () => {
   const React = jest.requireActual("react");
-  return { ...jest.requireActual("antd"), Dropdown: ({ menu, children }: any) => React.createElement("div", null, children,
+  return { ...jest.requireActual("antd"), Dropdown: ({ menu, children }: any) => { if (menu.selectedKeys) mockAccessMenu = menu; return React.createElement("div", null, children,
     !menu.selectedKeys && React.createElement("button", { "data-test": "model", onClick: () => menu.onClick({key:"model:new-model"}) }, "select model"),
-    !menu.selectedKeys && React.createElement("button", { "data-test": "reasoning", onClick: () => menu.onClick({key:"reasoning:HIGH"}) }, "select reasoning")) };
+    !menu.selectedKeys && React.createElement("button", { "data-test": "reasoning", onClick: () => menu.onClick({key:"reasoning:HIGH"}) }, "select reasoning")); } };
 });
 
-function Harness() {
+function Harness({ access = "ask_for_approval", defaultLevel = "ask_for_approval" }: { access?: import("@/shared/data").QueryAccessLevel; defaultLevel?: import("@/shared/data").QueryAccessLevel } = {}) {
   const [state, dispatch] = useReducer(appReducer, undefined, () => ({ ...createInitialState(),
     agents: [{ key: "agent", name: "Agent", mode: "GENERAL", modelKey: "old-model", reasoningEffort: "LOW" as const }],
   }));
   mockContext = { state, dispatch };
   const target = useMemo(() => ({ scope: resolveComposerAccessScope(state.accessToken), chatId: state.chatId, agentKey: "agent" }), [state.chatId, state.accessToken]);
   const onChange = useCallback((value: QueryModelOverride) => dispatch({ type: "SET_COMPOSER_MODEL", target, value }), [target]);
-  return <QuerySettingsControls accessLevel="default" modelOverride={readComposerModel(state, target)}
+  return <QuerySettingsControls accessLevel={access} defaultAccessLevel={defaultLevel} modelOverride={readComposerModel(state, target)}
     onAccessLevelChange={() => {}} onModelOverrideChange={onChange} interactionConfig={{...interactionDefaults("GENERAL"), model: mockModelAllowed}} />;
 }
 let container: HTMLDivElement;
@@ -95,4 +96,13 @@ it("keeps the Chat preference while model capability is temporarily unavailable"
   expect(container.textContent).toContain("Old Model");
   expect(container.textContent).toContain("composer.query.reasoning.HIGH");
   expect(updateAgentModelConfig).not.toHaveBeenCalled();
+});
+
+ it("shows only three concrete choices while resolving the invisible default from backend metadata", async () => {
+  await act(async () => root.render(<Harness access="default" defaultLevel="full_access" />));
+  expect(mockAccessMenu.items.map((item: any) => item.key)).toEqual(["ask_for_approval", "auto_approve", "full_access"]);
+  expect(mockAccessMenu.selectedKeys).toEqual(["full_access"]);
+  expect(container.textContent).toContain("composer.query.access.full_access");
+  expect(container.textContent).not.toContain("followLabel");
+  expect(container.textContent).not.toContain("agent_default");
 });

@@ -33,14 +33,14 @@ const form: AutomationFormState = {
 
 describe("automationForm", () => {
   it("defaults legacy tasks and preserves saved permission levels through editing", () => {
-    expect(createInitialAutomationForm(null).accessLevel).toBe("default");
+    expect(createInitialAutomationForm(null).accessLevel).toBe("ask_for_approval");
     const detail = {
       id: "daily", name: "Daily", cron: "0 9 * * *", agentKey: "agent-a", enabled: true,
       executionHistory: { available: true, state: "ready" as const },
     query: { message: "Run task" }
     };
-    expect(automationFormFromDetail(detail).accessLevel).toBe("default");
-    for (const level of ["default", "auto_approve", "full_access"] as const) {
+    expect(automationFormFromDetail(detail).accessLevel).toBe("ask_for_approval");
+    for (const level of ["ask_for_approval", "auto_approve", "full_access"] as const) {
       const draft = automationFormFromDetail({ ...detail, query: { ...detail.query, accessLevel: level } });
       expect(draft.accessLevel).toBe(level);
       expect(buildUpdateAutomationPayloadForSubmit(draft).query?.accessLevel).toBe(level);

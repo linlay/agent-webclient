@@ -16,7 +16,7 @@ test("bundled samples contain structured records and valid complete requests", (
     expect(buildExecuteRequest({
       agentKey: "taskExtractor.demo", message: request.message,
       input: JSON.stringify(request.input), schema: JSON.stringify(request.outputSchema),
-      accessLevel: "default", files: [],
+      accessLevel: "ask_for_approval", files: [],
     })).toMatchObject(request);
   }
   const records = input("meeting");

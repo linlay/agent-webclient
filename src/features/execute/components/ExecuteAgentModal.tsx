@@ -9,7 +9,7 @@ import { getExecuteExamples } from "../lib/executeExamples";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import styles from "./ExecuteAgentModal.module.css";
 
-export function ExecuteAgentModal({ agentKey, agentName, onClose }: { agentKey: string; agentName?: string; onClose: () => void }) {
+export function ExecuteAgentModal({ agentKey, agentName, defaultAccessLevel = "ask_for_approval", onClose }: { agentKey: string; agentName?: string; defaultAccessLevel?: Exclude<ExecuteRequest["accessLevel"], "default">; onClose: () => void }) {
   const { t, locale } = useI18n();
   const examples = getExecuteExamples(t);
   const [exampleId, setExampleId] = useState<string>();
@@ -132,8 +132,8 @@ export function ExecuteAgentModal({ agentKey, agentName, onClose }: { agentKey: 
                 <Button size="small" disabled={running} onClick={() => setFiles([])}>{t("execute.clearFiles")}</Button>
               </div>}
               <label className={styles.field}><span>{t("execute.access")}</span>
-                <Select size="small" value={accessLevel} disabled={running} onChange={setAccessLevel} options={[
-                  { value: "default", label: t("execute.access.default") },
+                <Select size="small" value={accessLevel === "default" ? defaultAccessLevel : accessLevel} disabled={running} onChange={setAccessLevel} options={[
+                  { value: "ask_for_approval", label: t("execute.access.ask_for_approval") },
                   { value: "auto_approve", label: t("execute.access.auto") },
                   { value: "full_access", label: t("execute.access.full") },
                 ]} />

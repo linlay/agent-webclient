@@ -41,7 +41,7 @@ export interface AgentDetailResponse {
   modelKey?: string;
   reasoningEffort?: QueryReasoningEffort;
   serviceTier?: QueryServiceTier;
-  defaultAccessLevel?: "default" | "auto_approve" | "full_access";
+  defaultAccessLevel?: "ask_for_approval" | "auto_approve" | "full_access";
   interactionConfig?: import("@/shared/contracts/interaction").InteractionConfig;
   key: string;
   name: string;

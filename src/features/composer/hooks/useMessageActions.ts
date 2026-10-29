@@ -223,7 +223,7 @@ export function resolveDifferentChatDetachRunDetail(input: {
 function normalizeQueryAccessLevel(
   value: unknown,
 ): QueryAccessLevel | undefined {
-  return value === "default" ||
+  return value === "default" || value === "ask_for_approval" ||
     value === "auto_approve" ||
     value === "full_access"
     ? value
