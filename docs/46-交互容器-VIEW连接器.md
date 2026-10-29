@@ -38,9 +38,11 @@ display 文档在 head 最前注入宿主适配脚本 `window.viewHost`（不属
 
 ## HITL
 
-表单独立于 renderer：`mode: form` 可使用 HTML 或 QLC。宿主发送 `awaiting_init/awaiting_update`（含 `runId/awaitingId`、单个 `form: {title?,data}` 和 view；不发送 `form.id`、`activeFormId` 或 forms 数组）。用户点击同意后发送 `awaiting_collect`，模板响应 `frontend_awaiting_submit`，params 使用原 `{id,decision:"approve",form:{...}}`。
+表单独立于 renderer：`mode: form` 可使用 HTML 或 QLC。宿主发送 `awaiting_init/awaiting_update`（含 `runId/awaitingId`、单个 `form: {title?,data}` 和 view；不发送 `form.id`、`activeFormId` 或 forms 数组）。用户点击同意或拒绝后发送 `awaiting_collect`（`decision: submit | reject`），模板响应 `frontend_awaiting_submit`，`param` 为 `{decision:"approve"|"reject", data}`；数据不完整时可回复 `frontend_awaiting_invalid`，宿主提示后保留表单。form 用途不注入 viewHost，模板直接处理上述消息。
 
-只接受当前 iframe、宿主正在收集且 id 属于当前表单的响应。宿主固定路由，通过原 `/api/submit` 提交；拒绝直接由宿主完成，模板不能自行批准。加载失败不转成默认批准。
+连接器 CLI 拦截审阅也走这套协议：Agent 直接调用 `view.json` 中 `intercept: true` 的命令时，`form.data` 为 `{action, params}`，模板回复 `data: {params}`，平台校验后按模板重建命令执行。form 用途的快照不含 queries 和 actions，模板不能自行写入。契约见 Platform 的 `docs/VIEW连接器.md#cli-拦截审阅`。
+
+只接受当前 iframe、宿主正在收集且 id 属于当前表单的响应。宿主固定路由，通过原 `/api/submit` 提交；拒绝同样先向模板收集当前数据，模板未响应或视图加载失败时宿主直接提交不带数据的拒绝，模板不能自行批准。加载失败不转成默认批准。
 
 Team 外层仍使用汇总 HITL，成员 VIEW 位于 `forms[i].form.view`。宿主为当前成员创建隔离的 frame 数据，只向它发送自己的 forms；收集结果包装到外层对应的 `form.params`，保留其他成员路由。
 
