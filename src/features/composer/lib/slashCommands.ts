@@ -148,7 +148,7 @@ export const SLASH_COMMANDS: SlashCommandDefinition[] = [
     command: '/detail',
     labelKey: 'slash.command.detail.label',
     descriptionKey: 'slash.command.detail.description',
-    keywords: ['detail', 'full', 'summary', 'none', 'announce', 'events'],
+    keywords: ['detail', 'full', 'summary', 'announce', 'events'],
   },
   {
     id: 'plan',
@@ -316,9 +316,9 @@ export function isSlashCommandDisabled(
 
 export type DetailSlashAction = "chooser" | EventDetailLevel;
 
-/** `/detail` opens the chooser; `/detail full|summary|none` applies directly. */
+/** `/detail` opens the chooser; `/detail full|summary` applies directly. */
 export function parseDetailSlashInput(input: string): DetailSlashAction | null {
-  const match = String(input || "").match(/^\/detail(?:\s+(full|summary|none))?\s*$/i);
+  const match = String(input || "").match(/^\/detail(?:\s+(full|summary))?\s*$/i);
   if (!match) return null;
   return match[1] ? match[1].toLowerCase() as EventDetailLevel : "chooser";
 }

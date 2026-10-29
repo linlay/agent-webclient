@@ -44,7 +44,7 @@ interface WsRequestFrame {
 	frame: "request";
 	type: string;
 	id: string;
-	detail?: "summary" | "full" | "none";
+	detail?: "summary" | "full";
 	payload?: unknown;
 }
 

@@ -234,6 +234,6 @@ Agent 管理表单支持 `interactionConfig.showPlanningMode/showEditingMode/sho
 
 当前语音统一开关 isVoiceEnabled() 固定关闭；宿主 VOICE_ENABLED 不改变入口，useVoiceRuntime 跳过初始化和事件监听。保留语音实现，测试通过显式输入或模块注入验证启用路径。
 
-过程展示由 Platform 解析的 interactionConfig.defaultDetail 决定（agent.yml 覆盖 agent-settings.yml mode 配置，兜底 summary）；WebClient 普通 query/attach/chat 不发送 detail，不读取旧全局 detail 偏好。历史 /api/chat.display 与下发 run.start.display 区分 defaultDetail/effectiveDetail，Desktop full 订阅按 defaultDetail 展示；Agent 管理表单只保存显式覆盖，删除 defaultDetail 恢复继承。详见界面基础专题。
+过程展示只使用 summary/full（不兼容旧 none）；summary 的进度只保留模型公示及清除，隐藏自动思考、工具等一句话进度，full 展示完整过程。Agent 编辑页提供继承模式配置、详细、精简，详细与精简各带内容说明。默认值由 Platform 解析的 interactionConfig.defaultDetail 决定（agent.yml 覆盖 agent-settings.yml mode 配置，兜底 summary）；WebClient 普通 query/attach/chat 不发送 detail，不读取旧全局 detail 偏好。历史 /api/chat.display 与下发 run.start.display 区分 defaultDetail/effectiveDetail，页面按 effectiveDetail 展示；Agent 管理表单只保存显式覆盖，删除 defaultDetail 恢复继承。详见界面基础专题。
 
 Mailbox 位于 `features/mailbox`，侧栏菜单打开按收件 Agent、类型与状态过滤的收件箱，使用 `/api/mails` 与 `/api/mails/action`。仅 suspended 的 letter/reply 提供人工重投或丢弃，确认界面显示消费证据与冻结权限。`mail.updated` 刷新收件箱；实时与历史 request.query/request.steer 通过结构化 mailId/mailKind 显示类型、发件会话与结果，普通 wait 支持 reason=mail。

@@ -157,8 +157,8 @@ it("preserves the dwell deadline during StrictMode effect replay", () => {
   advance(1); expect(progress()).toBe("B");
 });
 
-it("shows the progress line at the none level too", () => {
-  options = {...options, detailLevel: "none"};
+it("shows the model announcement in summary", () => {
+  options = {...options, detailLevel: "summary"};
   render([activity("接下来检查配置加载顺序")]);
   expect(progress()).toBe("接下来检查配置加载顺序");
 });

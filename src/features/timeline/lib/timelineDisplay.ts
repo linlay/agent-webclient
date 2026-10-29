@@ -81,7 +81,7 @@ function normalizeToolGroupValue(value: unknown): string {
 
 /**
  * The nodes a viewer sees at its detail level. summary hides reasoning, tool
- * calls and the retry notice and shows the progress activity line; full shows
+ * calls and the retry notice and shows the announcement line; full shows
  * the details and hides that line. Desktop always receives full events, so
  * this also applies the level there.
  */

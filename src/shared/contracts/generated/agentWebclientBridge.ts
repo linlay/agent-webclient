@@ -1,6 +1,6 @@
 // Generated from src/shared/contracts/agent-webclient-bridge.ts.
 // Do not edit this mirror directly.
-// sha256:fe4cefccad7d8e569e4f32e307a8e3252a471086e3e20f18b8e49f9045d92a50
+// sha256:b704e1339a45c1ff045715d48c79b1eae7d64ec3389a534b00e443d2dedac531
 
 /**
  * Canonical Desktop <-> Agent WebClient bridge contract.
@@ -323,7 +323,7 @@ export type AgentPlatformRequestFrame = {
   /** Platform event detail level of /api/query, /api/attach and /api/chat.
    * Omitted follows the Agent's default; Desktop sets it only for its own
    * main-process Runs that read tool events (the image studio asks for full). */
-  detail?: "summary" | "full" | "none";
+  detail?: "summary" | "full";
   payload?: unknown;
 };
 

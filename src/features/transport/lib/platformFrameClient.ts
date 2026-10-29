@@ -24,7 +24,7 @@ export type PlatformRequestOptions = {
   payload?: unknown;
   signal?: AbortSignal;
   /** Frame-level delivery level; omitted follows the Agent default. */
-  detail?: "summary" | "full" | "none";
+  detail?: "summary" | "full";
 };
 
 export type PlatformStreamOptions = {

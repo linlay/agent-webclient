@@ -20,8 +20,6 @@ it("uses the selected Agent default and never infers detail from mode", () => {
 it("uses loaded Chat metadata before Agent hydration, rendering what was delivered", () => {
   const state = {...initialState, chatId:"old", chats:[{chatId:"old", agentKey:"deleted", display:{defaultDetail:"summary" as const, effectiveDetail:"summary" as const}}], agents:[]};
   expect(chatDetailLevel(state)).toBe("summary");
-  const quiet = {...state, chats:[{...state.chats[0], display:{defaultDetail:"none" as const, effectiveDetail:"none" as const}}]};
-  expect(chatDetailLevel(quiet)).toBe("none");
   const detailed = {...state, chats:[{...state.chats[0], display:{defaultDetail:"full" as const, effectiveDetail:"full" as const}}]};
   expect(chatDetailLevel(detailed)).toBe("full");
   const refreshed = appReducer(detailed, {type:"SET_CHATS", chats:[{chatId:"old", agentKey:"deleted"}]});

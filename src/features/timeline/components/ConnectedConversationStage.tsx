@@ -803,8 +803,8 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
     () => hasDisplayableTimelineItem(displayItems),
     [displayItems],
   );
-  // Query 行只是会话上下文，不算可展示输出；只有它时仍用进度行过渡。
-  const showActivityPlaceholder = conversationRunning && !hasDisplayableNode;
+  // Only full may synthesize a thinking placeholder; summary waits for a model announcement.
+  const showActivityPlaceholder = detailLevel === "full" && conversationRunning && !hasDisplayableNode;
   // Keep one component identity while the copy rotates: a new type each render
   // would remount the placeholder and restart its rotation on every stream tick.
   const stageFooter = useMemo(() => {

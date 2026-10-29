@@ -126,7 +126,8 @@ describe('slashCommands', () => {
   it('parses /detail as the chooser or a direct level', () => {
     expect(parseDetailSlashInput('/detail')).toBe('chooser');
     expect(parseDetailSlashInput('/detail FULL')).toBe('full');
-    expect(parseDetailSlashInput('/detail none ')).toBe('none');
+    expect(parseDetailSlashInput('/detail summary ')).toBe('summary');
+    expect(parseDetailSlashInput('/detail none ')).toBeNull();
     expect(parseDetailSlashInput('/detail verbose')).toBeNull();
     expect(parseDetailSlashInput('/details')).toBeNull();
   });
