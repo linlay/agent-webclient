@@ -2,18 +2,18 @@ import React from "react";
 import type { TimelineAttachment } from "@/features/timeline/lib/timelineState";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import type { MaterialIconName } from "@/shared/ui/MaterialIcon";
-import { SkillIcon } from "@/features/skills/components/SkillIcon";
 import { useI18n } from "@/shared/i18n";
-import { useOpenTarget } from "@/features/surfaces/hooks/useOpenTarget";
+import type { OpenTargetIntent } from "@/features/surfaces/lib/openTarget";
 import styles from "./ReferenceCard.module.css";
 
 interface ReferenceCardProps {
   reference: TimelineAttachment;
   variant: "composer" | "timeline";
   density?: "default" | "compact";
-  /** Skill 引用的自有头像地址；仅在 type 为 skill 时生效，缺省回退通用技能图标。 */
-  skillIcon?: string;
+  /** Host-rendered authenticated skill avatar; absent in read-only exports. */
+  skillIcon?: React.ReactNode;
   onRemove?: () => void;
+  openTarget?: (target: OpenTargetIntent) => void;
 }
 
 function referenceIcon(type: string): MaterialIconName {
@@ -33,17 +33,16 @@ export const ReferenceCard: React.FC<ReferenceCardProps> = ({
   density = "default",
   skillIcon,
   onRemove,
+  openTarget,
 }) => {
   const { t } = useI18n();
-  const openTarget = useOpenTarget();
   const type = reference.type || "site";
   const subtitle =
     type === "chat"
       ? t("composer.reference.kind.chat")
       : type === "skill" ? t("agents.interaction.skills") : type === "kbase" ? t("kbase.title") : t("composer.reference.kind.site");
-  const avatarIcon = String(skillIcon || "").trim();
   const skillId = type === "skill" ? String(reference.id || "").trim() : "";
-  const canOpenSkill = Boolean(skillId);
+  const canOpenSkill = Boolean(skillId && openTarget);
   const semanticClasses = [
     "context-reference-card",
     `context-reference-card-${variant}`,
@@ -54,7 +53,7 @@ export const ReferenceCard: React.FC<ReferenceCardProps> = ({
   const classes = withModuleClasses(...semanticClasses);
 
   const handleOpenSkill = () => {
-    if (!canOpenSkill) return;
+    if (!canOpenSkill || !openTarget) return;
     openTarget({
       version: 1,
       kind: "skill",
@@ -84,7 +83,7 @@ export const ReferenceCard: React.FC<ReferenceCardProps> = ({
     >
       <span className={withModuleClasses("context-reference-card-icon")} aria-hidden="true">
         {type === "skill" ? (
-          <SkillIcon icon={avatarIcon} size={34} glyphSize={19} fallback="build" />
+          skillIcon ?? <MaterialIcon name="build" style={{ width: 34, height: 34, fontSize: 19 }} />
         ) : (
           <MaterialIcon name={referenceIcon(type)} />
         )}

@@ -1,4 +1,5 @@
-import { useEffect, useId, useRef, useState } from "react";
+import { useContext, useEffect, useId, useRef, useState } from "react";
+import { ConfigProvider } from "antd";
 import type { CSSProperties, PointerEvent as ReactPointerEvent } from "react";
 import { BusyInk } from "../BusyInk";
 import { MaterialIcon } from "../MaterialIcon";
@@ -94,11 +95,22 @@ function getMermaidTheme(): "default" | "dark" {
   return document.documentElement.dataset.theme === "dark" ? "dark" : "default";
 }
 
+// Only call on Mermaid's strict, sanitized SVG output. Keep the host's style
+// policy without granting a nonce to arbitrary Markdown or changing CSP.
+export function mermaidSvgWithStyleNonce(svg: string, nonce?: string): string {
+  if (!nonce) return svg;
+  const parsed = new DOMParser().parseFromString(svg, "image/svg+xml");
+  for (const style of parsed.querySelectorAll("style")) style.setAttribute("nonce", nonce);
+  return new XMLSerializer().serializeToString(parsed.documentElement);
+}
+
 export const MarkdownMermaid: React.FC<{
   code: string;
   streamStatus?: "loading" | "done";
 }> = ({ code, streamStatus }) => {
   const { t } = useI18n();
+  const { csp } = useContext(ConfigProvider.ConfigContext);
+  const styleNonce = csp?.nonce;
   const reactId = useId();
   const renderBaseId = useRef(
     `markdown-mermaid-${reactId.replace(/[^a-zA-Z0-9_-]/g, "")}`,
@@ -206,7 +218,7 @@ export const MarkdownMermaid: React.FC<{
 
     // 指纹没变却重跑，说明只是 streamStatus 之类的无关依赖在抖（流结束那一下、
     // 英文文案 `t` 换引用等）：直接复用已画好的图，不闪回墨流、也不重复 render。
-    const renderKey = `${theme}\u0000${source}`;
+    const renderKey = `${theme}\u0000${styleNonce ?? ""}\u0000${source}`;
     if (renderedKeyRef.current === renderKey && lastReadyState.current) {
       setState(lastReadyState.current);
       return;
@@ -231,6 +243,7 @@ export const MarkdownMermaid: React.FC<{
           if (!parseResult) {
             throw new Error(t("mermaid.status.parseFailed"));
           }
+          if (disposed) return;
 
           renderCount.current += 1;
           const result = await mermaid.render(
@@ -241,7 +254,7 @@ export const MarkdownMermaid: React.FC<{
           if (!disposed) {
             const readyState: ReadyRenderState = {
               status: "ready",
-              svg: result.svg,
+              svg: mermaidSvgWithStyleNonce(result.svg, styleNonce),
             };
             lastReadyState.current = readyState;
             renderedKeyRef.current = renderKey;
@@ -268,7 +281,7 @@ export const MarkdownMermaid: React.FC<{
       disposed = true;
       window.clearTimeout(renderTimer);
     };
-  }, [code, streamStatus, theme, t]);
+  }, [code, streamStatus, styleNonce, theme, t]);
 
   const visibleState = getVisibleMermaidRenderState(
     state,

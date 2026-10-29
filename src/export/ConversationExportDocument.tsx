@@ -11,6 +11,8 @@ import { snapshotV1PreviewData } from "./conversationSnapshotV1";
 import type { PublicShareBrand } from "./publicShareBrand";
 import { PublicShareAppEntry } from "./PublicShareAppEntry";
 import { buildShareAttachmentLinks, conversationSharePath } from "./shareAttachmentLinks";
+import { canonicalChatSourceRef, shareMediaKind } from "./shareResources";
+import { ShareMediaPreview } from "./ShareMediaPreview";
 import { ShareAttachmentViewer } from "./ShareAttachmentViewer";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import styles from "./ConversationExportDocument.module.css";
@@ -25,32 +27,6 @@ type LinkProps = ConversationMarkdownElementProps<{ href?: string; title?: strin
 
 const ExportMarkdownCode: React.FC<ConversationMarkdownCodeProps> = props =>
   <ConversationMarkdownCode {...props} htmlPreview={false} />;
-
-// A body link and a snapshot sourceRef name the same published file in
-// different spellings: "@chat/<path>" or a bare reference, percent-encoded by
-// Platform, by the Markdown renderer, or not at all. Compare decoded paths.
-function chatFilePath(reference: string): string {
-  const bare = /^@chat\//iu.test(reference) ? reference.slice("@chat/".length) : reference;
-  return bare.split("/").map((segment) => {
-    try { return decodeURIComponent(segment); } catch { return segment; }
-  }).join("/");
-}
-
-function findPublishedAttachment(href: string | undefined, attachments: Map<string, SnapshotAttachmentV1>): SnapshotAttachmentV1 | undefined {
-  if (!href) return undefined;
-  const direct = attachments.get(chatFilePath(href));
-  if (direct) return direct;
-  try {
-    const parsed = new URL(href, window.location.origin);
-    if (parsed.pathname !== "/api/resource") return undefined;
-    const key = parsed.searchParams.get("file") || "";
-    const path = chatFilePath(key);
-    for (const [sourcePath, attachment] of attachments) {
-      if (path.endsWith(`/${sourcePath}`)) return attachment;
-    }
-  } catch { return undefined; }
-  return undefined;
-}
 
 export const ConversationExportDocument: React.FC<ConversationExportDocumentProps> = ({ snapshot, publicBrand, canReshare = false }) => {
   const copy = conversationExportMessages[snapshot.locale];
@@ -84,13 +60,22 @@ export const ConversationExportDocument: React.FC<ConversationExportDocumentProp
     (task.subAgentKey || task.taskAgentKey) ? [{ key: (task.subAgentKey || task.taskAgentKey)!, name: task.subAgentName || (task.subAgentKey || task.taskAgentKey)!,
       mode: task.subAgentMode, icon: { name: task.subAgentIconName, color: task.subAgentIconColor } }] : [])), [snapshot]);
   const attachments = useMemo(() => new Map(snapshot.attachments.map((attachment) =>
-    [chatFilePath(attachment.sourceRef), attachment])), [snapshot.attachments]);
+    [attachment.sourceRef, attachment])), [snapshot.attachments]);
+  const publishedAttachments = snapshot.attachments.filter((attachment) =>
+    /^artifacts\/[^/]+\/[^/]+$/u.test(attachment.sourceRef));
+  const omissions = useMemo(() => new Map((snapshot.omittedResources ?? []).flatMap((item) =>
+    item.sourceRef ? [[item.sourceRef, item] as const] : [])), [snapshot.omittedResources]);
+  const findResource = (url: string | undefined) => attachments.get(canonicalChatSourceRef(url || "") || "");
+  const unavailable = (url: string | undefined) => {
+    const omitted = omissions.get(canonicalChatSourceRef(url || "") || "");
+    return omitted ? labels.omission[omitted.reason] : sharePath ? labels.notFound : labels.unavailable;
+  };
   const open = (attachment: SnapshotAttachmentV1) => {
     if (!attachmentLinks(attachment.id).preview) return;
     setSelectedId(attachment.id);
   };
   const attachmentLink = (attachment: SnapshotAttachmentV1, children: React.ReactNode, props?: React.AnchorHTMLAttributes<HTMLAnchorElement>) => {
-    const previewable = attachment.mimeType === "text/html";
+    const previewable = shareMediaKind(attachment.mimeType) !== "unsupported";
     const links = attachmentLinks(attachment.id);
     const route = previewable ? links.preview : links.download;
     if (!route) return <span key={attachment.id} title={labels.unavailable}>{children}</span>;
@@ -102,12 +87,17 @@ export const ConversationExportDocument: React.FC<ConversationExportDocumentProp
     codeComponent={ExportMarkdownCode}
     components={{
       a: ({ href, children, domNode: _domNode, streamStatus: _streamStatus, ...rest }: LinkProps) => {
-        const attachment = findPublishedAttachment(href, attachments);
+        const attachment = findResource(href);
         if (attachment) return attachmentLink(attachment, children, rest);
-        if (!href || !/^https?:\/\//iu.test(href)) return <span>{children}</span>;
+        if (!href || !/^https?:\/\//iu.test(href)) return <span title={unavailable(href)}>{children} — {unavailable(href)}</span>;
         return <a {...rest} href={href} target="_blank" rel="noopener noreferrer">{children}</a>;
       },
-      img: ({ alt }: ConversationMarkdownElementProps<{ alt?: string }>) => <span>[{alt || "image"}]</span>,
+      img: ({ src, alt }: ConversationMarkdownElementProps<{ src?: string; alt?: string }>) => {
+        const resource = findResource(src);
+        return resource && shareMediaKind(resource.mimeType) === "image"
+          ? attachmentLink(resource, <ShareMediaPreview attachment={resource} url={attachmentLinks(resource.id).preview} unavailable={labels.loadFailed} />)
+          : <span role="status">{alt || "image"} — {unavailable(src)}</span>;
+      },
     }}
   />;
   const renderRunHeader: NonNullable<ConversationPreviewProps["renderRunHeader"]> = (item) => {
@@ -125,10 +115,21 @@ export const ConversationExportDocument: React.FC<ConversationExportDocumentProp
     <div className={`${styles.shell} ${publicBrand ? styles.shellWithBrand : ""}`}>
       <div className={styles.notice}>{copy.aiNotice}</div>
       <ConversationPreview data={data} agents={agents} viewportMode="document"
-        ariaLabel={snapshot.title} renderMarkdown={renderMarkdown} renderRunHeader={renderRunHeader} />
-      {snapshot.attachments.length > 0 && <section className={styles.attachments} aria-label={labels.attachments}>
+        ariaLabel={snapshot.title} renderMarkdown={renderMarkdown} renderRunHeader={renderRunHeader}
+        renderAttachment={(attachment, options) => {
+          const resource = findResource(attachment.url);
+          if (!resource) return <span role="status">{attachment.name} — {unavailable(attachment.url)}</span>;
+          return attachmentLink(resource, options.displayMode !== "file" && shareMediaKind(resource.mimeType) === "image"
+            ? <ShareMediaPreview attachment={resource} url={attachmentLinks(resource.id).preview} unavailable={labels.loadFailed} />
+            : resource.name);
+        }} />
+      {publishedAttachments.length > 0 && <section className={styles.attachments} aria-label={labels.attachments}>
         <h2>{labels.attachments}</h2>
-        {snapshot.attachments.map((attachment) => attachmentLink(attachment, attachment.name))}
+        {publishedAttachments.map((attachment) => attachmentLink(attachment, attachment.name))}
+      </section>}
+      {(snapshot.omittedResources?.length ?? 0) > 0 && <section className={styles.attachments} aria-label={labels.omitted}>
+        <h2>{labels.omitted}</h2>
+        <ul>{snapshot.omittedResources?.map((item, index) => <li key={item.id ?? index}>{item.name} — {labels.omission[item.reason]}</li>)}</ul>
       </section>}
       <footer className={styles.footer}>{copy.readOnly}</footer>
     </div>
@@ -136,8 +137,8 @@ export const ConversationExportDocument: React.FC<ConversationExportDocumentProp
     {selected && <div className={styles.previewBackdrop} role="presentation" onClick={close}>
       <aside className={`${styles.previewPanel} ${expanded ? styles.previewExpanded : ""}`} role="dialog" aria-modal="true" aria-label={selected.name}
         onClick={(event) => event.stopPropagation()}>
-        <ShareAttachmentViewer attachments={snapshot.attachments} selectedId={selected.id}
-          onSelect={setSelectedId} links={attachmentLinks(selected.id)} canReshare={canReshare} locale={snapshot.locale}>
+        <ShareAttachmentViewer attachments={snapshot.attachments} attachment={selected}
+          omittedResources={snapshot.omittedResources} onSelect={setSelectedId} links={attachmentLinks(selected.id)} canReshare={canReshare} locale={snapshot.locale}>
           <Tooltip title={labels.openStandalone} trigger={["hover", "focus"]}>
             <a href={attachmentLinks(selected.id).page} target="_blank" rel="noopener noreferrer" aria-label={labels.openStandalone}>
               <MaterialIcon name="open_in_new" aria-hidden="true" />

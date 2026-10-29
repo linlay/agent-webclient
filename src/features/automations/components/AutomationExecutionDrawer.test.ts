@@ -11,6 +11,7 @@ import { AutomationExecutionDrawer } from "./AutomationExecutionDrawer";
 
 const mockGetAutomationExecution = jest.fn();
 const mockGetChat = jest.fn();
+const mockPreview = jest.fn();
 const mockBuildChatReplayProjection = jest.fn(
   (chatId: string) => ({
     state: {
@@ -45,10 +46,10 @@ jest.mock(
         data: {
             chatId: string;
         };
-    }) => React.createElement("div", {
+    }) => { mockPreview(props); return React.createElement("div", {
           "data-testid": "read-only-timeline",
         "data-chat-id": props.data.chatId
-    }, `timeline:${props.data.chatId}`)
+    }, `timeline:${props.data.chatId}`); }
   }),
 );
 
@@ -314,6 +315,15 @@ describe("AutomationExecutionDrawer", () => {
     });
 
     expect(container.textContent).toContain("timeline:chat-a");
+    const preview = mockPreview.mock.calls.at(-1)![0] as import("@/features/conversation/components/ConversationPreview").ConversationPreviewProps;
+    expect(preview.copyText).toBe(require("@/shared/utils/copy").copyText);
+    expect(preview.getChatHref?.({chatId:"child&x"})).toBe("/?chatId=child%26x");
+    const image = {url:"image.png",name:"image",artifactId:"generated",index:0};
+    const tile = preview.renderAttachment?.({name:"image",url:"image.png"},{generatedImage:image}) as React.ReactElement;
+    expect(tile.type).toBe(require("@/features/timeline/components/TimelineAttachmentView").TimelineAttachmentView);
+    expect(tile.props.options.generatedImage).toBe(image);
+    expect(tile.props.surfaceContext.chatId).toBe("chat-a");
+    expect(tile.props.openTarget).toBe(preview.openTarget);
     selectTab("execution");
     expect(container.textContent).toContain("# Report A");
     expect(container.textContent).not.toContain("preview-only");

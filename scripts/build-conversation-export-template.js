@@ -77,8 +77,8 @@ for (const relativePath of walkFiles(buildRoot)) {
 
 const runtime = assetFiles.get("runtime.js");
 const css = assetFiles.get("runtime.css");
-if (!runtime || !css) {
-  throw new Error("Conversation export runtime.js or runtime.css is missing.");
+if (!runtime || !css || !assetFiles.has("html-preview-bootstrap.js")) {
+  throw new Error("Conversation export runtime, CSS or HTML preview bootstrap is missing.");
 }
 if (!/\.ant-collapse-content-hidden\s*\{\s*display:\s*none\s*;/u.test(css.toString("utf8"))) {
   throw new Error("Conversation export CSS must hide inactive collapse content.");
@@ -110,7 +110,8 @@ const cssIntegrity = sha384Integrity(css);
 const csp = [
   "default-src 'none'",
   "connect-src 'self'",
-  `img-src data: ${ASSET_ORIGIN_MARKER}`,
+  `img-src 'self' data: ${ASSET_ORIGIN_MARKER}`,
+  "media-src 'self'",
   `font-src ${ASSET_ORIGIN_MARKER}`,
   "style-src 'none'",
   `style-src-elem ${ASSET_ORIGIN_MARKER} 'nonce-__CONVERSATION_EXPORT_STYLE_NONCE__'`,

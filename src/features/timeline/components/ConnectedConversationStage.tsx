@@ -73,7 +73,7 @@ import { ToolOutputTerminal } from "@/features/terminal/components/ToolOutputTer
 import { useViewPreviewPublisher } from "@/features/viewers/hooks/useViewPreviewTransfer";
 import { ViewEmbed } from "@/features/timeline/components/ViewEmbed";
 import { MarkdownContent } from "@/features/viewers/components/MarkdownContent";
-import { AttachmentCard } from "@/features/artifacts/components/AttachmentCard";
+import { TimelineAttachmentView } from "@/features/timeline/components/TimelineAttachmentView";
 import { useI18n } from "@/shared/i18n";
 import { createRequestId } from "@/shared/data";
 import { resolvePreferredRunOwner, resolveRunOwner } from "@/features/runs/lib/runOwner";
@@ -1906,7 +1906,19 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
       });
       return (response?.data as { accepted?: unknown } | null | undefined)?.accepted === true;
     },
+    copyText,
+    getChatHref: (chat) => `/?${new URLSearchParams({ chatId: chat.chatId })}`,
+    onCopyResult: (success, text) => success
+      ? message.success(text ?? t("timeline.toolPill.copy.copied"))
+      : message.error(text ?? t("timeline.toolPill.copy.failed")),
     conversationActive: isMainChatRunning || state.streaming,
+    getRunStatus: (node) => {
+      const terminal = state.events.find((event) => node.runId && event.runId === node.runId &&
+        ["run.complete", "run.error", "run.cancel"].includes(event.type))?.type;
+      const active = Boolean((!node.runId || mainChatRuntime?.runId === node.runId) && mainChatRuntime?.running);
+      return { active, recovering: Boolean(active && mainChatRuntime?.hasActiveRun && !mainChatRuntime.streaming),
+        terminal: terminal === "run.complete" || terminal === "run.error" || terminal === "run.cancel" ? terminal : undefined };
+    },
     readOnly: false,
     openChat: ({ chatId, agentKey }) => {
       window.dispatchEvent(new CustomEvent("agent:load-chat", { detail: { chatId, agentKey } }));
@@ -1943,12 +1955,12 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
     renderContentView: (segment, chatId, binding, runId, sourceId) =>
       <ViewEmbed allowSidebar={surfaceMode === "main"} chatId={chatId} view={binding.view} viewError={binding.viewError} payloadRaw={segment.payloadRaw || "{}"} rawData={segment.payloadRaw} runId={runId} sourceId={sourceId} viewIndex={String(segment.index)} />,
     renderMarkdown: (props) => <MarkdownContent {...props} htmlPreview />,
-    renderAttachment: (attachment, options) => <AttachmentCard
-      attachment={attachment} variant="timeline" thumbnailMode="inline"
+    renderAttachment: (attachment, options) => <TimelineAttachmentView
+      attachment={attachment}
       surfaceContext={{ chatId: state.chatId, agentKey: resolvePreferredAgentKey(state),
         teamChat: state.chats.some((chat) => chat.chatId === state.chatId &&
           (Boolean(undefined))) }}
-      {...options} />,
+      options={options} openTarget={openTarget} />,
     setExpanded: (nodeId, expanded) => {
       const node = state.timelineNodes.get(nodeId);
       if (!node) return;
@@ -1971,7 +1983,7 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
       openTarget({ version: 1, kind: "source", chatId: state.chatId,
         publishId, sourceId: source.id, source, title: source.title || source.name });
     },
-  }), [currentWorker, dispatch, isMainChatRunning, openTarget, state, waitTransport]);
+  }), [currentWorker, dispatch, isMainChatRunning, mainChatRuntime, message, t, openTarget, state, waitTransport]);
 
   return (
     <TimelineInteractionProvider value={interaction}>

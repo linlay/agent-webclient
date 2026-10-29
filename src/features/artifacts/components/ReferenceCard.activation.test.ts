@@ -4,7 +4,6 @@ import { createRoot, type Root } from "react-dom/client";
 import { ReferenceCard } from "./ReferenceCard";
 
 const open = jest.fn();
-jest.mock("@/features/surfaces/hooks/useOpenTarget", () => ({ useOpenTarget: () => open }));
 
 describe("skill reference activation", () => {
   let root: Root;
@@ -28,7 +27,7 @@ describe("skill reference activation", () => {
     await act(async () => root.render(
       React.createElement(ReferenceCard, {
         reference: { id: "skill-creator", name: "技能创建", type: "skill" },
-        variant: "composer",
+        variant: "composer", openTarget: open,
       }),
     ));
     const card = container.querySelector('[data-reference-type="skill"]') as HTMLElement;
@@ -47,7 +46,7 @@ describe("skill reference activation", () => {
     await act(async () => root.render(
       React.createElement(ReferenceCard, {
         reference: { id: "doc-writer", name: "文档写作", type: "skill" },
-        variant: "timeline",
+        variant: "timeline", openTarget: open,
       }),
     ));
     const card = container.querySelector('[data-reference-type="skill"]') as HTMLElement;
@@ -61,7 +60,7 @@ describe("skill reference activation", () => {
     await act(async () => root.render(
       React.createElement(ReferenceCard, {
         reference: { id: "skill-creator", name: "技能创建", type: "skill" },
-        variant: "composer",
+        variant: "composer", openTarget: open,
         onRemove: remove,
       }),
     ));
@@ -78,7 +77,7 @@ describe("skill reference activation", () => {
     await act(async () => root.render(
       React.createElement(ReferenceCard, {
         reference: { id: "lib-a", name: "资料库", type: "kbase" },
-        variant: "timeline",
+        variant: "timeline", openTarget: open,
       }),
     ));
     const card = container.querySelector('[data-reference-type="kbase"]') as HTMLElement;

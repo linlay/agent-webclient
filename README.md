@@ -144,6 +144,10 @@ make build
 
 普通构建产物输出到 `dist/`，不构建分享渲染包。需要更新 Tunnel 渲染资源时单独执行 `npm run release:conversation-export`；该命令构建并校验 `dist/export/`，然后替换 Tunnel 的当前模板、manifest 和当前 asset-set，保留历史资源集。
 
+分享与应用预览复用纯展示组件。图片打开/下载/重试、技能头像、选中文本定位、复制和运行状态由宿主通过现有交互上下文注入；导出构建检查实际发出的全部模块（含异步依赖），禁止主应用状态、资源鉴权客户端和连接控制混入。固定 HTML bootstrap 必须是单文件，且只含文档准备逻辑；全部资源由同一次 manifest/hash/SRI 发布。
+
+公开附件通过一个 MIME 分派入口展示 HTML、图片、音频、视频，其他文件提供下载。HTML 在无同源权限的网络 iframe 中运行，父页仅一次交付该 HTML 和显式 `mediaRefs` 指向的冻结媒体；不开放动态资源 RPC。资源使用规范 sourceRef 精确匹配，已删除旧 `/api/resource` 尾部猜测。省略资源逐项展示原因；本地 HTML 导出没有离线媒体包，缺失媒体显示降级提示。公式/图表异步加载、媒体和复制失败在局部展示，根边界只处理整体不可恢复错误。
+
 ## Desktop Program Bundle 发布
 
 项目支持打包为 Desktop 托管的 Program Bundle：

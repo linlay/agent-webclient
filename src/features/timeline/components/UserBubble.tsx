@@ -1,7 +1,7 @@
 import React from "react";
 import { useTimelineContextMenuTarget } from "./TimelineInteractionContext";
 import { useI18n } from "@/shared/i18n";
-import { copyText } from "@/shared/utils/copy";
+import { useTimelineCopy } from "./TimelineInteractionContext";
 
 interface UserBubbleProps {
 	text: string;
@@ -30,6 +30,7 @@ export const UserBubble: React.FC<UserBubbleProps> = ({
 	targetId,
 }) => {
 	const { t } = useI18n();
+  const copyText = useTimelineCopy();
 	const fallbackId = React.useId();
 	const textRef = React.useRef<HTMLDivElement>(null);
 	const [expandable, setExpandable] = React.useState(false);
@@ -40,7 +41,7 @@ export const UserBubble: React.FC<UserBubbleProps> = ({
 		handlers: {
 			"copy-content": () => copyText(text),
 		},
-	}), [fallbackId, targetId, text]);
+	}), [copyText, fallbackId, targetId, text]);
 	const contextTargetRef = useTimelineContextMenuTarget<HTMLDivElement>(contextTarget);
 
 	React.useLayoutEffect(() => {

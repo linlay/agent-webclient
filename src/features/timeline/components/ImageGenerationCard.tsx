@@ -1,23 +1,7 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import type { TimelineNode } from "../lib/timelineState";
-import {
-  buildImageGenerationDisplay,
-  type GeneratedImage,
-} from "../lib/imageGenerationDisplay";
-import { useOptionalAppContext } from "@/app/state/provider";
-import { resolveMainChatRuntime } from "@/features/runs/lib/runRuntimeState";
-import { useAuthenticatedResourceUrl } from "@/shared/ui/useAuthenticatedResourceUrl";
+import { buildImageGenerationDisplay } from "../lib/imageGenerationDisplay";
 import { BusyInk } from "@/shared/ui/BusyInk";
-import { useDesktopContextMenuTarget } from "@/shared/data/desktop/desktopContextMenu";
-import { buildResourceViewerTarget } from "@/features/viewers/lib/viewerTarget";
-import { downloadArtifactResource } from "@/features/artifacts/lib/artifactResourceRuntime";
-import {
-  decodeNativeResourceRelativePath,
-  type OpenTargetIntent,
-} from "@/features/surfaces/lib/openTarget";
-import { useOpenTarget } from "@/features/surfaces/hooks/useOpenTarget";
-import { classifyResourceUrl } from "@/shared/data";
-import { useAppMessage } from "@/shared/ui/useAppMessage";
 import { useI18n } from "@/shared/i18n";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { SCROLLBAR_THIN_CLASS_NAME } from "@/shared/styles/scrollbarClassNames";
@@ -25,175 +9,16 @@ import { ToolPill } from "./ToolPill";
 import { useTimelineInteraction } from "./TimelineInteractionContext";
 import styles from "./ImageGenerationCard.module.css";
 
-type Surface = { chatId: string; agentKey?: string; teamChat?: boolean };
-
-function GeneratedImageTile({
-  image,
-  surface,
-}: {
-  image: GeneratedImage;
-  surface: Surface;
-}) {
-  const { t } = useI18n();
-  const message = useAppMessage();
-  const openTarget = useOpenTarget();
-  const [refreshKey, setRefreshKey] = useState(0);
-  const [loadedUrl, setLoadedUrl] = useState("");
-  const [failedUrl, setFailedUrl] = useState("");
-  const source = useAuthenticatedResourceUrl(image.url, surface.chatId, {
-    teamChat: surface.teamChat,
-    refreshKey,
-  });
-  const failed = Boolean(
-    source.error || (source.url && failedUrl === source.url),
-  );
-  const loaded = Boolean(source.url && loadedUrl === source.url && !failed);
-  const target = useMemo(
-    () => buildResourceViewerTarget({ ...image, contentKind: "image" }),
-    [image],
-  );
-  const open = () => {
-    if (!target) return;
-    const common = {
-      version: 1 as const,
-      chatId: surface.chatId,
-      agentKey: surface.agentKey,
-      resourceTarget: target,
-    };
-    const resource = classifyResourceUrl(target.url, surface.chatId);
-    if (image.artifactId && resource.kind === "chat") {
-      // Generated images can be flat Chat resources; use the same editor as
-      // artifacts while retaining reference semantics (save as a new artifact).
-      for (const intent of [
-        { ...common, kind: "artifact", artifactId: image.artifactId },
-        { ...common, kind: "reference", referenceId: image.artifactId },
-      ] satisfies OpenTargetIntent[]) {
-        if (
-          decodeNativeResourceRelativePath(resource.resourceKey, intent.kind)
-        ) {
-          openTarget(intent);
-          return;
-        }
-      }
-    }
-    openTarget({ ...common, kind: "resource", file: target.url });
-  };
-  const targetId = React.useId();
-  const contextTarget = {
-    targetId: `generated-image:${targetId}`,
-    kind: "chat-resource" as const,
-    name: image.name,
-    mediaType: "image" as const,
-    handlers: {
-      ...(target ? { "preview-resource": open } : {}),
-      "download-resource": () => {
-        void downloadArtifactResource(
-          image.url,
-          image.name,
-          surface.chatId,
-          undefined,
-          surface.teamChat,
-        ).catch(() => {
-          void message.error(t("timeline.image.downloadFailed"));
-        });
-      },
-    },
-  };
-  const contextRef = useDesktopContextMenuTarget<HTMLDivElement>(contextTarget);
-  return (
-    <div ref={contextRef} className={styles.image}>
-      <button
-        type="button"
-        className={styles.open}
-        onClick={open}
-        disabled={!target || !loaded}
-        aria-label={t("attachments.action.view") + " " + image.name}
-      >
-        {source.url && (
-          <img
-            key={`${source.url}:${refreshKey}`}
-            src={source.url}
-            alt={image.name}
-            className={loaded ? styles.loaded : styles.loadingImage}
-            onLoad={() => setLoadedUrl(source.url)}
-            onError={() => setFailedUrl(source.url)}
-          />
-        )}
-      </button>
-      {!loaded && (
-        <div className={styles.overlay} role="status">
-          <MaterialIcon name="image" />
-          <span>
-            {t(failed ? "timeline.image.loadFailed" : "timeline.image.loading")}
-          </span>
-          {failed && (
-            <button
-              type="button"
-              className={styles.retry}
-              onClick={() => {
-                setFailedUrl("");
-                setLoadedUrl("");
-                setRefreshKey((value) => value + 1);
-              }}
-            >
-              {t("timeline.image.reload")}
-            </button>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
-
 export function ImageGenerationCard({ nodes }: { nodes: TimelineNode[] }) {
   const { t } = useI18n();
-  const context = useOptionalAppContext();
   const interaction = useTimelineInteraction();
-  const runtime = context
-    ? resolveMainChatRuntime(
-        context.state,
-        context.activeQuerySessionRequestIdRef,
-        context.querySessionsRef,
-      )
-    : null;
-  const chatId =
-    interaction?.surfaceContext?.chatId ?? context?.state.chatId ?? "";
-  const chat = context?.state.chats.find((item) => item.chatId === chatId);
-  const surface: Surface = interaction?.surfaceContext || {
-    chatId,
-    agentKey: runtime?.agentKey,
-    teamChat: Boolean(
-      false,
-    ),
-  };
-  const calls = nodes.map((node) => {
-    const terminal = context?.state.events.find(
-      (event) =>
-        node.runId &&
-        event.runId === node.runId &&
-        (event.type === "run.complete" ||
-          event.type === "run.error" ||
-          event.type === "run.cancel"),
-    )?.type;
-    const sameRun = !node.runId || runtime?.runId === node.runId;
-    const active =
-      interaction?.conversationActive ?? Boolean(sameRun && runtime?.running);
-    return {
-      node,
-      display: buildImageGenerationDisplay(node, {
-        active,
-        recovering: Boolean(
-          active && runtime?.hasActiveRun && !runtime.streaming,
-        ),
-        terminal:
-          terminal === "run.complete" ||
-          terminal === "run.error" ||
-          terminal === "run.cancel"
-            ? terminal
-            : undefined,
-      }),
-    };
-  });
+  const chatId = interaction?.surfaceContext?.chatId ?? "";
+  const calls = nodes.map((node) => ({
+    node,
+    display: buildImageGenerationDisplay(node, interaction?.getRunStatus?.(node) ?? {
+      active: interaction?.conversationActive ?? false,
+    }),
+  }));
   const gridRef = useRef<HTMLDivElement>(null);
   const gridId = React.useId();
   const [scrollEdges, setScrollEdges] = useState({ left: false, right: false });
@@ -268,11 +93,10 @@ export function ImageGenerationCard({ nodes }: { nodes: TimelineNode[] }) {
                   data-image-status={showImage ? "success" : display.status}
                 >
                   {showImage ? (
-                    <GeneratedImageTile
-                      key={`${chatId}:${image.url}`}
-                      image={image}
-                      surface={surface}
-                    />
+                    interaction?.renderAttachment?.({
+                      name: image.name, url: image.url, mimeType: image.mimeType, size: image.sizeBytes,
+                    }, { displayMode: "preview", generatedImage: image }) ??
+                    <div className={styles.placeholder} role="status">{t("timeline.image.missing")}</div>
                   ) : (
                     <>
                       <div

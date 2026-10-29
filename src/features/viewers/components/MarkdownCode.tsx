@@ -43,6 +43,9 @@ export const MarkdownCode: React.FC<ConversationMarkdownCodeProps> = ({
   const copyCode = useCallback(
     (source: string = text) => copyText(source).then(() => {
       message.success(t("markdown.copySuccess"));
+    }).catch((error: unknown) => {
+      message.error(t("timeline.toolPill.copy.failed"));
+      throw error;
     }),
     [message, t, text],
   );

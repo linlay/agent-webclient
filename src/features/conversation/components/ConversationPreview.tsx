@@ -14,7 +14,7 @@ import { ConversationStage, toConversationListItems } from "@/features/timeline/
 import { formatTimelineTime } from "@/features/timeline/components/TimelineRow";
 import { TimelineInteractionProvider, type TimelineInteractionValue } from "@/features/timeline/components/TimelineInteractionContext";
 import { serializeRunTranscript } from "@/features/timeline/lib/runTranscript";
-import { copyText } from "@/shared/utils/copy";
+import { copyWebText } from "@/shared/utils/webClipboard";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
 import { useI18n } from "@/shared/i18n";
@@ -41,7 +41,9 @@ export interface ConversationPreviewProps {
   renderMarkdown?: (props: MarkdownContentProps) => React.ReactNode;
   renderAttachment?: TimelineInteractionValue["renderAttachment"];
   openTarget?: TimelineInteractionValue["openTarget"];
-  onCopyResult?: (success: boolean) => void;
+  copyText?: TimelineInteractionValue["copyText"];
+  getChatHref?: TimelineInteractionValue["getChatHref"];
+  onCopyResult?: TimelineInteractionValue["onCopyResult"];
   viewportMode?: "container" | "document";
   renderRunHeader?: (item: Extract<TimelineDisplayItem, { kind: "run" }>) => React.ReactNode;
 }
@@ -49,7 +51,7 @@ export interface ConversationPreviewProps {
 export const ConversationPreview: React.FC<ConversationPreviewProps> = ({
   data, agents, agentKey = "", teamChat = false,
   startAtBottom = false, ariaLabel, emptyLabel, renderMarkdown, renderAttachment,
-  openTarget, onCopyResult, viewportMode = "container", renderRunHeader,
+  openTarget, getChatHref, copyText = copyWebText, onCopyResult, viewportMode = "container", renderRunHeader,
 }) => {
   const { t } = useI18n();
   const scrollerId = React.useId();
@@ -59,12 +61,14 @@ export const ConversationPreview: React.FC<ConversationPreviewProps> = ({
   const [expandedRuns, setExpandedRuns] = useState<Record<string, boolean>>({});
   const [expandedTasks, setExpandedTasks] = useState<Record<string, boolean>>({});
   const chatId = data.chatId.trim();
+  const copyGeneration = useRef(0);
 
   useEffect(() => {
     setAtBottom(true);
     setExpandedNodeIds(new Map());
     setExpandedRuns({});
     setExpandedTasks({});
+    return () => { copyGeneration.current += 1; };
   }, [chatId]);
 
   const nodes = useMemo(() => data.nodes.map((node) => expandedNodeIds.has(node.id)
@@ -87,23 +91,25 @@ export const ConversationPreview: React.FC<ConversationPreviewProps> = ({
       source, title: source.title || source.name });
   }, [chatId, openTarget]);
   const interaction = useMemo<TimelineInteractionValue>(() => ({
-    conversationActive: false, readOnly: true, capturedAt: data.capturedAt,
+    conversationActive: false, readOnly: true, copyText, onCopyResult, getChatHref, capturedAt: data.capturedAt,
     surfaceContext: { chatId, agentKey: agentKey || undefined, teamChat },
-    openSource, openTarget, renderMarkdown, renderAttachment,
+    openSource: openTarget ? openSource : undefined, openTarget, renderMarkdown, renderAttachment,
+    getRunStatus: (node) => ({ active: false, terminal: data.terminals.find((item) => item.runId === node.runId)?.type }),
     setExpanded: (nodeId, expanded) => setExpandedNodeIds((current) => {
       const next = new Map(current);
       next.set(nodeId, expanded);
       return next;
     }),
-  }), [agentKey, chatId, data.capturedAt, openSource, openTarget, renderAttachment, renderMarkdown, teamChat]);
+  }), [agentKey, chatId, copyText, onCopyResult, getChatHref, data.capturedAt, data.terminals, openSource, openTarget, renderAttachment, renderMarkdown, teamChat]);
   const copy = useCallback(async (text: string) => {
+    const generation = copyGeneration.current;
     try {
       await copyText(text);
-      onCopyResult?.(true);
+      if (generation === copyGeneration.current) onCopyResult?.(true);
     } catch {
-      onCopyResult?.(false);
+      if (generation === copyGeneration.current) onCopyResult?.(false);
     }
-  }, [onCopyResult]);
+  }, [copyText, onCopyResult]);
 
   if (displayItems.length === 0) return <div className={styles.empty} role="status">
     {emptyLabel || t("automationHistory.chat.empty")}

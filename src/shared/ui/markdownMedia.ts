@@ -1,4 +1,8 @@
-import type { TokenizerExtension } from "marked";
+import type { XMarkdownProps } from "@ant-design/x-markdown";
+
+type MarkdownExtension = NonNullable<
+  NonNullable<XMarkdownProps["config"]>["extensions"]
+>[number];
 
 const markdownVideoExtensions = new Set([
   "m4v",
@@ -101,7 +105,7 @@ export function getMarkdownAudioMimeType(source: string | undefined): string {
 }
 
 /** Accept model-emitted local media paths containing spaces without changing code or web links. */
-export const markdownLocalMediaExtension: TokenizerExtension = {
+export const markdownLocalMediaExtension: MarkdownExtension = {
   name: "image",
   level: "inline",
   start: (source) => source.indexOf("!["),

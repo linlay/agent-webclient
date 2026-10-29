@@ -19,8 +19,8 @@ import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
 import { useI18n } from "@/shared/i18n";
 import { useTimelineInteraction, useTimelineContextMenuTarget } from "./TimelineInteractionContext";
+import { useTimelineCopy } from "./TimelineInteractionContext";
 import { ViewHeader } from "./ViewHeader";
-import { copyText } from "@/shared/utils/copy";
 const presentationClasses = bindCssModuleClasses({ ...timelinePresentation });
 
 
@@ -54,6 +54,7 @@ const TTS_VOICE_TEXT_CLASS_NAME =
 
 export const ContentBlock: React.FC<ContentBlockProps> = ({ node }) => {
 	const { t } = useI18n();
+  const copyText = useTimelineCopy();
 	const interaction = useTimelineInteraction();
 	// Unrelated state/focus updates replace the context object. Depend on the
 	// stable operation so Markdown anchors keep their DOM through the click.
@@ -68,7 +69,7 @@ export const ContentBlock: React.FC<ContentBlockProps> = ({ node }) => {
 		handlers: {
 			"copy-content": () => copyText(text),
 		},
-	}), [node.id, text]);
+	}), [copyText, node.id, text]);
 	const contextTargetRef = useTimelineContextMenuTarget<HTMLDivElement>(contextTarget);
 	const chatId = String(surfaceContext?.chatId || "").trim();
 	const teamChat = Boolean(surfaceContext?.teamChat);

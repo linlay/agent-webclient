@@ -13,7 +13,8 @@ it("renders the chat card in the tool row beside its existing timeline marker", 
   expect(html).toContain('data-tool-icon="run"');
   expect(html).toContain('timeline-marker');
   expect(html).toContain('timeline-flow-content');
-  expect(html).toContain('chatId=child');
-  expect(html.indexOf('data-tool-icon="run"')).toBeLessThan(html.indexOf('chatId=child'));
+  expect(html).toContain('aria-disabled="true"');
+  expect(html).not.toContain('chatId=child');
+  expect(html.indexOf('data-tool-icon="run"')).toBeLessThan(html.indexOf('<a '));
   expect(html.match(/<svg/g)).toHaveLength(1);
 });

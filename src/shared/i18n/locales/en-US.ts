@@ -2842,6 +2842,8 @@ export const enUSMessages = {
   "worker.history.searchFailed": "Failed to search conversation history. Please try again later.",
   "worker.history.loadFailed": "Failed to load conversation history. Please try again later.",
   "markdown.downloading": "Downloading...",
+  "markdown.mathLoadFailed": "Math rendering is unavailable. The source is still shown.",
+  "markdown.echartsRenderFailed": "Chart rendering failed. Expand to view the source data.",
   "markdown.echartsReceiving": "Receiving chart configuration...",
   "markdown.echartsParseFailed": "Failed to parse ECharts configuration: {detail}",
   "markdown.copySuccess": "Copied",

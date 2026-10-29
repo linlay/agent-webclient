@@ -1,3 +1,4 @@
+import { locateSelectedTextReference } from "@/shared/data/desktop/selectedTextLocate";
 import { useRunActivityTimeline } from "@/features/timeline/hooks/useRunActivityTimeline";
 import { chatDetailLevel } from "@/features/chats/lib/chatDetailLevel";
 import React, { useCallback, useEffect, useMemo, useRef } from "react";
@@ -261,7 +262,7 @@ export const BtwTabView: React.FC<BtwTabViewProps> = ({
             <div className="tw:mb-1.5">
               {/* 顺便问里的划词只是待发送的引用：面板外边（主对话）不画编号标记，
                   列表里也不再提供"点一条跳回原文"的定位。 */}
-              <SelectedTextFragmentsPill
+              <SelectedTextFragmentsPill onLocate={locateSelectedTextReference}
                 fragments={session.draftSelections}
                 variant="segments"
                 locatable={false}

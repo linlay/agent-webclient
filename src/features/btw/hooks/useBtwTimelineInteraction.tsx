@@ -1,6 +1,9 @@
+import { copyText } from "@/shared/utils/copy";
+import { useAppMessage } from "@/shared/ui/useAppMessage";
+import { useI18n } from "@/shared/i18n";
 import React, { useMemo } from "react";
 import { useOptionalAppContext } from "@/app/state/AppContext";
-import { AttachmentCard } from "@/features/artifacts/components/AttachmentCard";
+import { TimelineAttachmentView } from "@/features/timeline/components/TimelineAttachmentView";
 import { useOpenTarget } from "@/features/surfaces/hooks/useOpenTarget";
 import { ToolOutputTerminal } from "@/features/terminal/components/ToolOutputTerminal";
 import { type TimelineInteractionValue } from "@/features/timeline/components/TimelineInteractionContext";
@@ -31,6 +34,8 @@ export function useBtwTimelineInteraction({
 }: UseBtwTimelineInteractionOptions): TimelineInteractionValue {
   const appContext = useOptionalAppContext();
   const openTarget = useOpenTarget();
+  const message = useAppMessage();
+  const { t } = useI18n();
   const timelineNodes = session?.projection.timelineNodes;
   const agentKey = String(session?.agentKey || "").trim();
   const btwId = String(session?.btwId || "").trim();
@@ -52,6 +57,11 @@ export function useBtwTimelineInteraction({
 
     return {
       conversationActive: running,
+      copyText,
+      getChatHref: (chat) => `/?${new URLSearchParams({ chatId: chat.chatId })}`,
+      onCopyResult: (success, text) => success
+        ? message.success(text ?? t("timeline.toolPill.copy.copied"))
+        : message.error(text ?? t("timeline.toolPill.copy.failed")),
       readOnly: false,
       registerContextMenuTarget: registerDesktopContextMenuTarget,
       surfaceContext,
@@ -107,12 +117,10 @@ export function useBtwTimelineInteraction({
       ),
       renderMarkdown: (props) => <MarkdownContent {...props} />,
       renderAttachment: (attachment, options) => (
-        <AttachmentCard
+        <TimelineAttachmentView
           attachment={attachment}
-          variant="timeline"
-          thumbnailMode="inline"
           surfaceContext={surfaceContext}
-          {...options}
+          options={options} openTarget={openTarget}
         />
       ),
       openSource: (source, node) => {
@@ -139,6 +147,8 @@ export function useBtwTimelineInteraction({
     btwId,
     onOpenSource,
     onPatchTimelineNode,
+    message,
+    t,
     openTarget,
     parentChatId,
     running,

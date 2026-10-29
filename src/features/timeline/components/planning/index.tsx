@@ -5,10 +5,9 @@ import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
 import { Collapse, Flex, Tooltip } from "antd";
 import { ContentBlock } from "../ContentBlock";
-import { copyText } from "@/shared/utils/copy";
-import useApp from "antd/es/app/useApp";
+import { useTimelineCopy } from "../TimelineInteractionContext";
 import { TimelineNode } from "@/features/timeline/lib/timelineState";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useI18n } from "@/shared/i18n";
 import { useTimelineInteraction } from "../TimelineInteractionContext";
 const presentationClasses = bindCssModuleClasses({ ...timelinePresentation });
@@ -21,11 +20,27 @@ interface PlanningTimelineProps {
 const EXPAND_DIV_CLASS_NAME =
   "tw:absolute tw:inset-x-0 tw:bottom-0 tw:bg-[linear-gradient(180deg,transparent,var(--bg-base))] tw:p-4";
 export const PlanningTimeline: React.FC<PlanningTimelineProps> = ({ node }) => {
-  const { message } = useApp();
   const { t } = useI18n();
+  const copyText = useTimelineCopy();
   const interaction = useTimelineInteraction();
   const chatId = String(interaction?.surfaceContext?.chatId || "").trim();
   const [expanded, setExpanded] = useState(false);
+  const [copyStatus, setCopyStatus] = useState("");
+  const copyRequest = useRef(0);
+  useEffect(() => () => { copyRequest.current += 1; }, [node.text]);
+  const copy = async () => {
+    const request = ++copyRequest.current;
+    try {
+      await copyText(node.text || "");
+      if (request !== copyRequest.current) return;
+      if (interaction?.onCopyResult) interaction.onCopyResult(true, t("planningTimeline.copySuccess"));
+      else setCopyStatus(t("planningTimeline.copySuccess"));
+    } catch {
+      if (request !== copyRequest.current) return;
+      if (interaction?.onCopyResult) interaction.onCopyResult(false, t("timeline.toolPill.copy.failed"));
+      else setCopyStatus(t("timeline.toolPill.copy.failed"));
+    }
+  };
 
   return (
     <Collapse
@@ -44,7 +59,7 @@ export const PlanningTimeline: React.FC<PlanningTimelineProps> = ({ node }) => {
             ),
           extra: (
             <Flex gap={4}>
-              <Tooltip title={t("planningTimeline.openInSidebar")}>
+              {node.planningId && chatId && interaction?.openTarget ? <Tooltip title={t("planningTimeline.openInSidebar")}>
                 <UiButton
                   className="ui-icon-hover-20"
                   variant="ghost"
@@ -65,7 +80,7 @@ export const PlanningTimeline: React.FC<PlanningTimelineProps> = ({ node }) => {
                 >
                   <MaterialIcon name="open_in_new" />
                 </UiButton>
-              </Tooltip>
+              </Tooltip> : null}
               <Tooltip title={t("planningTimeline.copy")}>
                 <UiButton
                   className="ui-icon-hover-20"
@@ -74,14 +89,13 @@ export const PlanningTimeline: React.FC<PlanningTimelineProps> = ({ node }) => {
                   iconOnly
                   onClick={(e) => {
                     e.stopPropagation();
-                    copyText(node.text || "").then(() => {
-                      message.success(t("planningTimeline.copySuccess"));
-                    });
+                    void copy();
                   }}
                 >
                   <MaterialIcon name="content_copy" />
                 </UiButton>
               </Tooltip>
+              {!interaction?.onCopyResult && copyStatus && <span role="status">{copyStatus}</span>}
             </Flex>
           ),
           children: (
