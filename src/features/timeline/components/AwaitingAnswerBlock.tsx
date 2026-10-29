@@ -16,6 +16,7 @@ interface AwaitingAnswerBlockProps {
 interface AwaitingAnswerDisplayItem {
   key: string;
   title: string;
+  command?: string;
   value: string;
 }
 
@@ -61,7 +62,10 @@ function formatAwaitingAnswerItem(
 ): AwaitingAnswerDisplayItem {
   const id = String(item.id || "").trim();
   const question = String(item.question || "").trim();
+  const description = typeof item.decision === "string" ? String(item.description || "").trim() : "";
+  const command = String(item.command || "").trim();
   const title =
+    description ||
     question ||
     String(item.title || "").trim() ||
     (String(item.planningId || "").trim() &&
@@ -79,6 +83,7 @@ function formatAwaitingAnswerItem(
     return {
       key: `${id}:${item.decision}`,
       title,
+      command: command && command !== title ? command : undefined,
       value: dataText ? `${decisionText}\n${dataText}` : decisionText,
     };
   }
@@ -227,6 +232,7 @@ export const AwaitingAnswerBlock: React.FC<AwaitingAnswerBlockProps> = ({
         {items.map((item) => (
           <Flex vertical key={item.key} className="awaiting-answer-item">
             <div className="awaiting-answer-question">{item.title}</div>
+            {item.command && <div className="awaiting-answer-question">{item.command}</div>}
             <div className="awaiting-answer-value">{item.value}</div>
           </Flex>
         ))}

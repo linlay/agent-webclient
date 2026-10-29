@@ -22,7 +22,19 @@ Resource metadata 缺少权威 `X-Document-Kind` 时不把“缺字段”解释�
 - 源码文本批注以 revision、line/column range 和 selected-text hash 锚定；Markdown 预览选区在能唯一对应原文时同时保留 line/column，格式化后无法直接对应的选区保留脱敏原文和 hash。本地编辑期间由 Monaco decoration 跟随，外部 revision 变更后显式失效。
 - PDF 使用本地 PDF.js 只读 Viewer，支持页码、缩放与搜索。
 - Office 文档（含 DOCX、PPTX、XLSX）统一显示文件元信息、下载及当前环境可用的系统打开/定位操作。正文仅通过现有在线预览服务展示；未配置服务时显示“未配置在线预览服务”，不读取或渲染客户端 DOCX 正文。已配置时按 Platform 能力、格式和大小启用在线预览，沿用共享请求与展示流程，Desktop 嵌入和 Standalone 行为一致，详见 [Office 在线预览](33-运行时间线-Artifact发布与资源预览.md#office-在线预览)。Reference 原件不被修改。音视频使用媒体播放器；压缩包和未知二进制不读为文本，也不自动下载。
-- Standalone HTML 提供源码和 sandbox 预览；Standalone 图片对 PNG/JPEG/WebP 提供基础 Canvas 编辑和区域批注，其他格式保持只读。
+- Standalone HTML 提供源码、sandbox 预览和元素批注；Standalone 图片对 PNG/JPEG/WebP 提供基础 Canvas 编辑和区域批注，其他格式保持只读。
+
+### HTML 元素批注
+
+HTML 预览在预览工具栏提供“批注”入口，进入后工具栏切换为“返回预览 / 点击页面元素添加批注 / 批注 n/50 / 刷新”。批注态只处理元素级选择，不改变文档源码，源码/分屏入口在批注态隐藏；退出批注后仍可切换源码/分屏，切换前确认会丢弃元素批注。
+点击元素后打开独立的待填写批注弹窗；批注列表由“批注 n/50”按钮单独打开，两个面板互不共用，关闭列表不会取消正在填写的批注。
+
+- 预览 iframe 使用不带 `allow-same-origin` 的 sandbox `srcDoc`，在 `<head>` 起始处、页面自身 CSP meta 之前注入受限桥脚本；宿主只接收 `html-element-selected`、`annotation-invalid`、`annotation-valid` 和 `ready` 事件，只向 iframe 同步 `id/number/fullXPath`，用户填写的要求文本不会回传给被批注页面。
+- 点击元素记录 XPath、可选 CSS 选择器、标签名、白名单属性、脱敏文本摘要和文档坐标矩形；批注态阻止页面点击、表单提交、链接跳转、拖拽和文本选择，但保留滚动。悬停与重绘按帧合并，滚动、窗口尺寸、目标尺寸和 DOM 变化会触发重算。
+- 单文档最多 50 条，单条要求 1–1000 字符；已确认批注按列表顺序从 1 连续编号，删除后重排。目标元素消失或尺寸为 0 时该条标记为“目标已不存在”，保留可见但不可提交；恢复后重新可提交。
+- 刷新或内容变化会清空批注并退出批注态；存在批注或待填写批注时刷新先确认“批注和未保存修改将丢失”。浏览器 `beforeunload` 也会拦截关闭窗口。
+- “交给智能体”只提交目标存在且要求非空的批注，生成人类可读文本写入当前 Composer（不覆盖已有内容）并携带结构化 `reviewData`；未找到可接收的 Composer 时保留批注并提示失败。
+- 安全边界：被批注页面脚本与桥脚本同处一个沙箱文档，页面若读取内联脚本中的 token 理论上可伪造选择消息，这是“无 `allow-same-origin` + 窄 postMessage”方案下已知的残余风险；宿主仍对选择字段做长度、白名单、坐标和文本脱敏校验，跨源 iframe 只命中 iframe 元素本身，不进入其内部。旧的 Desktop `previewReview` HTML 分支只作为无法进入 Document Surface 时的兼容兜底，不再与本文的浏览器元素批注同时声明能力。
 
 文档内容区不复用浏览器地址栏。文件名只显示在 WorkPanel Tab；Markdown 工具栏只包含预览/源码、预览选区批注和保存，文本/代码只包含批注和保存。保存统一先询问保存方式：Workspace File 默认并且只能覆盖原文件，Artifact 默认新建产物且可明确选择覆盖，Reference 只能新建产物。重新加载权威 revision 位于同一行的更多菜单，存在 dirty 修改时先确认丢弃。普通 Web、WebApp 与 loopback 实时网站仍保留刷新和地址栏。
 

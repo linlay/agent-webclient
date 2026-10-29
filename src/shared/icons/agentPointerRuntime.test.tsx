@@ -11,6 +11,7 @@ const oldObserver = window.IntersectionObserver;
 const oldSizes = window.ResizeObserver;
 
 beforeEach(() => {
+  jest.useFakeTimers();
   Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
   now = 0; sequence = 0; queue = new Map(); reduced = false; hidden = false;
   Object.defineProperty(window, "IntersectionObserver", { configurable: true, value: undefined });
@@ -28,7 +29,7 @@ beforeEach(() => {
   host = document.createElement("div"); document.body.append(host); root = createRoot(host);
 });
 afterEach(() => {
-  act(() => root.unmount()); expect(queue.size).toBe(0); host.remove(); jest.restoreAllMocks();
+  act(() => root.unmount()); expect(queue.size).toBe(0); host.remove(); expect(jest.getTimerCount()).toBe(0); jest.restoreAllMocks(); jest.useRealTimers();
   Reflect.deleteProperty(document, "hidden"); Reflect.deleteProperty(window, "matchMedia");
   Object.defineProperty(window, "IntersectionObserver", { configurable: true, value: oldObserver });
   Object.defineProperty(window, "ResizeObserver", { configurable: true, value: oldSizes });
@@ -103,9 +104,9 @@ it("supports keyboard focus and a short touch response without permanent hover",
   act(() => icon().dispatchEvent(touch)); frames(8); expect(icon().dataset.pointerMood).toBe("wink");
   frames(200); expect(icon().dataset.pointerMood).toBe("rest"); expect(queue.size).toBe(0);
 });
-it("keeps executor/proxy and explicitly static avatars out of the pointer runtime", () => {
+it("supports executor/proxy while respecting explicitly static avatars", () => {
   render(["executor", "proxy"]); move(); frames(1);
-  expect(host.querySelector("[data-pointer-tracking]")).toBeNull(); expect(queue.size).toBe(0);
+  expect(host.querySelectorAll("[data-pointer-tracking]")).toHaveLength(2);
   render(["general"], { disabled: true }); move(); frames(1);
   expect(icon().hasAttribute("data-pointer-tracking")).toBe(false);
 });
@@ -166,4 +167,45 @@ it("only follows within its own row, even if a neighboring avatar is nearby", ()
   expect(icons[1].dataset.pointerMood).toBe("rest");
   expect(icons[1].dataset.pointerResting).toBe("true");
   expect(queue.size).toBe(0);
+});
+
+it("runs the same idle pool without sidebar markers and lets movement take over immediately", () => {
+  jest.spyOn(Math, "random").mockReturnValue(0);
+  render(["general"], { surface: true });
+  expect(jest.getTimerCount()).toBe(1);
+  act(() => { now = 8000; jest.advanceTimersByTime(8000); });
+  expect(icon().dataset.agentAction).toBe("turn");
+  move(200, 117, host.querySelector("#surface-target")!); frames(12);
+  expect(icon().dataset.agentAction).toBeUndefined();
+  expect(icon().dataset.pointerMood).not.toBe("rest");
+  // No leave event: a stationary pointer must still yield to the idle scheduler.
+  frames(220);
+  expect(icon().dataset.pointerMood).toBe("rest");
+  expect(icon().dataset.pointerResting).toBe("true");
+  expect(queue.size).toBe(0); expect(jest.getTimerCount()).toBe(1);
+});
+it("does not schedule idle offscreen or hidden, and resumes without a queued burst", () => {
+  jest.spyOn(Math, "random").mockReturnValue(0);
+  let deliver!: (entries: Partial<IntersectionObserverEntry>[]) => void;
+  class Observer {
+    constructor(callback: (entries: Partial<IntersectionObserverEntry>[]) => void) { deliver = callback; }
+    observe() {} unobserve() {} disconnect() {}
+  }
+  Object.defineProperty(window, "IntersectionObserver", { configurable: true, value: Observer });
+  render(); expect(jest.getTimerCount()).toBe(0);
+  deliver([{ target: icon(), isIntersecting: true }]); expect(jest.getTimerCount()).toBe(1);
+  hidden = true; act(() => document.dispatchEvent(new Event("visibilitychange")));
+  expect(jest.getTimerCount()).toBe(0);
+  act(() => { now = 100_000; jest.advanceTimersByTime(100_000); });
+  hidden = false; act(() => document.dispatchEvent(new Event("visibilitychange")));
+  expect(icon().dataset.agentAction).toBeUndefined(); expect(jest.getTimerCount()).toBe(1);
+  reduced = true; act(() => preferenceChange()); expect(jest.getTimerCount()).toBe(0);
+});
+
+it("returns a focused navigation button to idle after the brief focus response", () => {
+  render(); act(() => host.querySelector("button")!.focus()); frames(12);
+  expect(icon().dataset.pointerMood).toBe("think");
+  frames(220);
+  expect(icon().dataset.pointerMood).toBe("rest");
+  expect(icon().dataset.pointerResting).toBe("true"); expect(queue.size).toBe(0);
 });

@@ -87,6 +87,13 @@ export const VIEW_DISPLAY_SDK = `(() => {
         parent.postMessage({ type: 'view_invoke', id, action: String(name), params: params || {} }, '*');
       });
     },
+    invokeBatch(name, entries) {
+      const id = 'a' + (++sequence);
+      return new Promise((resolve, reject) => {
+        pending.set(id, { resolve, reject });
+        parent.postMessage({ type: 'view_invoke', id, action: String(name), params: entries, batch: true }, '*');
+      });
+    },
     resize() { lastHeight = 0; schedule(); },
   });
   // Historical snapshots keep their original scripts and return-value contract.

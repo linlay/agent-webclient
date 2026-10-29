@@ -1,5 +1,5 @@
-export type WaitReason = "elapsed" | "event" | "timeout" | "steered" | "canceled" | "failed";
-const WAIT_REASONS = new Set<string>(["elapsed", "event", "timeout", "steered", "canceled", "failed"]);
+export type WaitReason = "elapsed" | "event" | "timeout" | "steered" | "mail" | "canceled" | "failed";
+const WAIT_REASONS = new Set<string>(["elapsed", "event", "timeout", "steered", "mail", "canceled", "failed"]);
 
 /** Reads how a wait ended; `continued` marks a steer that carried no new input. */
 export function readWaitResult(resultText: string | undefined): { reason: WaitReason | null; continued: boolean } {

@@ -32,3 +32,11 @@ export function readSteerConfirmation(event: AgentEvent): {
 export function readReferences(event: AgentEvent): unknown[] {
  return Array.isArray(event.references) ? event.references : [];
 }
+
+export function readMailMetadata(event: AgentEvent): import("@/shared/data/api/dto/mailbox").MailMetadata | undefined {
+  const id = toText(event.mailId), kind = toText(event.mailKind);
+  if (!id || !["letter", "reply", "notify", "ask"].includes(kind)) return undefined;
+  const origin = event.origin as Record<string, unknown> | undefined;
+  return { id, kind: kind as import("@/shared/data/api/dto/mailbox").MailKind, outcome: toText(event.outcome) || undefined,
+    fromAgentKey: toText(origin?.agentKey), fromChatId: toText(origin?.chatId) };
+}

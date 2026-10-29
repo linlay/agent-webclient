@@ -449,7 +449,8 @@ describe("ConversationStage scroll restoration", () => {
       ".conversation-stage-scroll-to-bottom",
     );
     expect(button).not.toBeNull();
-    // 运行中不画静态向下箭头，改为运行态图形。
+    // 运行中展示 DotLoading，不画静态向下箭头。
+    expect(button?.querySelector('[aria-label="leftSidebar.loading"]')).not.toBeNull();
     expect(button?.querySelector('[data-icon="arrow_downward"]')).toBeNull();
   });
 

@@ -1,5 +1,6 @@
 import { bindCssModuleClasses } from "@/shared/utils/cssModuleClasses";
 import timelinePresentation from "@/features/timeline/components/TimelinePresentation.module.css";
+import { MailBadge } from "./MailBadge";
 import { RelatedChatCards } from "./RelatedChatCards";
 import type { Agent } from "@/features/agents/lib/agentState";
 import { TimelineToolIcon } from "./TimelineToolIcon";
@@ -89,6 +90,44 @@ const TIMELINE_ROW_TIME_CLASS_NAME =
   presentationClasses("timeline-row-time tw:ml-auto tw:shrink-0 tw:pl-2 tw:text-[12px] tw:leading-none tw:text-ink-muted tw:tracking-[0.02em]");
 const TIMELINE_COMMAND_LABEL_CLASS_NAME =
   "timeline-command-label tw:mt-[9px] tw:font-code tw:text-[11px] tw:font-bold tw:leading-none tw:tracking-[0.06em] tw:text-accent-electric-strong tw:uppercase tw:empty:hidden";
+
+export interface TimelineActivityRowProps {
+  text: string;
+  nodeId?: string;
+  taskId?: string;
+  /** Marks the synthetic transition row shown while a run has nothing else to display. */
+  placeholder?: boolean;
+}
+
+/** Shared progress line used by live run.activity nodes and the empty-run transition. */
+export function TimelineActivityRow({
+  text,
+  nodeId,
+  taskId,
+  placeholder = false,
+}: TimelineActivityRowProps) {
+  const interaction = useTimelineInteraction();
+  return (
+    <div
+      className={TIMELINE_ROW_FLOW_CLASS_NAME}
+      data-kind="activity"
+      data-placeholder={placeholder ? "true" : undefined}
+      data-node-id={nodeId}
+      data-task-id={taskId || undefined}
+    >
+      <div className={TIMELINE_MARKER_CLASS_NAME}>
+        <RunActivityIcon {...interaction?.activityAppearance} />
+      </div>
+      <div
+        className={`${TIMELINE_FLOW_CONTENT_CLASS_NAME} tw:text-[13px]`}
+        role="status"
+        aria-live="polite"
+      >
+        <Skeleton active={true} text={text} />
+      </div>
+    </div>
+  );
+}
 
 function createTimeFormatter(locale: Locale): Intl.DateTimeFormat {
   return new Intl.DateTimeFormat(locale, {
@@ -323,6 +362,7 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
         data-task-id={taskID || undefined}
       >
         <div className={TIMELINE_USER_STACK_CLASS_NAME}>
+          {node.mail && <MailBadge mail={node.mail} />}
           {/* 消息发出后引用只是记录：可以回看文本与批注，但不再提供"跳回原文"的定位，避免把已读的这一行再滚走。 */}
           <SelectedTextFragmentsPill
             fragments={selectedTextFragments}
@@ -383,7 +423,7 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
         </div>
         <div className={TIMELINE_FLOW_CONTENT_CLASS_NAME}>
           <div className={TIMELINE_COMMAND_LABEL_CLASS_NAME}>
-            {getCommandMessageLabel(node.messageVariant)}
+            {node.mail ? <MailBadge mail={node.mail} /> : getCommandMessageLabel(node.messageVariant)}
           </div>
           <div className="tw:flex tw:flex-wrap tw:gap-1">
             {(node.attachments || []).map((attachment, index) => (
@@ -406,19 +446,11 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
   /* Progress activity: one line saying what the Run is doing now */
   if (node && node.kind === "message" && node.role === "system" && node.systemMessageLevel === "activity") {
     return (
-      <div
-        className={TIMELINE_ROW_FLOW_CLASS_NAME}
-        data-kind="activity"
-        data-node-id={anchorNodeId}
-        data-task-id={taskID || undefined}
-      >
-        <div className={TIMELINE_MARKER_CLASS_NAME}>
-          <RunActivityIcon {...interaction?.activityAppearance} />
-        </div>
-        <div className={`${TIMELINE_FLOW_CONTENT_CLASS_NAME} tw:text-[13px]`} role="status" aria-live="polite">
-          <Skeleton active={true} text={node.text || ""} />
-        </div>
-      </div>
+      <TimelineActivityRow
+        text={node.text || ""}
+        nodeId={anchorNodeId}
+        taskId={taskID}
+      />
     );
   }
 

@@ -133,3 +133,18 @@ test("write SDK uses only the parent bridge and preserves invocation receipts", 
     await expect(promise).resolves.toEqual({ data: { applied: true }, executedAt: 42, invocationId: "once", exitCode: 0 });
   } finally { window.postMessage = original; }
 });
+
+test("batch write SDK sends one request and retains per-entry results", async () => {
+  const posted: any[] = [], original = window.postMessage;
+  window.postMessage = ((message: unknown) => { posted.push(message); }) as typeof window.postMessage;
+  try {
+    new Function(VIEW_DISPLAY_SDK)();
+    const entries = [{ key: "DEMO-1" }, { key: "DEMO-2" }];
+    const promise = (window as any).viewHost.invokeBatch("worklog.add", entries);
+    const request = posted.find(message => message.type === "view_invoke");
+    expect(request).toMatchObject({ batch: true, action: "worklog.add", params: entries });
+    const data = { results: [{ ok: true, exitCode: 0, invocationId: "first", data: { applied: true } }, { ok: false, error: "invocation_outcome_unknown" }] };
+    window.dispatchEvent(new MessageEvent("message", { source: window, data: { type: "view_invoke_result", id: request.id, ok: true, data } }));
+    await expect(promise).resolves.toMatchObject({ data });
+  } finally { window.postMessage = original; }
+});

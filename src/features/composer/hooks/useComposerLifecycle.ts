@@ -134,14 +134,29 @@ export function useComposerLifecycle({
 
   useEffect(() => {
     const onSetDraft = (event: Event) => {
-      const draft = String((event as CustomEvent).detail?.draft || "");
+      const detail = (event as CustomEvent).detail as
+        | { draft?: unknown; append?: unknown }
+        | undefined;
+      const draft = String(detail?.draft || "");
+      if (detail?.append === true) {
+        setInputValue((current) => appendDesktopReviewDraft(current, draft));
+        setSlashDismissed(false);
+        window.requestAnimationFrame(() => {
+          const el = textareaRef.current?.resizableTextArea?.textArea;
+          if (!el) return;
+          el.focus({ preventScroll: true });
+          const caret = el.value.length;
+          el.setSelectionRange(caret, caret);
+        });
+        return;
+      }
       applyComposerDraft(draft);
     };
 
     window.addEventListener("agent:set-composer-draft", onSetDraft);
     return () =>
       window.removeEventListener("agent:set-composer-draft", onSetDraft);
-  }, [applyComposerDraft]);
+  }, [applyComposerDraft, setInputValue, setSlashDismissed, textareaRef]);
 
   useEffect(() => {
     const onSelectMention = (event: Event) => {

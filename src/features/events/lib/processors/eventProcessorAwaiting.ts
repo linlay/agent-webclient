@@ -50,7 +50,8 @@ export function maskStructuredAwaitingAnswers(event: AgentEvent): unknown {
 			return meta?.kind === "approval"
 				? {
 						...item,
-						command: meta.command,
+						command: toText((item as Record<string, unknown>).command).trim() || meta.command,
+						description: toText((item as Record<string, unknown>).description).trim() || meta.description,
 						ruleKey: meta.ruleKey,
 				  }
 				: item;

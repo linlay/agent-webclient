@@ -1,10 +1,10 @@
 import { agentPointerTarget, supportsAgentPointer, POINTER_AGENT_PROFILES } from "./agentPointerModel";
 const input = { name: "general" as const, dx: 80, dy: 0, width: 40, active: true, stationaryMs: 0, greeting: false, focused: false };
 
-it("supports the four approved resting characters only", () => {
-  expect(["general", "coder", "kbase", "team"].every(name => supportsAgentPointer(name as any))).toBe(true);
-  expect(supportsAgentPointer("proxy")).toBe(false);
-  expect(supportsAgentPointer("executor")).toBe(false);
+it("supports all six built-in resting characters", () => {
+  expect(["general", "coder", "kbase", "team", "proxy", "executor"].every(name => supportsAgentPointer(name as any))).toBe(true);
+  expect(supportsAgentPointer("proxy")).toBe(true);
+  expect(supportsAgentPointer("executor")).toBe(true);
 });
 it("caps extreme pointer positions and reduces head motion in sidebar sizes", () => {
   const small = agentPointerTarget({ ...input, dx: 100_000, dy: -100_000 });

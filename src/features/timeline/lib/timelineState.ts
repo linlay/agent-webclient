@@ -150,6 +150,7 @@ export interface RelatedChat {
 }
 
 export interface TimelineNode {
+  mail?: import("@/shared/data/api/dto/mailbox").MailMetadata;
 	relatedChat?: RelatedChat;
 	id: string;
 	kind: TimelineNodeKind;

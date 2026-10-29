@@ -1,4 +1,5 @@
 import React from "react";
+import { MailboxPanel } from "@/features/mailbox/components/MailboxPanel";
 import { useOpenTarget } from "@/features/surfaces/hooks/useOpenTarget";
 import { useAppContext } from "@/app/state/AppContext";
 import {
@@ -20,6 +21,7 @@ export {
 export { handleCreateAgentSuccess } from "@/features/workers/lib/agentProjectCreated";
 
 export const LeftSidebar: React.FC = () => {
+  const [mailboxOpen, setMailboxOpen] = React.useState(false);
   const openTarget = useOpenTarget();
   const { state } = useAppContext();
   const { openCommandOverlay } = useCommandOverlayActions();
@@ -32,6 +34,7 @@ export const LeftSidebar: React.FC = () => {
   );
   const handleSettingsMenuAction = React.useCallback(
     (action: SidebarSettingsMenuAction) => {
+      if (action.type === "open-mailbox") { setMailboxOpen(true); return; }
       let standaloneRoute = "";
       if (action.type === "open-agents") standaloneRoute = "/agents";
       if (action.type === "open-skills") standaloneRoute = "/skills";
@@ -51,6 +54,8 @@ export const LeftSidebar: React.FC = () => {
     [openOverlay],
   );
   return (
+    <>
+    {mailboxOpen && <MailboxPanel open onClose={() => setMailboxOpen(false)} />}
     <WorkerNavigator
       onOpenProject={(agentKey) => openTarget({ version: 1, kind: "project", agentKey })}
       onOpenSearch={openGlobalSearch}
@@ -80,5 +85,6 @@ export const LeftSidebar: React.FC = () => {
         </span>
       }
     />
+    </>
   );
 };

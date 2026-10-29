@@ -54,6 +54,7 @@ export type EventCommand =
 	| { cmd: "SET_PLAN_LAST_TOUCHED_TASK_ID"; taskId: string }
 	| {
 			cmd: "USER_MESSAGE";
+      mail?: TimelineNode["mail"];
 			nodeId: string;
 			text: string;
 			ts: number;

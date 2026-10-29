@@ -1,3 +1,4 @@
+import { AGENT_POINTER_REST_MS, chooseAgentIdleMotion, playAgentMotion, type AgentIdleMotion, type AgentMotionPlayback } from "./agentMotion";
 import { agentPointerTarget, POINTER_AGENT_PROFILES, type AgentPointerMood, type PointerAgentName } from "./agentPointerModel";
 
 interface EyeShape {
@@ -11,6 +12,7 @@ interface Actor {
   root: SVGSVGElement; name: PointerAgentName; motion: SVGGElement; shadow: SVGEllipseElement | null;
   group: Element; surface: Element | null; eyes: Eye[]; sizeTargets: Element[];
   visible: boolean; width: number; cx: number; cy: number; angle: number; lift: number;
+  idleAt: number; idleSince: number; lastIdle?: AgentIdleMotion; idlePlayback?: AgentMotionPlayback; following: boolean;
   settled: boolean; near: boolean; pulseUntil: number; blinkAt: number; blinkStart: number;
 }
 const runtimes = new WeakMap<Document, AgentPointerRuntime>();
@@ -22,8 +24,10 @@ class AgentPointerRuntime {
   private actors = new Set<Actor>();
   private frame: number | null = null;
   private dirty = true;
+  private idleTimer: number | undefined;
   private pointer = { x: 0, y: 0, inside: false, target: null as Node | null, movedAt: 0 };
   private focus: Node | null = null;
+  private focusAt = 0;
   private previousFrame = 0;
   private readonly preference: MediaQueryList | undefined;
   private readonly observer: IntersectionObserver | undefined;
@@ -39,10 +43,11 @@ class AgentPointerRuntime {
       for (const entry of entries) for (const actor of this.actors) {
         if (actor.root === entry.target) {
           actor.visible = entry.isIntersecting;
-          if (!actor.visible) this.restore(actor);
+          if (!actor.visible) { actor.idleAt = Infinity; this.restore(actor); }
+          else actor.idleAt = this.now() + this.idleGap();
         }
       }
-      this.dirty = true; this.start();
+      this.dirty = true; this.start(); this.scheduleIdle();
     });
     const Sizes = (this.win as Window & { ResizeObserver?: typeof ResizeObserver }).ResizeObserver;
     if (Sizes) this.sizes = new Sizes(this.onLayout);
@@ -75,16 +80,13 @@ class AgentPointerRuntime {
       group: root.closest("[data-agent-identity]") || root,
       surface: root.closest("[data-agent-pointer-surface]"),
       visible: !this.observer, width: 0, cx: 0, cy: 0, angle: 0, lift: 0,
+      idleAt: this.now() + this.idleGap(), idleSince: this.now(), following: false,
       settled: true, near: false, pulseUntil: 0, blinkAt: this.now() + 1800 + Math.random() * 2500, blinkStart: -1,
     };
     root.dataset.pointerTracking = "true";
     root.dataset.pointerMood = "rest";
-    if (root.closest("[data-agent-pointer-idle]")) {
-      root.dataset.pointerResting = "true";
-      root.style.setProperty("--agent-idle-period", `${22 + Math.random() * 10}s`);
-      root.style.setProperty("--agent-idle-delay", `${Math.random() * 7}s`);
-    }
-    this.actors.add(actor); this.observer?.observe(root); this.dirty = true;
+    root.dataset.pointerResting = "true";
+    this.actors.add(actor); this.observer?.observe(root); this.dirty = true; this.scheduleIdle();
     actor.sizeTargets = Array.from(new Set([root, actor.group, ...(actor.surface ? [actor.surface] : [])]));
     for (const target of actor.sizeTargets) {
       const references = this.sizeReferences.get(target) || 0;
@@ -99,11 +101,31 @@ class AgentPointerRuntime {
         else this.sizeReferences.set(target, references);
       }
       delete root.dataset.pointerTracking; delete root.dataset.pointerMood; delete root.dataset.pointerResting;
-      root.style.removeProperty("--agent-idle-period"); root.style.removeProperty("--agent-idle-delay");
+      if (this.actors.size) this.scheduleIdle();
       if (!this.actors.size) this.destroy();
     };
   }
 
+  private idleGap = () => 8000 + Math.random() * 8000;
+  private scheduleIdle = () => {
+    this.win.clearTimeout(this.idleTimer); this.idleTimer = undefined;
+    if (this.doc.hidden || this.preference?.matches) return;
+    const deadline = Math.min(...Array.from(this.actors).filter(actor => actor.visible && !actor.following).map(actor => actor.idleAt));
+    if (!Number.isFinite(deadline)) return;
+    this.idleTimer = this.win.setTimeout(() => {
+      const now = this.now();
+      for (const actor of this.actors) {
+        if (!actor.visible || actor.following || actor.idleAt > now) continue;
+        this.restore(actor);
+        const motion = chooseAgentIdleMotion(actor.lastIdle, now - Math.max(actor.idleSince, this.pointer.movedAt));
+        const variants = { general: "general", coder: "code", kbase: "knowledge", team: "team", proxy: "agent", executor: "executor" } as const;
+        actor.lastIdle = motion;
+        actor.idlePlayback = playAgentMotion(actor.root, motion, variants[actor.name]);
+        actor.idleAt = now + actor.idlePlayback.duration + this.idleGap();
+      }
+      this.scheduleIdle();
+    }, Math.max(0, deadline - this.now()));
+  };
   private now = () => this.win.performance.now();
   private start = () => {
     if (this.frame === null && !this.doc.hidden && !this.preference?.matches && this.actors.size) {
@@ -131,6 +153,7 @@ class AgentPointerRuntime {
   };
   private onFocus = (event: FocusEvent) => {
     this.focus = event.type === "focusin" ? event.target as Node : event.relatedTarget as Node | null;
+    this.focusAt = this.now();
     this.start();
   };
   private onLayout = () => { this.dirty = true; if (this.pointer.inside || this.focus) this.start(); };
@@ -138,10 +161,13 @@ class AgentPointerRuntime {
     if (this.frame !== null) this.win.cancelAnimationFrame(this.frame);
     this.frame = null; this.previousFrame = 0;
     this.pointer.inside = false; this.pointer.target = null; this.focus = null;
+    this.win.clearTimeout(this.idleTimer); this.idleTimer = undefined;
     this.dirty = true;
-    for (const actor of this.actors) { actor.near = false; actor.pulseUntil = 0; this.restore(actor); }
+    for (const actor of this.actors) { actor.following = false; actor.idleAt = this.now() + this.idleGap(); actor.near = false; actor.pulseUntil = 0; this.restore(actor); }
+    this.scheduleIdle();
   };
   private restore(actor: Actor) {
+    actor.idlePlayback?.cancel(); actor.idlePlayback = undefined;
     for (const eye of actor.eyes) {
       eye.x = 0; eye.y = 0; eye.gaze.removeAttribute("transform"); eye.blink.style.removeProperty("transform");
       for (const shape of eye.shapes) {
@@ -156,7 +182,7 @@ class AgentPointerRuntime {
     actor.settled = true; actor.angle = 0; actor.lift = 0; actor.motion.style.removeProperty("transform");
     actor.shadow?.style.removeProperty("transform"); actor.shadow?.style.removeProperty("opacity");
     actor.root.dataset.pointerMood = "rest";
-    if (actor.root.closest("[data-agent-pointer-idle]")) actor.root.dataset.pointerResting = "true";
+    actor.root.dataset.pointerResting = "true";
   }
 
   private draw = (now: number) => {
@@ -181,11 +207,18 @@ class AgentPointerRuntime {
       const withinGroup = !!this.pointer.target && actor.group.contains(this.pointer.target);
       actor.surface = actor.root.closest("[data-agent-pointer-surface]");
       const withinSurface = !!this.pointer.target && !!actor.surface?.contains(this.pointer.target);
-      const focused = !!this.focus && actor.group.contains(this.focus);
+      const focused = !!this.focus && actor.group.contains(this.focus) && now - this.focusAt < AGENT_POINTER_REST_MS;
       const inside = this.pointer.inside && (actor.surface ? withinSurface : withinGroup);
       // Mouse greetings end with the containing row/surface; touch pulses have no pointer target.
       if (!inside && this.pointer.target) actor.pulseUntil = 0;
-      const active = focused || now < actor.pulseUntil || inside;
+      const active = focused || now < actor.pulseUntil || (inside && now - this.pointer.movedAt < AGENT_POINTER_REST_MS);
+      if (active && !actor.following) {
+        this.restore(actor); actor.following = true; actor.idleAt = Infinity;
+        this.scheduleIdle();
+      } else if (!active && actor.following) {
+        actor.following = false; actor.idleSince = now; actor.idleAt = now + this.idleGap();
+        this.scheduleIdle();
+      }
       if (!active && actor.settled) continue;
       actor.settled = false;
       delete actor.root.dataset.pointerResting;
@@ -241,7 +274,7 @@ class AgentPointerRuntime {
   };
 
   private destroy() {
-    this.onSuspend(); this.observer?.disconnect(); this.sizes?.disconnect(); this.sizeReferences.clear();
+    this.onSuspend(); this.win.clearTimeout(this.idleTimer); this.idleTimer = undefined; this.observer?.disconnect(); this.sizes?.disconnect(); this.sizeReferences.clear();
     this.doc.removeEventListener("pointermove", this.onMove);
     this.doc.removeEventListener("pointerdown", this.onTouch);
     this.doc.removeEventListener("pointerout", this.onPointerOut);

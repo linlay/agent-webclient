@@ -35,6 +35,7 @@ import {
 } from "@/app/state/AppContext";
 import { formatTimelineTime } from "@/features/timeline/components/TimelineRow";
 import { ConversationStage } from "@/features/timeline/components/ConversationStage";
+import { RunActivityPlaceholder } from "@/features/timeline/components/RunActivityPlaceholder";
 import { TimelineInteractionProvider, type TimelineInteractionValue } from "@/features/timeline/components/TimelineInteractionContext";
 import { registerDesktopContextMenuTarget } from "@/shared/data/desktop/desktopContextMenu";
 import { useOpenTarget } from "@/features/surfaces/hooks/useOpenTarget";
@@ -48,6 +49,7 @@ import {
   nodesForDetailLevel,
   type TimelineDisplayItem,
 } from "@/features/timeline/lib/timelineDisplay";
+import { hasDisplayableTimelineItem } from "@/features/timeline/lib/runActivityPlaceholder";
 import {
   buildNodeCollapseTargets,
   buildNodeVirtualIndexMap,
@@ -87,6 +89,7 @@ import {
 import type { ConversationSurfaceMode } from "@/features/conversation/lib/conversationState";
 import type { TimelineNode } from "@/features/timeline/lib/timelineState";
 import { LogoLoading } from "@/shared/components/logo-loading";
+import { DotLoading } from "@/shared/components/dot-loading";
 import { resolveMainChatRuntime } from "@/features/runs/lib/runRuntimeState";
 import { useAppMessage } from "@/shared/ui/useAppMessage";
 import type {
@@ -591,13 +594,17 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
   const detailLevel = chatDetailLevel(state);
   const activityRunId = mainChatRuntime?.runId || state.currentChatActiveRun?.runId || state.runId;
   const activityChatId = expectedChatId || state.chatTransition?.targetChatId || state.chatId;
+  const activityScopeKey = JSON.stringify([activityChatId, activityRunId]);
+  const conversationRunning =
+    activityChatId === state.chatId &&
+    Boolean(isMainChatRunning || state.streaming || state.currentChatActiveRun);
   const rawTimelineNodes = useMemo(() => state.timelineOrder
     .map(id => state.timelineNodes.get(id))
     .filter((node): node is TimelineNode => Boolean(node)), [state.timelineOrder, state.timelineNodes]);
   const activityTimelineNodes = useRunActivityTimeline(rawTimelineNodes, {
-    scopeKey: JSON.stringify([activityChatId, activityRunId]),
+    scopeKey: activityScopeKey,
     runId: activityRunId,
-    active: activityChatId === state.chatId && Boolean(isMainChatRunning || state.streaming || state.currentChatActiveRun),
+    active: conversationRunning,
     detailLevel,
     events: state.events,
   });
@@ -792,6 +799,27 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
       return { kind: "standalone", key: item.key, item };
     });
   }, [displayItems]);
+  const hasDisplayableNode = useMemo(
+    () => hasDisplayableTimelineItem(displayItems),
+    [displayItems],
+  );
+  // Query 行只是会话上下文，不算可展示输出；只有它时仍用进度行过渡。
+  const showActivityPlaceholder = conversationRunning && !hasDisplayableNode;
+  // Keep one component identity while the copy rotates: a new type each render
+  // would remount the placeholder and restart its rotation on every stream tick.
+  const stageFooter = useMemo(() => {
+    if (!showActivityPlaceholder) return ConversationStageBottomSpacer;
+    const padding = virtualItems.length === 0 ? "tw:pt-5" : "tw:pt-1";
+    const StageFooter: React.FC<{ context: unknown }> = () => (
+      <>
+        <div className={padding}>
+          <RunActivityPlaceholder active scopeKey={activityScopeKey} />
+        </div>
+        <ConversationStageBottomSpacer />
+      </>
+    );
+    return StageFooter;
+  }, [activityScopeKey, showActivityPlaceholder, virtualItems.length]);
 
   const virtualItemKeys = useMemo(
     () => virtualItems.map((item) => item.key),
@@ -1649,12 +1677,12 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
   const currentAgent = state.agents.find(agent => agent.key === currentWorker?.sourceId);
   const emptyAgentIdentity = (
     <span className="timeline-empty-agent-identity tw:inline-flex tw:items-baseline tw:gap-2 tw:align-baseline">
-      <span data-agent-identity="" className="timeline-empty-agent-icon tw:inline-flex tw:self-center">
-        <AgentIcon type="agent" icon={currentAgent?.icon} mode={currentAgent?.mode} props={{ icon: { width: 40, height: 40 } }} />
-      </span>
       {canSwitchEmptyAgent ? (
         <TimelineAgentSwitcher currentWorker={currentWorker} options={timelineAgentOptions} />
       ) : <span>{currentWorker?.displayName}</span>}
+      <span data-agent-identity="" className="timeline-empty-agent-icon tw:me-2 tw:inline-flex tw:self-center">
+        <AgentIcon type="agent" icon={currentAgent?.icon} mode={currentAgent?.mode} props={{ icon: { width: 40, height: 40 } }} />
+      </span>
     </span>
   );
   const emptyStateContent = !state.chatId && showEmptyState && (
@@ -1674,12 +1702,8 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
     </div>
   );
 
-  // 运行中的按钮画的是角色头像，交互不能只认那 32px 的圆钮：把整块对话区域声明成
-  // 体验区，指针进入对话就唤醒角色（视线跟随 + 眨眼），按钮本身只保留点按/聚焦。
   const scrollToBottomRunning = isMainChatRunning || state.streaming;
   const showScrollToBottomControl = Boolean(state.chatId) && scrollToBottomVisible;
-  const agentPointerSurface =
-    scrollToBottomRunning && showScrollToBottomControl ? "" : undefined;
 
   const renderScrollToBottomControl = () => {
     // 已在底部时不展示：内容还在视口里时这个按钮没有意义。
@@ -1702,19 +1726,13 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
             className={CONVERSATION_STAGE_SCROLL_TO_BOTTOM_CLASS_NAME}
             iconOnly
             size="sm"
-            aria-label={t("conversationStage.scrollToBottom")}
-            data-agent-identity=""
             onClick={handleScrollToBottomClick}
           >
             {scrollToBottomRunning ? (
-              // 运行中用当前 Agent 的角色形象表示进行中：指针在对话区域内即跟随视线
-              // 并眨眼，靠近图形或点按时打招呼。静态图形不承载状态语义，可访问名由
-              // 按钮的 aria-label 提供。
-              <AgentIcon
-                type="agent"
-                icon={currentAgent?.icon}
-                mode={currentAgent?.mode}
-                props={{ icon: { width: 20, height: 20 } }}
+              <DotLoading
+                color="primary"
+                height={15}
+                ariaLabel={t("leftSidebar.loading")}
               />
             ) : (
               <MaterialIcon name="arrow_downward" />
@@ -1969,11 +1987,7 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
 
   return (
     <TimelineInteractionProvider value={interaction}>
-    <div
-      className={CONVERSATION_STAGE_CLASS_NAME}
-      ref={containerRef}
-      data-agent-pointer-surface={agentPointerSurface}
-    >
+    <div className={CONVERSATION_STAGE_CLASS_NAME} ref={containerRef}>
       <div
         className="tw:absolute tw:inset-0 tw:flex tw:flex-col"
         data-conversation-content="timeline"
@@ -2029,7 +2043,7 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
               totalListHeightChanged: handleTotalListHeightChanged,
               rangeChanged: handleRangeChanged,
               isScrolling: handleIsScrolling,
-              Footer: ConversationStageBottomSpacer,
+              Footer: stageFooter,
             }}
           />
         )}

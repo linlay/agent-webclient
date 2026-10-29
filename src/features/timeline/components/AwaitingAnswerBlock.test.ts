@@ -249,3 +249,21 @@ describe('AwaitingAnswerBlock', () => {
     expect(html).toContain('拒绝 · 请补充测试范围');
   });
 });
+
+describe('approval answer descriptions', () => {
+  it.each([
+    { description: '检查重复文件', command: 'find Downloads', count: 1 },
+    { description: '', command: 'find Downloads', count: 1 },
+    { description: 'find Downloads', command: 'find Downloads', count: 1 },
+  ])('renders description and command without duplication: $description', ({ description, command, count }) => {
+    const html = renderToStaticMarkup(React.createElement(AwaitingAnswerBlock, {
+      node: { id: 'approval', kind: 'awaiting-answer', expanded: true, ts: 0,
+        text: JSON.stringify({ status: 'answered', items: [{ id: 'a1', description, command, decision: 'reject', reason: '调整范围' }] }),
+      },
+    }));
+    expect(html.split(command).length - 1).toBe(count);
+    if (description) expect(html).toContain(description);
+    expect(html).toContain('调整范围');
+    if (description && description !== command) expect(html.indexOf(description)).toBeLessThan(html.indexOf(command));
+  });
+});

@@ -1,0 +1,9 @@
+.filters { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 18px; }
+.list { display: flex; flex-direction: column; gap: 16px; margin-top: 16px; }
+.mail { border: 1px solid var(--border-color, #85858544); border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+.heading { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; }
+.heading time, .identity { font-size: 11px; opacity: .7; overflow-wrap: anywhere; }
+.address { display: flex; gap: 12px; align-items: center; }
+.message { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 320px; overflow: auto; font: inherit; margin: 0; }
+.attachment { overflow-wrap: anywhere; font-size: 12px; }
+.pagination { margin-top: 20px; }

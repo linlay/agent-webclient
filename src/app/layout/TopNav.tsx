@@ -2,6 +2,7 @@ import sharedPresentation from "@/shared/ui/Presentation.module.css";
 import { bindCssModuleClasses } from "@/shared/utils/cssModuleClasses";
 import appPresentation from "@/app/layout/ShellPresentation.module.css";
 import React from "react";
+import { useDesktopHeaderLayout } from "./useDesktopHeaderLayout";
 import { useConversationSurface } from "@/shared/ui/ConversationSurfaceContext";
 import { ConversationRegionSkeleton } from "@/features/conversation/components/ConversationRegionSkeleton";
 import {
@@ -188,6 +189,7 @@ export const TopNav: React.FC<{ surface?: "root" | "agent" }> = ({
   );
   const currentWorker = resolveCurrentWorkerSummary(state);
   const desktopMode = isDesktopAppMode();
+  const desktopHeaderLayout = useDesktopHeaderLayout(desktopMode && surface === "agent");
   const showTerminalButton = !desktopMode && workerShowsTerminal(currentWorker);
   const terminalAgentStatuses = useTerminalAgentStatuses(showTerminalButton);
   const voiceEnabled = isVoiceEnabled();
@@ -342,7 +344,9 @@ export const TopNav: React.FC<{ surface?: "root" | "agent" }> = ({
     ? `${statusLabel}: ${statusDetail}`
     : statusLabel;
   return (
-    <nav className={TOP_NAV_CLASS}>
+    <nav className={TOP_NAV_CLASS}
+      data-desktop-sidebar-collapsed={desktopHeaderLayout.sidebarCollapsed ? "true" : undefined}
+      style={desktopHeaderLayout.headerLeftInset ? { paddingLeft: desktopHeaderLayout.headerLeftInset } : undefined}>
       <div className={TOP_NAV_INNER_CLASS}>
         <div className={NAV_LEFT_CLASS}>
           {state.chatId && <TimelineTextSearchControl appearance="input" />}

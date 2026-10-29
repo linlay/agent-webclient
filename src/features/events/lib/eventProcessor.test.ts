@@ -907,11 +907,25 @@ describe('processStreamEvent', () => {
 	          decision: 'approve',
           reason: '继续执行',
           command: 'rm -rf /tmp/demo',
+          description: '删除临时目录',
           ruleKey: 'dangerous-commands::rm',
         },
       ],
       status: 'answered',
     });
+  });
+
+  it('prefers the answer description over cached approval metadata', () => {
+    const state = createState();
+    registerAwaitingApprovalMeta('run_1', 'await_1', [{
+      id: 'approval_1', command: 'ls', description: '旧描述',
+    }]);
+    processAndApply(state, {
+      type: 'awaiting.answer', runId: 'run_1', awaitingId: 'await_1',
+      status: 'answered', approvals: [{ id: 'approval_1', decision: 'approve', command: 'ls', description: '事件描述' }],
+      timestamp: 222,
+    }, 'replay', false);
+    expect(JSON.parse(state.timelineNodes.get('awaiting_answer_run_1_await_1')?.text || '{}').items[0].description).toBe('事件描述');
   });
 
   it('maps awaiting answer errors to title and envelope text', () => {

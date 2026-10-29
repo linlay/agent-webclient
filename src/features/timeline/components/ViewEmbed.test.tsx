@@ -360,3 +360,46 @@ test("expanded Desktop views do not show nested presentation controls", async ()
     expect(host.querySelector('button[aria-label="view.header.openSidebar"]')).toBeNull();
   } finally { cleanup(); }
 });
+
+test("batch writes show one frozen summary and execute all entries after one confirmation", async () => {
+  mockInvokeView.mockResolvedValue({ data: { data: { applied: true }, executedAt: 42, invocationId: "batch-item", exitCode: 0 } });
+  const { frame, posted, cleanup } = await mount({ runId: "run-1", payloadRaw: '{}' });
+  const entries = [{ key: "DEMO-1", comment: "开发" }, { key: "DEMO-2", comment: "测试" }];
+  try {
+    await act(async () => { window.dispatchEvent(new MessageEvent("message", { source: frame.contentWindow, data: { type: "view_invoke", batch: true, id: "batch-1", action: "update", params: entries } })); });
+    expect(mockInvokeView).not.toHaveBeenCalled();
+    const dialog = document.querySelector('[role="dialog"]')!;
+    expect(dialog.textContent).toContain("DEMO-1"); expect(dialog.textContent).toContain("DEMO-2");
+    expect(dialog.querySelectorAll('tbody tr')).toHaveLength(2);
+    entries[0].comment = "changed after confirmation request";
+    const confirm = [...dialog.querySelectorAll('button')].find(b => b.textContent === "view.action.submit")!;
+    await act(async () => { confirm.click(); confirm.click(); });
+    expect(mockInvokeView).toHaveBeenCalledTimes(2);
+    expect(mockInvokeView.mock.calls.map(call => call[0].params)).toEqual([{ key: "DEMO-1", comment: "开发" }, { key: "DEMO-2", comment: "测试" }]);
+    expect(posted).toContainEqual(expect.objectContaining({ id: "batch-1", ok: true, data: { results: [expect.objectContaining({ ok: true }), expect.objectContaining({ ok: true })] } }));
+  } finally { cleanup(); }
+});
+
+test("batch cancellation sends no writes, and a later item failure stops remaining entries", async () => {
+  const { frame, posted, cleanup } = await mount({ runId: "run-1", payloadRaw: '{}' });
+  const send = async (id: string, params: unknown = [{ key: "DEMO-1" }, { key: "DEMO-2" }, { key: "DEMO-3" }]) => {
+    await act(async () => { window.dispatchEvent(new MessageEvent("message", { source: frame.contentWindow, data: { type: "view_invoke", batch: true, id, action: "update", params } })); });
+  };
+  try {
+    await send("invalid", []);
+    expect(posted).toContainEqual(expect.objectContaining({ id: "invalid", error: "view_action_params_invalid" }));
+    // Key order does not make a duplicate entry distinct.
+    await send("duplicate", [{ key: "DEMO-1", comment: "开发" }, { comment: "开发", key: "DEMO-1" }]);
+    expect(posted).toContainEqual(expect.objectContaining({ id: "duplicate", error: "view_action_params_invalid" }));
+    expect(document.querySelector('[role="dialog"]')).toBeNull();
+    await send("cancel-batch");
+    await act(async () => { [...document.querySelectorAll('button')].find(b => b.textContent === "view.action.cancel")!.click(); });
+    expect(mockInvokeView).not.toHaveBeenCalled();
+    expect(posted).toContainEqual(expect.objectContaining({ id: "cancel-batch", error: "view_action_canceled" }));
+    mockInvokeView.mockResolvedValueOnce({ data: { data: { applied: true }, exitCode: 0, invocationId: "first", executedAt: 42 } }).mockRejectedValueOnce(new Error("invocation_outcome_unknown"));
+    await send("partial-batch");
+    await act(async () => { [...document.querySelectorAll('button')].find(b => b.textContent === "view.action.submit")!.click(); });
+    expect(mockInvokeView).toHaveBeenCalledTimes(2);
+    expect(posted).toContainEqual(expect.objectContaining({ id: "partial-batch", ok: true, data: { results: [expect.objectContaining({ ok: true, invocationId: "first" }), { ok: false, error: "invocation_outcome_unknown" }] } }));
+  } finally { cleanup(); }
+});

@@ -1,12 +1,14 @@
 import type { AgentIconName } from "./agentAppearance";
 
-export type PointerAgentName = "general" | "coder" | "kbase" | "team";
+export type PointerAgentName = AgentIconName;
 export type AgentPointerMood = "rest" | "follow" | "round" | "wink" | "think" | "read" | "side";
 export const POINTER_AGENT_PROFILES = {
-  general: { range: 1.05, lag: .14, head: 7.5 },
-  coder: { range: .8, lag: .18, head: 4.5 },
-  kbase: { range: .85, lag: .09, head: 5 },
-  team: { range: .95, lag: .12, head: 4.5 },
+  general: { range: 1.7, lag: .17, head: 8 },
+  coder: { range: 1.2, lag: .18, head: 1 },
+  kbase: { range: 1.4, lag: .12, head: 3 },
+  team: { range: .6, lag: .12, head: .25 },
+  proxy: { range: 1.5, lag: .15, head: 3 },
+  executor: { range: 1.4, lag: .15, head: 3 },
 } as const;
 export function supportsAgentPointer(name: AgentIconName): name is PointerAgentName {
   return Object.hasOwn(POINTER_AGENT_PROFILES, name);
@@ -32,6 +34,6 @@ export function agentPointerTarget(input: {
     x: active ? (focused ? 0 : Math.tanh(dx / 140) * 13 * profile.range) : 0,
     y: active ? (focused ? -3 : Math.tanh(dy / 125) * 9 * profile.range) : 0,
     angle: active ? Math.max(-1, Math.min(1, dx / 120)) * profile.head * (small ? .6 : 1) : 0,
-    lift: active ? (mood === "round" ? -4 : mood === "wink" ? -5.5 : -1.8) * (small ? .65 : 1) : 0,
+    lift: active ? (name === "team" ? 0 : 2) : 0,
   };
 }

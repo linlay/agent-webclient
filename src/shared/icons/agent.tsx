@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useRef } from "react";
 import { registerAgentPointer } from "./agentPointerRuntime";
 import { supportsAgentPointer } from "./agentPointerModel";
 import type { AvatarProps } from "antd/es";
-import { AgentCharacter } from "./AgentCharacterGlyph";
+import { AgentDefaultPose } from "./AgentDefaultPose";
 import styles from "./AgentCharacter.module.css";
 import { AGENT_ICON_NAMES, isExternalAgentIcon, normalizeAgentIconName, resolveAgentIcon, type AgentIconConfig } from "./agentAppearance";
 export { AGENT_ICON_NAMES };
@@ -43,7 +43,7 @@ export const AgentIcon: React.FC<AgentIconProps> = ({ icon, mode, props, interac
     data-agent-icon-source={normalizeAgentIconName(configuredName) ? "builtin" : "default"}
     data-agent-icon-name={appearance.name}
     style={{ display: "inline-block", verticalAlign: "middle", flexShrink: 0, ...(appearance.color ? { color: appearance.color } : {}), ...svg.style }}>
-    <ellipse data-agent-shadow="" className={styles.avatarShadow} cx="100" cy={appearance.name === "team" ? 172 : 162} rx="62" ry="14" fill="currentColor" />
-    <g data-agent-motion="" className={styles.avatarMotion}><AgentCharacter key={appearance.name} variant={variants[appearance.name]} /></g>
+    <ellipse data-agent-shadow="" className={styles.avatarShadow} cx="100" cy={appearance.name === "team" ? 172 : 162} rx="56" ry={appearance.name === "team" ? 6 : 9} fill="currentColor" />
+    <g data-agent-motion="" className={styles.avatarMotion}><g data-agent-spin="" className={styles.avatarMotion}><AgentDefaultPose key={appearance.name} variant={variants[appearance.name]} /></g></g>
   </svg>;
 };
