@@ -11,34 +11,35 @@ interface ComposerPastedTextsProps {
   disabled: boolean;
   onRemove: (id: string) => void;
   onExpand: (id: string) => void;
+  inline?: boolean;
 }
 
-export function ComposerPastedTexts({ pastes, disabled, onRemove, onExpand }: ComposerPastedTextsProps) {
+export function ComposerPastedTexts({ pastes, disabled, onRemove, onExpand, inline = false }: ComposerPastedTextsProps) {
   const { t } = useI18n();
   const [previewId, setPreviewId] = useState<string | null>(null);
   const preview = pastes.find(paste => paste.id === previewId);
   if (!pastes.length) return null;
 
+  const cards = pastes.map(paste => {
+    const title = paste.text.trimStart().split(/[\r\n]/, 1)[0].slice(0, 120);
+    return <div key={paste.id} className={styles.card}>
+      <button type="button" className={styles.preview} onClick={() => setPreviewId(paste.id)}
+        aria-label={t("composer.pastedText.preview", { title })}>
+        <span className={styles.icon}><MaterialIcon name="description" /></span>
+        <span className={styles.copy}>
+          <span className={styles.title}>{title}</span>
+          <span className={styles.subtitle}>{t("composer.pastedText.label")} · {t("composer.pastedText.characters", { count: paste.text.length.toLocaleString() })}</span>
+        </span>
+      </button>
+      <button type="button" className={styles.remove} disabled={disabled} onClick={() => onRemove(paste.id)}
+        aria-label={t("composer.pastedText.remove", { title })}>
+        <MaterialIcon name="close" />
+      </button>
+    </div>;
+  });
+
   return <>
-    <div className={styles.cards} aria-label={t("composer.pastedText.label")}>
-      {pastes.map(paste => {
-        const title = paste.text.trimStart().split(/[\r\n]/, 1)[0].slice(0, 120);
-        return <div key={paste.id} className={styles.card}>
-          <button type="button" className={styles.preview} onClick={() => setPreviewId(paste.id)}
-            aria-label={t("composer.pastedText.preview", { title })}>
-            <span className={styles.icon}><MaterialIcon name="description" /></span>
-            <span className={styles.copy}>
-              <span className={styles.title}>{title}</span>
-              <span className={styles.subtitle}>{t("composer.pastedText.label")} · {t("composer.pastedText.characters", { count: paste.text.length.toLocaleString() })}</span>
-            </span>
-          </button>
-          <button type="button" className={styles.remove} disabled={disabled} onClick={() => onRemove(paste.id)}
-            aria-label={t("composer.pastedText.remove", { title })}>
-            <MaterialIcon name="close" />
-          </button>
-        </div>;
-      })}
-    </div>
+    {inline ? cards : <div className={styles.cards} aria-label={t("composer.pastedText.label")}>{cards}</div>}
     {preview ? <Modal open title={t("composer.pastedText.label")} onCancel={() => setPreviewId(null)}
       width={760} centered className={styles.modal}
       footer={<UiButton disabled={disabled} onClick={() => { onExpand(preview.id); setPreviewId(null); }}>

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { useOpenTarget } from "@/features/surfaces/hooks/useOpenTarget";
 import { AttachmentCard } from "@/features/artifacts/components/AttachmentCard";
 import { SkillIcon } from "@/features/skills/components/SkillIcon";
@@ -25,6 +25,9 @@ interface ComposerAttachmentsProps {
   };
   onRemoveAttachment: (attachmentId: string) => void;
   onScroll: (direction: "left" | "right") => void;
+  children?: React.ReactNode;
+  additionalItemCount?: number;
+  onContentChange?: () => void;
 }
 
 const COMPOSER_ATTACHMENTS_VIEWPORT_CLASS =
@@ -32,7 +35,7 @@ const COMPOSER_ATTACHMENTS_VIEWPORT_CLASS =
 const COMPOSER_ATTACHMENTS_CLASS =
   "composer-attachments tw:flex tw:w-max tw:min-w-full tw:flex-nowrap tw:items-stretch tw:gap-[4px]";
 const COMPOSER_ATTACHMENTS_SHELL_CLASS =
-  "composer-attachments-shell tw:relative";
+  "composer-attachments-shell tw:relative tw:w-full tw:min-w-0";
 const COMPOSER_ATTACHMENTS_SHELL_STATE_CLASS = {
   default: "",
   scrollable: "is-scrollable tw:px-[30px]",
@@ -54,13 +57,21 @@ export const ComposerAttachments: React.FC<ComposerAttachmentsProps> = ({
   attachmentScrollState,
   onRemoveAttachment,
   onScroll,
+  children,
+  additionalItemCount = 0,
+  onContentChange,
 }) => {
   const { t } = useI18n();
   const openTarget = useOpenTarget();
   const activeSkills = skills ?? [];
+  const itemCount = attachments.length + additionalItemCount;
+
+  useEffect(() => {
+    onContentChange?.();
+  }, [attachments.length, additionalItemCount, onContentChange]);
 
   return (
-    <>
+    <div className={`${COMPOSER_ATTACHMENTS_SHELL_CLASS} ${hasComposerAttachmentOverflow ? COMPOSER_ATTACHMENTS_SHELL_STATE_CLASS.scrollable : COMPOSER_ATTACHMENTS_SHELL_STATE_CLASS.default}`.trim()}>
       <div
         ref={attachmentViewportRef}
         className={COMPOSER_ATTACHMENTS_VIEWPORT_CLASS}
@@ -114,12 +125,11 @@ export const ComposerAttachments: React.FC<ComposerAttachmentsProps> = ({
               />
             )
           ))}
+          {children}
         </div>
       </div>
-      {attachments.length > 0 && (
-        <div
-          className={`${COMPOSER_ATTACHMENTS_SHELL_CLASS} ${hasComposerAttachmentOverflow ? COMPOSER_ATTACHMENTS_SHELL_STATE_CLASS.scrollable : COMPOSER_ATTACHMENTS_SHELL_STATE_CLASS.default}`.trim()}
-        >
+      {itemCount > 0 && (
+        <>
           {hasComposerAttachmentOverflow && (
             <button
               type="button"
@@ -144,8 +154,8 @@ export const ComposerAttachments: React.FC<ComposerAttachmentsProps> = ({
               <MaterialIcon name="chevron_right" />
             </button>
           )}
-        </div>
+        </>
       )}
-    </>
+    </div>
   );
 };

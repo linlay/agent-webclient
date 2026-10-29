@@ -229,6 +229,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     isCapturingDesktopScreenshot,
     openFilePicker,
     scrollComposerAttachments,
+    refreshComposerAttachmentScroll,
     stageReviewAttachment,
     stageFiles,
     sendAttachmentMeta,
@@ -1170,19 +1171,6 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
                 <FailedSubmissions agentKey={currentAgentKey} chatId={state.chatId} drafts={state.failedSubmissions || []}
                   restore={requestId => dispatch({ type: "RESTORE_FAILED_SUBMISSION", requestId })}
                   discard={requestId => dispatch({ type: "DISCARD_FAILED_SUBMISSION", requestId })} />
-                <ComposerAttachments
-                  attachments={[...displayedForcedSkills.map(skill => ({id:`forced:${skill.id}`,name:skill.label,type:"skill",size:0,status:"ready" as const,error:"",references:[{type:"skill",id:skill.id}]})),...visibleAttachments]}
-                  attachmentChatId={state.chatId || attachmentChatId}
-                  skills={activeAgentSkills}
-                  attachmentViewportRef={attachmentViewportRef}
-                  useUnifiedComposerAttachmentRow={
-                    visibleAttachments.length > 1
-                  }
-                  hasComposerAttachmentOverflow={hasComposerAttachmentOverflow}
-                  attachmentScrollState={attachmentScrollState}
-                  onRemoveAttachment={id => { if (!id.startsWith("forced:")) handleRemoveAttachment(id); }}
-                  onScroll={scrollComposerAttachments}
-                />
                 {nativeShare.busy ? <div role="status" aria-live="polite" className="tw:px-2 tw:text-xs tw:text-ink-muted">
                   {t("nativeShare.receiving")}
                 </div> : null}
@@ -1212,6 +1200,23 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
                   isTimelineEmpty={isTimelineEmpty}
                   inputValue={inputValue}
                   draftScopeKey={state.chatId}
+                  renderAttachments={(pastedTexts, pastedTextCount) => (
+                    <ComposerAttachments
+                      attachments={[...displayedForcedSkills.map(skill => ({id:`forced:${skill.id}`,name:skill.label,type:"skill",size:0,status:"ready" as const,error:"",references:[{type:"skill",id:skill.id}]})),...visibleAttachments]}
+                      attachmentChatId={state.chatId || attachmentChatId}
+                      skills={activeAgentSkills}
+                      attachmentViewportRef={attachmentViewportRef}
+                      useUnifiedComposerAttachmentRow={visibleAttachments.length > 1 && pastedTextCount === 0}
+                      hasComposerAttachmentOverflow={hasComposerAttachmentOverflow}
+                      attachmentScrollState={attachmentScrollState}
+                      onRemoveAttachment={id => { if (!id.startsWith("forced:")) handleRemoveAttachment(id); }}
+                      onScroll={scrollComposerAttachments}
+                      additionalItemCount={pastedTextCount}
+                      onContentChange={refreshComposerAttachmentScroll}
+                    >
+                      {pastedTexts}
+                    </ComposerAttachments>
+                  )}
                   placeholder={sampledIntroduction}
                   currentWorkerName={
                     state.voiceChat.currentAgentName ||

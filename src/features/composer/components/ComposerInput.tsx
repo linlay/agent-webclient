@@ -17,6 +17,7 @@ interface ComposerInputProps {
   isTimelineEmpty: boolean;
   inputValue: string;
   draftScopeKey?: string;
+  renderAttachments?: (pastedTexts: React.ReactNode, pastedTextCount: number) => React.ReactNode;
   placeholder?: string;
   currentWorkerName: string;
   voiceStatus: VoiceChatStatus;
@@ -143,6 +144,7 @@ export const ComposerInput: React.FC<ComposerInputProps> = ({
   isTimelineEmpty,
   inputValue,
   draftScopeKey = "",
+  renderAttachments,
   placeholder,
   currentWorkerName,
   voiceStatus,
@@ -173,9 +175,14 @@ export const ComposerInput: React.FC<ComposerInputProps> = ({
   const hasVoiceAssistantPreview = Boolean(partialAssistantText.trim());
   const voiceStatusText = getVoiceStatusText(voiceStatus, voiceError, t);
   const [inputExpanded, setInputExpanded] = useState(false);
+  const pastedTextCards = (
+    <ComposerPastedTexts pastes={pastedText.pastes} disabled={disabled || isFrontendActive}
+      inline={Boolean(renderAttachments)} onRemove={pastedText.removePaste} onExpand={pastedText.expandPaste} />
+  );
 
   return (
     <div className={COMPOSER_MODE_SHELL_CLASS}>
+      {renderAttachments ? renderAttachments(pastedTextCards, pastedText.pastes.length) : pastedTextCards}
       <div className={COMPOSER_MODE_MAIN_CLASS}>
         {isVoiceMode ? (
           <div
@@ -239,8 +246,6 @@ export const ComposerInput: React.FC<ComposerInputProps> = ({
           </div>
         ) : (
           <div className={COMPOSER_INPUT_WRAPPER_CLASS}>
-            <ComposerPastedTexts pastes={pastedText.pastes} disabled={disabled || isFrontendActive}
-              onRemove={pastedText.removePaste} onExpand={pastedText.expandPaste} />
             <Tooltip
               title={
                 inputExpanded

@@ -680,6 +680,7 @@ export function useComposerAttachments(input: UseComposerAttachmentsInput) {
     stageReviewAttachment,
     stageFiles,
     scrollComposerAttachments,
+    refreshComposerAttachmentScroll: updateComposerAttachmentScrollState,
     sendAttachmentMeta,
     sendReferences,
     setAttachments,
