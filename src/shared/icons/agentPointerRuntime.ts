@@ -222,7 +222,7 @@ class AgentPointerRuntime {
       if (!active && actor.settled) continue;
       actor.settled = false;
       delete actor.root.dataset.pointerResting;
-      const near = active && this.pointer.inside && distance < Math.max(10, actor.width * .2);
+      const near = active && this.pointer.inside && distance < actor.width * .2;
       if (near && !actor.near) actor.pulseUntil = now + 600;
       actor.near = near;
       const target = agentPointerTarget({ name: actor.name, dx, dy, width: actor.width, active,

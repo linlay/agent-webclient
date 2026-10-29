@@ -17,9 +17,13 @@ export function agentPointerTarget(input: {
   name: PointerAgentName; dx: number; dy: number; width: number;
   active: boolean; stationaryMs: number; greeting: boolean; focused: boolean;
 }) {
-  const { name, dx, dy, width, active, stationaryMs, greeting, focused } = input;
+  const { name, active, stationaryMs, greeting, focused } = input;
+  // Express pointer offsets in one 40px reference space so an 80px editor preview
+  // and the 40px New Chat avatar use the same pose at equivalent relative positions.
+  const scale = 40 / Math.max(1, input.width);
+  const dx = input.dx * scale, dy = input.dy * scale;
+  const width = 40;
   const profile = POINTER_AGENT_PROFILES[name];
-  const small = width <= 48;
   let mood: AgentPointerMood = "rest";
   if (active) {
     if (greeting) mood = "wink";
@@ -33,7 +37,7 @@ export function agentPointerTarget(input: {
     mood,
     x: active ? (focused ? 0 : Math.tanh(dx / 140) * 13 * profile.range) : 0,
     y: active ? (focused ? -3 : Math.tanh(dy / 125) * 9 * profile.range) : 0,
-    angle: active ? Math.max(-1, Math.min(1, dx / 120)) * profile.head * (small ? .6 : 1) : 0,
+    angle: active ? Math.max(-1, Math.min(1, dx / 120)) * profile.head : 0,
     lift: active ? (name === "team" ? 0 : 2) : 0,
   };
 }
