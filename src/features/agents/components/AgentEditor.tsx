@@ -7,6 +7,7 @@ import {
   Dropdown,
   Flex,
   Input,
+  Modal,
   Popover,
   Select,
   Switch,
@@ -179,6 +180,14 @@ export const AgentEditor: React.FC<AgentEditorProps> = (props) => {
     setSkillsExpanded,
     openPrivateSkillImport,
   } = props;
+  const [promptEditorField, setPromptEditorField] = React.useState<"soulPrompt" | "agentsPrompt">("soulPrompt");
+  const [promptEditorOpen, setPromptEditorOpen] = React.useState(false);
+  React.useEffect(() => setPromptEditorOpen(false), [form.key]);
+  const openPromptEditor = (field: "soulPrompt" | "agentsPrompt") => {
+    setPromptEditorField(field);
+    setPromptEditorOpen(true);
+  };
+  const promptEditorFile = promptEditorField === "soulPrompt" ? "SOUL.md" : "AGENTS.md";
   const interaction = interactionDefaults(form.mode);
   const interactionFields = [
     "model",
@@ -398,6 +407,9 @@ export const AgentEditor: React.FC<AgentEditorProps> = (props) => {
                         <span className="agent-choice-card-title">
                           {presentation.label}
                         </span>
+                        <span className="agent-choice-card-description">
+                          {presentation.description}
+                        </span>
                       </span>
                     </label>
                   </Tooltip>
@@ -475,7 +487,7 @@ export const AgentEditor: React.FC<AgentEditorProps> = (props) => {
               trigger={["click"]}
             >
               <UiButton
-                className={`query-settings-btn tw:!min-h-8 tw:!rounded-lg tw:!px-2 tw:!text-[13px] tw:text-text-muted tw:[&_.material-icon]:flex-none tw:[&_.material-icon]:text-sm tw:[&_.ui-btn-label]:inline-flex tw:[&_.ui-btn-label]:min-w-0 tw:[&_.ui-btn-label]:items-center tw:[&_.ui-btn-label]:gap-1 tw:[&_.ui-btn-label>span:not(.material-icon)]:min-w-0 tw:[&_.ui-btn-label>span:not(.material-icon)]:overflow-hidden tw:[&_.ui-btn-label>span:not(.material-icon)]:text-ellipsis tw:[&_.ui-btn-label>span:not(.material-icon)]:whitespace-nowrap query-model-btn tw:overflow-hidden ${queryModelButtonStateClass}`.trim()}
+                className={`query-settings-btn tw:!rounded-lg tw:!px-2 tw:!text-[13px] tw:text-text-muted tw:[&_.material-icon]:flex-none tw:[&_.material-icon]:text-sm tw:[&_.ui-btn-label]:inline-flex tw:[&_.ui-btn-label]:min-w-0 tw:[&_.ui-btn-label]:items-center tw:[&_.ui-btn-label]:gap-1 tw:[&_.ui-btn-label>span:not(.material-icon)]:min-w-0 tw:[&_.ui-btn-label>span:not(.material-icon)]:overflow-hidden tw:[&_.ui-btn-label>span:not(.material-icon)]:text-ellipsis tw:[&_.ui-btn-label>span:not(.material-icon)]:whitespace-nowrap query-model-btn tw:overflow-hidden ${queryModelButtonStateClass}`.trim()}
                 variant="ghost"
                 size="sm"
                 disabled={loadingOptions}
@@ -538,10 +550,10 @@ export const AgentEditor: React.FC<AgentEditorProps> = (props) => {
               })),
             ]}
             optionRender={option => (
-              <div className="tw:flex tw:flex-col tw:gap-1 tw:py-1 tw:whitespace-normal">
-                <span>{option.label}</span>
+              <div className="tw:flex tw:min-w-0 tw:items-center tw:gap-3 tw:py-1 tw:whitespace-nowrap">
+                <span className="tw:shrink-0">{option.label}</span>
                 {option.data.description && (
-                  <span className="tw:text-xs tw:font-normal tw:text-text-muted">{option.data.description}</span>
+                  <span className="tw:min-w-0 tw:truncate tw:text-xs tw:font-normal tw:text-text-muted" title={option.data.description}>{option.data.description}</span>
                 )}
               </div>
             )}
@@ -552,12 +564,15 @@ export const AgentEditor: React.FC<AgentEditorProps> = (props) => {
               updateForm({ interactionConfig: Object.keys(overrides).length ? overrides : undefined });
             }}
           />
-          <p>{t("agents.interaction.defaultDetail.description")}</p>
+        </div>
+        <div className="agent-subsection-heading">
+          <MaterialIcon name="tune" />
+          <h3 id="agent-interaction-options-title">{t("agents.interaction.controlsTitle")}</h3>
         </div>
         <div
           className="agent-choice-grid agent-interaction-choice-grid"
           role="group"
-          aria-labelledby={`${AGENT_FORM_SECTION_IDS[5]}-title`}
+          aria-labelledby="agent-interaction-options-title"
         >
           {interactionFields.map((key) => {
             const attachment = key === "localFiles" || key === "chatRecords" || key === "skills" || key === "kbases";
@@ -679,6 +694,16 @@ export const AgentEditor: React.FC<AgentEditorProps> = (props) => {
                   <MaterialIcon name="info" />
                 </button>
               </Tooltip>
+              <UiButton
+                className="agent-prompt-heading-action"
+                size="sm"
+                variant="ghost"
+                aria-label={t("agentConsole.prompt.expandEditorFor", { file: "SOUL.md" })}
+                onClick={() => openPromptEditor("soulPrompt")}
+              >
+                <MaterialIcon name="expand_content" />
+                {t("agentConsole.prompt.expandEditor")}
+              </UiButton>
             </div>
             <Input.TextArea
               id="agent-soul-input"
@@ -705,6 +730,16 @@ export const AgentEditor: React.FC<AgentEditorProps> = (props) => {
                   <MaterialIcon name="info" />
                 </button>
               </Tooltip>
+              <UiButton
+                className="agent-prompt-heading-action"
+                size="sm"
+                variant="ghost"
+                aria-label={t("agentConsole.prompt.expandEditorFor", { file: "AGENTS.md" })}
+                onClick={() => openPromptEditor("agentsPrompt")}
+              >
+                <MaterialIcon name="expand_content" />
+                {t("agentConsole.prompt.expandEditor")}
+              </UiButton>
             </div>
             <Input.TextArea
               id="agent-agents-input"
@@ -1101,6 +1136,29 @@ export const AgentEditor: React.FC<AgentEditorProps> = (props) => {
           )}
         </div>
       </AgentFormSection>
+      <Modal
+        open={promptEditorOpen}
+        title={`${t(promptEditorField === "soulPrompt" ? "agentConsole.prompt.soul.label" : "agentConsole.prompt.agents.label")} · ${promptEditorFile}`}
+        width="min(1120px, calc(100vw - 48px))"
+        centered
+        destroyOnHidden
+        onCancel={() => setPromptEditorOpen(false)}
+        styles={{ body: { height: "min(70vh, 760px)" } }}
+        footer={
+          <UiButton variant="primary" size="sm" onClick={() => setPromptEditorOpen(false)}>
+            {t("agentConsole.prompt.finishEditing")}
+          </UiButton>
+        }
+      >
+        <Input.TextArea
+          aria-label={promptEditorFile}
+          className={AGENT_MONO_TEXTAREA_CLASS_NAME}
+          style={{ height: "100%", resize: "none" }}
+          autoFocus
+          value={form[promptEditorField]}
+          onChange={event => updateForm({ [promptEditorField]: event.target.value })}
+        />
+      </Modal>
     </div>
   );
 };

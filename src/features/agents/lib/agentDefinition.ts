@@ -482,11 +482,11 @@ export function visibilityPresentation(
 ): ChoicePresentation {
   switch (scope.trim().toLowerCase()) {
     case "nav":
-      return { icon: "dashboard", label: t("agentConsole.visibility.nav.label"), description: t("agentConsole.visibility.nav.description") };
+      return { icon: "dock_to_right", label: t("agentConsole.visibility.nav.label"), description: t("agentConsole.visibility.nav.description") };
     case "copilot":
-      return { icon: "smart_toy", label: t("agentConsole.visibility.copilot.label"), description: t("agentConsole.visibility.copilot.description") };
+      return { icon: "dock_to_left", label: t("agentConsole.visibility.copilot.label"), description: t("agentConsole.visibility.copilot.description") };
     case "invoke":
-      return { icon: "call", label: t("agentConsole.visibility.invoke.label"), description: t("agentConsole.visibility.invoke.description") };
+      return { icon: "hub", label: t("agentConsole.visibility.invoke.label"), description: t("agentConsole.visibility.invoke.description") };
     case "internal":
       return { icon: "lock", label: t("agentConsole.visibility.internal.label"), description: t("agentConsole.visibility.internal.description") };
     default:

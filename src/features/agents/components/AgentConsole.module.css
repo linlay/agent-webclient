@@ -198,7 +198,7 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    background: color-mix(in srgb, var(--accent-soft) 22%, var(--bg-input));
+    background: transparent;
     color: var(--accent-electric);
     overflow: hidden;
 }
@@ -577,9 +577,11 @@
 }
 
 :global(.agent-model-selector-card) {
+    box-sizing: border-box;
     width: min(100%, 440px);
+    height: var(--ui-control-height-sm);
     margin-top: 2px;
-    padding: 4px;
+    padding: 0;
     border: 1px solid color-mix(in srgb, var(--line-soft) 78%, transparent);
     border-radius: var(--radius-md);
     background: color-mix(in srgb, var(--bg-input) 90%, var(--bg-elev-2));
@@ -593,15 +595,24 @@
     }
 }
 
+:global(.agent-model-selector-card)+:global(.field-group) {
+    margin-top: var(--ui-form-gap);
+}
+
 :global(.agent-model-dropdown) {
     width: 100%;
+    height: 100%;
     min-width: 0;
 }
 
-:global(.agent-model-dropdown) :global(.query-model-btn) {
+:global(.agent-model-dropdown) :global(.query-model-btn):global(.ui-btn) {
+    box-sizing: border-box;
     display: inline-flex;
     width: 100%;
-    min-height: 36px;
+    height: 100%;
+    min-height: 0;
+    padding-top: 0;
+    padding-bottom: 0;
     justify-content: flex-start;
     cursor: pointer;
 }
@@ -1321,17 +1332,24 @@
     gap: 10px;
 }
 
-:global(.agent-mode-choice-grid) {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-}
-
-:global(.agent-visibility-choice-grid) {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-}
-
+:global(.agent-mode-choice-grid),
+:global(.agent-visibility-choice-grid),
 :global(.agent-interaction-choice-grid),
 :global(.agent-context-choice-grid) {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    display: flex;
+    flex-wrap: wrap;
+    align-items: stretch;
+}
+
+:global(.agent-mode-choice-grid)>label:global(.agent-choice-card),
+:global(.agent-visibility-choice-grid)>label:global(.agent-choice-card),
+:global(.agent-interaction-choice-grid)>label:global(.agent-choice-card),
+:global(.agent-context-choice-grid)>label:global(.agent-choice-card) {
+    box-sizing: border-box;
+    flex: 0 1 260px;
+    width: 260px;
+    max-width: 100%;
+    min-width: 0;
 }
 
 :global(.field-group) label:global(.agent-choice-card),
@@ -1410,6 +1428,17 @@
     min-height: 44px;
 }
 
+:global(.agent-mode-choice-grid)>label:global(.agent-choice-card),
+:global(.agent-interaction-choice-grid)>label:global(.agent-choice-card) {
+    min-height: 76px;
+}
+
+:global(.agent-mode-choice-grid) :global(.agent-choice-card-description),
+:global(.agent-interaction-choice-grid) :global(.agent-choice-card-description),
+:global(.agent-context-choice-grid) :global(.agent-choice-card-description) {
+    overflow-wrap: anywhere;
+}
+
 :global(.agent-choice-card) input {
     order: 3;
     width: var(--ui-icon-size-sm);
@@ -1426,19 +1455,6 @@
 
 :global(.agent-interaction-reset) {
     margin-top: var(--ui-form-gap);
-}
-
-@media (max-width: 1280px) {
-
-    :global(.agent-mode-choice-grid),
-    :global(.agent-visibility-choice-grid) {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-    }
-
-    :global(.agent-interaction-choice-grid),
-    :global(.agent-context-choice-grid) {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
 }
 
 :global(.agent-mono-textarea) {
