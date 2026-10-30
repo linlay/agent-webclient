@@ -76,13 +76,13 @@ export function buildSidebarSettingsMenuSections(): SidebarSettingsMenuSection[]
         {
           key: "open-skills",
           label: t("settingsMenu.skills"),
-          icon: "skills",
+          icon: "bolt",
           action: { type: "open-skills" },
         },
         {
           key: "open-connectors",
           label: t("settingsMenu.connectors"),
-          icon: "hub",
+          icon: "power",
           action: { type: "open-connectors" },
         },
         {

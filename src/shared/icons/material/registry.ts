@@ -86,6 +86,7 @@ export const materialIconSymbolIds = {
   person_search: "material-symbol-person-search",
   picture_as_pdf: "material-symbol-picture-as-pdf",
   play_circle: "material-symbol-play-circle",
+  power: "material-symbol-power",
   preview: "material-symbol-preview",
   progress_activity: "material-symbol-progress-activity",
   psychology: "material-symbol-psychology",

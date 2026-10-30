@@ -18,6 +18,7 @@ describe("MaterialIcon", () => {
     expect(MATERIAL_ICON_NAMES).toContain("progress_activity");
     expect(MATERIAL_ICON_NAMES).toContain("dark_mode");
     expect(MATERIAL_ICON_NAMES).toContain("light_mode");
+    expect(MATERIAL_ICON_NAMES).toContain("power");
     expect(MATERIAL_ICON_NAMES).not.toContain("material_symbols_font");
   });
 
