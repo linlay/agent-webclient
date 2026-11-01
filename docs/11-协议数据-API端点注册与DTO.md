@@ -93,6 +93,9 @@ Git 快照增加可选 `revision`，仅有效分支/游离 HEAD 返回。`projec
 
 Platform 模式新增 `/webapps` 页面：单 ZIP 上传审阅后安装，首次 stopped，详情提供静态启停、打开、配置与授权、卸载（默认保留数据）。Desktop/Gateway 不使用此页面。请求与 DTO 在 shared/data 注册，features/webapps 负责界面状态；不跨 feature 依赖，不增加业务 WebSocket。
 
-打开使用一次性票据表单 POST，禁止将凭证放入 URL、持久存储或 opener。先支持 `127.0.0.1` 独立本地端口；远程服务器须转发对应端口，独立域名与 DNS/TLS 后续实施。mutation 不自动重放；旧身份或旧选择的延迟响应不能恢复私有详情或安装审阅。权限修改当前要求先停止应用。Node/完整 SDK 尚在后续批次，不由 staticAvailable 推断。
+打开使用一次性票据表单 POST，禁止将凭证放入 URL、持久存储或 opener。先支持 `127.0.0.1` 独立本地端口；远程服务器须转发对应端口，独立域名与 DNS/TLS 后续实施。mutation 不自动重放；旧身份或旧选择的延迟响应不能恢复私有详情或安装审阅。运行中保存权限会撤销旧代次并重建应用；Node 配置保存同样通过重启生效。Node/完整 SDK 尚在后续批次，不由 staticAvailable 推断。
 
 Node 应用启动受理后显示 starting，通过管理轮询更新健康和错误状态；已运行后端继续低频刷新状态，不建立业务 WS。日志页读取 stdout/stderr 有界尾部，由 owner 手动刷新，输出只作文本显示。静态应用不展示后端日志入口。
+
+
+安装与生命周期返回 202 operationId，界面轮询受理结果，再刷新应用状态；取消仅停止等待，已受理操作仍由服务处理。保存运行中 Node 配置或权限会创建新 generation，旧会话失效。运行中更新失败恢复旧代码，页面展示错误并读取回退后的实际状态；不自动重放安装或启停。

@@ -72,11 +72,11 @@ export function WebappsConsole({ initialId = "" }: { initialId?: string }) {
           { key: "status", label: t("webapps.status"), children: stateText(runtime.detail.entry.observedState) },
           { key: "desired", label: t("webapps.desired"), children: stateText(runtime.detail.entry.desiredState) },
         ]} />
-        {runtime.detail.entry.observedState !== "stopped" && <Alert type="info" message={t("webapps.stopBeforeConfigure")} />}
+        <Alert type="info" message={t("webapps.configurationRestartHint")} />
         <Tabs items={[
-          { key: "config", label: t("webapps.configuration"), children: <AppConfiguration key={runtime.detail.entry.id + runtime.detail.configRevision} detail={runtime.detail} agents={options.agents} disabled={runtime.busy || runtime.detail.entry.observedState !== "stopped"} onSave={runtime.saveConfig} /> },
+          { key: "config", label: t("webapps.configuration"), children: <AppConfiguration key={runtime.detail.entry.id + runtime.detail.configRevision} detail={runtime.detail} agents={options.agents} disabled={runtime.busy || ["starting","stopping","updating"].includes(runtime.detail.entry.observedState)} onSave={runtime.saveConfig} /> },
           ...(runtime.detail.entry.backend ? [{ key: "logs", label: t("webapps.logs"), children: <AppLogs id={runtime.detail.entry.id} /> }] : []),
-          { key: "policy", label: t("webapps.authorization"), children: <><Alert type="info" message={t("webapps.authorizationHint")} />{optionsError && <Alert type="error" message={optionsError} action={<Button onClick={() => setCatalogRevision(value => value + 1)}>{t("webapps.refresh")}</Button>} />}<AppPolicy key={runtime.detail.entry.id + runtime.detail.policy.revision} detail={runtime.detail} options={options} disabled={runtime.busy || runtime.detail.entry.observedState !== "stopped"} onSave={runtime.savePolicy} /></> },
+          { key: "policy", label: t("webapps.authorization"), children: <><Alert type="info" message={t("webapps.authorizationHint")} />{optionsError && <Alert type="error" message={optionsError} action={<Button onClick={() => setCatalogRevision(value => value + 1)}>{t("webapps.refresh")}</Button>} />}<AppPolicy key={runtime.detail.entry.id + runtime.detail.policy.revision} detail={runtime.detail} options={options} disabled={runtime.busy || ["starting","stopping","updating"].includes(runtime.detail.entry.observedState)} onSave={runtime.savePolicy} /></> },
         ]} />
       </> : <Empty description={t("webapps.select")} />}</div>
     </div>

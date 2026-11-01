@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { deleteWebapp, getWebappConfiguration, getWebappHost, getWebapps, installWebapp, launchWebapp, preflightWebapp, saveWebappPolicy, saveWebappUserConfig, setWebappState, uploadWebapp } from "@/shared/data";
-import type { WebappConfiguration, WebappEntry, WebappHost, WebappPolicyInput, WebappReview } from "@/shared/data";
+import { deleteWebapp, getWebappConfiguration, getWebappHost, getWebapps, installWebapp, launchWebapp, preflightWebapp, saveWebappPolicy, saveWebappUserConfig, setWebappState, uploadWebapp, getWebappOperation } from "@/shared/data";
+import type { WebappConfiguration, WebappEntry, WebappHost, WebappPolicyInput, WebappReview, WebappOperation } from "@/shared/data";
 import { submitWebappLaunch } from "../lib/launch";
 import { getDataSessionRevision } from "@/shared/data/auth/dataSession";
 
@@ -13,6 +13,7 @@ export function useWebapps(initialId = "") {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
+  const pendingJob = useRef<WebappOperation>();
   const mounted = useRef(false); const operation = useRef<AbortController>();
   const selection = useRef<AbortController>(); const selectedId = useRef("");
   const select = useCallback(async (id: string, quiet = false) => {
@@ -33,7 +34,7 @@ export function useWebapps(initialId = "") {
     await select(id, true);
   }, [select]);
   useEffect(() => {
-    mounted.current = true; lifecycle.current++; dataSession.current = session; selectedId.current = /^webapp-[a-f0-9]{16}$/.test(initialId) ? initialId : "";
+    pendingJob.current = undefined; mounted.current = true; lifecycle.current++; dataSession.current = session; selectedId.current = /^webapp-[a-f0-9]{16}$/.test(initialId) ? initialId : "";
     setHost(undefined); setItems([]); setDetail(undefined); setReview(undefined); setError(""); setBusy(false); setLoading(true);
     const controller = new AbortController();
     refresh(controller.signal).catch(e => { if (!controller.signal.aborted) setError(e instanceof Error ? e.message : String(e)); }).finally(() => { if (!controller.signal.aborted) setLoading(false); });
@@ -56,10 +57,30 @@ export function useWebapps(initialId = "") {
     }, 2000);
     return () => { window.clearInterval(timer); controller.abort(); };
   }, [items, busy, refresh, session]);
+  const awaitOperation = async (initial: WebappOperation, signal: AbortSignal): Promise<WebappEntry> => {
+    pendingJob.current = initial; let job = initial;
+    for (;;) {
+      if (!current(signal)) throw new Error("webapp_request_cancelled_inspect_state");
+      if (job.state === "succeeded" || job.state === "failed") {
+        pendingJob.current = undefined;
+        if (job.state === "failed") { await refresh(signal); throw new Error(job.errorCode || "webapp_operation_failed"); }
+        if (!job.result) throw new Error("webapp_invalid_platform_response"); return job.result;
+      }
+      await new Promise<void>((resolve,reject) => {
+        const abort = () => { clearTimeout(timer); reject(new Error("webapp_request_cancelled_inspect_state")); };
+        const timer = setTimeout(() => { signal.removeEventListener("abort",abort); resolve(); },500);
+        signal.addEventListener("abort",abort,{once:true});
+        if (signal.aborted) abort();
+      });
+      const response = await getWebappOperation(job.operationId,signal);
+      if (response.data.operationId !== job.operationId) throw new Error("webapp_invalid_platform_response");
+      job = response.data;
+    }
+  };
   const current = (signal: AbortSignal) => mounted.current && !signal.aborted && session === getDataSessionRevision();
   return {
     host: dataSession.current === session ? host : undefined, items: dataSession.current === session ? items : [], detail: dataSession.current === session ? detail : undefined, review: dataSession.current === session ? review : undefined, error: dataSession.current === session ? error : "", busy: dataSession.current === session && busy, loading: dataSession.current !== session || loading, select, setReview,
-    retry: () => run(async signal => { await refresh(signal); }),
+    retry: () => run(async signal => { try { if (pendingJob.current) await awaitOperation(pendingJob.current,signal); } finally { if (current(signal)) await refresh(signal); } }),
     cancel: () => operation.current?.abort(),
     preflight: (file: File) => run(async signal => {
       if (!/\.zip$/i.test(file.name) || file.size <= 0 || file.size > (host?.maxArchiveMiB || 100) * 1024 * 1024) throw new Error("webapp_archive_size_or_type_invalid");
@@ -67,8 +88,8 @@ export function useWebapps(initialId = "") {
       if (result.data.uploadId !== upload.data.uploadId || result.data.sha256 !== upload.data.sha256) throw new Error("webapp_invalid_platform_response");
       if (current(signal)) setReview(result.data);
     }),
-    install: () => run(async signal => { if (!review) return; const response = await installWebapp(review, signal); if (!current(signal)) return; selectedId.current = response.data.id; setReview(undefined); await refresh(signal); }),
-    state: (entry: WebappEntry, action: "start" | "stop" | "restart") => run(async signal => { await setWebappState(entry.id, action, entry, signal); if (current(signal)) await refresh(signal); }),
+    install: () => run(async signal => { if (!review) return; const response = await installWebapp(review,signal); if (!current(signal)) return; setReview(undefined); const installed = await awaitOperation(response.data,signal); if (!current(signal)) return; selectedId.current = installed.id; await refresh(signal); }),
+    state: (entry: WebappEntry, action: "start" | "stop" | "restart") => run(async signal => { const response = await setWebappState(entry.id,action,entry,signal); if (!current(signal)) return; await awaitOperation(response.data,signal); if (current(signal)) await refresh(signal); }),
     open: (entry: WebappEntry) => run(async signal => { const response = await launchWebapp(entry.id, signal); if (current(signal)) submitWebappLaunch(response.data); }),
     remove: (entry: WebappEntry, purge: boolean) => run(async signal => { await deleteWebapp(entry, purge, signal); if (current(signal)) await refresh(signal); }),
     saveConfig: (values: WebappConfiguration["userConfig"]) => run(async signal => { if (!detail) return; const result = await saveWebappUserConfig(detail.entry.id, detail.configRevision, values, signal); if (current(signal)) setDetail(result.data); }),

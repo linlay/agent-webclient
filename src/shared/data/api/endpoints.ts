@@ -335,6 +335,7 @@ export const dataEndpoints = createEndpointRegistry({
   webappStart: defineEndpoint({ key: "admin.webapps.start", path: "/api/admin/webapps/{id}/start", method: "POST", transport: "http" }),
   webappStop: defineEndpoint({ key: "admin.webapps.stop", path: "/api/admin/webapps/{id}/stop", method: "POST", transport: "http" }),
   webappRestart: defineEndpoint({ key: "admin.webapps.restart", path: "/api/admin/webapps/{id}/restart", method: "POST", transport: "http" }),
+  webappOperation: defineEndpoint({ key: "admin.webapps.operation", path: "/api/admin/webapps/operations/{operationId}", method: "GET", transport: "http" }),
   webappLogs: defineEndpoint({ key: "admin.webapps.logs", path: "/api/admin/webapps/{id}/logs", method: "GET", transport: "http" }),
   webappLaunch: defineEndpoint({ key: "admin.webapps.launch", path: "/api/admin/webapps/{id}/launch-ticket", method: "POST", transport: "http" }),
   webappDelete: defineEndpoint({ key: "admin.webapps.delete", path: "/api/admin/webapps/{id}", method: "DELETE", transport: "http" }),

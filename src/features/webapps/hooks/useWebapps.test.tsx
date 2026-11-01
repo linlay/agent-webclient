@@ -33,7 +33,7 @@ it("ignores an older detail response after selecting another application", async
 it("requires an explicit install after upload and preflight and does not automatically start the app", async () => {
   await act(async () => root.render(<Harness />));
   const review = { uploadId: "upload", sha256: "sha", expectedRevision: "", manifest: detail().manifest, size: 3, expandedBytes: 5, fileCount: 2, createdAt: 1793500000000 } satisfies WebappReview;
-  jest.mocked(uploadWebapp).mockResolvedValue(response(review)); jest.mocked(preflightWebapp).mockResolvedValue(response(review)); jest.mocked(installWebapp).mockResolvedValue(response(entry()));
+  jest.mocked(uploadWebapp).mockResolvedValue(response(review)); jest.mocked(preflightWebapp).mockResolvedValue(response(review)); jest.mocked(installWebapp).mockResolvedValue(response({operationId:"a".repeat(48),kind:"install",state:"succeeded",createdAt:Date.now(),result:entry()}));
   await act(async () => current.preflight(new File(["zip"], "app.zip")));
   expect(current.review?.uploadId).toBe("upload"); expect(installWebapp).not.toHaveBeenCalled();
   await act(async () => current.install()); expect(installWebapp).toHaveBeenCalledWith(review, expect.any(AbortSignal)); expect(current.review).toBeUndefined();

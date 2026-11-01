@@ -41,3 +41,5 @@ export type WebappStateInput = Pick<WebappEntry, "revision" | "stateRevision">;
 export type WebappPolicyInput = Omit<WebappPolicy, "schemaVersion" | "revision"> & { expectedRevision: string };
 
 export interface WebappLogPage { text: string; cursor: string; reset: boolean }
+
+export interface WebappOperation { operationId: string; appId?: string; kind: string; state: "queued" | "running" | "succeeded" | "failed"; createdAt: number; result?: WebappEntry; errorCode?: string }
