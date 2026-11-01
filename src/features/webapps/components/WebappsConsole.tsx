@@ -25,8 +25,8 @@ export function WebappsConsole({ initialId = "" }: { initialId?: string }) {
       if (!active || session !== getDataSessionRevision()) return;
       optionsSession.current = session;
       setOptions({ agents: agents.data.filter(agent => agent.status === "ready").map(agent => ({ label: agent.name || agent.key, value: agent.key })),
-        skills: skills.data.skills.map(skill => ({ label: skill.displayName || skill.name || skill.id, value: skill.id })),
-        connectors: connectors.data.connectors.flatMap(connector => (["cli", "mcp"] as const).map(adapter => ({ label: `${connector.name || connector.id} · ${adapter.toUpperCase()}`, value: `${connector.id}/${adapter}` }))) });
+        skills: Array.from(new Map([...skills.data.skills.filter(skill => skill.status === "ready"), ...(skills.data.packages || []).filter(pkg => pkg.status !== "incomplete").flatMap(pkg => pkg.skills)].map(skill => [skill.id, { label: skill.displayName || skill.name || skill.id, value: skill.id }])).values()),
+        connectors: connectors.data.connectors.filter(connector => connector.status !== "invalid" && connector.authMode !== "oneid").flatMap(connector => ([...(connector.hasCli ? ["cli"] : []), ...(connector.hasMcp ? ["mcp"] : [])]).map(adapter => ({ label: `${connector.name || connector.id} · ${adapter.toUpperCase()}`, value: `${connector.id}/${adapter}` }))) });
     }).catch(e => { if (active && session === getDataSessionRevision()) setOptionsError(e instanceof Error ? e.message : String(e)); });
     return () => { active = false; };
   }, [session, catalogRevision]);
