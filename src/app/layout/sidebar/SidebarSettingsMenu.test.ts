@@ -42,6 +42,7 @@ describe("buildSidebarSettingsMenuSections", () => {
     expect(sections.map((section) => section.title)).toEqual(["设置"]);
     expect(sections[0]?.items.map((item) => item.label)).toEqual([
       "收件箱",
+      "网站应用",
       "智能体",
       "技能中心",
       "连接器中心",
@@ -56,6 +57,13 @@ describe("buildSidebarSettingsMenuSections", () => {
     const sections = buildSidebarSettingsMenuSections();
     const labels = sections[0]?.items.map((item) => item.label) || [];
     expect(labels).not.toContain("记忆管理");
+  });
+
+  it("does not expose the Compose management entry in Desktop or Gateway mode", () => {
+    for (const config of [{ DESKTOP_APP: "true" }, { BACKEND_MODE: "gateway" }]) {
+      globalWithFeatureFlags.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = config;
+      expect(buildSidebarSettingsMenuSections()[0]?.items.some(item => item.key === "open-webapps")).toBe(false);
+    }
   });
 });
 

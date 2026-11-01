@@ -55,6 +55,7 @@ const AgentsPage = lazyPage(() => import("./pages/agents"), (m) => m.AgentsPage)
 const ArchivesPage = lazyPage(() => import("./pages/archives"), (m) => m.ArchivesPage);
 const RegistriesPage = lazyPage(() => import("./pages/registries"), (m) => m.RegistriesPage);
 const ConnectorsPage = lazyPage(() => import("./pages/connectors"), (m) => m.ConnectorsPage);
+const WebappsPage = lazyPage(() => import("./pages/webapps"), (m) => m.WebappsPage);
 const SkillsPage = lazyPage(() => import("./pages/skills"), (m) => m.SkillsPage);
 const ProjectPage = lazyPage(() => import("./pages/project"), (m) => m.ProjectPage);
 const TerminalPage = lazyPage(() => import("./pages/terminal"), (m) => m.TerminalPage);
@@ -240,6 +241,7 @@ const router = createBrowserRouter(
             </DocumentTitleRoute>
           ),
         },
+        { path: "/webapps", element: <DocumentTitleRoute titleKey="webapps.title"><WebappsPage /></DocumentTitleRoute> },
         {
           path: "/connectors/:connectorId",
           element: (

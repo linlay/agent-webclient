@@ -14,6 +14,8 @@ export type * from "@/shared/data/api/dto/resources";
 export type * from "@/shared/data/api/dto/admin";
 export type * from "@/shared/data/api/dto/connectors";
 export type * from "@/shared/data/api/dto/skills";
+export type * from "@/shared/data/api/dto/webapps";
+export * from "@/shared/data/api/requests/webapps";
 
 export * from "@/shared/data/api/reasoningEffort";
 export {

@@ -88,3 +88,9 @@ Git 快照增加可选 `revision`，仅有效分支/游离 HEAD 返回。`projec
 技能包可选 `icon` 字段指向 `GET /api/skill-packages/icon?id=<package>`，由 `fetchSkillIcon` 带鉴权读取。管理列表、包概览、Composer 选择树与已选包标签共用图标组件，缺失或加载失败回退文件夹。包图标读取包根 `icon.svg` / `icon.png`，SVG 优先；独立技能和包成员仍使用各自 `assets/`。
 
 管理目录生命周期由 `features/skills/hooks/useAdminSkillCatalog` 负责，初次进入、身份或语言变化、显式刷新和目录 mutation 后读取管理聚合接口；窗口聚焦不自动刷新，较早列表结果和写入前的旧置顶结果不覆盖新状态。失败保留已显示目录和顺序，身份变化隔离数据。使用端置顶 hook 归 Composer，管理页不调用 `/api/skills`，也不初始化或订阅业务 WS；显式启动资源助手属于对话链路。Platform 保留旧包列表 GET 供 Desktop 技能市场，WebClient 不再注册和调用。对象响应与 Platform 配套发布，不兼容旧数组形状，需协调升级与回滚。
+
+## WebApp owner 管理
+
+Platform 模式新增 `/webapps` 页面：单 ZIP 上传审阅后安装，首次 stopped，详情提供静态启停、打开、配置与授权、卸载（默认保留数据）。Desktop/Gateway 不使用此页面。请求与 DTO 在 shared/data 注册，features/webapps 负责界面状态；不跨 feature 依赖，不增加业务 WebSocket。
+
+打开使用一次性票据表单 POST，禁止将凭证放入 URL、持久存储或 opener。先支持 `127.0.0.1` 独立本地端口；远程服务器须转发对应端口，独立域名与 DNS/TLS 后续实施。mutation 不自动重放；旧身份或旧选择的延迟响应不能恢复私有详情或安装审阅。权限修改当前要求先停止应用。Node/完整 SDK 尚在后续批次，不由 staticAvailable 推断。

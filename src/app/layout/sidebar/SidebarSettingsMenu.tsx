@@ -6,6 +6,7 @@ import { t } from "@/shared/i18n";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import type { MaterialIconName } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
+import { isDesktopAppMode } from "@/shared/utils/routing";
 
 export interface SettingsSummaryBadge {
   key: "theme";
@@ -20,6 +21,7 @@ export type SidebarSettingsMenuAction =
   | { type: "open-settings" }
   | { type: "open-registries" }
   | { type: "open-connectors" }
+  | { type: "open-webapps" }
   | { type: "open-archive" }
   | { type: "noop" };
 
@@ -67,6 +69,7 @@ export function buildSidebarSettingsMenuSections(): SidebarSettingsMenuSection[]
       title: t("settingsMenu.section.entry"),
       items: [
         ...(isPlatformBackendMode() ? [{ key: "open-mailbox", label: t("mailbox.title"), icon: "question_answer" as const, action: { type: "open-mailbox" as const } }] : []),
+        ...(isPlatformBackendMode() && !isDesktopAppMode() ? [{ key: "open-webapps", label: t("webapps.title"), icon: "inventory_2" as const, action: { type: "open-webapps" as const } }] : []),
         {
           key: "open-agents",
           label: t("leftSidebar.quickActions.agents"),

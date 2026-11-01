@@ -40,6 +40,7 @@ export const LeftSidebar: React.FC = () => {
       if (action.type === "open-skills") standaloneRoute = "/skills";
       if (action.type === "open-registries") standaloneRoute = "/registries";
       if (action.type === "open-connectors") standaloneRoute = "/connectors";
+      if (action.type === "open-webapps") standaloneRoute = "/webapps";
       if (action.type === "open-archive") standaloneRoute = "/archives";
       if (standaloneRoute) {
         window.open(
