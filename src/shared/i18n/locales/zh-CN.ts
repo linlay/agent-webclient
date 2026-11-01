@@ -2,6 +2,7 @@ import type { I18nMessages } from "@/shared/i18n/types";
 
 export const zhCNMessages = {
   "webapps.localAccess": "应用通过 127.0.0.1 本地端口打开。访问远程服务器上的应用时，请先转发对应端口；独立域名接入将在后续提供。",
+  "webapps.logs": "日志",
   "webapps.title": "网站应用",
   "webapps.subtitle": "应用仅供本实例主人访问。导入 ZIP、审阅访问范围，再启动和打开。",
   "webapps.refresh": "刷新",

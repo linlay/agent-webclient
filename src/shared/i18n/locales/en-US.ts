@@ -2,6 +2,7 @@ import type { I18nMessages } from "@/shared/i18n/types";
 
 export const enUSMessages = {
   "webapps.localAccess": "Apps open on a 127.0.0.1 local port. Forward the matching port to access a remote server. Dedicated domains will be added later.",
+  "webapps.logs": "Logs",
   "webapps.title": "WebApps",
   "webapps.subtitle": "Private applications for this instance owner. Install a ZIP, review access, then start and open it.",
   "webapps.refresh": "Refresh",

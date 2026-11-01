@@ -4,6 +4,7 @@ import { getAdminAgents, getAdminConnectors, getAdminSkills } from "@/shared/dat
 import type { WebappConfiguration, WebappEntry, WebappField, WebappPolicyInput } from "@/shared/data";
 import { useI18n } from "@/shared/i18n";
 import { useWebapps } from "../hooks/useWebapps";
+import { AppLogs } from "./AppLogs";
 import styles from "./WebappsConsole.module.css";
 import { getDataSessionRevision } from "@/shared/data/auth/dataSession";
 
@@ -74,6 +75,7 @@ export function WebappsConsole({ initialId = "" }: { initialId?: string }) {
         {runtime.detail.entry.observedState !== "stopped" && <Alert type="info" message={t("webapps.stopBeforeConfigure")} />}
         <Tabs items={[
           { key: "config", label: t("webapps.configuration"), children: <AppConfiguration key={runtime.detail.entry.id + runtime.detail.configRevision} detail={runtime.detail} agents={options.agents} disabled={runtime.busy || runtime.detail.entry.observedState !== "stopped"} onSave={runtime.saveConfig} /> },
+          ...(runtime.detail.entry.backend ? [{ key: "logs", label: t("webapps.logs"), children: <AppLogs id={runtime.detail.entry.id} /> }] : []),
           { key: "policy", label: t("webapps.authorization"), children: <><Alert type="info" message={t("webapps.authorizationHint")} />{optionsError && <Alert type="error" message={optionsError} action={<Button onClick={() => setCatalogRevision(value => value + 1)}>{t("webapps.refresh")}</Button>} />}<AppPolicy key={runtime.detail.entry.id + runtime.detail.policy.revision} detail={runtime.detail} options={options} disabled={runtime.busy || runtime.detail.entry.observedState !== "stopped"} onSave={runtime.savePolicy} /></> },
         ]} />
       </> : <Empty description={t("webapps.select")} />}</div>

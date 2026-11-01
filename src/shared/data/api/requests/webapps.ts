@@ -1,6 +1,6 @@
 import { dataEndpoints as endpoints } from "../endpoints";
 import { requestJson } from "../http";
-import type { WebappConfiguration, WebappEntry, WebappHost, WebappLaunch, WebappPolicyInput, WebappReview, WebappStateInput, WebappUpload } from "../dto/webapps";
+import type { WebappConfiguration, WebappLogPage, WebappEntry, WebappHost, WebappLaunch, WebappPolicyInput, WebappReview, WebappStateInput, WebappUpload } from "../dto/webapps";
 
 function appPath(template: string, id: string): string {
   if (!/^webapp-[a-f0-9]{16}$/.test(id)) throw new Error("webapp_invalid_id");
@@ -21,3 +21,5 @@ export const deleteWebapp = (entry: WebappEntry, purgeData: boolean, signal?: Ab
 export const saveWebappUserConfig = (id: string, expectedRevision: string, values: WebappConfiguration["userConfig"], signal?: AbortSignal) => requestJson<WebappConfiguration>(appPath(endpoints.webappUserConfig.path, id), { method: "PUT", body: JSON.stringify({ expectedRevision, values }), cache: "no-store", retryUnauthorized: false, signal });
 export const saveWebappPolicy = (id: string, input: WebappPolicyInput, signal?: AbortSignal) => requestJson<WebappConfiguration>(appPath(endpoints.webappPolicy.path, id), { method: "PUT", body: JSON.stringify(input), cache: "no-store", retryUnauthorized: false, signal });
 export const revokeWebappSessions = (signal?: AbortSignal) => requestJson<{ revoked: boolean }>(endpoints.webappRevokeSessions.path, { method: "POST", cache: "no-store", retryUnauthorized: false, signal });
+
+export const getWebappLogs = (id: string, stream: "stdout" | "stderr", cursor = "", signal?: AbortSignal) => requestJson<WebappLogPage>(appPath(endpoints.webappLogs.path, id) + "?" + new URLSearchParams({ stream, cursor }), { cache: "no-store", signal });

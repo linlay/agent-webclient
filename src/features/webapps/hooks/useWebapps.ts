@@ -15,10 +15,10 @@ export function useWebapps(initialId = "") {
   const [loading, setLoading] = useState(true);
   const mounted = useRef(false); const operation = useRef<AbortController>();
   const selection = useRef<AbortController>(); const selectedId = useRef("");
-  const select = useCallback(async (id: string) => {
+  const select = useCallback(async (id: string, quiet = false) => {
     const identity = getDataSessionRevision();
     selectedId.current = id; selection.current?.abort(); const current = new AbortController(); selection.current = current;
-    setDetail(undefined);
+    if (!quiet) setDetail(undefined);
     if (!id) return;
     try { const response = await getWebappConfiguration(id, current.signal); if (!response.data?.entry || response.data.entry.id !== id || response.data.manifest?.id !== id) throw new Error("webapp_invalid_platform_response"); if (!current.signal.aborted && mounted.current && identity === getDataSessionRevision()) setDetail(response.data); }
     catch (e) { if (!current.signal.aborted && mounted.current && identity === getDataSessionRevision()) setError(e instanceof Error ? e.message : String(e)); }
@@ -30,7 +30,7 @@ export function useWebapps(initialId = "") {
     if (!Array.isArray(listResponse.data?.items) || !hostResponse.data || typeof hostResponse.data.staticAvailable !== "boolean") throw new Error("webapp_invalid_platform_response");
     setHost(hostResponse.data); setItems(listResponse.data.items);
     const id = listResponse.data.items.some(item => item.id === selectedId.current) ? selectedId.current : listResponse.data.items[0]?.id || "";
-    await select(id);
+    await select(id, true);
   }, [select]);
   useEffect(() => {
     mounted.current = true; lifecycle.current++; dataSession.current = session; selectedId.current = /^webapp-[a-f0-9]{16}$/.test(initialId) ? initialId : "";
@@ -47,6 +47,15 @@ export function useWebapps(initialId = "") {
     catch (e) { if (mounted.current && epoch === lifecycle.current && session === getDataSessionRevision()) setError(controller.signal.aborted ? "webapp_request_cancelled_inspect_state" : e instanceof Error ? e.message : String(e)); }
     finally { if (operation.current === controller) operation.current = undefined; if (mounted.current && epoch === lifecycle.current && session === getDataSessionRevision()) setBusy(false); }
   }, [session]);
+  useEffect(() => {
+    if (busy || !items.some(item => item.backend && item.desiredState === "running")) return;
+    const controller = new AbortController(); let pending = false;
+    const timer = window.setInterval(() => {
+      if (pending) return; pending = true;
+      refresh(controller.signal).catch(e => { if (!controller.signal.aborted && session === getDataSessionRevision()) setError(e instanceof Error ? e.message : String(e)); }).finally(() => { pending = false; });
+    }, 2000);
+    return () => { window.clearInterval(timer); controller.abort(); };
+  }, [items, busy, refresh, session]);
   const current = (signal: AbortSignal) => mounted.current && !signal.aborted && session === getDataSessionRevision();
   return {
     host: dataSession.current === session ? host : undefined, items: dataSession.current === session ? items : [], detail: dataSession.current === session ? detail : undefined, review: dataSession.current === session ? review : undefined, error: dataSession.current === session ? error : "", busy: dataSession.current === session && busy, loading: dataSession.current !== session || loading, select, setReview,

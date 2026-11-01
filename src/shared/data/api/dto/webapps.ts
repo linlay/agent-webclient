@@ -39,3 +39,5 @@ export interface WebappReview extends WebappUpload {
 export interface WebappLaunch { action: string; ticket: string; expiresAt: number }
 export type WebappStateInput = Pick<WebappEntry, "revision" | "stateRevision">;
 export type WebappPolicyInput = Omit<WebappPolicy, "schemaVersion" | "revision"> & { expectedRevision: string };
+
+export interface WebappLogPage { text: string; cursor: string; reset: boolean }
