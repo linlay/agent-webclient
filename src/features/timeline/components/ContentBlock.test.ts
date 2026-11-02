@@ -76,8 +76,8 @@ describe("ContentBlock presentation boundary", () => {
   });
 
   it("retains voice text in read-only history without voice controls", () => {
-    const html = renderNode({ id: "voice", kind: "content", text: "", segments: [
-      { kind: "ttsVoice", signature: "voice-1", text: "Spoken answer", closed: true },
+    const html = renderNode({ id: "voice", kind: "content", text: "```tts-voice\nSpoken answer\n```", segments: [
+      { kind: "text", text: "```tts-voice\nSpoken answer\n```" },
     ] });
     expect(html).toContain("Spoken answer");
     expect(html).not.toContain("button");

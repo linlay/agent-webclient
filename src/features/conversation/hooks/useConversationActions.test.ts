@@ -587,6 +587,20 @@ describe('replayEvent tool migration', () => {
     );
   });
 
+  it.each([['current-chat', true], ['another-chat', false]] as const)('only preserves voice media when replaying its current Chat (%s)', async (target, preserved) => {
+    const state = createInitialState();
+    state.chatId = 'current-chat'; state.inputMode = 'voice';
+    state.voiceChat = { ...state.voiceChat, sessionActive: true, partialUserText: 'recognized question' };
+    const voice = state.voiceChat;
+    const { actions, stateRef } = createConversationIntentHarness(state);
+    getChat.mockResolvedValue({ data: { chatId: target, agentKey: 'agent', events: [], runs: [] } });
+    await actions.loadChat(target);
+    expect(getChat).toHaveBeenCalledWith(target, false);
+    expect(stateRef.current.inputMode).toBe(preserved ? 'voice' : 'text');
+    expect(stateRef.current.voiceChat.sessionActive).toBe(preserved);
+    if (preserved) expect(stateRef.current.voiceChat).toBe(voice);
+  });
+
   it('does not reload a chat that was just promoted by its active live query', async () => {
     const state = createInitialState();
     const dispatch = jest.fn();

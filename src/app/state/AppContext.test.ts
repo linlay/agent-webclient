@@ -962,18 +962,6 @@ describe('appReducer conversation reset behavior', () => {
         sessionActive: true,
         partialUserText: '你好',
         partialAssistantText: '你好，我在。',
-        activeAssistantContentId: 'content_voice_1',
-        activeRequestId: 'req_voice_1',
-        activeTtsTaskId: 'tts_voice_1',
-        ttsCommitted: true,
-        clientGateCustomized: true,
-        clientGate: {
-          enabled: false,
-          rmsThreshold: 0.015,
-          openHoldMs: 150,
-          closeHoldMs: 600,
-          preRollMs: 180,
-        },
         currentAgentKey: 'agent-alice',
         currentAgentName: 'Alice',
       },
@@ -989,90 +977,9 @@ describe('appReducer conversation reset behavior', () => {
       sessionActive: false,
       partialUserText: '',
       partialAssistantText: '',
-      activeAssistantContentId: '',
-      activeRequestId: '',
-      activeTtsTaskId: '',
-      ttsCommitted: false,
-      clientGateCustomized: true,
-      clientGate: {
-        enabled: false,
-        rmsThreshold: 0.015,
-        openHoldMs: 150,
-        closeHoldMs: 600,
-        preRollMs: 180,
-      },
       currentAgentKey: '',
       currentAgentName: '',
     });
-  });
-
-  it('patches content tts voice blocks without clobbering the latest streamed text or segments', () => {
-    const baseState = createInitialState();
-    const contentNode = {
-      id: 'content_1',
-      kind: 'content' as const,
-      contentId: 'content_1',
-      text: '```tts-voice\nhello',
-      segments: [
-        {
-          kind: 'ttsVoice' as const,
-          signature: 'content_1::tts-voice::0',
-          text: 'hello',
-          closed: false,
-          startOffset: 0,
-        },
-      ],
-      ts: 123,
-    };
-    const state = {
-      ...baseState,
-      timelineNodes: new Map([['content_1', contentNode]]),
-      contentNodeById: new Map([['content_1', 'content_1']]),
-    };
-
-    const next = appReducer(state, {
-      type: 'PATCH_CONTENT_TTS_VOICE_BLOCK',
-      nodeId: 'content_1',
-      signature: 'content_1::tts-voice::0',
-      patch: {
-        text: 'hello',
-        closed: false,
-        status: 'connecting',
-        error: '',
-      },
-    });
-
-    expect(next.timelineNodes.get('content_1')).toMatchObject({
-      text: '```tts-voice\nhello',
-      segments: [
-        {
-          kind: 'ttsVoice',
-          signature: 'content_1::tts-voice::0',
-          text: 'hello',
-          closed: false,
-          startOffset: 0,
-        },
-      ],
-      ttsVoiceBlocks: {
-        'content_1::tts-voice::0': expect.objectContaining({
-          signature: 'content_1::tts-voice::0',
-          text: 'hello',
-          closed: false,
-          status: 'connecting',
-        }),
-      },
-    });
-  });
-
-  it('keeps inactive TTS cleanup on the original path and preserves no-op identity', () => {
-    const state = createInitialState();
-    expect(appReducer(state, { type: 'REMOVE_INACTIVE_CONTENT_TTS_VOICE_BLOCKS', nodeId: 'missing', activeSignatures: new Set() })).toBe(state);
-    const content = appReducer(state, { type: 'SET_TIMELINE_NODE', id: 'content', node: { id: 'content', kind: 'content', contentId: 'content', text: 'latest', ts: 1 } });
-    const patched = appReducer(content, { type: 'PATCH_CONTENT_TTS_VOICE_BLOCK', nodeId: 'content', signature: 'voice', patch: { text: 'spoken' } });
-    expect(appReducer(patched, { type: 'REMOVE_INACTIVE_CONTENT_TTS_VOICE_BLOCKS', nodeId: 'content', activeSignatures: new Set(['voice']) })).toBe(patched);
-    const cleaned = appReducer(patched, { type: 'REMOVE_INACTIVE_CONTENT_TTS_VOICE_BLOCKS', nodeId: 'content', activeSignatures: new Set() });
-    expect(cleaned.timelineNodes.get('content')).toMatchObject({ text: 'latest', ttsVoiceBlocks: {} });
-    expect(patched.timelineNodes.get('content')).toMatchObject({ ttsVoiceBlocks: { voice: { text: 'spoken' } } });
   });
 
   it('patches active awaiting runtime state without replacing the session', () => {

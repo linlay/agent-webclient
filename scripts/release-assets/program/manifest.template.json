@@ -20,7 +20,10 @@
     "embedPath": "/"
   },
   "lifecycle": {
-    "start": ["__START_SCRIPT__", "--daemon"],
+    "start": [
+      "__START_SCRIPT__",
+      "--daemon"
+    ],
     "stop": "__STOP_SCRIPT__",
     "deploy": "__DEPLOY_SCRIPT__"
   },
@@ -68,11 +71,7 @@
           "MEMORY_ENABLED",
           "CONVERSATION_EXPORT_ASSET_ORIGIN",
           "BRAND_ID",
-          "VOICE_ASR_CLIENT_GATE_ENABLED",
-          "VOICE_ASR_CLIENT_GATE_RMS_THRESHOLD",
-          "VOICE_ASR_CLIENT_GATE_OPEN_HOLD_MS",
-          "VOICE_ASR_CLIENT_GATE_CLOSE_HOLD_MS",
-          "VOICE_ASR_CLIENT_GATE_PRE_ROLL_MS"
+          "VOICE_ENABLED"
         ]
       },
       "spaRoutes": [
@@ -100,18 +99,15 @@
       ],
       "proxyRoutes": [
         {
-          "match": "prefix",
-          "path": "/api/voice",
-          "targetEnv": "VOICE_BASE_URL",
-          "optional": true,
+          "match": "exact",
+          "path": "/api/voice/ws",
+          "targetEnv": "BASE_URL",
+          "http": false,
           "websocket": true,
-          "stripRequestHeaders": ["sec-websocket-extensions"],
-          "disabledResponse": {
-            "status": 404,
-            "json": {
-              "error": "voice disabled"
-            }
-          }
+          "auth": "agent-platform-access-token",
+          "stripRequestHeaders": [
+            "sec-websocket-extensions"
+          ]
         },
         {
           "match": "prefix",

@@ -3,7 +3,7 @@ import type { ActiveAwaiting, ToolState } from "@/features/tools/lib/toolsState"
 import type { AgentEvent } from "@/shared/contracts/agentEvents";
 import type { FileChangeSummary } from "@/features/overview/lib/overviewState";
 import type { PublishedArtifact } from "@/features/artifacts/lib/artifactsState";
-import type { TimelineNode, TtsVoiceBlock } from "@/features/timeline/lib/timelineState";
+import type { TimelineNode } from "@/features/timeline/lib/timelineState";
 import type { Plan, PlanRuntime } from "@/features/plan/lib/planState";
 import type { TaskItemMeta } from "@/features/tasks/lib/tasksState";
 import {
@@ -12,7 +12,6 @@ import {
   reduceAwaitingRuntime,
 } from '@/features/tools/lib/awaitingRuntime';
 import { readRunAgentKeyFromEvent } from '@/features/runs/lib/runAgentIdentity';
-import { parseContentSegments } from '@/features/events/lib/contentSegments';
 import type { EventCommand, EventProcessorState } from '@/features/events/lib/eventProcessorTypes';
 import { processStreamEvent } from '@/features/events/lib/eventProcessor';
 import { MAX_EVENTS } from '@/app/state/constants';
@@ -262,32 +261,6 @@ function createReplayProcessorState(rs: ReplayState): EventProcessorState {
   };
 }
 
-function buildHistoryTtsVoiceBlocks(
-  segments: ReturnType<typeof parseContentSegments>,
-  existing?: Record<string, TtsVoiceBlock>,
-): Record<string, TtsVoiceBlock> | undefined {
-  const next: Record<string, TtsVoiceBlock> = {};
-  let hasVoice = false;
-
-  for (const segment of segments) {
-    if (segment.kind !== 'ttsVoice' || !segment.signature) continue;
-    hasVoice = true;
-    const previous = existing?.[segment.signature];
-    next[segment.signature] = {
-      signature: segment.signature,
-      text: String(segment.text || previous?.text || ''),
-      closed: Boolean(segment.closed),
-      expanded: Boolean(previous?.expanded),
-      status: previous?.status || 'ready',
-      error: String(previous?.error || ''),
-      sampleRate: previous?.sampleRate,
-      channels: previous?.channels,
-    };
-  }
-
-  return hasVoice ? next : undefined;
-}
-
 function applyReplayEventCommand(rs: ReplayState, command: EventCommand): void {
   switch (command.cmd) {
     case 'SET_MODEL_RETRY':
@@ -318,21 +291,10 @@ function applyReplayEventCommand(rs: ReplayState, command: EventCommand): void {
       rs.timelineOrder.push(command.nodeId);
       return;
     case 'SET_TIMELINE_NODE': {
-      const existing = rs.timelineNodes.get(command.id);
       const runId = command.node.runId || rs.runId || '';
       const baseNode: TimelineNode = runId
         ? { ...command.node, runId }
         : command.node;
-      if (command.node.kind === 'content') {
-        rs.timelineNodes.set(command.id, {
-          ...baseNode,
-          ttsVoiceBlocks: buildHistoryTtsVoiceBlocks(
-            command.node.segments || [],
-            existing?.kind === 'content' ? existing.ttsVoiceBlocks : undefined,
-          ),
-        });
-        return;
-      }
       rs.timelineNodes.set(command.id, baseNode);
       return;
     }

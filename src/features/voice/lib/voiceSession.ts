@@ -1,0 +1,212 @@
+import type { VoiceCapabilities } from "@/shared/data/api/dto/voice";
+import type { VoiceChatState } from "./voiceState";
+import { VoiceAudioCapture } from "./voiceAudioCapture";
+import { VoiceAudioPlayer } from "./voiceAudioPlayer";
+
+type SessionOptions = {
+  capabilities: VoiceCapabilities;
+  agentKey: string;
+  chatId: string;
+  voice: string;
+  mode: "auto" | "manual";
+  patch: (patch: Partial<VoiceChatState>) => void;
+  onRun: (chatId: string, runId: string) => void;
+};
+
+// One connection owns only its microphone, playback and current media controls.
+export class VoiceSession {
+  private socket: WebSocket | null = null;
+  private readonly capture = new VoiceAudioCapture(pcm => this.sendPCM(pcm));
+  private readonly player = new VoiceAudioPlayer(() => this.playbackDrained());
+  private closed = false;
+  private ready = false;
+  private listening = false;
+  private aborting = false;
+  private abortTimer: ReturnType<typeof setTimeout> | null = null;
+  private turn = 0;
+  private sampleRate = 24000;
+  private awaiting = false;
+  private runComplete = false;
+  private speechDone = false;
+  private receivingAudio = false;
+
+  constructor(private readonly options: SessionOptions) {}
+
+  async prepare(): Promise<void> {
+    try {
+      await Promise.all([this.player.prepare(), this.capture.prepare()]);
+    } catch (error) {
+      this.close();
+      throw error;
+    }
+  }
+
+  connect(token: string): void {
+    if (this.closed) return;
+    const { capabilities, agentKey, chatId, voice } = this.options;
+    const url = new URL(capabilities.websocketPath, window.location.href);
+    if (url.origin !== window.location.origin || url.pathname !== "/api/voice/ws" || url.search || url.hash) {
+      throw new Error("Invalid voice WebSocket path");
+    }
+    url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
+    const socket = new WebSocket(url.href, token ? [`bearer.${token}`] : []);
+    this.socket = socket;
+    socket.binaryType = "arraybuffer";
+    this.abortTimer = setTimeout(() => this.fail("Voice handshake timed out"), 10000);
+    socket.onopen = () => this.send({ type: "hello", version: 1, agentKey,
+      ...(chatId ? { chatId } : {}), voice,
+      audio: {
+        input: { codec: "pcm_s16le", sampleRate: 16000, channels: 1, frameMs: 20 },
+        output: { codec: "pcm_s16le", sampleRate: this.sampleRate },
+      },
+    });
+    socket.onmessage = event => {
+      if (this.closed) return;
+      try {
+        if (event.data instanceof ArrayBuffer) {
+          if (!this.aborting && this.receivingAudio) this.player.append(event.data);
+          return;
+        }
+        if (typeof event.data !== "string") throw new Error("Invalid voice message");
+        this.receive(JSON.parse(event.data) as Record<string, unknown>);
+      } catch (error) { this.fail(error instanceof Error ? error.message : String(error)); }
+    };
+    socket.onerror = () => this.fail("Voice connection failed");
+    socket.onclose = () => {
+      if (!this.closed) this.fail("Voice disconnected. Reconnect to start a new session.");
+    };
+  }
+
+  private send(message: Record<string, unknown>): void {
+    if (!this.closed && this.socket?.readyState === WebSocket.OPEN) this.socket.send(JSON.stringify(message));
+  }
+
+  private sendPCM(pcm: Uint8Array): void {
+    if (!this.listening || this.aborting || this.closed || this.socket?.readyState !== WebSocket.OPEN) return;
+    if (this.socket.bufferedAmount > 64000) { this.fail("Microphone send buffer exceeded"); return; }
+    this.socket.send(pcm);
+  }
+
+  listen(): void {
+    if (!this.ready || this.closed || this.aborting || this.listening || this.awaiting || this.receivingAudio) return;
+    this.turn++;
+    this.runComplete = false;
+    this.speechDone = false;
+    this.send({ type: "listen", state: "start", mode: this.options.mode });
+    this.listening = true;
+    this.capture.start();
+    this.options.patch({ status: "listening", error: "", partialUserText: "", partialAssistantText: "", awaiting: false });
+  }
+
+  stopListening(): void {
+    if (!this.listening) return;
+    this.capture.stop(true); // Keep the even short tail ahead of listen(stop).
+    this.listening = false;
+    this.send({ type: "listen", state: "stop", mode: this.options.mode });
+    this.options.patch({ status: "thinking" });
+  }
+
+  abort(): void {
+    if (!this.ready || this.closed || this.aborting) return;
+    this.aborting = true;
+    this.listening = false;
+    this.receivingAudio = false;
+    this.capture.stop();
+    this.player.stop();
+    this.options.patch({ status: "thinking", awaiting: false });
+    this.send({ type: "abort", reason: "user_stop" });
+    this.abortTimer = setTimeout(() => this.fail("Voice abort timed out"), 5000);
+  }
+
+  setMuted(muted: boolean): void { this.player.setMuted(muted); }
+
+  private receive(message: Record<string, unknown>): void {
+    const type = message.type;
+    if (type === "hello") {
+      if (this.ready || message.version !== 1 || message.agentKey !== this.options.agentKey || typeof message.chatId !== "string") throw new Error("Invalid voice hello");
+      const audio = message.audio as { output?: { codec?: string; sampleRate?: number; channels?: number } } | undefined;
+      if (audio?.output?.codec !== "pcm_s16le" || audio.output.channels !== 1 || ![16000, 24000].includes(audio.output.sampleRate || 0)) throw new Error("Unsupported voice output");
+      this.sampleRate = audio.output.sampleRate!;
+      this.ready = true;
+      this.clearTimer();
+      this.options.patch({ sessionActive: true, error: "" });
+      this.listen();
+      return;
+    }
+    if (type === "error") { this.fail(String(message.msg || message.code || "Voice failed")); return; }
+    if (type === "abort") {
+      if (!this.aborting) return;
+      this.clearTimer();
+      this.aborting = false;
+      this.awaiting = false;
+      this.runComplete = false;
+      this.speechDone = false;
+      this.listen();
+      return;
+    }
+    if (!this.ready || this.aborting || message.turn !== this.turn) return;
+    if (type === "stt") {
+      this.options.patch({ partialUserText: String(message.text || "") });
+      if (message.final === true) {
+        this.capture.stop();
+        this.listening = false;
+        this.options.patch({ status: "thinking" });
+      }
+    } else if (type === "run") {
+      if (message.state === "start" && typeof message.chatId === "string" && typeof message.runId === "string") {
+        this.options.onRun(message.chatId, message.runId);
+      } else if (message.state === "end") {
+        this.runComplete = message.finishReason === "complete";
+        if (this.runComplete) { this.awaiting = false; this.options.patch({ awaiting: false }); }
+      }
+    } else if (type === "awaiting") {
+      this.awaiting = true;
+      this.capture.stop();
+      this.listening = false;
+      this.options.patch({ awaiting: true, status: "thinking" });
+    } else if (type === "tts") {
+      if (message.state === "start") {
+        this.capture.stop();
+        this.listening = false;
+        this.speechDone = false;
+        this.receivingAudio = true;
+        this.player.start(this.sampleRate);
+        this.options.patch({ status: "speaking", partialAssistantText: String(message.text || "") });
+      } else if (message.state === "stop") {
+        this.receivingAudio = false;
+        this.speechDone = message.reason === "done";
+        this.player.finish();
+      }
+    }
+  }
+
+  private playbackDrained(): void {
+    if (this.closed || this.aborting) return;
+    if (this.runComplete && this.speechDone && !this.awaiting) this.listen();
+    else if (this.awaiting) this.options.patch({ status: "thinking" });
+  }
+
+  private clearTimer(): void {
+    if (this.abortTimer) clearTimeout(this.abortTimer);
+    this.abortTimer = null;
+  }
+
+  private fail(message: string): void {
+    if (this.closed) return;
+    this.close();
+    this.options.patch({ status: "error", error: message, sessionActive: false });
+  }
+
+  close(): void {
+    if (this.closed) return;
+    this.closed = true;
+    this.clearTimer();
+    this.capture.close();
+    this.player.close();
+    if (this.socket) {
+      this.socket.onopen = this.socket.onmessage = this.socket.onerror = this.socket.onclose = null;
+      this.socket.close();
+      this.socket = null;
+    }
+  }
+}

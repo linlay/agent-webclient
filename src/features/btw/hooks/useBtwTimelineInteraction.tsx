@@ -12,7 +12,6 @@ import type {
   TimelineNode,
   TimelineSource,
 } from "@/features/timeline/lib/timelineState";
-import { getVoiceRuntime } from "@/features/voice/lib/voiceRuntime";
 import { MarkdownContent } from "@/features/viewers/components/MarkdownContent";
 import { registerDesktopContextMenuTarget } from "@/shared/data/desktop/desktopContextMenu";
 import type { BTWSessionState } from "@/features/btw/lib/btwTypes";
@@ -69,31 +68,7 @@ export function useBtwTimelineInteraction({
         const node = timelineNodes?.get(nodeId);
         if (node) onPatchTimelineNode({ ...node, expanded });
       },
-      setVoiceBlockExpanded: (nodeId, signature, expanded, text, closed) => {
-        const node = timelineNodes?.get(nodeId);
-        if (!node) return;
-        const current = node.ttsVoiceBlocks?.[signature] || {
-          signature,
-          text,
-          closed,
-          expanded: false,
-          status: "ready" as const,
-          error: "",
-        };
-        onPatchTimelineNode({
-          ...node,
-          ttsVoiceBlocks: {
-            ...node.ttsVoiceBlocks,
-            [signature]: { ...current, expanded },
-          },
-        });
-      },
       openTarget,
-      replayVoice: (node, signature, text) => {
-        void getVoiceRuntime()
-          ?.replayTtsVoiceBlock(node.contentId || "", signature, text)
-          .catch(() => undefined);
-      },
       renderToolView: (view, chatId, error, payloadRaw) => (
         <ViewEmbed allowSidebar
           chatId={chatId}

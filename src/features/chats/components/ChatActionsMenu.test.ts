@@ -221,7 +221,6 @@ describe("ChatActionsMenu", () => {
 		const resetEvents: string[] = [];
 		const listener = (event: Event) => resetEvents.push(event.type);
 		window.addEventListener("agent:reset-event-cache", listener);
-		window.addEventListener("agent:voice-reset", listener);
 		try {
 			renderToStaticMarkup(React.createElement(ChatActionsMenu, {
 				chatId: " chat_1 ", chatName: "Demo chat", onDeleted,
@@ -237,10 +236,9 @@ describe("ChatActionsMenu", () => {
 			expect(mockDispatch.mock.calls.map(([action]) => action.type)).toEqual([
 				"CHAT_DELETED", "CLEAR_CHAT_TRANSITION", "SET_CHAT_ID", "SET_RUN_ID", "RESET_ACTIVE_CONVERSATION",
 			]);
-			expect(resetEvents).toEqual(["agent:reset-event-cache", "agent:voice-reset"]);
+			expect(resetEvents).toEqual(["agent:reset-event-cache"]);
 		} finally {
 			window.removeEventListener("agent:reset-event-cache", listener);
-			window.removeEventListener("agent:voice-reset", listener);
 		}
 	});
 

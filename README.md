@@ -131,7 +131,7 @@ make dev
 开发模式下，Webpack Dev Server 会代理：
 
 - 普通 `/api/*` 到 `BASE_URL`
-- 设置 `VOICE_BASE_URL` 时保留语音 HTTP 与 `/api/voice/ws` 的上游代理配置；WebClient 的统一语音开关当前固定关闭，入口不展示，也不初始化语音运行时
+- 实时语音 v1 与普通 API 共用 Platform `BASE_URL`；`VOICE_ENABLED=true` 且 capabilities.enabled 才显示入口。默认关闭，已通过隔离与 Chrome 合成输入验证，真实供应商/真人/设备验收待完成。
 - `/ws` 到 `BASE_URL`
 - `/auth/*` 到 `BASE_URL`，供 Gateway OIDC/SSO 使用
 
@@ -181,7 +181,7 @@ Program Bundle 包含 `manifest.json`、`.env.example`、`frontend/dist/` 和 De
 | --- | --- | --- |
 | `PORT` | 否 | 本地开发端口；Program Bundle 运行时由 Desktop 宿主注入 |
 | `BASE_URL` | 是 | AGW / AGENT 后端 HTTP API 与主 `/ws` 基地址 |
-| `VOICE_BASE_URL` | 否 | 独立语音服务地址；未设置时关闭语音代理路由；UI 入口当前统一关闭 |
+| `VOICE_ENABLED` | 否 | 部署语音入口开关，默认 false；仍须 Platform capabilities.enabled；只支持 Platform 模式 |
 | `BACKEND_MODE` | 否 | `platform`（默认）保留 Token 认证；`gateway` 使用 Session Cookie、CSRF 与登录回跳 |
 | `DEBUG_PANEL_ENABLED` | 否 | 是否显示调试面板入口 |
 | `SETTINGS_MENU_ENABLED` | 否 | 是否显示设置入口 |
@@ -189,11 +189,6 @@ Program Bundle 包含 `manifest.json`、`.env.example`、`frontend/dist/` 和 De
 | `DEBUG_RUN_OBSERVATION_ENABLED` | 否 | 是否启用 Run 观察调试，默认关闭 |
 | `DELTA_LOGS_ENABLED` | 否 | 是否记录增量事件日志，默认关闭 |
 | `BRAND_ID` | 否 | HTML 导出品牌标识，默认 `cutej` |
-| `VOICE_ASR_CLIENT_GATE_ENABLED` | 否 | 浏览器 ASR 音频门控，默认 `true` |
-| `VOICE_ASR_CLIENT_GATE_RMS_THRESHOLD` | 否 | 音频门控 RMS 阈值，默认 `0.008` |
-| `VOICE_ASR_CLIENT_GATE_OPEN_HOLD_MS` | 否 | 音频门控开启保持时间，默认 `120` 毫秒 |
-| `VOICE_ASR_CLIENT_GATE_CLOSE_HOLD_MS` | 否 | 音频门控关闭保持时间，默认 `480` 毫秒 |
-| `VOICE_ASR_CLIENT_GATE_PRE_ROLL_MS` | 否 | 音频门控预留音频长度，默认 `240` 毫秒 |
 | `CONVERSATION_EXPORT_ASSET_ORIGIN` | HTML 导出时是 | Tunnel 资源 origin；生产必须为 HTTPS，本地开发可使用 loopback HTTP，例如 `http://127.0.0.1:11961` |
 
 本地开发和 Program Bundle 构建复用同一组变量名。`.env` 是本地真实配置，不提交版本库。

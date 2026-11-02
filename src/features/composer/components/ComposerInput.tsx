@@ -9,6 +9,7 @@ import { UiButton } from "@/shared/ui/UiButton";
 import { useComposerPastedText } from "../hooks/useComposerPastedText";
 import { ComposerPastedTexts } from "./ComposerPastedTexts";
 import "@/features/voice/components/VoiceEffects.module.css";
+import { VoiceControls } from "@/features/voice/components/VoiceControls";
 
 interface ComposerInputProps {
   isVoiceMode: boolean;
@@ -242,6 +243,7 @@ export const ComposerInput: React.FC<ComposerInputProps> = ({
                 </div>
               </div>
             </div>
+            <VoiceControls />
             {voiceError && <div className={VOICE_ERROR_CLASS}>{voiceError}</div>}
           </div>
         ) : (

@@ -141,7 +141,6 @@ function activateMainChatRun(
 			typeof CustomEvent === "function"
 		) {
 			window.dispatchEvent(new CustomEvent("agent:reset-event-cache"));
-			window.dispatchEvent(new CustomEvent("agent:voice-reset"));
 		}
 	}
 

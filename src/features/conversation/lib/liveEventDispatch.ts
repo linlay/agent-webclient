@@ -4,7 +4,6 @@ import { MODEL_RETRY_NODE_ID, RUN_ACTIVITY_NODE_ID } from "@/shared/ui/modelRetr
 import type { TimelineNode } from "@/features/timeline/lib/timelineState";
 import type { EventCommand } from "@/features/events/lib/eventProcessorTypes";
 import {
-	getCachedNode,
 	type LocalCache,
 } from "@/features/conversation/lib/liveEventCache";
 
@@ -67,20 +66,13 @@ export function applyLiveEventCommand(input: {
 			dispatch({ type: "APPEND_TIMELINE_ORDER", id: command.nodeId });
 			return;
 		case "SET_TIMELINE_NODE": {
-			const existingNode = getCachedNode(cache, state, command.id);
 			const runId = command.node.runId || cache.runId || "";
 			const baseNode: TimelineNode = runId
 				? { ...command.node, runId }
 				: command.node;
-			const nextNode: TimelineNode = command.node.kind === "content"
-				? {
-						...baseNode,
-						ttsVoiceBlocks: existingNode?.kind === "content" ? (existingNode.ttsVoiceBlocks || {}) : {},
-					}
-				: baseNode;
-			cache.nodeById.set(command.id, nextNode);
-			cache.nodeText.set(command.id, nextNode.text || "");
-			dispatch({ type: "SET_TIMELINE_NODE", id: command.id, node: nextNode });
+			cache.nodeById.set(command.id, baseNode);
+			cache.nodeText.set(command.id, baseNode.text || "");
+			dispatch({ type: "SET_TIMELINE_NODE", id: command.id, node: baseNode });
 			return;
 		}
 		case "SET_TOOL_STATE":

@@ -1,4 +1,5 @@
 import { readRuntimeConfigValue } from "@/shared/config/runtimeConfig";
+import { isPlatformBackendMode } from "@/shared/config/backendMode";
 import { isDesktopAppMode } from "@/shared/utils/routing";
 
 export function parseFeatureFlag(value: unknown): boolean {
@@ -28,7 +29,7 @@ export function isQuickActionsEnabled(): boolean {
 }
 
 export function isVoiceEnabled(): boolean {
-  return false;
+  return isPlatformBackendMode() && parseFeatureFlag(readRuntimeConfigValue("VOICE_ENABLED"));
 }
 
 export function isMemoryEnabled(): boolean {
