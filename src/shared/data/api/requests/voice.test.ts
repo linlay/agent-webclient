@@ -1,40 +1,16 @@
-import { getVoiceCapabilitiesFlexible, getVoiceVoicesFlexible } from "@/shared/data/api/requests/voice";
+import { getVoiceCapabilities } from "./voice";
 import { setupRequestHarness } from "@/shared/data/__testUtils__/requestHarness";
 
-describe("voice response compatibility", () => {
+describe("voice capabilities", () => {
   const { fetchMock } = setupRequestHarness();
-
-  it.each([
-    {
-      name: "capabilities from ApiResponse",
-      request: getVoiceCapabilitiesFlexible,
-      wrapped: true,
-      data: { websocketPath: "/api/voice/ws", asr: { configured: true } },
-    },
-    {
-      name: "capabilities from bare JSON",
-      request: getVoiceCapabilitiesFlexible,
-      wrapped: false,
-      data: { websocketPath: "/api/voice/ws", asr: { defaults: { sampleRate: 16000 } } },
-    },
-    {
-      name: "voices from ApiResponse",
-      request: getVoiceVoicesFlexible,
-      wrapped: true,
-      data: { defaultVoice: "jarvis", voices: [{ id: "jarvis", displayName: "Jarvis" }] },
-    },
-    {
-      name: "voices from bare JSON",
-      request: getVoiceVoicesFlexible,
-      wrapped: false,
-      data: { defaultVoice: "jarvis", voices: [{ id: "jarvis", displayName: "Jarvis" }] },
-    },
-  ])("parses $name", async ({ request, wrapped, data }) => {
-    fetchMock.mockResolvedValueOnce({
-      ok: true,
-      status: 200,
-      text: async () => JSON.stringify(wrapped ? { code: 0, msg: "ok", data } : data),
-    });
-    await expect(request()).resolves.toEqual(data);
+  it("reads the ordinary API envelope, including disabled state and configured voices", async () => {
+    const data = { enabled: false, version: 1, websocketPath: "/api/voice/ws", voices: [{ id: "voice", label: "Voice" }] };
+    fetchMock.mockResolvedValueOnce({ ok: true, status: 200, text: async () => JSON.stringify({ code: 0, msg: "ok", data }) });
+    await expect(getVoiceCapabilities()).resolves.toEqual(data);
+    expect(fetchMock).toHaveBeenCalledWith("/api/voice/capabilities", expect.anything());
+  });
+  it("rejects the retired bare response instead of falling back", async () => {
+    fetchMock.mockResolvedValueOnce({ ok: true, status: 200, text: async () => '{"enabled":true}' });
+    await expect(getVoiceCapabilities()).rejects.toThrow("ApiResponse");
   });
 });

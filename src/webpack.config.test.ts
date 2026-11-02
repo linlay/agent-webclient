@@ -5,7 +5,6 @@ describe('webpack devServer proxy', () => {
     process.env = {
       ...originalEnv,
       BASE_URL: 'http://backend.example.com',
-      VOICE_BASE_URL: 'http://voice.example.com',
     };
 
     // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -30,7 +29,6 @@ describe('webpack devServer proxy', () => {
     process.env = {
       ...originalEnv,
       BASE_URL: 'http://backend.example.com',
-      VOICE_BASE_URL: 'http://voice.example.com',
     };
 
     // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -44,15 +42,14 @@ describe('webpack devServer proxy', () => {
 
     expect(voiceRule).toBeTruthy();
     expect(voiceRule.ws).toBe(true);
-    expect(voiceApiRule).toBeTruthy();
-    expect(voiceApiRule.ws).toBe(false);
+    expect(voiceRule.target).toBe('http://backend.example.com');
+    expect(voiceApiRule).toBeUndefined();
   });
 
   it('enables websocket proxying for query websocket endpoint', () => {
     process.env = {
       ...originalEnv,
       BASE_URL: 'http://backend.example.com',
-      VOICE_BASE_URL: 'http://voice.example.com',
     };
 
     // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -67,29 +64,21 @@ describe('webpack devServer proxy', () => {
     expect(queryWsRule.ws).toBe(true);
   });
 
-  it('omits voice proxy rules when VOICE_BASE_URL is empty', () => {
-    process.env = {
-      ...originalEnv,
-      BASE_URL: 'http://backend.example.com',
-      VOICE_BASE_URL: '',
-    };
-
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const configFactory = require('../webpack.config.js');
-    const config = configFactory({}, { mode: 'development' });
-    const proxyRules = Array.isArray(config.devServer?.proxy) ? config.devServer.proxy : [];
-
-    expect(proxyRules.some((rule: { context?: string[] }) =>
-      Array.isArray(rule.context) && rule.context.includes('/api/voice/ws'))).toBe(false);
-    expect(proxyRules.some((rule: { context?: string[] }) =>
-      Array.isArray(rule.context) && rule.context.includes('/api/voice'))).toBe(false);
+  it('rewrites only same-origin media upgrades for the shared Platform', () => {
+    const { config } = loadApiProxyRule();
+    const voiceRule = config.devServer.proxy.find((rule: { context: string[] }) => rule.context.includes('/api/voice/ws'));
+    const proxyReq = { setHeader: jest.fn() };
+    voiceRule.onProxyReqWs(proxyReq, { headers: { origin: 'http://localhost:11948', host: 'localhost:11948' } });
+    expect(proxyReq.setHeader).toHaveBeenCalledWith('Origin', 'http://backend.example.com');
+    proxyReq.setHeader.mockClear();
+    voiceRule.onProxyReqWs(proxyReq, { headers: { origin: 'https://untrusted.example', host: 'localhost:11948' } });
+    expect(proxyReq.setHeader).not.toHaveBeenCalled();
   });
 
   it('moves webpack hmr websocket off /ws', () => {
     process.env = {
       ...originalEnv,
       BASE_URL: 'http://backend.example.com',
-      VOICE_BASE_URL: 'http://voice.example.com',
     };
 
     // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -104,7 +93,6 @@ describe('webpack devServer proxy', () => {
     process.env = {
       ...originalEnv,
       BASE_URL: 'http://backend.example.com',
-      VOICE_BASE_URL: 'http://voice.example.com',
     };
 
     // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -119,7 +107,6 @@ describe('webpack devServer proxy', () => {
     process.env = {
       ...originalEnv,
       BASE_URL: 'http://backend.example.com',
-      VOICE_BASE_URL: '',
     };
 
     // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -135,7 +122,6 @@ describe('webpack devServer proxy', () => {
     process.env = {
       ...originalEnv,
       BASE_URL: 'http://backend.example.com',
-      VOICE_BASE_URL: '',
     };
 
     // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -168,7 +154,6 @@ describe('webpack devServer proxy', () => {
       ...originalEnv,
       NODE_ENV: undefined,
       BASE_URL: 'http://backend.example.com',
-      VOICE_BASE_URL: 'http://voice.example.com',
     };
 
     // eslint-disable-next-line @typescript-eslint/no-var-requires

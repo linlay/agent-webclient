@@ -9,7 +9,6 @@ export function selectUiState(state: AppState) {
     wsStatus: state.wsStatus,
     wsErrorMessage: state.wsErrorMessage,
     audioMuted: state.audioMuted,
-    ttsDebugStatus: state.ttsDebugStatus,
   };
 }
 

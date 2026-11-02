@@ -68,7 +68,6 @@ import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { SCROLLBAR_THIN_CLASS_NAME } from "@/shared/styles/scrollbarClassNames";
 import { resolveCurrentWorkerSummary } from "@/features/workers/lib/currentWorker";
 import { resolvePreferredAgentKey } from "@/features/workers/lib/queryRouting";
-import { getVoiceRuntime } from "@/features/voice/lib/voiceRuntime";
 import { ToolOutputTerminal } from "@/features/terminal/components/ToolOutputTerminal";
 import { useViewPreviewPublisher } from "@/features/viewers/hooks/useViewPreviewTransfer";
 import { ViewEmbed } from "@/features/timeline/components/ViewEmbed";
@@ -1930,24 +1929,7 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
       teamChat: state.chats.some((chat) => chat.chatId === state.chatId &&
         (Boolean(undefined))),
     },
-    setVoiceBlockExpanded: (nodeId, signature, expanded, text, closed) => {
-      const node = state.timelineNodes.get(nodeId);
-      if (!node) return;
-      const current = node.ttsVoiceBlocks?.[signature] || {
-        signature, text, closed, expanded: false, status: "ready" as const, error: "",
-      };
-      dispatch({ type: "SET_TIMELINE_NODE", id: nodeId, node: {
-        ...node, ttsVoiceBlocks: {
-          ...node.ttsVoiceBlocks,
-          [signature]: { ...current, expanded },
-        },
-      } });
-    },
     openTarget,
-    replayVoice: (node, signature, text) => {
-      void getVoiceRuntime()?.replayTtsVoiceBlock(node.contentId || "", signature, text)
-        .catch(() => undefined);
-    },
     renderToolView: (view, chatId, error, payloadRaw, node) =>
       <ViewEmbed allowSidebar={surfaceMode === "main"} chatId={chatId} view={view} viewError={error} payloadRaw={payloadRaw} runId={node?.runId} sourceId={node?.id} viewIndex="tool" />,
     renderToolOutput: (output) =>

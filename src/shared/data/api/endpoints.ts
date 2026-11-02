@@ -1146,12 +1146,6 @@ export const dataEndpoints = createEndpointRegistry({
     method: "GET",
     transport: "http",
   }),
-  voiceVoices: defineEndpoint({
-    key: "voice.voices",
-    path: "/api/voice/tts/voices",
-    method: "GET",
-    transport: "http",
-  }),
   voiceWs: defineEndpoint({
     key: "voice.ws",
     path: "/api/voice/ws",

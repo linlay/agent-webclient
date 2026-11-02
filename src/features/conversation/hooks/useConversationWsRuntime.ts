@@ -339,6 +339,13 @@ function syncCurrentTerminalPushObservation(
 		return;
 	}
 
+	// A fast Run can finish before its attach replay reaches this connection.
+	// The global Push updates Run facts; the accepted stream owns its remaining
+	// events and releases the observation on its own completion.
+	if (matchesActiveAttach && mainRuntime.session?.observationSource === "attach" && mainRuntime.session.streaming) {
+		return;
+	}
+
 	if (options.querySessionsRef) {
 		for (const session of options.querySessionsRef.current.values()) {
 			if (isTerminalPushForSession(session, chatId, runId)) {
@@ -911,7 +918,6 @@ export function createConversationPushHandler(
 					options.dispatch({ type: "SET_RUN_ID", runId: "" });
 					options.dispatch({ type: "RESET_ACTIVE_CONVERSATION" });
 					window.dispatchEvent(new CustomEvent("agent:reset-event-cache"));
-					window.dispatchEvent(new CustomEvent("agent:voice-reset"));
 				}
 			}
 			return;
@@ -929,7 +935,6 @@ export function createConversationPushHandler(
 					options.dispatch({ type: "SET_RUN_ID", runId: "" });
 					options.dispatch({ type: "RESET_ACTIVE_CONVERSATION" });
 					window.dispatchEvent(new CustomEvent("agent:reset-event-cache"));
-					window.dispatchEvent(new CustomEvent("agent:voice-reset"));
 				}
 			}
 			return;

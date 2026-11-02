@@ -1,40 +1,17 @@
-import {
-	describeVoiceChatWsTarget,
-	mergeVoiceChatUtterance,
-	normalizeVoiceChatUtteranceForLength,
-	resolveVoiceChatWsUrl,
-} from "@/features/voice/lib/voiceChatAudio";
+import { Pcm16Encoder } from "./voiceChatAudio";
 
-describe("voiceChatAudio helpers", () => {
-	it("merges latin utterances with a separator when needed", () => {
-		expect(mergeVoiceChatUtterance("hello", "world")).toBe("hello world");
-		expect(mergeVoiceChatUtterance("你好", "世界")).toBe("你好世界");
-	});
+it.each([16000, 44100, 48000])("keeps exactly one second at 16kHz across arbitrary %iHz callbacks", sampleRate => {
+  const encoder = new Pcm16Encoder(sampleRate);
+  const input = new Float32Array(sampleRate).fill(.25);
+  const chunks: Uint8Array[] = [];
+  for (let i = 0; i < input.length; i += 1024) chunks.push(encoder.encode(input.subarray(i, i + 1024)));
+  expect(chunks.reduce((sum, chunk) => sum + chunk.byteLength, 0)).toBe(32000);
+  for (const chunk of chunks) {
+    const view = new DataView(chunk.buffer);
+    for (let i = 0; i < chunk.byteLength; i += 2) expect(view.getInt16(i, true)).toBe(8191);
+  }
+});
 
-	it("normalizes punctuation and whitespace for utterance length checks", () => {
-		expect(normalizeVoiceChatUtteranceForLength(" 你，好！ ")).toBe("你好");
-		expect(normalizeVoiceChatUtteranceForLength("a-b c")).toBe("abc");
-	});
-
-	it("builds websocket urls from the current browser location", () => {
-		Object.defineProperty(globalThis, "window", {
-			configurable: true,
-			value: {
-				location: {
-					protocol: "https:",
-					host: "voice.example.com",
-				},
-			},
-		});
-
-		expect(resolveVoiceChatWsUrl("/api/voice/ws")).toBe(
-			"wss://voice.example.com/api/voice/ws",
-		);
-		expect(resolveVoiceChatWsUrl("/api/voice/ws", "token_123")).toBe(
-			"wss://voice.example.com/api/voice/ws?access_token=token_123",
-		);
-		expect(describeVoiceChatWsTarget("/api/voice/ws")).toBe(
-			"wss://voice.example.com/api/voice/ws",
-		);
-	});
+it("clamps PCM and uses little endian", () => {
+  expect([...new Pcm16Encoder(16000).encode(new Float32Array([-2, 0, 2]))]).toEqual([0, 128, 0, 0, 255, 127]);
 });

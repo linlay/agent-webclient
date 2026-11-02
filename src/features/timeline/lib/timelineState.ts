@@ -85,17 +85,6 @@ export interface EmbeddedViewport {
 	ts?: number;
 }
 
-export interface TtsVoiceBlock {
-	signature: string;
-	text: string;
-	closed: boolean;
-	expanded: boolean;
-	status: "ready" | "connecting" | "playing" | "done" | "error" | "stopped";
-	error: string;
-	sampleRate?: number;
-	channels?: number;
-}
-
 export interface TimelineSourceChunk {
 	chunkId: string;
 	index: number;
@@ -203,7 +192,6 @@ export interface TimelineNode {
 	errorDetail?: TimelineErrorDetail;
   references?: unknown[];
 	embeddedViewports?: Record<string, EmbeddedViewport>;
-	ttsVoiceBlocks?: Record<string, TtsVoiceBlock>;
 }
 
 export interface RenderQueue {
@@ -231,8 +219,6 @@ export type TimelineAction =
   | { type: "SET_MODEL_RETRY"; node?: TimelineNode }
   | { type: "SET_RUN_ACTIVITY"; node?: TimelineNode }
   | { type: "SET_TIMELINE_NODE"; id: string; node: TimelineNode }
-  | { type: "PATCH_CONTENT_TTS_VOICE_BLOCK"; nodeId: string; signature: string; patch: Partial<TtsVoiceBlock> }
-  | { type: "REMOVE_INACTIVE_CONTENT_TTS_VOICE_BLOCKS"; nodeId: string; activeSignatures: Set<string> }
   | { type: "APPEND_TIMELINE_ORDER"; id: string }
   | { type: "INCREMENT_TIMELINE_COUNTER" }
   | { type: "SET_CONTENT_NODE_BY_ID"; contentId: string; nodeId: string }
@@ -287,8 +273,6 @@ export function reduceTimelineState<S extends TimelineState>(state: S, input: { 
       return { ...state, activeReasoningKey: action.key };
     case "INCREMENT_TIMELINE_COUNTER":
       return { ...state, timelineCounter: state.timelineCounter + 1 };
-    case "PATCH_CONTENT_TTS_VOICE_BLOCK":
-    case "REMOVE_INACTIVE_CONTENT_TTS_VOICE_BLOCKS": return state;
     default: return null;
   }
 }

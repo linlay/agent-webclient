@@ -49,9 +49,6 @@ jest.mock("@/features/viewers/components/MarkdownContent", () => ({
     <div data-testid="markdown">{content}</div>
   ),
 }));
-jest.mock("@/features/voice/lib/voiceRuntime", () => ({
-  getVoiceRuntime: () => null,
-}));
 jest.mock("@/shared/data/desktop/desktopContextMenu", () => ({
   registerDesktopContextMenuTarget: jest.fn(),
 }));

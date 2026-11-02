@@ -41,12 +41,6 @@ jest.mock("@/app/state/AppContext", () => ({
   useAppContext: jest.fn(),
 }));
 
-jest.mock("@/features/voice/lib/voiceRuntime", () => ({
-  getVoiceRuntime: jest.fn(() => ({
-    resetVoiceRuntime: jest.fn(),
-    stopAllVoiceSessions: jest.fn(),
-  })),
-}));
 
 jest.mock("@/features/terminal/lib/terminalDockPersistence", () => ({
   restoreTerminalDockOpen: jest.fn(() => false),

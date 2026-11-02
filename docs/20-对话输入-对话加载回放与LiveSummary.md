@@ -58,6 +58,8 @@ Agent Copilot 使用相同的稳定对话身份规则：新对话收到稳定 `c
 
 ## 边界与非目标
 
+语音首轮也复用稳定 Chat ID 的路由提升，普通空 Agent 路由与带 newChat 的路由均可 replace 到 canonical Chat。语音 attach 仍是观察者，不伪装成本地 live query；已有 primary 的历史由原加载流程读取。同一 Chat 的投影重置显式保留当前媒体会话，切 Chat、新建、隐藏或挂断仍释放媒体。刷新只加载持久化历史，不自动重连媒体或重发 Query。
+
 - chat store 是后端事实源，前端只做读取、展示和缓存归并。
 - replay 不应发起新的 run，也不应改变后端历史。
 - 历史 `awaiting.ask` 不能单独恢复活动卡片；只有匹配的顶层 awaiting 才能锁定 Composer。

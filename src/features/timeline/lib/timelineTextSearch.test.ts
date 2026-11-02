@@ -40,7 +40,7 @@ describe("isSearchableTextNode", () => {
 });
 
 describe("getNodeSearchableText", () => {
-  it("strips voice fences from content text", () => {
+  it("keeps retired voice fences searchable as ordinary code", () => {
     const text = getNodeSearchableText(
       createNode({
         id: "c1",
@@ -49,7 +49,7 @@ describe("getNodeSearchableText", () => {
         ts: 1,
       }),
     );
-    expect(text).toBe("before\n\nafter");
+    expect(text).toBe("before\n\naudio\n\nafter");
   });
 
   it("strips inline markdown syntax from content text", () => {

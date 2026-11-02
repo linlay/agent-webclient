@@ -2,7 +2,7 @@ import type { ContentSegment } from '@/shared/contracts/contentSegments';
 
 export type { ContentSegment } from '@/shared/contracts/contentSegments';
 
-const SPECIAL_FENCE_HEADERS = ['```view', '```tts-voice'] as const;
+const SPECIAL_FENCE_HEADERS = ['```view'] as const;
 
 function pushTextSegment(segments: ContentSegment[], text: string): void {
   const normalized = String(text ?? '').trim();
@@ -113,7 +113,7 @@ function viewDataError(body: string): 'view_data_invalid' | undefined {
 }
 
 /**
- * Splits assistant Markdown into text, VIEW and tts-voice segments.
+ * Splits assistant Markdown into text and VIEW segments.
  *
  * VIEW grammar mirrors agent-platform internal/view.ParseMarkdownBlocks and is
  * checked against the shared golden cases: fences start at column 0, a VIEW
@@ -126,7 +126,7 @@ export function parseContentSegments(contentId: string, text: string): ContentSe
   if (!raw.trim()) return [];
 
   const lowerRaw = raw.toLowerCase();
-  if (!lowerRaw.includes('```view') && !lowerRaw.includes('```tts-voice')) {
+  if (!lowerRaw.includes('```view')) {
     return [{ kind: 'text', text: raw.trim() }];
   }
 
@@ -152,8 +152,7 @@ export function parseContentSegments(contentId: string, text: string): ContentSe
     const start = offsets[i];
     const bodyStart = lineEnd(i);
     const viewAttrs = specialInfo(open, 'view');
-    const isVoice = viewAttrs === null && specialInfo(open, 'tts-voice') !== null;
-    if (viewAttrs === null && !isVoice) {
+    if (viewAttrs === null) {
       if (end < 0) break;
       i = end;
       continue;
@@ -162,29 +161,19 @@ export function parseContentSegments(contentId: string, text: string): ContentSe
     const closed = end >= 0;
     const bodyEnd = closed ? offsets[end] : raw.length;
     const blockEnd = closed ? lineEnd(end) : raw.length;
-    if (isVoice) {
-      segments.push({
-        kind: 'ttsVoice',
-        signature: `${contentId || 'content'}::tts-voice::${start}`,
-        text: raw.slice(bodyStart, bodyEnd),
-        closed,
-        startOffset: start,
-      });
-    } else {
-      const key = parseViewKey(viewAttrs as string);
-      const body = raw.slice(bodyStart, bodyEnd).trim();
-      segments.push({
-        kind: 'view',
-        index: viewIndex,
-        signature: `${contentId || 'content'}::view::${viewIndex}`,
-        key,
-        payloadRaw: body,
-        text: raw.slice(start, blockEnd),
-        closed,
-        error: key ? viewDataError(body) : 'invalid_view',
-      });
-      if (closed) viewIndex += 1;
-    }
+    const key = parseViewKey(viewAttrs);
+    const body = raw.slice(bodyStart, bodyEnd).trim();
+    segments.push({
+      kind: 'view',
+      index: viewIndex,
+      signature: `${contentId || 'content'}::view::${viewIndex}`,
+      key,
+      payloadRaw: body,
+      text: raw.slice(start, blockEnd),
+      closed,
+      error: key ? viewDataError(body) : 'invalid_view',
+    });
+    if (closed) viewIndex += 1;
     textStart = blockEnd;
     if (!closed) break;
     i = end;

@@ -300,14 +300,15 @@ export function useConversationActions() {
 
   const applyLoadedChatState = useCallback(
     (chatId: string) => {
+      // Replaying the current Chat replaces its projection, not its media connection.
+      const preserveVoiceSession = stateRef.current.chatId === chatId && stateRef.current.inputMode === "voice";
       dispatch({ type: "SET_CHAT_ID", chatId });
       clearArtifactAutoCollapseTimer();
       clearPlanAutoCollapseTimer();
-      dispatch({ type: "RESET_CONVERSATION" });
+      dispatch(preserveVoiceSession ? { type: "RESET_CONVERSATION", preserveVoiceSession: true } : { type: "RESET_CONVERSATION" });
       window.dispatchEvent(new CustomEvent("agent:reset-event-cache"));
-      window.dispatchEvent(new CustomEvent("agent:voice-reset"));
     },
-    [clearArtifactAutoCollapseTimer, clearPlanAutoCollapseTimer, dispatch],
+    [clearArtifactAutoCollapseTimer, clearPlanAutoCollapseTimer, dispatch, stateRef],
   );
 
   const detachActiveConversationSession = useCallback(() => {
@@ -316,16 +317,6 @@ export function useConversationActions() {
       activeQuerySessionRequestIdRef.current || "",
     ).trim();
     if (!activeRequestId) {
-      return null;
-    }
-
-    const hasActiveVoiceQuery =
-      state.inputMode === "voice" ||
-      state.voiceChat.sessionActive ||
-      Boolean(String(state.voiceChat.activeRequestId || "").trim());
-    if (hasActiveVoiceQuery) {
-      state.abortController?.abort();
-      activeQuerySessionRequestIdRef.current = "";
       return null;
     }
 
@@ -430,7 +421,6 @@ export function useConversationActions() {
       if (String(stateRef.current.chatId || "").trim()) {
         window.dispatchEvent(new CustomEvent("agent:clear-composer-attachments"));
       }
-      window.dispatchEvent(new CustomEvent("agent:voice-reset"));
       dispatch({ type: "SET_CHAT_ID", chatId: "" });
       dispatch({ type: "SET_RUN_ID", runId: "" });
       dispatch({ type: "SET_REQUEST_ID", requestId: "" });

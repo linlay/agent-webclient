@@ -25,9 +25,6 @@ import {
   clearReasoningAutoCollapseTimer,
   scheduleReasoningAutoCollapseTimer,
 } from "@/features/timeline/lib/reasoningAutoCollapse";
-import { getVoiceRuntime } from "@/features/voice/lib/voiceRuntime";
-import { isVoiceEnabled } from "@/shared/config/featureFlags";
-import { stripSpecialBlocksFromText } from "@/features/events/lib/contentSegments";
 import { reduceAwaitingRuntime } from "@/features/tools/lib/awaitingRuntime";
 import {
   getPlanningModeForPlanDecision,
@@ -49,7 +46,6 @@ import {
   createLiveProcessorState,
   createLocalCache,
   createLocalCacheFromState,
-  getCachedNodeText,
   shouldSyncLiveCache,
   type LocalCache,
 } from "@/features/conversation/lib/liveEventCache";
@@ -668,17 +664,6 @@ export function useConversationEventHandler(): {
           dispatch({ type: "SET_CURRENT_CHAT_ACTIVE_RUN", activeRun: null });
         }
         dispatch({ type: "SET_STREAMING", streaming: false });
-        const voiceEnabled = isVoiceEnabled();
-        const isActiveVoiceRequest =
-          voiceEnabled &&
-          state.inputMode === "voice" &&
-          Boolean(state.voiceChat.activeRequestId) &&
-          state.voiceChat.activeRequestId === state.requestId;
-        if (!isActiveVoiceRequest) {
-          getVoiceRuntime()?.stopAllVoiceSessions(type, {
-            mode: type === "run.cancel" ? "stop" : "commit",
-          });
-        }
         if (type === "run.cancel") {
           state.abortController?.abort();
         }
@@ -707,87 +692,11 @@ export function useConversationEventHandler(): {
           type === "content.snapshot") &&
         event.contentId
       ) {
-        const contentId = String(event.contentId);
-        const nodeId =
-          cache.contentNodeById.get(contentId) ??
-          state.contentNodeById.get(contentId) ??
-          "";
-        const text = nodeId ? getCachedNodeText(cache, state, nodeId) : "";
-        const voiceStatus =
+        const contentStatus =
           type === "content.end" || type === "content.snapshot"
             ? "completed"
             : "running";
-        const activeVoiceRequestId = String(
-          state.voiceChat.activeRequestId || "",
-        ).trim();
-        const activeVoiceContentId = String(
-          state.voiceChat.activeAssistantContentId || "",
-        ).trim();
-        const voiceEnabled = isVoiceEnabled();
-        const isVoiceRequestActive =
-          voiceEnabled &&
-          state.inputMode === "voice" &&
-          Boolean(activeVoiceRequestId) &&
-          activeVoiceRequestId === state.requestId;
-        const shouldAttachVoiceContent =
-          isVoiceRequestActive &&
-          (!activeVoiceContentId || activeVoiceContentId === contentId);
-        if (shouldAttachVoiceContent && !activeVoiceContentId) {
-          dispatch({
-            type: "PATCH_VOICE_CHAT",
-            patch: { activeAssistantContentId: contentId },
-          });
-        }
-
-        if (shouldAttachVoiceContent) {
-          const spokenText = stripSpecialBlocksFromText(text || "");
-          dispatch({
-            type: "PATCH_VOICE_CHAT",
-            patch: {
-              activeAssistantContentId: contentId,
-              partialAssistantText: spokenText,
-            },
-          });
-          if (spokenText) {
-            void getVoiceRuntime()
-              ?.syncVoiceChatSession(contentId, spokenText, {
-                voice: state.voiceChat.selectedVoice,
-                speechRate: state.voiceChat.speechRate,
-              })
-              .then((result) => {
-                if (!result.appended) return;
-                dispatch({
-                  type: "PATCH_VOICE_CHAT",
-                  patch: {
-                    status: "speaking",
-                    error: "",
-                    activeTtsTaskId:
-                      result.taskId || state.voiceChat.activeTtsTaskId,
-                    ttsCommitted: false,
-                  },
-                });
-              })
-              .catch((error) => {
-                dispatch({
-                  type: "PATCH_VOICE_CHAT",
-                  patch: {
-                    status: "error",
-                    error: (error as Error).message,
-                    sessionActive: false,
-                  },
-                });
-              });
-          }
-        } else if (voiceEnabled) {
-          getVoiceRuntime()?.processTtsVoiceBlocks(
-            contentId,
-            text,
-            voiceStatus,
-            "live",
-          );
-        }
-
-        if (voiceStatus === "completed" && event.status !== "failed") {
+        if (contentStatus === "completed" && event.status !== "failed") {
           upsertLiveChatSummary({
             event,
             cache,

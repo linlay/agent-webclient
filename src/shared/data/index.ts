@@ -72,7 +72,7 @@ export {
   extractUploadReferences,
 } from "@/shared/data/api/requests/uploads";
 
-export { getVoiceCapabilitiesFlexible, getVoiceVoicesFlexible } from "@/shared/data/api/requests/voice";
+export { getVoiceCapabilities } from "@/shared/data/api/requests/voice";
 export {
   normalizeChatSummariesPayload,
 } from "@/shared/data/api/requests/chats";

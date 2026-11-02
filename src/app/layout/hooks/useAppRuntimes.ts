@@ -7,7 +7,6 @@ import { useConversationEventHandler } from "@/features/conversation/hooks/useCo
 import { useMessageActions } from "@/features/composer/hooks/useMessageActions";
 import { useConversationWsRuntime } from "@/features/conversation/hooks/useConversationWsRuntime";
 import { useVoiceChatRuntime } from "@/features/voice/hooks/useVoiceChatRuntime";
-import { useVoiceRuntime } from "@/features/voice/hooks/useVoiceRuntime";
 import { useWorkerData } from "@/features/workers/hooks/useWorkerData";
 import { useWorkerConversationSelection } from "@/features/workers/hooks/useWorkerConversationSelection";
 
@@ -34,8 +33,7 @@ export function useAppRuntimes(
   });
   useChatReadSync();
   useMessageActions({ onAgentEvent: handleEvent });
-  useVoiceRuntime();
-  useVoiceChatRuntime({ onAgentEvent: handleEvent });
+  useVoiceChatRuntime();
   return {
     ...workerData,
     loadChat: conversationActions.loadChat,

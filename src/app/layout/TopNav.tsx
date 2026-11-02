@@ -192,7 +192,7 @@ export const TopNav: React.FC<{ surface?: "root" | "agent" }> = ({
   const desktopHeaderLayout = useDesktopHeaderLayout(desktopMode && surface === "agent");
   const showTerminalButton = !desktopMode && workerShowsTerminal(currentWorker);
   const terminalAgentStatuses = useTerminalAgentStatuses(showTerminalButton);
-  const voiceEnabled = isVoiceEnabled();
+  const voiceEnabled = isVoiceEnabled() && state.voiceChat.capabilities?.enabled === true;
   const voiceModeAvailable = voiceEnabled && currentWorker?.type === "agent";
   const showMuteControl = voiceEnabled && (voiceModeAvailable || ui.audioMuted);
   const debugPanelEnabled = isDebugPanelEnabled();
@@ -215,10 +215,10 @@ export const TopNav: React.FC<{ surface?: "root" | "agent" }> = ({
     : "Control+Shift+Space";
   const voiceToggleDisabled =
     !voiceModeAvailable ||
-    isMainChatRunning ||
-    Boolean(state.activeFrontendTool);
+    (state.inputMode !== "voice" && (isMainChatRunning || Boolean(state.activeFrontendTool)));
   const handleToggleVoiceMode = () => {
     if (voiceToggleDisabled) return;
+    if (state.inputMode !== "voice") window.dispatchEvent(new CustomEvent("agent:voice-start"));
     dispatch({
       type: "SET_INPUT_MODE",
       mode: state.inputMode === "voice" ? "text" : "voice",
@@ -234,6 +234,7 @@ export const TopNav: React.FC<{ surface?: "root" | "agent" }> = ({
 
   const handleStartVoiceMode = React.useCallback(() => {
     if (voiceToggleDisabled || conversation.inputMode === "voice") return;
+    window.dispatchEvent(new CustomEvent("agent:voice-start"));
     dispatch({
       type: "SET_INPUT_MODE",
       mode: "voice",

@@ -116,11 +116,6 @@ function cloneTimelineNode(node: TimelineNode): TimelineNode {
           Object.entries(node.embeddedViewports).map(([key, value]) => [key, { ...value }]),
         )
       : undefined,
-    ttsVoiceBlocks: node.ttsVoiceBlocks
-      ? Object.fromEntries(
-          Object.entries(node.ttsVoiceBlocks).map(([key, value]) => [key, { ...value }]),
-        )
-      : undefined,
     result: node.result ? { ...node.result } : node.result,
     toolWait: node.toolWait ? {...node.toolWait,conditions:node.toolWait.conditions.map(c=>({...c,condition:{...c.condition}}))} : undefined,
     toolOutput: node.toolOutput

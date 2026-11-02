@@ -326,6 +326,10 @@ export function useComposerSend(input: UseComposerSendInput) {
   }, [clearComposerAttachments, resolveCurrentOwner, state, stateRef]);
 
   const interruptCurrentRun = useCallback(async () => {
+    if (stateRef.current.inputMode === "voice") {
+      window.dispatchEvent(new CustomEvent("agent:voice-abort"));
+      return;
+    }
     const chatId = String(state.chatId || "").trim();
     const runId = resolveCurrentRunId();
     const requestId = createRequestId("req");
@@ -352,13 +356,6 @@ export function useComposerSend(input: UseComposerSendInput) {
         line: `[interrupt] requested for chatId=${chatId}, runId=${runId}, requestId=${requestId}`,
       });
 
-      // 停止语音，但不立即 abort 流 — 等待后端推送 run.cancel 事件
-      window.dispatchEvent(
-        new CustomEvent("agent:voice-stop-all", {
-          detail: { reason: "interrupt", mode: "stop" },
-        }),
-      );
-
       // 安全超时：如果 5 秒内未收到 run.cancel，强制 abort 流
       interruptSafetyTimerRef.current = setTimeout(() => {
         const ac = stateRef.current.abortController;
@@ -378,11 +375,6 @@ export function useComposerSend(input: UseComposerSendInput) {
       });
       // 中断请求失败时立即 abort 流作为回退
       state.abortController?.abort();
-      window.dispatchEvent(
-        new CustomEvent("agent:voice-stop-all", {
-          detail: { reason: "interrupt", mode: "stop" },
-        }),
-      );
       dispatch({ type: "SET_STREAMING", streaming: false });
       dispatch({ type: "SET_ABORT_CONTROLLER", controller: null });
     }

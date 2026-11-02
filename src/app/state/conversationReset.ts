@@ -2,7 +2,7 @@ import type { AppState } from "@/app/state/types";
 
 export function buildConversationResetState(
 	state: AppState,
-	options: { preserveWorkerContext?: boolean } = {},
+	options: { preserveWorkerContext?: boolean; preserveVoiceSession?: boolean } = {},
 ): AppState {
 	const preserveWorkerContext = Boolean(options.preserveWorkerContext);
 	const stableRightSidebarTab =
@@ -75,19 +75,15 @@ export function buildConversationResetState(
 		documentPreviewTabs: [],
 		activeDocumentPreviewKey: "",
 		activeViewerKey: "",
-		inputMode: "text",
-		voiceChat: {
+		inputMode: options.preserveVoiceSession ? state.inputMode : "text",
+		voiceChat: options.preserveVoiceSession ? state.voiceChat : {
 			...state.voiceChat,
 			status: "idle",
 			sessionActive: false,
 			partialUserText: "",
 			partialAssistantText: "",
-			activeAssistantContentId: "",
-			activeRequestId: "",
-			activeTtsTaskId: "",
-			ttsCommitted: false,
 			error: "",
-			wsStatus: "idle",
+			awaiting: false,
 			currentAgentKey: "",
 			currentAgentName: "",
 		},

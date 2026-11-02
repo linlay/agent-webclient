@@ -4,7 +4,9 @@
 
 WebClient 业务层只依赖 `RealtimeTransport`，门面固定提供 `runs`、`push`、`inbound`、`terminal` 四项窄能力。Standalone adapter 与数据请求 transport 复用唯一 `wsClientSingleton`；agents、agent、chats、chat、archive 等普通 Data API 按 endpoint 的 `wsBackends` 能力表选择主 WebSocket 或 HTTP。Platform 与 Gateway 已暴露的 WS route 严格走 request/response frame，连接失败、断开和超时都不回退 HTTP。
 
-主 Run query、BTW、attach 和控制由 `RunTransport` 统一承接。 Standalone 的 BTW 启动在发送前明确选择平台公开 `POST /api/query` SSE 入口（body 固定 `lane:"btw"`），并适配到同一 RunExecution 身份、完成与取消观察逻辑；它不是 WS 失败后的重试，不新增物理 WebSocket。BTW 的后续 attach、detach 与 interrupt 继续使用既有 WS。Desktop 的 BTW 始终走宿主 Frame Port 与专用 BTW lane，不走浏览器 HTTP。Voice query 进入同一 Run 门面，浏览器 ASR/TTS 的 Voice WebSocket 保持独立。Admin/Registries、Automation、Project、上传下载、resource Blob 与语音 HTTP 使用各自的专用 HTTP 路径。
+主 Run query、BTW、attach 和控制由 `RunTransport` 统一承接。 Standalone 的 BTW 启动在发送前明确选择平台公开 `POST /api/query` SSE 入口（body 固定 `lane:"btw"`），并适配到同一 RunExecution 身份、完成与取消观察逻辑；它不是 WS 失败后的重试，不新增物理 WebSocket。BTW 的后续 attach、detach 与 interrupt 继续使用既有 WS。Desktop 的 BTW 始终走宿主 Frame Port 与专用 BTW lane，不走浏览器 HTTP。语音 Query 由 Platform 发起；浏览器仅通过独立媒体 WS 采集/播放，真实 Run 通过同一 RunTransport attach 观察。Admin/Registries、Automation、Project、上传下载、resource Blob 与语音 HTTP 使用各自的专用 HTTP 路径。
+
+全局 Run 终态 Push 可先于已受理 attach 的回放到达；它更新运行事实，但不能截断仍在接收的 attach。该观察者由自己的 stream completion 释放，避免快 Run 的正文在时间线丢失，不新增结果查询或补发 Query。
 
 Desktop 的“详细解释”在 macOS 和 Windows 上都使用独立的 `selection-explain` WebSocket lane，普通 WorkPanel BTW 保持原 lane。主 Chat 发起首次解释前就声明 `transportPurpose=selection-explain`，解释窗口的 attach、续问、interrupt 和执行对象内建 detach 沿用相同 purpose；不能先在普通 BTW lane 启动，再跨 lane 接管。Desktop adapter 只在 Frame Port payload 中附带 `_desktopTransportPurpose`；宿主根据可信 Surface 校验并移除此元数据后路由，不把它作为 Platform BTW 业务参数转发。关闭解释观察者不取消主 Chat 或 WorkPanel BTW，也不自动 interrupt 后台 Run。
 

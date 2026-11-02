@@ -621,7 +621,6 @@ const AgentChatShellContent: React.FC = () => {
     if (
       !agentKey ||
       chatId ||
-      !routeNewChatTimestamp ||
       typeof window === "undefined" ||
       typeof window.addEventListener !== "function"
     ) {

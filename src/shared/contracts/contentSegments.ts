@@ -1,5 +1,5 @@
 export interface ContentSegment {
-  kind: "text" | "view" | "ttsVoice";
+  kind: "text" | "view";
   text?: string;
   signature?: string;
   /** VIEW: `<connectorId>/<viewKey>` when the fence header is valid. */
@@ -11,7 +11,6 @@ export interface ContentSegment {
   /** VIEW: local grammar check; the platform binding remains authoritative. */
   error?: "invalid_view" | "view_data_invalid";
   closed?: boolean;
-  startOffset?: number;
 }
 
 /** Platform binding of one Markdown VIEW block (content.view / content.snapshot.views). */

@@ -47,8 +47,8 @@ export type ConversationReplaySnapshot = Pick<AppState,
 
 export type AppCoordinationAction =
   | { type: "CLEAR_CONVERSATION_OVERVIEW" }
-  | { type: "RESET_CONVERSATION" }
-  | { type: "RESET_ACTIVE_CONVERSATION" }
+  | { type: "RESET_CONVERSATION"; preserveVoiceSession?: boolean }
+  | { type: "RESET_ACTIVE_CONVERSATION"; preserveVoiceSession?: boolean }
   | { type: "CLEAR_GATEWAY_IDENTITY_STATE" }
   | { type: "APPLY_CONVERSATION_REPLAY"; snapshot: ConversationReplaySnapshot };
 
