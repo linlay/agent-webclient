@@ -35,7 +35,7 @@ Native `wait` 使用 `tool.wait/tool.wait.update` 投影同 Run 等待，时间�
 - `src/features/transport/lib/platformRunTransport.ts` 与 `src/features/transport/lib/platformFrameClient.ts` 统一传输 Run stream 和控制请求，`src/features/events/lib/eventProcessor.ts` 将协议事件投影为命令
 - `src/features/conversation/hooks/useConversationEventHandler.ts` 统一消费 SSE、WebSocket、Composer 与 Voice 事件源，并将命令归并为当前对话运行态
 - `src/features/timeline/components/*`、`src/app/layout/*`、`src/features/plan/components/PlanPanel.tsx`、`src/features/tools/components/FrontendToolContainer.tsx` 根据状态树渲染
-- `src/features/voice/lib/voiceRuntime.ts`、`src/features/voice/hooks/useVoiceChatRuntime.ts` 与 `/api/voice/ws` 负责 TTS / 语音聊天链路
+- `src/features/voice/lib/voiceSession.ts`、`src/features/voice/hooks/useVoiceChatRuntime.ts` 与 `/api/voice/ws` 负责媒体采集/播放和 v1 控制；Query/TTS 编排在 Platform
 
 ## 4. 目录结构
 - `public/`：HTML 模板等静态入口资源
@@ -111,16 +111,16 @@ Native `wait` 使用 `tool.wait/tool.wait.update` 投影同 Run 等待，时间�
 ## 7. 开发要点
 - 环境变量以根目录 [`.env.example`](./.env.example) 为契约来源，本地开发使用 `.env`，Program Bundle 运行参数由 Desktop 宿主注入。
 - 仓库统一使用 `npm`；根目录提交 `package-lock.json`，不使用 `pnpm` / `yarn` 锁文件。
-- 本地开发代理依赖 `webpack.config.js` 中的 `devServer.proxy`，普通 API 与主 `/ws` 代理目标由 `BASE_URL` 控制；设置 `VOICE_BASE_URL` 时语音 WebSocket 与语音相关 HTTP 代理到该上游，未设置时语音功能关闭。
+- 本地开发代理依赖 `webpack.config.js` 中的 `devServer.proxy`，普通 API 与主 `/ws` 代理目标由 `BASE_URL` 控制，语音 HTTP 与精确 `/api/voice/ws` 同样使用 `BASE_URL`；入口须部署 `VOICE_ENABLED=true` 和 capabilities.enabled。
 - Desktop Program Bundle 只交付 `frontend/dist` 和 manifest；静态资源、SPA fallback、`/api/*`、`/api/voice/*` 与 `/ws` 代理由 Desktop main process 托管。
 - Desktop main process 负责 Program Bundle 的静态托管和代理；WebClient 仓库不维护第二套生产发布链。
-- 语音能力依赖浏览器 `SpeechRecognition` / `webkitSpeechRecognition`、音频采集能力与后端 WebSocket 能力，浏览器兼容性需单独验证。
+- 实时语音依赖浏览器 AudioContext、getUserMedia 与 Platform v1 PCM；文字输入的浏览器 SpeechRecognition 仍是独立听写消费者。浏览器兼容性需单独验证。
 - `src/app/index.tsx` 只引入 `src/shared/styles/globals.css` 作为真正的全局样式入口；领域组件自行引入 `*.module.css`，Ant Design portal 通过局部 `:global(...)` 兼容，不得把领域选择器放回 shared globals。
 
 ## 8. 开发流程
 本地开发流程：
 1. `cp .env.example .env`
-2. 在 `.env` 中设置可访问的 `BASE_URL`，按需设置 `VOICE_BASE_URL`
+2. 在 `.env` 中设置可访问的 `BASE_URL`，目标部署验收通过后才设置 `VOICE_ENABLED=true`
 3. `make install`
 4. `make dev`
 5. `make test`
@@ -232,7 +232,7 @@ TEAM 与普通 Agent 共用 agentKey 身份、目录、管理和运行控制。�
 
 Agent 管理表单支持 `interactionConfig.showPlanningMode/showEditingMode/showTerminal` 三个入口开关，只保存显式覆盖（包括 false）；未配置字段与恢复默认值仍交由 Platform 解析。
 
-当前语音统一开关 isVoiceEnabled() 固定关闭；宿主 VOICE_ENABLED 不改变入口，useVoiceRuntime 跳过初始化和事件监听。保留语音实现，测试通过显式输入或模块注入验证启用路径。
+实时语音已切换 Platform v1，浏览器不发 Query/TTS 编排。默认部署开关关闭；隔离测试和 Chrome 合成音频验证通过，真人/供应商/设备验收未完成，不宣称整阶段交付。旧协议、调试面板及 tts-voice 专属消费已同批删除，历史块按普通代码显示。
 
 过程展示只使用 summary/full（不兼容旧 none）；summary 的进度只保留模型公示及清除，隐藏自动思考、工具等一句话进度，full 展示完整过程。Agent 编辑页提供继承模式配置、详细、精简，详细与精简各带内容说明。默认值由 Platform 解析的 interactionConfig.defaultDetail 决定（agent.yml 覆盖 agent-settings.yml mode 配置，兜底 summary）；WebClient 普通 query/attach/chat 不发送 detail，不读取旧全局 detail 偏好。历史 /api/chat.display 与下发 run.start.display 区分 defaultDetail/effectiveDetail，页面按 effectiveDetail 展示；Agent 管理表单只保存显式覆盖，删除 defaultDetail 恢复继承。详见界面基础专题。
 

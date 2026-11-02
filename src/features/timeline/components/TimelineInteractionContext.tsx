@@ -24,11 +24,9 @@ export interface TimelineInteractionValue {
     teamChat?: boolean;
   };
   setExpanded?: (nodeId: string, expanded: boolean) => void;
-  setVoiceBlockExpanded?: (nodeId: string, signature: string, expanded: boolean, text: string, closed: boolean) => void;
   capturedAt?: number;
   openSource?: (source: TimelineSource, node?: TimelineNode) => void;
   openTarget?: (target: OpenTargetIntent) => void;
-  replayVoice?: (node: TimelineNode, signature: string, text: string) => void;
   renderToolView?: (view: NonNullable<TimelineNode["view"]>, chatId: string, error: string | undefined, payloadRaw: string, node?: { id: string; runId?: string }) => React.ReactNode;
   renderToolOutput?: (output: NonNullable<TimelineNode["toolOutput"]>) => React.ReactNode;
   /** Renders a Markdown VIEW block after the platform bound it to a snapshot. */

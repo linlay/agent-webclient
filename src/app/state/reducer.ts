@@ -12,10 +12,11 @@ export type { AppAction } from "@/app/state/actions";
 function reduceAppState(state: AppState, action: AppAction): AppState {
 	switch (action.type) {
 		case "RESET_CONVERSATION":
-			return buildConversationResetState(state);
+			return buildConversationResetState(state, { preserveVoiceSession: action.preserveVoiceSession });
 		case "RESET_ACTIVE_CONVERSATION":
 			return buildConversationResetState(state, {
 				preserveWorkerContext: true,
+				preserveVoiceSession: action.preserveVoiceSession,
 			});
 		case "CLEAR_GATEWAY_IDENTITY_STATE":
 			return { ...state, composerReferences: [], agents: [],  chats: [], chatPinnedOrder: null, chatPinningPending: false, automations: [] };

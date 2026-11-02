@@ -28,9 +28,8 @@ describe("data API public and routed entry points", () => {
     expect(publicData.saveMemoryFile).toBe(memoryRequests.saveMemoryFile);
   });
 
-  it("exposes the flexible voice requests without changing their implementation", () => {
-    expect(publicData.getVoiceCapabilitiesFlexible).toBe(voiceRequests.getVoiceCapabilitiesFlexible);
-    expect(publicData.getVoiceVoicesFlexible).toBe(voiceRequests.getVoiceVoicesFlexible);
+  it("exposes the voice capabilities request without changing their implementation", () => {
+    expect(publicData.getVoiceCapabilities).toBe(voiceRequests.getVoiceCapabilities);
   });
 
   it("shares auth state and the error constructor across raw and public paths", () => {

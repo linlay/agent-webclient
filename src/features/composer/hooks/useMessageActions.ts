@@ -25,7 +25,6 @@ import {
 import { normalizeQueryReasoningEffort } from "@/shared/data/api/reasoningEffort";
 import { parseLeadingAgentMention } from "@/features/composer/lib/mentionParser";
 import { resolveMentionCandidatesFromState } from "@/features/composer/lib/mentionCandidates";
-import { getVoiceRuntime } from "@/features/voice/lib/voiceRuntime";
 import { useRunTransport } from "@/features/transport/hooks/useRealtimeTransport";
 import {
   dispatchDetachRunEvent,
@@ -518,7 +517,6 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
         reason: "local-send",
       });
 
-      getVoiceRuntime()?.resetVoiceRuntime();
 
       /* Start streaming */
       const requestId = submissionRequestId || createRequestId("req");
@@ -888,7 +886,6 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
 
   const abortStream = useCallback(() => {
     stateRef.current.abortController?.abort();
-    getVoiceRuntime()?.stopAllVoiceSessions("user_stop", { mode: "stop" });
     dispatch({ type: "SET_STREAMING", streaming: false });
     dispatch({ type: "SET_ABORT_CONTROLLER", controller: null });
   }, [dispatch, stateRef]);

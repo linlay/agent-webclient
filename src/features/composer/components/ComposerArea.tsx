@@ -174,7 +174,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
   }, [dispatch, inputValue, state.composerDraft]);
 
   const isFrontendActive = !!state.activeFrontendTool;
-  const voiceEnabled = isVoiceEnabled();
+  const voiceEnabled = isVoiceEnabled() && state.voiceChat.capabilities?.enabled === true;
   const isVoiceMode = voiceEnabled && state.inputMode === "voice";
   const currentWorker = useMemo(
     () => resolveCurrentWorkerSummary(state),
@@ -629,9 +629,10 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
   );
 
   const toggleVoiceMode = useCallback(() => {
-    if (!voiceModeAvailable || isMainChatRunning || isFrontendActive) {
+    if (!voiceModeAvailable || (!isVoiceMode && (isMainChatRunning || isFrontendActive))) {
       return;
     }
+    if (!isVoiceMode) window.dispatchEvent(new CustomEvent("agent:voice-start"));
     dispatch({
       type: "SET_INPUT_MODE",
       mode: isVoiceMode ? "text" : "voice",

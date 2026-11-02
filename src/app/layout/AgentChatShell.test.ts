@@ -875,14 +875,14 @@ describe("AgentChatShell", () => {
     }
   });
 
-  it("replaces an explicit new chat route only after a stable chat id is reported", () => {
+  it.each(["newChat=1783680000000&lang=en", "lang=en"])("promotes a blank Agent route after a stable chat id (%s)", (search) => {
     const useEffectSpy = jest
       .spyOn(React, "useEffect")
       .mockImplementation((effect: React.EffectCallback) => {
         effect();
       });
     useSearchParams.mockReturnValue([
-      new URLSearchParams("newChat=1783680000000&lang=en"),
+      new URLSearchParams(search),
     ]);
     useAppState.mockReturnValue({
       ...createInitialState(),

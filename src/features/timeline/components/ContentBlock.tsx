@@ -14,9 +14,6 @@ import type {
 } from "@/features/viewers/components/MarkdownContent";
 import { ConversationMarkdown } from "@/shared/ui/ConversationMarkdown";
 import { ConversationMarkdownCode } from "@/shared/ui/markdown-code/ConversationMarkdownCode";
-import { isVoiceEnabled } from "@/shared/config/featureFlags";
-import { MaterialIcon } from "@/shared/ui/MaterialIcon";
-import { UiButton } from "@/shared/ui/UiButton";
 import { useI18n } from "@/shared/i18n";
 import { useTimelineInteraction, useTimelineContextMenuTarget } from "./TimelineInteractionContext";
 import { useTimelineCopy } from "./TimelineInteractionContext";
@@ -35,23 +32,6 @@ const TIMELINE_TEXT_CLASS_NAME =
 const TIMELINE_MARKDOWN_CLASS_NAME = presentationClasses("timeline-markdown tw:whitespace-normal");
 const TIMELINE_CONTENT_MARKDOWN_CLASS_NAME =
 	"tw:text-[15px] tw:leading-[1.72]";
-const TTS_VOICE_SECTION_CLASS_NAME = "tw:my-2";
-const TTS_VOICE_TOOLBAR_CLASS_NAME = "tw:flex tw:items-center tw:gap-2";
-const TTS_VOICE_PILL_CLASS_NAME =
-	"tw:!flex tw:!w-auto tw:!cursor-pointer tw:!items-center tw:!justify-between tw:!gap-2 tw:!rounded-xl tw:!border tw:!border-[color-mix(in_srgb,var(--accent-electric)_24%,var(--line-soft))] tw:!bg-[color-mix(in_srgb,var(--bg-elev-2)_94%,var(--bg-input))] tw:!px-2.5 tw:!py-2";
-const TTS_VOICE_REPLAY_CLASS_NAME = "tw:flex-none";
-const TTS_VOICE_LABEL_CLASS_NAME =
-	"tw:text-xs tw:uppercase tw:text-accent-electric-strong";
-const TTS_VOICE_STATUS_CLASS_NAME = "tw:ml-auto tw:text-xs tw:text-ink-2";
-const TTS_VOICE_CHEVRON_CLASS_NAME =
-	"tw:inline-flex tw:text-ink-muted tw:transition-transform tw:duration-200 tw:ease-in-out";
-const TTS_VOICE_CHEVRON_OPEN_CLASS_NAME = "tw:rotate-90";
-const TTS_VOICE_DETAIL_CLASS_NAME =
-	"tw:max-h-0 tw:overflow-hidden tw:transition-[max-height] tw:duration-200 tw:ease-in-out";
-const TTS_VOICE_DETAIL_OPEN_CLASS_NAME = "tw:mt-2 tw:max-h-[260px]";
-const TTS_VOICE_TEXT_CLASS_NAME =
-	"tw:whitespace-pre-wrap tw:break-words tw:rounded-[10px] tw:bg-[color-mix(in_srgb,var(--bg-input)_86%,var(--bg-elev-2))] tw:px-3 tw:py-2.5 tw:text-[13px] tw:leading-[1.5]";
-
 export const ContentBlock: React.FC<ContentBlockProps> = ({ node }) => {
 	const { t } = useI18n();
   const copyText = useTimelineCopy();
@@ -60,7 +40,6 @@ export const ContentBlock: React.FC<ContentBlockProps> = ({ node }) => {
 	// stable operation so Markdown anchors keep their DOM through the click.
 	const openTarget = interaction?.openTarget;
 	const surfaceContext = interaction?.surfaceContext;
-	const voiceEnabled = isVoiceEnabled();
 	const text = node.text || "";
 	const streamingSafeText = stripPendingSpecialFenceTail(text);
 	const contextTarget = React.useMemo(() => ({
@@ -190,85 +169,6 @@ export const ContentBlock: React.FC<ContentBlockProps> = ({ node }) => {
 					);
 				}
 
-				if (segment.kind === "ttsVoice") {
-					if (interaction?.readOnly) {
-						return (
-							<div key={segment.signature || idx} className={markdownClassName}>
-								{renderMarkdown({ content: segment.text || "", chatId, teamChat })}
-							</div>
-						);
-					}
-					if (!voiceEnabled) {
-						return null;
-					}
-					const signature = segment.signature || "";
-					const voiceBlock = node.ttsVoiceBlocks?.[signature];
-					const expanded = Boolean(voiceBlock?.expanded);
-					const status = String(voiceBlock?.status || "ready");
-					const statusText = voiceBlock?.error
-						? `error: ${voiceBlock.error}`
-						: status;
-					const blockText = String(
-						voiceBlock?.text || segment.text || "",
-					).trim();
-
-					return (
-						<section
-							key={signature || idx}
-							className={TTS_VOICE_SECTION_CLASS_NAME}
-						>
-							<div className={TTS_VOICE_TOOLBAR_CLASS_NAME}>
-								<UiButton
-									className={TTS_VOICE_PILL_CLASS_NAME}
-									variant="secondary"
-									size="sm"
-									data-voice-status={status}
-									aria-expanded={expanded}
-									onClick={() => {
-										interaction?.setVoiceBlockExpanded?.(
-											node.id, signature, !expanded,
-											String(segment.text || ""), Boolean(segment.closed),
-										);
-									}}
-								>
-									<span className={TTS_VOICE_LABEL_CLASS_NAME}>
-										{t("contentBlock.ttsVoice")}
-									</span>
-									<span className={TTS_VOICE_STATUS_CLASS_NAME}>
-										{statusText}
-									</span>
-									<MaterialIcon
-										name="chevron_right"
-										className={`${TTS_VOICE_CHEVRON_CLASS_NAME} ${expanded ? TTS_VOICE_CHEVRON_OPEN_CLASS_NAME : ""}`}
-									/>
-								</UiButton>
-								<UiButton
-									className={TTS_VOICE_REPLAY_CLASS_NAME}
-									variant="ghost"
-									size="sm"
-									iconOnly
-									title={t("contentBlock.replayVoice")}
-									aria-label={t("contentBlock.replayVoice")}
-									onClick={() => {
-										interaction?.replayVoice?.(
-											node, signature,
-											voiceBlock?.text || segment.text || "",
-										);
-									}}
-								>
-									<MaterialIcon name="volume_up" />
-								</UiButton>
-							</div>
-							<div
-								className={`${TTS_VOICE_DETAIL_CLASS_NAME} ${expanded ? TTS_VOICE_DETAIL_OPEN_CLASS_NAME : ""}`}
-							>
-								<div className={TTS_VOICE_TEXT_CLASS_NAME}>
-									{blockText || "(empty)"}
-								</div>
-							</div>
-						</section>
-					);
-				}
 
 				return null;
 			})}

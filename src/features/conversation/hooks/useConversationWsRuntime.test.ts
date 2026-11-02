@@ -165,39 +165,13 @@ function createState(overrides: Partial<AppState> = {}): AppState {
 		wsErrorMessage: "",
 		accessToken: "",
 		audioMuted: false,
-		ttsDebugStatus: "idle",
 		planningMode: false,
 		inputMode: "text",
 		voiceChat: {
-			status: "idle",
-			sessionActive: false,
-			partialUserText: "",
-			partialAssistantText: "",
-			activeAssistantContentId: "",
-			activeRequestId: "",
-			activeTtsTaskId: "",
-			ttsCommitted: false,
-			error: "",
-			wsStatus: "idle",
-			capabilities: null,
-			capabilitiesLoaded: false,
-			capabilitiesError: "",
-			voices: [],
-			voicesLoaded: false,
-			voicesError: "",
-			selectedVoice: "",
-			speechRate: 1.2,
-			clientGate: {
-				enabled: true,
-				rmsThreshold: 0.015,
-				openHoldMs: 120,
-				closeHoldMs: 480,
-            preRollMs: 240
-			},
-			clientGateCustomized: false,
-			currentAgentKey: "",
-        currentAgentName: ""
-		},
+      status: "idle", sessionActive: false, partialUserText: "", partialAssistantText: "", error: "",
+      capabilities: null, selectedVoice: "", mode: "auto", awaiting: false,
+      currentAgentKey: "", currentAgentName: "",
+    },
 		pendingSteers: {},
 		downvotedRunKeys: new Set(),
 		eventPopoverIndex: -1,
@@ -487,9 +461,6 @@ describe("createConversationPushHandler", () => {
 		expect(dispatch).toHaveBeenCalledWith({ type: "RESET_ACTIVE_CONVERSATION" });
 		expect(dispatchEvent).toHaveBeenCalledWith(
 			expect.objectContaining({ type: "agent:reset-event-cache" }),
-		);
-		expect(dispatchEvent).toHaveBeenCalledWith(
-			expect.objectContaining({ type: "agent:voice-reset" }),
 		);
 		expect(handleEvent).not.toHaveBeenCalled();
 	});
@@ -1066,9 +1037,10 @@ describe("registerAttachRunListener", () => {
 		const querySessionsRef = { current: new Map() };
 		const chatQuerySessionIndexRef = { current: new Map() };
 		const activeQuerySessionRequestIdRef = { current: "" };
+		const stateRef = { current: createState() };
 		const cleanup = registerAttachRunListener({
 			dispatch,
-			stateRef: { current: createState() },
+			stateRef,
 			handleEvent,
 			activeAttachRef,
 			querySessionsRef,
@@ -1079,6 +1051,7 @@ describe("registerAttachRunListener", () => {
 		});
 		return {
 			streams,
+			stateRef,
 			streamMock,
 			wsClient,
 			activeAttachRef,
@@ -1336,6 +1309,41 @@ describe("registerAttachRunListener", () => {
 		}));
 		await Promise.resolve();
 
+		cleanup();
+	});
+
+	it("keeps an accepted attach replay when the global terminal Push arrives first", async () => {
+		const fixture = setupAttachTest();
+		const { stateRef, streams, activeAttachRef, querySessionsRef, activeQuerySessionRequestIdRef, cleanup } = fixture;
+		stateRef.current = createState({ chatId: "chat_1" });
+		mockWindow.dispatchEvent(new MockCustomEvent("agent:attach-run", {
+			detail: { chatId: "chat_1", runId: "run_1", agentKey: "agent_alpha", lastSeq: 0 },
+		}));
+		await Promise.resolve();
+		const session = querySessionsRef.current.get(activeQuerySessionRequestIdRef.current)!;
+		expect(session.observationSource).toBe("attach");
+		const push = createConversationPushHandler({ dispatch, stateRef, querySessionsRef,
+			activeQuerySessionRequestIdRef, activeAttachRef, handleEvent });
+		push(withPushContractTime({ frame: "push", type: "run.finished", payload: {
+			chatId: "chat_1", runId: "run_1", agentKey: "agent_alpha",
+		} }) as WsPushFrame);
+		expect(streams[0].abort).not.toHaveBeenCalled();
+		expect(activeAttachRef.current?.runId).toBe("run_1");
+		expect(session.streaming).toBe(true);
+		expect(fixture.wsClient.request).not.toHaveBeenCalled();
+
+		const replay = [
+			{ type: "request.query", chatId: "chat_1", runId: "run_1", requestId: "query_1", message: "original question", timestamp: EPOCH_MS, seq: 1 },
+			{ type: "content.delta", chatId: "chat_1", runId: "run_1", contentId: "answer", text: "complete answer", seq: 2 },
+			{ type: "run.complete", chatId: "chat_1", runId: "run_1", seq: 3 },
+		];
+		for (const event of replay) streams[0].options.onEvent(event);
+		expect(handleEvent.mock.calls.map(([event]) => event)).toEqual(replay);
+		expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({ type: "SET_TIMELINE_NODE", node: expect.objectContaining({ text: "original question" }) }));
+		streams[0].options.onDone("done", 3);
+		await Promise.resolve();
+		expect(activeAttachRef.current).toBeNull();
+		expect(session.streaming).toBe(false);
 		cleanup();
 	});
 
@@ -1876,7 +1884,6 @@ describe("createConversationPushHandler continued", () => {
 				stateChatId: "chat_active",
 				stateRunId: "run_old",
 				stateStreaming: true,
-				activeRequestId: "req_old",
 				activeSessionRunId: "run_old",
     activeSessionStreaming: false
 			}),
@@ -1890,7 +1897,6 @@ describe("createConversationPushHandler continued", () => {
 				stateChatId: "chat_active",
 				stateRunId: "run_old",
 				stateStreaming: true,
-				activeRequestId: "req_old",
 				activeSessionRunId: "run_old",
     activeSessionStreaming: false
 			}),

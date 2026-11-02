@@ -1,120 +1,87 @@
-import type { TtsVoiceBlock } from "@/features/timeline/lib/timelineState";
+export class VoiceAudioPlayer {
+  private context: AudioContext | null = null;
+  private sources = new Set<AudioBufferSourceNode>();
+  private cursor = 0;
+  private sampleRate = 24000;
+  private ended = false;
+  private muted = false;
 
-export const DEFAULT_SAMPLE_RATE = 24000;
-export const DEFAULT_CHANNELS = 1;
+  constructor(private readonly drained: () => void) {}
 
-export interface VoiceAudioPlayerContext {
-	audioContext: AudioContext | null;
-	playbackCursor: number;
-	activeAudioTaskId: string;
-	activeSampleRate: number;
-	activeChannels: number;
-	muted: boolean;
-	debugTtsRequest: { taskId: string } | null;
-	appendDebug: (message: string) => void;
-	setDebugStatus: (status: string) => void;
-	setDebugStatusWithStats: (status: string) => void;
-	updateBlockByTaskId: (taskId: string, patch: Partial<TtsVoiceBlock>) => void;
-}
+  async prepare(): Promise<void> {
+    const context = new AudioContext();
+    this.context = context;
+    await context.resume();
+    if (context.state !== "running") throw new Error("Audio playback requires a user gesture");
+  }
 
-export function isArrayBufferView(value: unknown): value is ArrayBufferView {
-	return Boolean(value && typeof value === "object" && ArrayBuffer.isView(value as ArrayBufferView));
-}
+  start(sampleRate: number): void {
+    this.stop();
+    this.sampleRate = sampleRate;
+    this.ended = false;
+  }
 
-export function ensureAudioContext(context: VoiceAudioPlayerContext): AudioContext | null {
-	if (context.audioContext) return context.audioContext;
-	const Ctor = globalThis.window?.AudioContext
-		|| (globalThis.window as unknown as { webkitAudioContext?: typeof AudioContext })?.webkitAudioContext;
-	if (!Ctor) return null;
-	try {
-		context.audioContext = new Ctor();
-		context.playbackCursor = 0;
-		return context.audioContext;
-	} catch (error) {
-		context.appendDebug(`voice audio context create failed: ${(error as Error).message}`);
-		return null;
-	}
-}
+  setMuted(muted: boolean): void {
+    this.muted = muted;
+    if (muted) {
+      // Discard scheduled sound, but let the protocol's tts.stop close the task.
+      const ended = this.ended;
+      this.stop();
+      if (ended) this.drained();
+    }
+  }
 
-export async function prepareAudioPlayback(context: VoiceAudioPlayerContext): Promise<AudioContext> {
-	const audioContext = ensureAudioContext(context);
-	if (!audioContext) {
-		throw new Error("browser audio context unavailable");
-	}
-	if (audioContext.state === "suspended" && typeof audioContext.resume === "function") {
-		try {
-			await audioContext.resume();
-		} catch (error) {
-			throw new Error(`audio resume failed: ${(error as Error).message}`);
-		}
-	}
-	if (audioContext.state === "suspended") {
-		throw new Error("audio context is still suspended");
-	}
-	return audioContext;
-}
+  append(bytes: ArrayBuffer): void {
+    const context = this.context;
+    if (!context || context.state !== "running") throw new Error("Audio playback is suspended");
+    if (!bytes.byteLength || bytes.byteLength % 2 || bytes.byteLength > this.sampleRate * .04) throw new Error("Invalid PCM frame");
+    if (this.muted) return;
+    if (this.cursor - context.currentTime > 1) throw new Error("Audio playback buffer exceeded");
+    const view = new DataView(bytes);
+    const buffer = context.createBuffer(1, bytes.byteLength / 2, this.sampleRate);
+    const samples = buffer.getChannelData(0);
+    for (let i = 0; i < samples.length; i++) samples[i] = view.getInt16(i * 2, true) / 32768;
+    const source = context.createBufferSource();
+    source.buffer = buffer;
+    source.connect(context.destination);
+    this.sources.add(source);
+    source.onended = () => {
+      source.disconnect();
+      this.sources.delete(source);
+      this.checkDrained();
+    };
+    // 140ms initial local buffer; tts.stop still waits for actual source endings.
+    const startAt = Math.max(context.currentTime + (this.cursor ? .005 : .14), this.cursor);
+    this.cursor = startAt + buffer.duration;
+    source.start(startAt);
+  }
 
-export function resetPlayback(context: VoiceAudioPlayerContext): void {
-	context.playbackCursor = 0;
-	if (!context.audioContext) return;
-	try {
-		const closePromise = context.audioContext.close?.();
-		if (closePromise && typeof closePromise.catch === "function") closePromise.catch(() => undefined);
-	} catch {
-		/* no-op */
-	} finally {
-		context.audioContext = null;
-	}
-}
+  finish(): void {
+    this.ended = true;
+    this.checkDrained();
+  }
 
-export function playPcm(context: VoiceAudioPlayerContext, bufferLike: ArrayBuffer | ArrayBufferView): boolean {
-	if (context.muted) {
-		return false;
-	}
-	const audioContext = ensureAudioContext(context);
-	if (!audioContext) {
-		context.setDebugStatus("error: browser audio context unavailable");
-		return false;
-	}
-	if (audioContext.state === "suspended") {
-		context.setDebugStatus("error: audio context is suspended");
-		return false;
-	}
-	const bytes = isArrayBufferView(bufferLike)
-		? new Uint8Array(bufferLike.buffer, bufferLike.byteOffset, bufferLike.byteLength)
-		: new Uint8Array(bufferLike);
-	const sampleRate = Math.max(8000, Number(context.activeSampleRate) || DEFAULT_SAMPLE_RATE);
-	const channels = Math.max(1, Number(context.activeChannels) || DEFAULT_CHANNELS);
-	if (bytes.length < 2) return false;
+  private checkDrained(): void {
+    if (this.ended && !this.sources.size) {
+      this.ended = false;
+      this.drained();
+    }
+  }
 
-	const sampleCount = Math.floor(bytes.length / 2);
-	const frameCount = Math.floor(sampleCount / channels);
-	if (frameCount <= 0) return false;
+  stop(): void {
+    this.ended = false;
+    for (const source of this.sources) {
+      source.onended = null;
+      source.stop();
+      source.disconnect();
+    }
+    this.sources.clear();
+    this.cursor = 0;
+  }
 
-	const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
-	const audioBuffer = audioContext.createBuffer(channels, frameCount, sampleRate);
-	for (let channel = 0; channel < channels; channel += 1) {
-		const output = audioBuffer.getChannelData(channel);
-		for (let i = 0; i < frameCount; i += 1) {
-			const sampleIndex = (i * channels + channel) * 2;
-			const sample = view.getInt16(sampleIndex, true) / 32768;
-			output[i] = Math.max(-1, Math.min(1, sample));
-		}
-	}
-
-	const source = audioContext.createBufferSource();
-	source.buffer = audioBuffer;
-	source.connect(audioContext.destination);
-	const now = audioContext.currentTime + 0.01;
-	const startAt = Math.max(now, context.playbackCursor || 0);
-	source.start(startAt);
-	context.playbackCursor = startAt + audioBuffer.duration;
-
-	if (context.activeAudioTaskId) {
-		context.updateBlockByTaskId(context.activeAudioTaskId, { status: "playing", error: "" });
-	}
-	if (context.debugTtsRequest?.taskId === context.activeAudioTaskId) {
-		context.setDebugStatusWithStats("playing");
-	}
-	return true;
+  close(): void {
+    this.stop();
+    void this.context?.close().catch(() => undefined);
+    this.context = null;
+  }
 }

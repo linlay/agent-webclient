@@ -8,7 +8,6 @@ const ts = require('typescript');
 
 const port = Number(process.env.PORT || 11948);
 const apiTarget = String(process.env.BASE_URL || '').trim();
-const voiceTarget = String(process.env.VOICE_BASE_URL || '').trim();
 const allowedHostsEnv = String(process.env.DEV_SERVER_ALLOWED_HOSTS || 'all').trim();
 const allowedHosts = allowedHostsEnv === 'all'
   ? 'all'
@@ -28,11 +27,7 @@ const runtimeConfigEnvKeys = [
   'MEMORY_ENABLED',
   'CONVERSATION_EXPORT_ASSET_ORIGIN',
   'BRAND_ID',
-  'VOICE_ASR_CLIENT_GATE_ENABLED',
-  'VOICE_ASR_CLIENT_GATE_RMS_THRESHOLD',
-  'VOICE_ASR_CLIENT_GATE_OPEN_HOLD_MS',
-  'VOICE_ASR_CLIENT_GATE_CLOSE_HOLD_MS',
-  'VOICE_ASR_CLIENT_GATE_PRE_ROLL_MS',
+  'VOICE_ENABLED',
 ];
 
 function parseEnvFileContent(content) {
@@ -76,7 +71,6 @@ function resolveRuntimeConfig() {
     config[key] = String(env[key] == null ? '' : env[key]).trim();
     return config;
   }, {});
-  config.VOICE_ENABLED = String(Boolean(String(env.VOICE_BASE_URL || '').trim()));
   return config;
 }
 
@@ -123,22 +117,6 @@ module.exports = (env, argv) => {
   if (!isProd && !apiTarget) {
     throw new Error('BASE_URL is required for development. Copy .env.example to .env and set BASE_URL.');
   }
-  const voiceProxyRules = voiceTarget
-    ? [
-      {
-        context: ['/api/voice/ws'],
-        target: voiceTarget,
-        changeOrigin: true,
-        ws: true,
-      },
-      {
-        context: ['/api/voice'],
-        target: voiceTarget,
-        changeOrigin: true,
-        ws: false,
-      },
-    ]
-    : [];
   return {
     entry: './src/app/index.tsx',
     mode: isProd ? 'production' : 'development',
@@ -307,7 +285,19 @@ module.exports = (env, argv) => {
           changeOrigin: true,
           ws: true,
         },
-        ...voiceProxyRules,
+        {
+          context: ['/api/voice/ws'],
+          target: apiTarget,
+          changeOrigin: true,
+          ws: true,
+          onProxyReqWs(proxyReq, req) {
+            // Check the incoming browser origin before rewriting it for the upstream.
+            const origin = req.headers.origin;
+            if (origin === `http://${req.headers.host}` || origin === `https://${req.headers.host}`) {
+              proxyReq.setHeader('Origin', new URL(apiTarget).origin);
+            }
+          },
+        },
         {
           context: ['/api'],
           target: apiTarget,

@@ -14,6 +14,5 @@ Runtime notes:
   not include a backend entrypoint.
 - `deploy.sh` / `deploy.ps1` initializes `.env` from `.env.example`.
 - Desktop supplies host-managed values such as `PORT`, `DESKTOP_APP`,
-  and `BASE_URL` at start time. Optional `VOICE_BASE_URL` remains in `.env` and
-  points to the voice HTTP / WebSocket upstream; leave it empty to hide voice
-  features.
+  and `BASE_URL` at start time. Optional `VOICE_ENABLED=true` in `.env` enables the entry only when Platform
+  capabilities are ready. Voice HTTP and the exact media WebSocket use `BASE_URL`.

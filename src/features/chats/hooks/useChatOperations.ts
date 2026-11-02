@@ -38,7 +38,6 @@ export function useChatOperations(
     dispatch({ type: "SET_RUN_ID", runId: "" });
     dispatch({ type: "RESET_ACTIVE_CONVERSATION" });
     window.dispatchEvent(new CustomEvent("agent:reset-event-cache"));
-    window.dispatchEvent(new CustomEvent("agent:voice-reset"));
   };
 
   const archive = (chatId: string, onArchived?: (chatId: string) => void) =>
