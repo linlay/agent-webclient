@@ -4,6 +4,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { ApiError, cancelConnectorAuth, getConnectorAuthStatus, getConnectorConnection, prepareConnector, logoutConnectorAuth, startConnectorAuth } from "@/shared/data";
 import type { ApiResponse, ConnectorAuthSession, ConnectorSummary, ConnectorAuthMode } from "@/shared/data";
 import { useConnectorAuth } from "./useConnectorAuth";
+import { confirmCredentialState, credentialStateCheckRequired, requireCredentialStateCheck } from "../lib/connectorCredentials";
 
 jest.mock("@/shared/data", () => ({
   ApiError: jest.requireActual("@/shared/data/api/http").ApiError,
@@ -35,6 +36,8 @@ beforeEach(() => {
   (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
   jest.useFakeTimers();
   jest.resetAllMocks();
+  confirmCredentialState("demo");
+  confirmCredentialState("other");
   jest.mocked(getConnectorAuthStatus).mockResolvedValue(response("unauthorized"));
   jest.mocked(startConnectorAuth).mockResolvedValue(response("preparing"));
   jest.mocked(cancelConnectorAuth).mockResolvedValue({ code: 0, msg: "", data: { id: "demo", status: "canceled" } });
@@ -44,6 +47,8 @@ beforeEach(() => {
 });
 afterEach(async () => {
   if (mounted) await act(async () => root.unmount());
+  confirmCredentialState("demo");
+  confirmCredentialState("other");
   jest.useRealTimers();
 });
 
@@ -221,6 +226,159 @@ it("reads token status without starting interactive login or periodic probing", 
   expect(startConnectorAuth).not.toHaveBeenCalled();
   expect(current.status).toBe("configured");
   expect(jest.getTimerCount()).toBe(0);
+});
+
+it.each([
+  ["configured", false],
+  ["authorized", false],
+  ["pending_verification", true],
+  ["failed", false],
+  ["unauthorized", false],
+  ["configured", true],
+  ["authorized", true],
+  ["unauthorized", true],
+] as const)("clears token credentials in %s with pendingVerification=%s before reporting success", async (status, pendingVerification) => {
+  jest.mocked(getConnectorAuthStatus).mockResolvedValue(response(status, { pendingVerification }));
+  requireCredentialStateCheck("demo", "pending");
+  await mount({ mode: "token" });
+  onCredentialsChange.mockClear();
+  let cleared: boolean | undefined;
+  await act(async () => { cleared = await current.logout(); });
+  expect(cleared).toBe(true);
+  expect(logoutConnectorAuth).toHaveBeenCalledTimes(1);
+  expect(logoutConnectorAuth).toHaveBeenCalledWith("demo", expect.any(AbortSignal));
+  expect(current.status).toBe("unauthorized");
+  expect(current.session).toMatchObject({ connectorId: "demo", status: "unauthorized", sessionId: "", expiresAt: "" });
+  expect(current.session?.pendingVerification).toBeUndefined();
+  expect(credentialStateCheckRequired("demo")).toBeUndefined();
+  expect(onCredentialsChange).toHaveBeenCalledTimes(1);
+  expect(startConnectorAuth).not.toHaveBeenCalled();
+  expect(cancelConnectorAuth).not.toHaveBeenCalled();
+  expect(jest.getTimerCount()).toBe(0);
+});
+
+it("clears token credentials once and rejects a late poll that still reports the old account", async () => {
+  jest.mocked(getConnectorAuthStatus).mockResolvedValueOnce(response("configured"));
+  await mount({ mode: "token", observe: true });
+  requireCredentialStateCheck("demo", "unknown");
+  const poll = deferred<ApiResponse<ConnectorAuthSession>>();
+  const clear = deferred<Awaited<ReturnType<typeof logoutConnectorAuth>>>();
+  jest.mocked(getConnectorAuthStatus).mockReturnValueOnce(poll.promise);
+  jest.mocked(logoutConnectorAuth).mockReturnValueOnce(clear.promise);
+  await advance(30_000);
+  const pollSignal = jest.mocked(getConnectorAuthStatus).mock.calls[1][1];
+  let clearing!: Promise<boolean>;
+  let duplicate!: Promise<boolean>;
+  await act(async () => { clearing = current.logout(); duplicate = current.logout(); });
+  expect(await duplicate).toBe(false);
+  expect(logoutConnectorAuth).toHaveBeenCalledTimes(1);
+  expect(pollSignal?.aborted).toBe(true);
+  expect(current.operation).toBe("logout");
+  expect(credentialStateCheckRequired("demo")).toBe("unknown");
+  await act(async () => clear.resolve({ code: 0, msg: "", data: { id: "demo", status: "unauthorized" } }));
+  expect(await clearing).toBe(true);
+  await act(async () => poll.resolve(response("authorized", { pendingVerification: true })));
+  expect(current.status).toBe("unauthorized");
+  expect(current.session?.pendingVerification).toBeUndefined();
+  expect(current.operation).toBeNull();
+  expect(credentialStateCheckRequired("demo")).toBeUndefined();
+  expect(onCredentialsChange).toHaveBeenCalledTimes(1);
+});
+
+it.each(["unknown", "pending"] as const)("keeps the %s credential recheck marker when clearing fails and hides private diagnostics", async reason => {
+  jest.mocked(getConnectorAuthStatus).mockResolvedValue(response("configured", { pendingVerification: true }));
+  await mount({ mode: "token" });
+  requireCredentialStateCheck("demo", reason);
+  jest.mocked(logoutConnectorAuth).mockRejectedValueOnce(new ApiError("synthetic-private-credential must not be displayed", { status: 500 }));
+  let cleared: boolean | undefined;
+  await act(async () => { cleared = await current.logout(); });
+  expect(cleared).toBe(false);
+  expect(current.error?.message).toBe("connectors.credentials.clearFailed");
+  expect(current.error).not.toBeInstanceOf(ApiError);
+  expect(current.status).toBe("configured");
+  expect(current.session?.pendingVerification).toBe(true);
+  expect(credentialStateCheckRequired("demo")).toBe(reason);
+  expect(onCredentialsChange).not.toHaveBeenCalled();
+  expect(current.operation).toBeNull();
+});
+
+it("does not treat a mismatched clear response as permission to rebind token credentials", async () => {
+  jest.mocked(getConnectorAuthStatus).mockResolvedValue(response("pending_verification", { pendingVerification: true }));
+  await mount({ mode: "token" });
+  requireCredentialStateCheck("demo", "pending");
+  jest.mocked(logoutConnectorAuth).mockResolvedValueOnce({ code: 0, msg: "", data: { id: "other", status: "unauthorized" } });
+  let cleared: boolean | undefined;
+  await act(async () => { cleared = await current.logout(); });
+  expect(cleared).toBe(false);
+  expect(current.error?.message).toBe("connectors.credentials.clearFailed");
+  expect(current.status).toBe("pending_verification");
+  expect(credentialStateCheckRequired("demo")).toBe("pending");
+  expect(onCredentialsChange).not.toHaveBeenCalled();
+});
+
+it("returns false for token cleanup completed after leaving and preserves the unresolved recheck marker", async () => {
+  jest.mocked(getConnectorAuthStatus).mockResolvedValue(response("configured"));
+  await mount({ mode: "token" });
+  requireCredentialStateCheck("demo", "unknown");
+  const clear = deferred<Awaited<ReturnType<typeof logoutConnectorAuth>>>();
+  jest.mocked(logoutConnectorAuth).mockReturnValueOnce(clear.promise);
+  let clearing!: Promise<boolean>;
+  await act(async () => { clearing = current.logout(); });
+  const signal = jest.mocked(logoutConnectorAuth).mock.calls[0][1];
+  await act(async () => root.unmount());
+  mounted = false;
+  expect(signal?.aborted).toBe(true);
+  await act(async () => clear.resolve({ code: 0, msg: "", data: { id: "demo", status: "unauthorized" } }));
+  expect(await clearing).toBe(false);
+  expect(credentialStateCheckRequired("demo")).toBe("unknown");
+  expect(onCredentialsChange).not.toHaveBeenCalled();
+  expect(await current.logout()).toBe(false);
+  expect(logoutConnectorAuth).toHaveBeenCalledTimes(1);
+  expect(jest.getTimerCount()).toBe(0);
+});
+
+it("does not apply token cleanup or an old action to a newly selected connector", async () => {
+  jest.mocked(getConnectorAuthStatus).mockResolvedValueOnce(response("configured"));
+  await mount({ mode: "token" });
+  const oldLogout = current.logout;
+  requireCredentialStateCheck("demo", "pending");
+  const clear = deferred<Awaited<ReturnType<typeof logoutConnectorAuth>>>();
+  jest.mocked(logoutConnectorAuth).mockReturnValueOnce(clear.promise);
+  let clearing!: Promise<boolean>;
+  await act(async () => { clearing = current.logout(); });
+  const signal = jest.mocked(logoutConnectorAuth).mock.calls[0][1];
+  jest.mocked(getConnectorAuthStatus).mockResolvedValueOnce(response("configured", { connectorId: "other" }));
+  await mount({ id: "other", mode: "token" });
+  expect(signal?.aborted).toBe(true);
+  await act(async () => clear.resolve({ code: 0, msg: "", data: { id: "demo", status: "unauthorized" } }));
+  expect(await clearing).toBe(false);
+  expect(await oldLogout()).toBe(false);
+  expect(logoutConnectorAuth).toHaveBeenCalledTimes(1);
+  expect(current.session?.connectorId).toBe("other");
+  expect(current.status).toBe("configured");
+  expect(credentialStateCheckRequired("demo")).toBe("pending");
+  expect(onCredentialsChange).not.toHaveBeenCalled();
+});
+
+it.each(["configured", "authorized", "pending_verification"] as const)("cannot clear read-only token credentials in %s", async status => {
+  jest.mocked(getConnectorAuthStatus).mockResolvedValue(response(status));
+  await mount({ mode: "token", readOnly: true });
+  onCredentialsChange.mockClear();
+  requireCredentialStateCheck("demo", "pending");
+  let cleared: boolean | undefined;
+  await act(async () => { cleared = await current.logout(); });
+  expect(cleared).toBe(false);
+  expect(logoutConnectorAuth).not.toHaveBeenCalled();
+  expect(credentialStateCheckRequired("demo")).toBe("pending");
+  expect(onCredentialsChange).not.toHaveBeenCalled();
+});
+
+it.each(["self", "mcp"] as const)("still refuses logout for an unauthorized %s connector", async mode => {
+  await mount({ mode });
+  let cleared: boolean | undefined;
+  await act(async () => { cleared = await current.logout(); });
+  expect(cleared).toBe(false);
+  expect(logoutConnectorAuth).not.toHaveBeenCalled();
 });
 
 const preparationConnection = (status: "pending" | "preparing" | "ready" | "failed") => ({ code: 0, msg: "", data: {

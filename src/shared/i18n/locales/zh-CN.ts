@@ -618,7 +618,7 @@ export const zhCNMessages = {
   "connectors.auth.description.expired":
     "本次登录已超时，请重新登录以获取新的授权链接。",
   "connectors.auth.token":
-    "此连接器使用私有凭据配置。点击“配置连接凭据”填写，连接器源码仅保留字段声明。",
+    "此连接器使用私有凭据。重新绑定时会先清除旧凭据，再填写新的连接信息。",
   "connectors.auth.shared":
     "账号授权在当前部署中共享。离开此页不会取消登录或退出账号。",
   "connectors.auth.localCallback":
@@ -713,6 +713,10 @@ export const zhCNMessages = {
   "connectors.auth.status.pending_verification": "新配置待验证",
   "connectors.auth.description.pending_verification": "新凭据仍在验证，请重新检查状态。",
   "connectors.credentials.configure": "配置连接凭据",
+  "connectors.credentials.rebind": "重新绑定",
+  "connectors.credentials.clearConfirm": "将清除该连接器的旧凭据和待验证信息。使用此账号的智能体需重新绑定后才能继续访问；安装包和智能体挂载配置会保留。清除成功后将打开新的凭据表单。",
+  "connectors.credentials.clearAndContinue": "清除并继续",
+  "connectors.credentials.clearFailed": "未能确认旧凭据已清除，尚未开始重新绑定。请重新检查状态后重试。",
   "connectors.credentials.title": "连接 {name}",
   "connectors.credentials.hint": "填写此连接器声明的连接凭据。凭据单独存入 Platform，不会写入连接器源码或聊天。",
   "connectors.credentials.schemaInvalid": "此连接器缺少有效的凭据字段声明，请先完善连接器包中的 token-schema.json。不要将实际凭据写入 JSON 配置。",
