@@ -14,6 +14,7 @@ jest.mock("@/shared/data", () => ({
   getConnectorConnection: jest.fn(), connectConnector: jest.fn(),
 }));
 const item: ConnectorSummary = { id: "configured-cli", name: "Configured CLI", version: "1.0", type: "cli", authMode: "self", hasCli: true, hasMcp: false, hasBin: true, skills: [] };
+const tokenItem: ConnectorSummary = { ...item, authMode: "token", tokenSchema: { fields: [{ key: "API_KEY", label: "API Key", type: "password", required: true }] } };
 const onConfigure = jest.fn();
 const onCredentialsChange = jest.fn();
 const onStatusChange = jest.fn();
@@ -126,14 +127,90 @@ it("distinguishes MCP tool availability from OAuth login in English", async () =
   expect(button("Sign out")).toBeDefined();
 });
 
-it("opens a separate token credential form without routing secrets to definition editing", async () => {
-  await mount({ ...item, authMode: "token" });
-  expect(container.textContent).toContain("凭据配置");
-  await click("配置连接凭据");
+it("clears old token credentials before opening a separate form without editing definitions", async () => {
+  await mount(tokenItem);
+  await click("重新绑定");
+  expect(container.textContent).toContain("先清除旧凭据");
+  expect(logoutConnectorAuth).not.toHaveBeenCalled();
+  expect(document.querySelector('[role="dialog"]')).toBeNull();
+  await click("清除并继续");
+  expect(logoutConnectorAuth).toHaveBeenCalledTimes(1);
   expect(onConfigure).not.toHaveBeenCalled();
-  expect(document.querySelector('[role="dialog"]')?.textContent).toContain("token-schema.json");
+  expect(document.querySelector('[role="dialog"] input[aria-label="API Key"]')).not.toBeNull();
   expect(getConnectorAuthStatus).toHaveBeenCalledTimes(1);
   expect(button("登录")).toBeUndefined();
+});
+
+it("keeps existing credentials when the user cancels reconnection confirmation", async () => {
+  jest.mocked(getConnectorAuthStatus).mockResolvedValue(response("configured"));
+  await mount(tokenItem);
+  await click("重新绑定");
+  await click("取消");
+  expect(logoutConnectorAuth).not.toHaveBeenCalled();
+  expect(document.querySelector('[role="dialog"]')).toBeNull();
+  expect(button("重新绑定")).toBeDefined();
+});
+
+it("waits for one successful clear response before opening an empty form", async () => {
+  let finish!: (value: Awaited<ReturnType<typeof logoutConnectorAuth>>) => void;
+  jest.mocked(logoutConnectorAuth).mockReturnValue(new Promise(resolve => { finish = resolve; }));
+  await mount(tokenItem);
+  await click("重新绑定");
+  await click("清除并继续");
+  await click("清除并继续");
+  expect(logoutConnectorAuth).toHaveBeenCalledTimes(1);
+  expect(document.querySelector('[role="dialog"]')).toBeNull();
+  expect(button("清除并继续").disabled).toBe(true);
+  expect(button("重新检查状态").disabled).toBe(true);
+  await act(async () => finish({ code: 0, msg: "", data: { id: item.id, status: "unauthorized" } }));
+  const field = document.querySelector<HTMLInputElement>('[role="dialog"] input[aria-label="API Key"]');
+  expect(field).not.toBeNull();
+  expect(field?.value).toBe("");
+  expect(field?.disabled).toBe(false);
+});
+
+it.each(["zh-CN", "en-US"] as const)("blocks the form after a failed clear and allows a safe retry in %s", async locale => {
+  jest.mocked(getConnectorAuthStatus).mockResolvedValue(response("configured"));
+  jest.mocked(logoutConnectorAuth).mockRejectedValueOnce(new Error("echo synthetic-test-token"));
+  await mount(tokenItem, locale);
+  const rebind = locale === "zh-CN" ? "重新绑定" : "Reconnect";
+  const clear = locale === "zh-CN" ? "清除并继续" : "Clear and continue";
+  await click(rebind); await click(clear);
+  expect(document.querySelector('[role="dialog"]')).toBeNull();
+  expect(container.querySelector('[role="alert"]')?.textContent).toContain(locale === "zh-CN" ? "未能确认旧凭据已清除" : "Could not confirm that the old credentials were cleared");
+  expect(container.textContent).not.toContain("synthetic-test-token");
+  await click(clear);
+  expect(logoutConnectorAuth).toHaveBeenCalledTimes(2);
+  expect(document.querySelector('[role="dialog"]')).not.toBeNull();
+});
+
+it("does not open a credential form after switching connectors while clearing", async () => {
+  let finish!: (value: Awaited<ReturnType<typeof logoutConnectorAuth>>) => void;
+  jest.mocked(logoutConnectorAuth).mockReturnValue(new Promise(resolve => { finish = resolve; }));
+  await mount(tokenItem);
+  await click("重新绑定"); await click("清除并继续");
+  jest.mocked(getConnectorAuthStatus).mockResolvedValue(response("unauthorized", { connectorId: "other" }));
+  await mount({ ...tokenItem, id: "other" });
+  await act(async () => finish({ code: 0, msg: "", data: { id: item.id, status: "unauthorized" } }));
+  expect(document.querySelector('[role="dialog"]')).toBeNull();
+  expect(button("重新绑定")).toBeDefined();
+});
+
+it.each([{ readOnly: true }, { builtin: true }])("does not offer credential mutation for read-only token connectors: %p", async restriction => {
+  await mount({ ...item, authMode: "token", ...restriction });
+  expect(button("重新绑定")).toBeUndefined();
+  expect(button("配置连接凭据")).toBeUndefined();
+  expect(logoutConnectorAuth).not.toHaveBeenCalled();
+});
+
+it("preserves working credentials when the connector cannot provide a valid replacement form", async () => {
+  jest.mocked(getConnectorAuthStatus).mockResolvedValue(response("authorized"));
+  await mount({ ...item, authMode: "token" });
+  expect(button("重新绑定").disabled).toBe(true);
+  expect(container.querySelector('[role="alert"]')?.textContent).toContain("token-schema.json");
+  await click("重新绑定");
+  expect(logoutConnectorAuth).not.toHaveBeenCalled();
+  expect(button("清除并继续")).toBeUndefined();
 });
 it("never renders raw token diagnostics which may echo private credentials", async () => {
   jest.mocked(getConnectorAuthStatus).mockResolvedValue(response("failed", { message: "echo synthetic-test-token" }));

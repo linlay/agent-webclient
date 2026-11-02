@@ -84,7 +84,7 @@ it("uses all four authenticated authorization endpoints without caching and forw
     ["/api/admin/connectors/auth?id=demo+%26+other", { method: "GET", cache: "no-store", signal: controller.signal }],
     ["/api/admin/connectors/auth?id=demo", { method: "POST", cache: "no-store", signal: controller.signal }],
     ["/api/admin/connectors/auth/cancel?id=demo", { method: "POST", cache: "no-store", signal: controller.signal }],
-    ["/api/admin/connectors/auth?id=demo", { method: "DELETE", cache: "no-store", signal: controller.signal }],
+    ["/api/admin/connectors/auth?id=demo", { method: "DELETE", cache: "no-store", signal: controller.signal, retryUnauthorized: false }],
   ]);
 });
 

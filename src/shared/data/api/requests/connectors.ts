@@ -122,7 +122,7 @@ export function cancelConnectorAuth(id: string, signal?: AbortSignal, sessionId?
 export function logoutConnectorAuth(id: string, signal?: AbortSignal): Promise<ApiResponse<ConnectorAuthActionResult>> {
   const endpoint = dataEndpoints.adminConnectorAuthLogout;
   return requestJson<ConnectorAuthActionResult>(withQuery(endpoint.path, endpointQuery(endpoint, id)), {
-    method: endpoint.method, cache: "no-store", signal,
+    method: endpoint.method, cache: "no-store", signal, retryUnauthorized: false,
   });
 }
 

@@ -10,6 +10,7 @@ import { useAppMessage } from "@/shared/ui/useAppMessage";
 import { useConnectorAuth, type ConnectorAuthRuntime } from "../hooks/useConnectorAuth";
 import { connectorAuthDeadline, isConnectorAuthActive, readConnectorAuthSession, safeConnectorAuthorizationUrl, supportsConnectorAuthCheck, supportsConnectorLogin } from "../lib/connectorAuth";
 import { readConnectorConnection } from "../lib/connectorChat";
+import { connectorTokenSchema } from "../lib/connectorCredentials";
 import type { ConnectorAuthViewStatus } from "../lib/connectorAuth";
 import styles from "./ConnectorsConsole.module.css";
 import { ConnectorCredentialsDialog } from "./ConnectorCredentialsDialog";
@@ -24,7 +25,8 @@ interface Props {
 }
 
 export function ConnectorAuthPanel(props: Props) {
-  return props.auth ? <ConnectorAuthPanelContent {...props} auth={props.auth} /> : <StandaloneConnectorAuthPanel {...props} />;
+  const identity = `${props.item.id}/${props.item.authMode}`;
+  return props.auth ? <ConnectorAuthPanelContent key={identity} {...props} auth={props.auth} /> : <StandaloneConnectorAuthPanel key={identity} {...props} />;
 }
 
 function StandaloneConnectorAuthPanel(props: Props) {
@@ -37,14 +39,17 @@ function ConnectorAuthPanelContent({ item, disabled, onConfigure, onCredentialsC
   const { t, locale } = useI18n();
   const message = useAppMessage();
   const readOnly = item.builtin === true || item.readOnly === true;
+  const credentialSchema = connectorTokenSchema(item);
   const [confirmLogout, setConfirmLogout] = useState(false);
+  const [confirmCredentialReset, setConfirmCredentialReset] = useState(false);
   const [credentialsOpen, setCredentialsOpen] = useState(false);
   const [confirmingConnection, setConfirmingConnection] = useState(false);
   const [configured, setConfigured] = useState<boolean | null>(null);
   const [connectionError, setConnectionError] = useState(false);
   const connectionScope = useRef<AbortController | null>(null);
   const connectionCheck = useRef<AbortController | null>(null);
-  useEffect(() => () => { connectionScope.current?.abort(); connectionScope.current = null; connectionCheck.current?.abort(); connectionCheck.current = null; }, [item.id]);
+  const credentialResetScope = useRef<AbortController | null>(null);
+  useEffect(() => () => { connectionScope.current?.abort(); connectionScope.current = null; connectionCheck.current?.abort(); connectionCheck.current = null; credentialResetScope.current?.abort(); credentialResetScope.current = null; }, [item.id]);
   const checkable = supportsConnectorAuthCheck(item.authMode);
   const interactive = supportsConnectorLogin(item.authMode) && auth.status !== "delegated";
   const active = isConnectorAuthActive(auth.session);
@@ -75,6 +80,16 @@ function ConnectorAuthPanelContent({ item, disabled, onConfigure, onCredentialsC
   const errorText = auth.error instanceof ApiError && [401, 403, 404, 405].includes(auth.error.status || 0)
     ? t(`connectors.auth.error.${auth.error.status}`)
     : auth.error?.message.startsWith("connectors.auth.error.") || auth.error?.message.startsWith("connectors.chat.") ? t(auth.error.message) : auth.error?.message;
+  const resetCredentials = async () => {
+    if (busy || readOnly || !credentialSchema || credentialResetScope.current) return;
+    const controller = new AbortController(); credentialResetScope.current = controller;
+    try {
+      const cleared = await auth.logout();
+      if (!cleared || controller.signal.aborted || credentialResetScope.current !== controller) return;
+      setConfirmCredentialReset(false);
+      setCredentialsOpen(true);
+    } finally { if (credentialResetScope.current === controller) credentialResetScope.current = null; }
+  };
 
   return <section className={styles.group} aria-label={t("connectors.auth.title")}>
     <div className={styles.toolbar}>
@@ -89,7 +104,7 @@ function ConnectorAuthPanelContent({ item, disabled, onConfigure, onCredentialsC
       {item.authMode === "mcp" && <p className={styles.notice}>{t("connectors.auth.localCallback")}</p>}
       {item.hasMcp && <p className={styles.hint}>{t("connectors.auth.mcpAvailability")}</p>}
       {item.authMode !== "token" && auth.session?.message && ["failed", "setup_required", "canceled", "expired"].includes(status) && <p className={styles.hint}>{auth.session.message}</p>}
-      {errorText && <div className={styles.error} role="alert">{t("connectors.auth.error.prefix")} {item.authMode === "token" ? t("connectors.credentials.checkFailed") : errorText}</div>}
+      {errorText && <div className={styles.error} role="alert">{item.authMode === "token" ? t(auth.error?.message === "connectors.credentials.clearFailed" ? "connectors.credentials.clearFailed" : "connectors.credentials.checkFailed") : <>{t("connectors.auth.error.prefix")} {errorText}</>}</div>}
       {status === "pending" && auth.session?.authorizationUrl && !safeConnectorAuthorizationUrl(auth.session.authorizationUrl) && <p className={styles.error} role="alert">{t("connectors.auth.error.url")}</p>}
       {active && deadline !== null && status !== "expired" && <p className={styles.hint}>{t("connectors.auth.expires", { time: new Date(deadline).toLocaleString(locale) })}</p>}
       {status === "pending" && !busy && auth.session?.userCode && <p className={styles.notice} role="status">{t("connectors.auth.userCode", { code: auth.session.userCode })}</p>}
@@ -136,7 +151,14 @@ function ConnectorAuthPanelContent({ item, disabled, onConfigure, onCredentialsC
         </div>
       </div>}
     </>}
-    {item.authMode === "token" && <div><UiButton size="sm" disabled={disabled} onClick={() => setCredentialsOpen(true)}>{t("connectors.credentials.configure")}</UiButton></div>}
+    {item.authMode === "token" && !readOnly && !credentialSchema && <p className={styles.error} role="alert">{t("connectors.credentials.schemaInvalid")}</p>}
+    {item.authMode === "token" && !readOnly && (confirmCredentialReset && credentialSchema ? <div className={styles.notice}>
+      <p>{t("connectors.credentials.clearConfirm")}</p>
+      <div className={styles.actions}>
+        <UiButton size="sm" variant="danger" disabled={busy} loading={auth.operation === "logout"} onClick={() => void resetCredentials()}>{t("connectors.credentials.clearAndContinue")}</UiButton>
+        <UiButton size="sm" variant="ghost" disabled={busy} onClick={() => setConfirmCredentialReset(false)}>{t("connectors.import.cancel")}</UiButton>
+      </div>
+    </div> : <div><UiButton size="sm" disabled={busy || auth.checking || !credentialSchema} onClick={() => setConfirmCredentialReset(true)}>{t("connectors.credentials.rebind")}</UiButton></div>)}
     {credentialsOpen && <ConnectorCredentialsDialog key={`${item.id}/${item.version}`} item={item} onClose={() => setCredentialsOpen(false)} onSaved={() => { onCredentialsChange?.(); void auth.refresh(); }} />}
   </section>;
 }

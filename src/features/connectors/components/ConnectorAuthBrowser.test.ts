@@ -13,7 +13,7 @@ const bridge = {version:1, open:jest.fn(async()=>{}), close:jest.fn(async()=>{})
 const runtime = (change: Partial<ConnectorAuthRuntime> = {}): ConnectorAuthRuntime => ({
  identity:"wecom/null/false", browserSessionId:"first", browserRequestRevision:1,
  session:{connectorId:"wecom",sessionId:"first",status:"pending",authBrowser:"embedded",authorizationUrl:"https://work.weixin.qq.com/login",expiresAt:new Date(Date.now()+60000).toISOString()},
- status:"pending",checking:false,operation:null,error:null,start:jest.fn(async()=>{}),cancel:jest.fn(async()=>{}),logout:jest.fn(async()=>{}),refresh:jest.fn(async()=>{}),openBrowser:jest.fn(async()=>{}),...change,
+ status:"pending",checking:false,operation:null,error:null,start:jest.fn(async()=>{}),cancel:jest.fn(async()=>{}),logout:jest.fn(async()=>true),refresh:jest.fn(async()=>{}),openBrowser:jest.fn(async()=>{}),...change,
 });
 const render = async(auth:ConnectorAuthRuntime) => { await act(async()=>root.render(React.createElement(I18nProvider, { locale: "zh-CN", persistLocale: false }, React.createElement(ConnectorAuthBrowser, { auth })))); };
 beforeEach(()=>{ (globalThis as any).IS_REACT_ACT_ENVIRONMENT=true; node=document.createElement("div");document.body.append(node);root=createRoot(node);jest.clearAllMocks();jest.mocked(isAppMode).mockReturnValue(false);(window as any)[CONNECTOR_AUTH_BROWSER_GLOBAL]=bridge; });
