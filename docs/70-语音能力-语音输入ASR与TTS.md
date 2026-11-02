@@ -10,7 +10,7 @@ capabilities 通过现有认证 HTTP 客户端读取标准 `{code,msg,data}`，�
 
 浏览器只负责采集、必要重采样、PCM 播放及当前媒体控制。`useVoiceChatRuntime` 装配一个 `VoiceSession`；它只发送 hello/listen/abort 和二进制 PCM，不调用 Query、TTS append/commit，不生成时间线节点。Platform 完成 ASR→普通 Query→已持久化完整最终正文→TTS，权限和编辑状态沿用 Agent 默认，不从 Composer 覆盖。
 
-首次用户点击直接准备音频上下文和麦克风权限。输入按实际 `AudioContext.sampleRate` 重采样到 16kHz，跨回调保留采样余量，发送 20ms/640 字节帧，manual stop 先发送对齐的短尾帧。输出按 hello 的 16/24kHz 播放，起始本地余量 140ms，调度音频上限 1 秒。慢发送超 64KB 或播放异常结束媒体连接；无重放队列。
+首次用户点击直接准备音频上下文和麦克风权限；采集上下文先请求 16kHz，浏览器拒绝把麦克风接入该采样率（Firefox）时改用默认采样率。输入按实际 `AudioContext.sampleRate` 重采样到 16kHz，跨回调保留采样余量，发送 20ms/640 字节帧，manual stop 先发送对齐的短尾帧。输出按 hello 的 16/24kHz 播放，起始本地余量 140ms，调度音频上限 1.5 秒（覆盖 Platform `downlink-lead-ms` 最大 1000ms）。慢发送超 64KB 或播放异常结束媒体连接；无重放队列。
 
 ## 控制与会话
 
@@ -18,7 +18,7 @@ capabilities 通过现有认证 HTTP 客户端读取标准 `{code,msg,data}`，�
 - run.start 的真实 Chat/Run ID 进入既有 `agent:attach-run` 链，复用主聊天的订阅、事件 reducer、HITL 与历史；文字 Query 保留原入口。首次主 Chat 在实际 Query 后才出现，并用既有 `agent:new-chat-created` 提升地址；普通历史回放补齐已有 primary 的历史。同一 Chat 回放保留媒体连接，刷新后只恢复历史，不重连媒体或重发 Query。
 - 成功 Run 结束、tts.stop(done)、本地所有 source 播完且非 awaiting，才自动再 listen。固定 awaiting 提示播完仍等待已有界面 Submit。
 - 打断立即停采集和所有已调度 source，确认前丢弃媒体；后端 abort 确认后才重新收音。Run 取消及排他仍归 Platform。
-- 挂断、切换 Chat/Agent、隐藏或离开页面只关闭语音连接/采集/播放，不关闭共享主聊天连接，不取消已受理 Run。断线显示错误；用户重连执行全新 hello，不补播、不补录音、不重发 Query。
+- 挂断、切换 Chat/Agent、隐藏或离开页面只关闭语音连接/采集/播放，不关闭共享主聊天连接，不取消已受理 Run。断线显示错误；用户重连执行全新 hello，不补播、不补录音、不重发 Query。hello 之后的服务端 error（如 no_speech、chat_busy、tts_failed）只结束当前轮：停采集和播放、保留媒体连接，界面提供“继续说话”重新 listen；hello 前的 error 与断线才结束会话，错误后紧接断线时显示该错误。
 
 ## 鉴权与宿主
 

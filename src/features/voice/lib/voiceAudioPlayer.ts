@@ -1,3 +1,6 @@
+// Covers Platform's largest downlink lead (1000ms) plus the local start buffer.
+const MAX_SCHEDULED_SECONDS = 1.5;
+
 export class VoiceAudioPlayer {
   private context: AudioContext | null = null;
   private sources = new Set<AudioBufferSourceNode>();
@@ -36,7 +39,7 @@ export class VoiceAudioPlayer {
     if (!context || context.state !== "running") throw new Error("Audio playback is suspended");
     if (!bytes.byteLength || bytes.byteLength % 2 || bytes.byteLength > this.sampleRate * .04) throw new Error("Invalid PCM frame");
     if (this.muted) return;
-    if (this.cursor - context.currentTime > 1) throw new Error("Audio playback buffer exceeded");
+    if (this.cursor - context.currentTime > MAX_SCHEDULED_SECONDS) throw new Error("Audio playback buffer exceeded");
     const view = new DataView(bytes);
     const buffer = context.createBuffer(1, bytes.byteLength / 2, this.sampleRate);
     const samples = buffer.getChannelData(0);

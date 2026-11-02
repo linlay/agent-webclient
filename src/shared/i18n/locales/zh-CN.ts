@@ -3100,6 +3100,7 @@ export const zhCNMessages = {
   "voice.controls.finish": "结束并发送",
   "voice.controls.abort": "打断并重听",
   "voice.controls.reconnect": "重新连接",
+  "voice.controls.resume": "继续说话",
   "voice.controls.hangup": "挂断",
   "voice.controls.awaiting": "请在聊天界面确认后继续",
 } satisfies I18nMessages;

@@ -26,7 +26,9 @@ export function VoiceControls() {
       onClick={() => window.dispatchEvent(new CustomEvent("agent:voice-listen-stop"))}>{t("voice.controls.finish")}</UiButton>}
     {voice.sessionActive && <UiButton size="sm" variant="secondary"
       onClick={() => window.dispatchEvent(new CustomEvent("agent:voice-abort"))}>{t("voice.controls.abort")}</UiButton>}
-    {voice.status === "error" && <UiButton size="sm" variant="secondary"
+    {voice.status === "error" && voice.sessionActive && <UiButton size="sm" variant="secondary"
+      onClick={() => window.dispatchEvent(new CustomEvent("agent:voice-listen"))}>{t("voice.controls.resume")}</UiButton>}
+    {voice.status === "error" && !voice.sessionActive && <UiButton size="sm" variant="secondary"
       onClick={() => window.dispatchEvent(new CustomEvent("agent:voice-start"))}>{t("voice.controls.reconnect")}</UiButton>}
     <UiButton size="sm" variant="ghost" onClick={() => dispatch({ type: "SET_INPUT_MODE", mode: "text" })}>{t("voice.controls.hangup")}</UiButton>
     {voice.awaiting && <span role="status">{t("voice.controls.awaiting")}</span>}

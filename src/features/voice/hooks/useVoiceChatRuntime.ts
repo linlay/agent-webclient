@@ -86,6 +86,7 @@ export function useVoiceChatRuntime(): void {
     };
     const abort = () => sessionRef.current?.abort();
     const stop = () => sessionRef.current?.stopListening();
+    const resume = () => sessionRef.current?.listen();
     const leave = () => {
       sessionRef.current?.close();
       sessionRef.current = null;
@@ -98,12 +99,14 @@ export function useVoiceChatRuntime(): void {
     window.addEventListener("agent:voice-start", start);
     window.addEventListener("agent:voice-abort", abort);
     window.addEventListener("agent:voice-listen-stop", stop);
+    window.addEventListener("agent:voice-listen", resume);
     return () => {
       window.removeEventListener("pagehide", leave);
       document.removeEventListener("visibilitychange", visibility);
       window.removeEventListener("agent:voice-start", start);
       window.removeEventListener("agent:voice-abort", abort);
       window.removeEventListener("agent:voice-listen-stop", stop);
+      window.removeEventListener("agent:voice-listen", resume);
       sessionRef.current?.close();
       sessionRef.current = null;
     };

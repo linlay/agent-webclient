@@ -2924,6 +2924,7 @@ export const enUSMessages = {
   "voice.controls.finish": "Finish and send",
   "voice.controls.abort": "Interrupt and listen",
   "voice.controls.reconnect": "Reconnect",
+  "voice.controls.resume": "Speak again",
   "voice.controls.hangup": "Hang up",
   "voice.controls.awaiting": "Continue after confirming in the chat",
 } satisfies I18nMessages;

@@ -28,9 +28,23 @@ export class VoiceAudioCapture {
     this.stream = stream;
     const resumeError = await resumed;
     if (resumeError) throw resumeError;
-    const context = this.context;
+    let context = this.context;
     if (!context || this.disposed) return;
-    this.source = context.createMediaStreamSource(stream);
+    let source: MediaStreamAudioSourceNode;
+    try {
+      source = context.createMediaStreamSource(stream);
+    } catch (error) {
+      // Firefox cannot connect a microphone to a context at another sample
+      // rate; the encoder resamples from the default context's rate instead.
+      if (!(error instanceof DOMException) || error.name !== "NotSupportedError") throw error;
+      void context.close().catch(() => undefined);
+      context = new AudioContext();
+      this.context = context;
+      await context.resume();
+      if (this.disposed) return;
+      source = context.createMediaStreamSource(stream);
+    }
+    this.source = source;
     this.processor = context.createScriptProcessor(1024, 1, 1);
     this.processor.onaudioprocess = event => {
       if (!this.listening || !this.encoder) return;

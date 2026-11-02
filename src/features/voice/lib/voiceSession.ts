@@ -29,6 +29,7 @@ export class VoiceSession {
   private runComplete = false;
   private speechDone = false;
   private receivingAudio = false;
+  private lastError = "";
 
   constructor(private readonly options: SessionOptions) {}
 
@@ -73,7 +74,8 @@ export class VoiceSession {
     };
     socket.onerror = () => this.fail("Voice connection failed");
     socket.onclose = () => {
-      if (!this.closed) this.fail("Voice disconnected. Reconnect to start a new session.");
+      // A server error just before close explains the disconnect better.
+      if (!this.closed) this.fail(this.lastError || "Voice disconnected. Reconnect to start a new session.");
     };
   }
 
@@ -92,6 +94,7 @@ export class VoiceSession {
     this.turn++;
     this.runComplete = false;
     this.speechDone = false;
+    this.lastError = "";
     this.send({ type: "listen", state: "start", mode: this.options.mode });
     this.listening = true;
     this.capture.start();
@@ -133,7 +136,13 @@ export class VoiceSession {
       this.listen();
       return;
     }
-    if (type === "error") { this.fail(String(message.msg || message.code || "Voice failed")); return; }
+    if (type === "error") {
+      const error = String(message.msg || message.code || "Voice failed");
+      // Before hello the server closes; afterwards an error ends only the current turn.
+      if (this.ready) this.endTurn(error);
+      else this.fail(error);
+      return;
+    }
     if (type === "abort") {
       if (!this.aborting) return;
       this.clearTimer();
@@ -178,6 +187,19 @@ export class VoiceSession {
         this.player.finish();
       }
     }
+  }
+
+  // Keeps the connection so the user can speak again without a new hello.
+  private endTurn(error: string): void {
+    this.lastError = error;
+    this.capture.stop();
+    this.player.stop();
+    this.listening = false;
+    this.receivingAudio = false;
+    this.awaiting = false;
+    this.runComplete = false;
+    this.speechDone = false;
+    this.options.patch({ status: "error", error, awaiting: false });
   }
 
   private playbackDrained(): void {

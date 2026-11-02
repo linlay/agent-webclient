@@ -42,3 +42,11 @@ it("stops every scheduled source immediately and suppresses old drain callbacks"
   expect(Context.current.sources[0].onended).toBeNull(); expect(drained).not.toHaveBeenCalled();
   player.close();
 });
+it("accepts the largest Platform downlink lead but rejects a runaway sender", async () => {
+  const player = new VoiceAudioPlayer(jest.fn());
+  await player.prepare(); player.start(16000);
+  // 1000ms lead + 140ms start buffer + one in-flight frame stays schedulable.
+  for (let i = 0; i < 58; i++) player.append(new ArrayBuffer(640));
+  expect(() => { for (let i = 0; i < 20; i++) player.append(new ArrayBuffer(640)); }).toThrow("Audio playback buffer exceeded");
+  player.close();
+});
