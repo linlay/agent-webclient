@@ -108,6 +108,10 @@
     background: transparent;
 }
 
+.modal:global(.ant-modal) :global(.ant-modal-body) {
+    display: block;
+}
+
 .content {
     max-height: min(55vh, 520px);
     margin: 12px 0 0;
