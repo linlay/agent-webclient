@@ -1,4 +1,5 @@
 import React from "react";
+import styles from "./DocumentTextEditor.module.css";
 import { Button, Dropdown, Input, Modal, Space } from "antd";
 import type * as MonacoTypes from "monaco-editor";
 import { CodeEditor } from "@/shared/ui/CodeEditor";
@@ -656,7 +657,7 @@ export const DocumentTextEditor: React.FC<{
         ) : (
           <div
             ref={previewRef}
-            className="tw:min-h-0 tw:flex-1 tw:overflow-auto"
+            className={`tw:min-h-0 tw:flex-1 tw:overflow-auto${markdown ? ` ${styles.markdownViewport}` : ""}`}
             onMouseUp={capturePreviewSelection}
             onKeyUp={capturePreviewSelection}
           >
