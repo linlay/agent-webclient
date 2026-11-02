@@ -125,3 +125,33 @@ it("disconnects media without abort, automatic reconnect or retransmission", asy
   expect(patch).toHaveBeenLastCalledWith(expect.objectContaining({ status: "error", sessionActive: false }));
   session.close();
 });
+
+it("ends only the current turn on a server error and listens again on request", async () => {
+  const session = await open();
+  frame({ type: "stt", turn: 1, final: true, text: "question" });
+  frame({ type: "awaiting", turn: 1, awaitingId: "ask" });
+  frame({ type: "error", code: "no_speech", msg: "没有识别到语音" });
+  expect(patch).toHaveBeenLastCalledWith({ status: "error", error: "没有识别到语音", awaiting: false });
+  expect(Socket.instance.close).not.toHaveBeenCalled();
+  expect(capture.close).not.toHaveBeenCalled();
+  expect(player.stop).toHaveBeenCalledTimes(1);
+  session.listen();
+  expect(sent().at(-1)).toEqual({ type: "listen", state: "start", mode: "auto" });
+  frame({ type: "stt", turn: 2, final: false, text: "again" });
+  expect(patch).toHaveBeenLastCalledWith({ partialUserText: "again" });
+  session.close();
+});
+
+it("fails the session for a handshake error and explains a close after a turn error", async () => {
+  const early = new VoiceSession({ capabilities, agentKey: "agent", chatId: "", voice: "voice", mode: "auto", patch, onRun });
+  await early.prepare(); early.connect("test-token"); Socket.instance.onopen?.();
+  frame({ type: "error", code: "invalid_request", msg: "agent unavailable" });
+  expect(patch).toHaveBeenLastCalledWith({ status: "error", error: "agent unavailable", sessionActive: false });
+  expect(Socket.instance.close).toHaveBeenCalledTimes(1);
+
+  const session = await open();
+  frame({ type: "error", code: "run_busy_timeout", msg: "任务收尾超时，请重新连接语音" });
+  Socket.instance.onclose?.();
+  expect(patch).toHaveBeenLastCalledWith({ status: "error", error: "任务收尾超时，请重新连接语音", sessionActive: false });
+  session.close();
+});

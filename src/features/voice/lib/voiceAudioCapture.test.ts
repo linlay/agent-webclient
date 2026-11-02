@@ -44,3 +44,25 @@ it("releases a late microphone grant after the session was closed", async () => 
   expect(trackStop).toHaveBeenCalledTimes(1);
   expect(Context.current.source.connect).not.toHaveBeenCalled();
 });
+
+it("falls back to the default context rate when the microphone rejects a 16kHz context", async () => {
+  getUserMedia.mockResolvedValue(media);
+  const contexts: Rejecting[] = [];
+  class Rejecting extends Context {
+    constructor(readonly options?: AudioContextOptions) { super(); contexts.push(this); }
+    createMediaStreamSource() {
+      if (this.options?.sampleRate) throw new DOMException("different sample-rate", "NotSupportedError");
+      return this.source;
+    }
+  }
+  Object.defineProperty(globalThis, "AudioContext", { configurable: true, value: Rejecting });
+  const send = jest.fn(); const capture = new VoiceAudioCapture(send);
+  await capture.prepare(); capture.start();
+  expect(contexts.map(context => context.options?.sampleRate)).toEqual([16000, undefined]);
+  expect(contexts[0].close).toHaveBeenCalledTimes(1);
+  expect(contexts[1].resume).toHaveBeenCalledTimes(1);
+  contexts[1].processor.onaudioprocess?.({ inputBuffer: { getChannelData: () => new Float32Array(1024).fill(.5) } });
+  expect(send.mock.calls.map(([chunk]) => chunk.byteLength)).toEqual([640]);
+  capture.close();
+  expect(contexts[1].close).toHaveBeenCalledTimes(1);
+});
