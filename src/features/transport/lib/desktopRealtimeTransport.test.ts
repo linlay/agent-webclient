@@ -42,7 +42,19 @@ class FakeDesktopPlatformSession implements DesktopPlatformSession {
 
   close(reason: "surface_inactive" | "disposed" = "disposed"): void {
     this.closeCalls += 1;
-    for (const listener of this.closeListeners) listener({ reason });
+    this.closed({ reason });
+  }
+
+  closed(event: DesktopPlatformSessionClose): void {
+    for (const listener of this.closeListeners) listener(event);
+  }
+
+  captureListeners() {
+    return {
+      frames: [...this.frameListeners],
+      states: [...this.stateListeners],
+      closes: [...this.closeListeners],
+    };
   }
 
   onFrame(listener: (frame: Exclude<AgentPlatformRealtimeFrame, AgentPlatformRequestFrame>) => void): () => void {
@@ -70,6 +82,262 @@ async function flush(): Promise<void> {
 }
 
 describe("DesktopRealtimeTransport", () => {
+  it("reopens a retired session on a new request while keeping the registered client and push subscribers", async () => {
+    const first = new FakeDesktopPlatformSession();
+    const second = new FakeDesktopPlatformSession();
+    const createSession = jest.fn()
+      .mockReturnValueOnce(first)
+      .mockReturnValueOnce(second);
+    const transport = new DesktopRealtimeTransport({ transportVersion: 2, createSession });
+    const client = getDesktopPlatformFrameClient()!;
+    const statuses: string[] = [];
+    const pushes = jest.fn();
+    transport.subscribeStatus((status) => statuses.push(status));
+    const unsubscribePush = transport.push.subscribe({ types: ["chat.updated"] }, pushes);
+    first.connected();
+    const abandoned = client.request({ type: "/api/chat", payload: { chatId: "chat-1" } });
+    const failure = expect(abandoned).rejects.toMatchObject({ code: "DESKTOP_FRAME_PORT_CLOSED" });
+    await flush();
+    first.closed({ reason: "surface_inactive" });
+    await failure;
+    await flush();
+    expect(createSession).toHaveBeenCalledTimes(1);
+    expect(transport.getStatus()).toBe("disconnected");
+
+    const retry = client.request({ type: "/api/chat", payload: { chatId: "chat-1" } });
+    expect(createSession).toHaveBeenCalledTimes(2);
+    expect(getDesktopPlatformFrameClient()).toBe(client);
+    expect(transport.getStatus()).toBe("connecting");
+    second.connected();
+    await flush();
+    const request = second.sent.find((frame) => frame.type === "/api/chat")!;
+    second.frame({ frame: "response", id: request.id, code: 0, data: { chatId: "chat-1" } });
+    await expect(retry).resolves.toMatchObject({ data: { chatId: "chat-1" } });
+    second.frame({ frame: "push", type: "chat.updated", data: { chatId: "chat-1" } });
+    expect(pushes).toHaveBeenCalledTimes(1);
+    expect(first.sent).toHaveLength(1);
+    expect(second.sent).toHaveLength(1);
+    expect(statuses).toEqual(expect.arrayContaining(["disconnected", "connecting", "connected"]));
+    unsubscribePush();
+    transport.dispose();
+  });
+
+  it("ends the old Run without replaying its query and ignores queued callbacks from the retired generation", async () => {
+    const first = new FakeDesktopPlatformSession();
+    const second = new FakeDesktopPlatformSession();
+    const createSession = jest.fn().mockReturnValueOnce(first).mockReturnValueOnce(second);
+    const transport = new DesktopRealtimeTransport({ transportVersion: 2, createSession });
+    const client = getDesktopPlatformFrameClient()!;
+    const onEvent = jest.fn();
+    const execution = transport.runs.startQuery({
+      requestId: "req-retire",
+      message: "do this once",
+      owner: { kind: "agent", agentKey: "agent-1" },
+      onEvent,
+    });
+    first.connected();
+    await flush();
+    const query = first.sent.find((frame) => frame.type === "/api/query")!;
+    first.frame({ frame: "stream", id: query.id, event: {
+      type: "run.start", chatId: "chat-1", runId: "run-1", agentKey: "agent-1", seq: 1,
+      timestamp: 1_786_890_000_001,
+    } });
+    await execution.identity;
+    const stale = first.captureListeners();
+    first.closed({ reason: "surface_inactive" });
+    await expect(execution.completion).resolves.toMatchObject({
+      reason: "error", error: { code: "DESKTOP_FRAME_PORT_CLOSED" },
+    });
+    expect(createSession).toHaveBeenCalledTimes(1);
+
+    const reading = client.request({ type: "/api/chat", payload: { chatId: "chat-1" } });
+    second.connected();
+    await flush();
+    const request = second.sent[0];
+    // These callbacks were captured before unsubscribe, as though delivery had already been queued.
+    for (const listener of stale.states) listener({
+      phase: "closed", logicalGeneration: 1, physicalGeneration: 1, reconnectCount: 0, retryable: false,
+    });
+    for (const listener of stale.closes) listener({ reason: "protocol_mismatch" });
+    for (const listener of stale.frames) {
+      listener({ frame: "response", id: request.id, code: 0, data: { stale: true } });
+      listener({ frame: "stream", id: query.id, event: {
+        type: "content.delta", delta: "stale", seq: 2, timestamp: 1_786_890_000_002,
+      } });
+    }
+    expect(transport.getStatus()).toBe("connected");
+    second.frame({ frame: "response", id: request.id, code: 0, data: { fresh: true } });
+    await expect(reading).resolves.toMatchObject({ data: { fresh: true } });
+    expect(onEvent).toHaveBeenCalledTimes(1);
+    expect(second.sent.map((frame) => frame.type)).toEqual(["/api/chat"]);
+    transport.dispose();
+  });
+
+  it("shares one replacement session across concurrent retries and respects an aborted caller", async () => {
+    const first = new FakeDesktopPlatformSession();
+    const second = new FakeDesktopPlatformSession();
+    const createSession = jest.fn().mockReturnValueOnce(first).mockReturnValueOnce(second);
+    const transport = new DesktopRealtimeTransport({ transportVersion: 2, createSession });
+    const client = getDesktopPlatformFrameClient()!;
+    first.closed({ reason: "surface_inactive" });
+    const controller = new AbortController();
+    controller.abort();
+    await expect(client.connect(controller.signal)).rejects.toMatchObject({ name: "AbortError" });
+    expect(createSession).toHaveBeenCalledTimes(1);
+    const firstRetry = client.connect();
+    const secondRetry = client.connect();
+    expect(createSession).toHaveBeenCalledTimes(2);
+    second.connected();
+    await expect(Promise.all([firstRetry, secondRetry])).resolves.toEqual([undefined, undefined]);
+    transport.dispose();
+  });
+
+  it("opens a fresh session for a new Chat query after closure without preallocating Chat or Run identities", async () => {
+    const first = new FakeDesktopPlatformSession();
+    const second = new FakeDesktopPlatformSession();
+    const createSession = jest.fn().mockReturnValueOnce(first).mockImplementationOnce(() => {
+      queueMicrotask(() => second.connected());
+      return second;
+    });
+    const transport = new DesktopRealtimeTransport({ transportVersion: 2, createSession });
+    const client = getDesktopPlatformFrameClient();
+    const owner = { kind: "agent" as const, agentKey: "agent-1" };
+    const oldRun = transport.runs.startQuery({
+      requestId: "old-query", chatId: "old-chat", message: "send once", owner, onEvent: jest.fn(),
+    });
+    first.connected();
+    await flush();
+    const oldQuery = first.sent.find((frame) => frame.type === "/api/query")!;
+    first.frame({ frame: "stream", id: oldQuery.id, event: {
+      type: "run.start", chatId: "old-chat", runId: "old-run", agentKey: "agent-1", seq: 1,
+      timestamp: 1_786_890_000_001,
+    } });
+    await oldRun.identity;
+    first.closed({ reason: "surface_inactive" });
+    await expect(oldRun.completion).resolves.toMatchObject({ reason: "error" });
+
+    const onEvent = jest.fn();
+    const newRun = transport.runs.startQuery({ requestId: "new-query", message: "start a new Chat", owner, onEvent });
+    await flush();
+    const newQuery = second.sent.find((frame) => frame.type === "/api/query")!;
+    expect(createSession).toHaveBeenCalledTimes(2);
+    expect(getDesktopPlatformFrameClient()).toBe(client);
+    expect(newQuery.payload).toMatchObject({ requestId: "new-query", message: "start a new Chat", agentKey: "agent-1" });
+    expect(newQuery.payload).not.toHaveProperty("chatId");
+    expect(newQuery.payload).not.toHaveProperty("runId");
+    second.frame({ frame: "stream", id: newQuery.id, event: {
+      type: "chat.start", chatId: "new-chat", agentKey: "agent-1", seq: 1,
+      timestamp: 1_786_890_000_002,
+    } });
+    second.frame({ frame: "stream", id: newQuery.id, event: {
+      type: "run.start", chatId: "new-chat", runId: "new-run", agentKey: "agent-1", seq: 2,
+      timestamp: 1_786_890_000_003,
+    } });
+    await expect(newRun.identity).resolves.toMatchObject({ chatId: "new-chat", runId: "new-run", owner });
+    expect(onEvent.mock.calls.map(([event]) => event.type)).toEqual(["chat.start", "run.start"]);
+    second.frame({ frame: "stream", id: newQuery.id, reason: "complete", lastSeq: 2 });
+    await expect(newRun.completion).resolves.toMatchObject({ reason: "complete" });
+    expect(first.sent.filter((frame) => frame.type === "/api/query")).toHaveLength(1);
+    expect(second.sent.filter((frame) => frame.type === "/api/query")).toHaveLength(1);
+    transport.dispose();
+  });
+
+  it.each<DesktopPlatformSessionClose["reason"]>([
+    "protocol_mismatch", "identity_invalidated", "app_shutdown", "disposed",
+  ])("does not reopen or lose the host error after a terminal %s close", async (reason) => {
+    const session = new FakeDesktopPlatformSession();
+    const createSession = jest.fn(() => session);
+    const transport = new DesktopRealtimeTransport({ transportVersion: 2, createSession });
+    const client = getDesktopPlatformFrameClient()!;
+    session.closed({ reason, error: { code: "HOST_ERROR", message: `host stopped: ${reason}` } });
+    session.connected();
+    session.closed({ reason: "surface_inactive" });
+    expect(transport.getStatus()).toBe("disconnected");
+    await expect(client.connect()).rejects.toMatchObject({ message: `host stopped: ${reason}` });
+    await expect(client.request({ type: "/api/chat" })).rejects.toMatchObject({ code: "DESKTOP_FRAME_PORT_CLOSED" });
+    expect(createSession).toHaveBeenCalledTimes(1);
+    transport.dispose();
+  });
+
+  it("uses the explicit close reason when a closed state arrives first", async () => {
+    const first = new FakeDesktopPlatformSession();
+    const second = new FakeDesktopPlatformSession();
+    const createSession = jest.fn().mockReturnValueOnce(first).mockReturnValueOnce(second);
+    const transport = new DesktopRealtimeTransport({ transportVersion: 2, createSession });
+    const client = getDesktopPlatformFrameClient()!;
+    first.state({ phase: "closed", logicalGeneration: 1, physicalGeneration: 1, reconnectCount: 0, retryable: false });
+    first.connected();
+    expect(transport.getStatus()).toBe("disconnected");
+    await expect(client.connect()).rejects.toMatchObject({ code: "DESKTOP_FRAME_PORT_CLOSED" });
+    first.closed({ reason: "surface_inactive" });
+    const retry = client.connect();
+    expect(createSession).toHaveBeenCalledTimes(2);
+    second.connected();
+    await retry;
+    transport.dispose();
+    await expect(client.connect()).rejects.toMatchObject({ message: "Desktop Platform Frame Port disposed" });
+    expect(createSession).toHaveBeenCalledTimes(2);
+  });
+
+  it("reopens an explicitly retryable closed session only on demand", async () => {
+    const first = new FakeDesktopPlatformSession();
+    const second = new FakeDesktopPlatformSession();
+    const createSession = jest.fn().mockReturnValueOnce(first).mockReturnValueOnce(second);
+    const transport = new DesktopRealtimeTransport({ transportVersion: 2, createSession });
+    const client = getDesktopPlatformFrameClient()!;
+    first.state({ phase: "closed", logicalGeneration: 1, physicalGeneration: 1, reconnectCount: 0, retryable: true });
+    await flush();
+    expect(createSession).toHaveBeenCalledTimes(1);
+    const retry = client.connect();
+    second.connected();
+    await retry;
+    expect(createSession).toHaveBeenCalledTimes(2);
+    transport.dispose();
+  });
+
+  it("does not loop when the replacement session immediately replays a closed state", async () => {
+    const first = new FakeDesktopPlatformSession();
+    const second = new FakeDesktopPlatformSession();
+    jest.spyOn(second, "onState").mockImplementation((listener) => {
+      listener({
+        phase: "closed", logicalGeneration: 2, physicalGeneration: 1, reconnectCount: 0, retryable: true,
+        error: { code: "DESKTOP_FRAME_PORT_CLOSED", message: "surface changed again" },
+      });
+      return () => undefined;
+    });
+    const createSession = jest.fn().mockReturnValueOnce(first).mockReturnValueOnce(second);
+    const transport = new DesktopRealtimeTransport({ transportVersion: 2, createSession });
+    const client = getDesktopPlatformFrameClient()!;
+    first.closed({ reason: "surface_inactive" });
+    await expect(client.connect()).rejects.toMatchObject({ message: "surface changed again" });
+    await flush();
+    expect(createSession).toHaveBeenCalledTimes(2);
+    expect(transport.getStatus()).toBe("disconnected");
+    transport.dispose();
+    await expect(client.connect()).rejects.toMatchObject({ message: "Desktop Platform Frame Port disposed" });
+    expect(createSession).toHaveBeenCalledTimes(2);
+  });
+
+  it("rejects pending replacement connections when disposed and prevents late connected events", async () => {
+    const first = new FakeDesktopPlatformSession();
+    const second = new FakeDesktopPlatformSession();
+    const createSession = jest.fn().mockReturnValueOnce(first).mockReturnValueOnce(second);
+    const transport = new DesktopRealtimeTransport({ transportVersion: 2, createSession });
+    const client = getDesktopPlatformFrameClient()!;
+    first.closed({ reason: "surface_inactive" });
+    const retry = client.connect();
+    const failure = expect(retry).rejects.toMatchObject({ message: "Desktop Platform Frame Port disposed" });
+    const stale = second.captureListeners();
+    transport.dispose();
+    await failure;
+    for (const listener of stale.states) listener({
+      phase: "connected", logicalGeneration: 2, physicalGeneration: 1, reconnectCount: 0, retryable: false,
+    });
+    expect(transport.getStatus()).toBe("disposed");
+    expect(second.closeCalls).toBe(1);
+    expect(createSession).toHaveBeenCalledTimes(2);
+  });
+
   it("registers the Frame Port client for ordinary Platform requests", async () => {
     const session = new FakeDesktopPlatformSession();
     const transport = new DesktopRealtimeTransport({
