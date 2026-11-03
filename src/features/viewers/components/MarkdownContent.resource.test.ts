@@ -69,6 +69,14 @@ jest.mock("@/shared/ui/useAuthenticatedResourceUrl", () => ({
 import { MarkdownContent } from "@/features/viewers/components/MarkdownContent";
 
 describe("MarkdownContent resource image", () => {
+  // These assertions use English link titles; the suite default locale is zh-CN.
+  beforeAll(() => {
+    Object.defineProperty(navigator, "language", { value: "en-US", configurable: true });
+  });
+  afterAll(() => {
+    Object.defineProperty(navigator, "language", { value: "zh-CN", configurable: true });
+  });
+
   beforeEach(() => {
     mockUseAuthenticatedResourceUrl.mockReset();
     mockUseAuthenticatedResourceUrl.mockReturnValue({
