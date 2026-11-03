@@ -41,7 +41,7 @@ export class DesktopRealtimeTransport implements RealtimeTransport {
   private disposed = false;
 
   constructor(readonly platformFramePort: DesktopPlatformFramePort) {
-    this.client = new DesktopFramePortDriver(platformFramePort.createSession());
+    this.client = new DesktopFramePortDriver(() => platformFramePort.createSession());
     this.unregisterPlatformFrameClient = registerDesktopPlatformFrameClient(this.client);
     const ensureClient = async () => this.client;
     const selectionExplainClient = createDesktopSelectionExplainClient(this.client);
