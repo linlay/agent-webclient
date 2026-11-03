@@ -43,11 +43,14 @@ export interface SubmissionDraft {
   agentKey: string;
   message: string;
   references: unknown[];
+  uploadChatId?: string;
   schemaVersion: 2;
   version: number;
 }
 
 export interface ComposerState extends ComposerAccessState, ComposerModelState {
+  /** Upload shell owned by the shared blank-chat draft, never by the active history Chat. */
+  composerUploadChatId: string;
   composerEditVersion: number;
   composerReferences: unknown[];
   submissionDrafts: Record<string, SubmissionDraft>;
@@ -69,6 +72,7 @@ export type ComposerDraftState = Pick<
 >;
 
 export type ComposerInteractionAction =
+  | { type: "SET_COMPOSER_UPLOAD_CHAT_ID"; chatId: string }
   | { type:"SET_COMPOSER_REFERENCES"; references:unknown[] }
   | { type: "SET_EDITING_MODE"; enabled: boolean | undefined }
   | { type: "SET_MENTION_OPEN"; open: boolean }
@@ -94,6 +98,7 @@ export function createInitialComposerState(): ComposerState {
   return {
     ...restoreComposerAccessLevels(),
     ...restoreComposerModels(),
+    composerUploadChatId: "",
     composerEditVersion: 0,
     composerReferences: [],
     submissionDrafts: {},
@@ -115,6 +120,7 @@ export function reduceComposerInteractionState<S extends ComposerState>(state: S
 export function reduceComposerInteractionState<S extends ComposerState>(state: S, input: { type: string }): S | null {
   const action = input as ComposerInteractionAction;
   switch (action.type) {
+    case "SET_COMPOSER_UPLOAD_CHAT_ID": return { ...state, composerUploadChatId: action.chatId };
     case "SET_COMPOSER_REFERENCES": return { ...state, composerReferences: action.references };
     case "SET_EDITING_MODE": return { ...state, editingMode: action.enabled };
     case "SET_MENTION_OPEN": return { ...state, mentionOpen: action.open };

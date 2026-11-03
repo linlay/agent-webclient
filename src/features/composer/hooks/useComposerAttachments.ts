@@ -33,7 +33,7 @@ interface UseComposerAttachmentsInput {
     | "pendingNewChatAgentKey"
     | "workerIndexByKey"
     | "workerSelectionKey"
-  > & Partial<Pick<AppState, "restoredSteerReferencesByChatId">>;
+  > & Partial<Pick<AppState, "restoredSteerReferencesByChatId" | "composerUploadChatId">>;
   onError?: (message: string) => void;
 }
 
@@ -98,7 +98,13 @@ export function useComposerAttachments(input: UseComposerAttachmentsInput) {
     [localAttachments, restoredAttachments, sameAttachmentScope],
   );
   const hasFailedAttachments = attachments.some(attachment => attachment.status === "error");
-  const [attachmentChatId, setAttachmentChatId] = useState("");
+  const attachmentChatId = state.chatId ? "" : state.composerUploadChatId || "";
+  const setAttachmentChatId = useCallback((value: string | ((current: string) => string)) => {
+    // Historical uploads already belong to state.chatId. They must not replace
+    // the upload shell retained by the shared New Chat draft.
+    if (state.chatId) return;
+    dispatch({ type: "SET_COMPOSER_UPLOAD_CHAT_ID", chatId: typeof value === "function" ? value(attachmentChatId) : value });
+  }, [dispatch, state.chatId, attachmentChatId]);
   const [isCapturingDesktopScreenshot, setIsCapturingDesktopScreenshot] =
     useState(false);
   const [attachmentScrollState, setAttachmentScrollState] =
@@ -227,7 +233,7 @@ export function useComposerAttachments(input: UseComposerAttachmentsInput) {
       canScrollLeft: false,
       canScrollRight: false,
     });
-  }, [dispatch, state.chatId, restoredReferences]);
+  }, [dispatch, state.chatId, restoredReferences, setAttachmentChatId]);
 
   const openFilePicker = useCallback(() => {
     if (!localFilesAllowed || isFrontendActive || isVoiceMode) {
@@ -301,7 +307,7 @@ export function useComposerAttachments(input: UseComposerAttachmentsInput) {
         return next;
       });
     },
-    [state.chatId, dispatch, restoredReferences],
+    [state.chatId, dispatch, restoredReferences, setAttachmentChatId],
   );
 
   const uploadFiles = useCallback(
@@ -366,6 +372,7 @@ export function useComposerAttachments(input: UseComposerAttachmentsInput) {
     },
     [
       attachmentChatId,
+      setAttachmentChatId,
       dispatch,
       localFilesAllowed,
       isFrontendActive,
@@ -524,6 +531,7 @@ export function useComposerAttachments(input: UseComposerAttachmentsInput) {
     return succeeded;
   }, [
     attachmentChatId,
+    setAttachmentChatId,
     dispatch,
     state.chatAgentById,
     state.chatId,
@@ -646,12 +654,6 @@ export function useComposerAttachments(input: UseComposerAttachmentsInput) {
       );
     };
   }, [clearComposerAttachments]);
-
-  useEffect(() => {
-    if (String(state.chatId || "").trim()) {
-      setAttachmentChatId("");
-    }
-  }, [state.chatId]);
 
   return {
     addContextReference,

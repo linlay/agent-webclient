@@ -1,11 +1,12 @@
 /** @jest-environment jsdom */
 import { appReducer } from "@/app/state/reducer";
 import { createInitialState } from "@/app/state/state";
-const draft = { requestId: "r", chatId: "", agentKey: "a", message: "original", references: [{ type: "file", url: "resource://a" }, {type:"skill",id:"pdf"}], schemaVersion: 2 as const };
+const draft = { requestId: "r", chatId: "", agentKey: "a", message: "original", references: [{ type: "file", url: "resource://a" }, {type:"skill",id:"pdf"}], uploadChatId: "upload-chat", schemaVersion: 2 as const };
 function begin() { return appReducer(createInitialState(), { type: "BEGIN_COMPOSER_SUBMISSION", draft }); }
 it("restores body, references and skill selection when input was untouched", () => {
   const state = appReducer(begin(), { type: "SETTLE_COMPOSER_SUBMISSION", requestId: "r", accepted: false });
   expect(state.composerDraft).toBe("original");
+  expect(state.composerUploadChatId).toBe("upload-chat");
   expect(state.composerReferences).toEqual(draft.references);
   expect(state.restoredSteerReferencesByChatId[""]).toEqual(draft.references);
 });

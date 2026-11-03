@@ -3,6 +3,8 @@ import React, { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import { useComposerAttachments } from './useComposerAttachments';
 import { uploadFile } from '@/shared/data';
+import { appReducer } from '@/app/state/reducer';
+import { createInitialState } from '@/app/state/state';
 
 jest.mock('@/shared/data', () => ({
   createRequestId: (() => { let sequence = 0; return () => `upload-${++sequence}`; })(),
@@ -100,3 +102,59 @@ it('allows pasting during a run, retains failed uploads, and isolates restored i
    expect(actions.sendReferences).toEqual([]);
   } finally { act(() => root.unmount()); }
  });
+
+it('restores the New Chat upload identity with references after history uploads, clearing and remounting', async () => {
+  (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
+  upload.mockReset();
+  upload.mockImplementation(async ({ chatId, filename }: any) => ({ data: {
+    chatId: chatId || 'blank-upload-chat',
+    upload: { id: filename, type: 'file', name: filename, url: filename, mimeType: 'text/plain' },
+  } }));
+  let state = createInitialState();
+  let actions!: ReturnType<typeof useComposerAttachments>;
+  let dispatch!: React.Dispatch<any>;
+  const Harness = () => {
+    const [current, send] = React.useReducer(appReducer, state);
+    state = current;
+    dispatch = send;
+    actions = useComposerAttachments({ dispatch, state: current, mainChatRunning: false, isFrontendActive: false, isVoiceMode: false });
+    React.useEffect(() => { send({ type: 'SET_COMPOSER_REFERENCES', references: actions.sendReferences }); }, [actions.sendReferences]);
+    return null;
+  };
+  const container = document.createElement('div');
+  let root = createRoot(container);
+  const addFile = async (name: string) => {
+    await act(async () => { actions.handleFileSelection({ target: { files: [new File(['test'], name)], value: '' } } as any); });
+  };
+  try {
+    act(() => root.render(React.createElement(Harness)));
+    act(() => dispatch({ type: 'SET_COMPOSER_DRAFT', draft: 'Please read the attachment' }));
+    await addFile('blank.txt');
+    expect(actions.attachmentChatId).toBe('blank-upload-chat');
+    const blankReferences = actions.sendReferences;
+    act(() => dispatch({ type: 'SET_CHAT_ID', chatId: 'history-chat' }));
+    expect(actions.sendReferences).toEqual([]);
+    expect(actions.attachmentChatId).toBe('');
+    await addFile('history.txt');
+    expect(upload).toHaveBeenLastCalledWith(expect.objectContaining({ chatId: 'history-chat' }));
+    act(() => actions.clearComposerAttachments());
+    expect(state.composerUploadChatId).toBe('blank-upload-chat');
+    act(() => {
+      dispatch({ type: 'SET_CHAT_ID', chatId: '' });
+      dispatch({ type: 'RESET_ACTIVE_CONVERSATION' });
+    });
+    expect(state.composerDraft).toBe('Please read the attachment');
+    expect(actions.sendReferences).toEqual(blankReferences);
+    expect(actions.attachmentChatId).toBe('blank-upload-chat');
+    act(() => root.unmount());
+    root = createRoot(container);
+    act(() => root.render(React.createElement(Harness)));
+    expect(actions.sendReferences).toEqual(blankReferences);
+    expect(actions.attachmentChatId).toBe('blank-upload-chat');
+    await addFile('next.txt');
+    expect(upload).toHaveBeenLastCalledWith(expect.objectContaining({ chatId: 'blank-upload-chat' }));
+    act(() => actions.clearComposerAttachments());
+    expect(state.composerUploadChatId).toBe('');
+    expect(actions.sendReferences).toEqual([]);
+  } finally { act(() => root.unmount()); }
+});

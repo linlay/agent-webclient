@@ -650,6 +650,7 @@ export function useComposerSend(input: UseComposerSendInput) {
     dispatch({ type: "BEGIN_COMPOSER_SUBMISSION", draft: {
       requestId: submissionRequestId, chatId: stateRef.current.chatId,
       agentKey: owner?.kind === "agent" ? owner.agentKey : "", message,
+      uploadChatId: !currentState.chatId ? attachmentChatId : undefined,
       schemaVersion: 2, references: [...sendReferences],
     } });
     window.dispatchEvent(

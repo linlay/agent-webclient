@@ -590,7 +590,7 @@ describe('useComposerSend active run gate', () => {
     createRequestIdMock.mockImplementation((prefix: string) => `${prefix}_request`);
   });
 
-  it('clears the composer text and all references while sending the selected Skills with a new-chat message', () => {
+  it.each(['', 'upload-chat'])('clears the composer and sends the new-chat draft with upload identity %j', (uploadChatId) => {
     const state = createInitialState();
     state.pendingNewChatAgentKey = 'agent-a';
     state.composerDraft = 'hello';
@@ -642,7 +642,7 @@ describe('useComposerSend active run gate', () => {
     const Harness = () => {
       actions = useComposerSend({
         accessLevel: 'ask_for_approval',
-        attachmentChatId: '',
+        attachmentChatId: uploadChatId,
         backgroundCommandText: {
           rememberPending: '',
           rememberError: '',
@@ -727,8 +727,8 @@ describe('useComposerSend active run gate', () => {
       draft: '',
     });
     expect(clearComposerAttachments).toHaveBeenCalledTimes(1);
-    expect(sendMessage).toHaveBeenCalledWith(expect.objectContaining({message: 'hello', agentKey: 'agent-a', skillReferenceAgentKey: 'agent-a', references: [...(['code-review'] || []).map(id => ({type:"skill",id})), ...(['library-a'] || []).map(id => ({type:"kbase",id}))]}));
-    expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({ type: 'BEGIN_COMPOSER_SUBMISSION', draft: expect.objectContaining({ schemaVersion: 2, references: [{type:'skill',id:'code-review'},{type:'kbase',id:'library-a'}] }) }));
+    expect(sendMessage).toHaveBeenCalledWith(expect.objectContaining({message: 'hello', chatId: uploadChatId || undefined, agentKey: 'agent-a', skillReferenceAgentKey: 'agent-a', references: [...(['code-review'] || []).map(id => ({type:"skill",id})), ...(['library-a'] || []).map(id => ({type:"kbase",id}))]}));
+    expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({ type: 'BEGIN_COMPOSER_SUBMISSION', draft: expect.objectContaining({ schemaVersion: 2, uploadChatId, references: [{type:'skill',id:'code-review'},{type:'kbase',id:'library-a'}] }) }));
     expect(operationOrder).toEqual(['clear-draft', 'clear-references', 'send-message']);
   });
 
