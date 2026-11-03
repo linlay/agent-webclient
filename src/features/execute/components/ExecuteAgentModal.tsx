@@ -2,9 +2,10 @@ import React, { useEffect, useRef, useState } from "react";
 import { Button, Input, Modal, Select, Spin, Typography } from "antd";
 import { ApiError, createRequestId } from "@/shared/data/api/http";
 import { executeAgent } from "@/shared/data/api/requests/execute";
+import { uploadFile, extractUploadChatId, extractUploadReferences } from "@/shared/data/api/requests/uploads";
 import type { ExecuteFile, ExecuteRequest, ExecuteResult } from "@/shared/data/api/dto/execute";
 import { useI18n } from "@/shared/i18n";
-import { buildExecuteRequest, ExecuteValidationError } from "../lib/executeForm";
+import { buildExecuteRequest, parseExecuteReferences, ExecuteValidationError } from "../lib/executeForm";
 import { getExecuteExamples } from "../lib/executeExamples";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import styles from "./ExecuteAgentModal.module.css";
@@ -18,7 +19,12 @@ export function ExecuteAgentModal({ agentKey, agentName, defaultAccessLevel = "a
   const [schema, setSchema] = useState(JSON.stringify({ type: "object" }, null, 2));
   const [accessLevel, setAccessLevel] = useState<ExecuteRequest["accessLevel"]>("default");
   const [files, setFiles] = useState<ExecuteFile[]>([]);
+  const [requestChatId, setRequestChatId] = useState("");
+  const [references, setReferences] = useState("");
+  const [uploading, setUploading] = useState(false);
+  const uploadInput = useRef<HTMLInputElement | null>(null);
   const [running, setRunning] = useState(false);
+  const busy = running || uploading;
   const [result, setResult] = useState<ExecuteResult | null>(null);
   const [error, setError] = useState("");
   const [chatId, setChatId] = useState("");
@@ -27,10 +33,10 @@ export function ExecuteAgentModal({ agentKey, agentName, defaultAccessLevel = "a
 
   const run = async () => {
     if (controller.current) return;
-    setError(""); setResult(null); setChatId("");
+    setError(""); setResult(null); setChatId(requestChatId.trim());
     let request: ExecuteRequest;
     try {
-      request = buildExecuteRequest({ agentKey, message, input, schema, accessLevel, files });
+      request = buildExecuteRequest({ agentKey, message, input, schema, accessLevel, files, chatId: requestChatId, references });
     } catch (e) {
       setError(e instanceof ExecuteValidationError ? t(`execute.validation.${e.field}`) : String(e));
       return;
@@ -53,9 +59,34 @@ export function ExecuteAgentModal({ agentKey, agentName, defaultAccessLevel = "a
       if (controller.current === active) { controller.current = null; setRunning(false); }
     }
   };
+  const uploadReferences = async (selected: File[]) => {
+    if (!selected.length || controller.current || files.length) return;
+    let appended: unknown[];
+    try { appended = parseExecuteReferences(references); }
+    catch { setError(t("execute.validation.references")); return; }
+    const active = new AbortController();
+    controller.current = active;
+    setUploading(true); setError("");
+    let currentChatId = requestChatId.trim();
+    try {
+      for (const file of selected) {
+        const response = await uploadFile({ file, chatId: currentChatId || undefined, signal: active.signal });
+        if (controller.current !== active || active.signal.aborted) return;
+        currentChatId = extractUploadChatId(response.data);
+        if (!currentChatId) throw new Error(t("execute.uploadFailed"));
+        appended = [...appended, ...extractUploadReferences(response.data)];
+        setRequestChatId(currentChatId);
+        setReferences(JSON.stringify(appended, null, 2));
+      }
+    } catch (e) {
+      if (controller.current === active && !active.signal.aborted) setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      if (controller.current === active) { controller.current = null; setUploading(false); }
+    }
+  };
   const close = () => { controller.current?.abort(); onClose(); };
 
-  const statusKey = running ? "execute.running" : error ? "execute.error" : result
+  const statusKey = uploading ? "execute.uploading" : running ? "execute.running" : error ? "execute.error" : result
     ? result.status === "success" ? "execute.success" : "execute.failure"
     : "execute.idle";
 
@@ -65,8 +96,8 @@ export function ExecuteAgentModal({ agentKey, agentName, defaultAccessLevel = "a
     width={1180}
     className={styles.modal}
     onCancel={close}
-    closable={!running}
-    keyboard={!running}
+    closable={!busy}
+    keyboard={!busy}
     maskClosable={false}
     footer={
       <div className={styles.footer}>
@@ -84,7 +115,7 @@ export function ExecuteAgentModal({ agentKey, agentName, defaultAccessLevel = "a
             aria-label={t("execute.examples.select")}
             placeholder={t("execute.examples.select")}
             value={exampleId}
-            disabled={running}
+            disabled={busy}
             virtual={false}
             onChange={id => {
               const example = examples.find(item => item.id === id);
@@ -94,7 +125,7 @@ export function ExecuteAgentModal({ agentKey, agentName, defaultAccessLevel = "a
               setMessage(message);
               setInput(JSON.stringify(input, null, 2));
               setSchema(JSON.stringify(outputSchema, null, 2));
-              setFiles([]);
+              setFiles([]); setRequestChatId(""); setReferences("");
               setResult(null); setError(""); setChatId("");
             }}
             options={examples.map(example => ({ value: example.id, label: example.label, title: example.description }))}
@@ -107,21 +138,21 @@ export function ExecuteAgentModal({ agentKey, agentName, defaultAccessLevel = "a
         <div className={styles.fields}>
           <label className={styles.field}>
             <span>{t("execute.message")}</span>
-            <Input.TextArea size="small" placeholder={t("execute.messagePlaceholder")} value={message} onChange={e => setMessage(e.target.value)} rows={2} disabled={running} />
+            <Input.TextArea size="small" placeholder={t("execute.messagePlaceholder")} value={message} onChange={e => setMessage(e.target.value)} rows={2} disabled={busy} />
           </label>
           <label className={styles.field}>
             <span>{t("execute.input")}<small>{t("execute.format.json")}</small></span>
-            <Input.TextArea size="small" className={styles.json} value={input} onChange={e => setInput(e.target.value)} rows={5} disabled={running} spellCheck={false} />
+            <Input.TextArea size="small" className={styles.json} value={input} onChange={e => setInput(e.target.value)} rows={5} disabled={busy} spellCheck={false} />
           </label>
           <label className={styles.field}>
             <span>{t("execute.schema")}<small>{t("execute.format.schema")}</small></span>
-            <Input.TextArea size="small" className={styles.json} value={schema} onChange={e => setSchema(e.target.value)} rows={7} disabled={running} spellCheck={false} />
+            <Input.TextArea size="small" className={styles.json} value={schema} onChange={e => setSchema(e.target.value)} rows={7} disabled={busy} spellCheck={false} />
           </label>
           <details className={styles.settings}>
             <summary>{t("execute.settings")}</summary>
             <div className={styles.settingsBody}>
               <label className={styles.field}><span>{t("execute.files")}</span>
-                <input type="file" multiple disabled={running} onChange={e => {
+                <input type="file" multiple disabled={busy || !!requestChatId.trim() || !!references.trim()} onChange={e => {
                   setFiles(Array.from(e.target.files || []).map((file, i) => ({ field: `file_${i + 1}`, file })));
                   e.target.value = "";
                 }} />
@@ -129,10 +160,25 @@ export function ExecuteAgentModal({ agentKey, agentName, defaultAccessLevel = "a
               <p className={styles.note}>{t("execute.fileHint")}</p>
               {!!files.length && <div className={styles.files}>
                 {files.map(({ field, file }) => <Typography.Text key={field} code>{field}: {file.name}</Typography.Text>)}
-                <Button size="small" disabled={running} onClick={() => setFiles([])}>{t("execute.clearFiles")}</Button>
+                <Button size="small" disabled={busy} onClick={() => setFiles([])}>{t("execute.clearFiles")}</Button>
               </div>}
+              <label className={styles.field}><span>{t("execute.chatId")}</span>
+                <Input size="small" value={requestChatId} onChange={e => setRequestChatId(e.target.value)} disabled={busy || !!files.length} />
+              </label>
+              <label className={styles.field}><span>{t("execute.references")}<small>{t("execute.format.json")}</small></span>
+                <Input.TextArea size="small" className={styles.json} value={references} onChange={e => setReferences(e.target.value)} rows={5} disabled={busy || !!files.length} spellCheck={false} />
+              </label>
+              <div className={styles.files}>
+                <input ref={uploadInput} type="file" multiple hidden aria-label={t("execute.uploadReferences")} disabled={busy || !!files.length} onChange={e => {
+                  const selected = Array.from(e.target.files || []);
+                  e.target.value = "";
+                  void uploadReferences(selected);
+                }} />
+                <Button size="small" disabled={busy || !!files.length} onClick={() => uploadInput.current?.click()}>{t("execute.uploadReferences")}</Button>
+                <Button size="small" disabled={busy} onClick={() => { setRequestChatId(""); setReferences(""); }}>{t("execute.clearReferences")}</Button>
+              </div>
               <label className={styles.field}><span>{t("execute.access")}</span>
-                <Select size="small" value={accessLevel === "default" ? defaultAccessLevel : accessLevel} disabled={running} onChange={setAccessLevel} options={[
+                <Select size="small" value={accessLevel === "default" ? defaultAccessLevel : accessLevel} disabled={busy} onChange={setAccessLevel} options={[
                   { value: "ask_for_approval", label: t("execute.access.ask_for_approval") },
                   { value: "auto_approve", label: t("execute.access.auto") },
                   { value: "full_access", label: t("execute.access.full") },
@@ -147,7 +193,7 @@ export function ExecuteAgentModal({ agentKey, agentName, defaultAccessLevel = "a
           ? <Button className={styles.runAction} danger onClick={() => controller.current?.abort()}>
               <MaterialIcon name="close" /><span className={styles.runLabel} lang={locale}>{t("execute.cancel")}</span>
             </Button>
-          : <Button className={styles.runAction} type="primary" onClick={() => void run()}>
+          : <Button className={styles.runAction} type="primary" disabled={uploading} onClick={() => void run()}>
               <MaterialIcon name="play_circle" /><span className={styles.runLabel} lang={locale}>{t("execute.run")}</span>
             </Button>}
       </div>

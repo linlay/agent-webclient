@@ -99,3 +99,12 @@ Node 应用启动受理后显示 starting，通过管理轮询更新健康和错
 
 
 安装与生命周期返回 202 operationId，界面轮询受理结果，再刷新应用状态；取消仅停止等待，已受理操作仍由服务处理。保存运行中 Node 配置或权限会创建新 generation，旧会话失效。运行中更新失败恢复旧代码，页面展示错误并读取回退后的实际状态；不自动重放安装或启停。
+
+
+## 上传与执行
+
+`UploadFileParams` 位于 `shared/data/api/dto/resources.ts`，包含 file、filename、requestId、chatId、sha256、signal。uploadFile 使用 HTTP multipart 发送，平台返回 `{requestId,chatId,upload}`（在 ApiResponse.data 内），通过 extractUploadReferences / extractUploadChatId 转换。Platform 自己计算 sha256；可选 agentKey/name 由 Platform 支持，当前 helper 不发送，见附件上传专题。
+
+`ExecuteRequest` 位于 `dto/execute.ts`，新增可选 `chatId?: string` 与 `references?: unknown[]`，与 Query 的引用表示一致。没有 chatId 时新建 Chat；传入时按 Query 规则复用或创建。引用解析、交互限制与交卷 Schema 由 Platform 校验。
+
+executeAgent 只走同步 HTTP、不走 WS、不自动重试。有 multipart 文件时发送 request JSON 文本字段及文件字段，由浏览器生成 boundary；没有 multipart 文件时发送 JSON，包括已经上传的 references。Platform 拒绝 chatId 与 multipart 文件同时出现；执行测试页将两种附件输入互斥，并省略空 chatId/空 references。

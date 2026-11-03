@@ -28,3 +28,10 @@ test("propagates platform errors, including the chat ID, without retry", async (
   await expect(executeAgent(request)).rejects.toBe(error);
   expect(jest.mocked(requestJson).mock.calls).toHaveLength(before + 1);
 });
+
+
+test("serializes uploaded Chat references as JSON without multipart files", async () => {
+  const referenced: ExecuteRequest = { ...request, input: {}, chatId: "uploaded-chat", references: [{ type: "file", url: "@chat/receipt.png" }] };
+  await executeAgent(referenced);
+  expect(requestJson).toHaveBeenLastCalledWith("/api/execute", expect.objectContaining({ body: JSON.stringify(referenced), jsonContentType: true, retryUnauthorized: false }));
+});

@@ -1,5 +1,7 @@
 export interface ExecuteRequest {
   requestId?: string;
+  chatId?: string;
+  references?: unknown[];
   agentKey: string;
   message: string;
   input?: unknown;

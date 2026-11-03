@@ -15,14 +15,23 @@ export const exampleSchema = {
   additionalProperties: false,
 };
 
-export type ExecuteValidationCode = "message" | "input" | "schema" | "files";
+export type ExecuteValidationCode = "message" | "input" | "schema" | "files" | "references" | "attachmentConflict";
 export class ExecuteValidationError extends Error {
   constructor(public field: ExecuteValidationCode) { super(field); }
+}
+
+export function parseExecuteReferences(value = ""): unknown[] {
+  try {
+    const references: unknown = value.trim() ? JSON.parse(value) : [];
+    if (!Array.isArray(references)) throw new Error();
+    return references;
+  } catch { throw new ExecuteValidationError("references"); }
 }
 
 export function buildExecuteRequest(params: {
   agentKey: string; message: string; input: string; schema: string;
   accessLevel: ExecuteRequest["accessLevel"]; files: ExecuteFile[];
+  chatId?: string; references?: string;
 }): ExecuteRequest {
   if (!params.message.trim()) throw new ExecuteValidationError("message");
   let input: unknown;
@@ -33,6 +42,9 @@ export function buildExecuteRequest(params: {
     schema = JSON.parse(params.schema);
     if (!schema || Array.isArray(schema) || schema.type !== "object" || new TextEncoder().encode(params.schema).length > 65536) throw new Error();
   } catch { throw new ExecuteValidationError("schema"); }
+  const chatId = params.chatId?.trim();
+  const references = parseExecuteReferences(params.references);
+  if (params.files.length && (chatId || references.length)) throw new ExecuteValidationError("attachmentConflict");
   const refs = new Set<string>();
   function visit(value: unknown): void {
     if (!value || typeof value !== "object") return;
@@ -51,6 +63,7 @@ export function buildExecuteRequest(params: {
     || new Set(params.files.map(f => f.file.name)).size !== params.files.length) throw new ExecuteValidationError("files");
   return {
     agentKey: params.agentKey, message: params.message,
+    ...(chatId ? { chatId } : {}), ...(references.length ? { references } : {}),
     ...(input !== undefined ? { input } : {}), outputSchema: schema, accessLevel: params.accessLevel,
   };
 }

@@ -25,3 +25,23 @@ test("validates nested file references and allows repeated references", () => {
   invalid({ files, input: '{"doc":{"$file":"file_1","extra":true}}' }, "files");
   invalid({ files: [...files, { field: "file_2", file: files[0].file }], input: '[{"$file":"file_1"},{"$file":"file_2"}]' }, "files");
 });
+
+
+test("parses references JSON and omits empty optional fields", () => {
+  for (const references of ["{", "{}", "null", '"file"']) invalid({ references }, "references");
+  for (const references of ["", "  ", "[]"]) {
+    const request = buildExecuteRequest({ ...base, chatId: " ", references });
+    expect(request).not.toHaveProperty("chatId");
+    expect(request).not.toHaveProperty("references");
+  }
+  const references = [{ type: "file", name: "receipt.png", url: "@chat/receipt.png" }];
+  expect(buildExecuteRequest({ ...base, chatId: " uploaded-chat ", references: JSON.stringify(references) }))
+    .toMatchObject({ chatId: "uploaded-chat", references });
+});
+
+test("rejects mixing multipart files with a Chat or references", () => {
+  const files = [{ field: "file_1", file: { name: "note.txt" } as File }];
+  const input = '{"doc":{"$file":"file_1"}}';
+  invalid({ files, input, chatId: "uploaded-chat" }, "attachmentConflict");
+  invalid({ files, input, references: '[{"type":"file","url":"@chat/note.txt"}]' }, "attachmentConflict");
+});
