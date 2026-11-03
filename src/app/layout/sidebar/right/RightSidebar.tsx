@@ -18,6 +18,7 @@ import {
   type TabsProps,
 } from "antd";
 import { ContentViewerPanel } from "@/features/viewers/components/ContentViewerPanel";
+import { useOpenTarget } from "@/features/surfaces/hooks/useOpenTarget";
 import {
   OnlineDocumentPreviewTab,
   OnlineDocumentPreviewTabContextMenu,
@@ -129,6 +130,7 @@ export const RightSidebar: React.FC = () => {
   const { t } = useI18n();
   const message = useAppMessage();
   const dispatch = useAppDispatch();
+  const openTarget = useOpenTarget();
   const state = useAppState();
   const { discardBTW, getSession } = useBTW();
   const viewPreviews = state.viewPreviews;
@@ -501,6 +503,7 @@ export const RightSidebar: React.FC = () => {
           <ContentViewerPanel
             target={target}
             onOpenOnlinePreview={(preview) => dispatch({ type: "OPEN_DOCUMENT_PREVIEW", preview })}
+            onOpenTarget={openTarget}
             enableDesktopLocalResourceActions
             refreshRequest={tabRefreshRequests[`viewer:${viewerKey}`] ?? 0}
             fullscreenRequest={

@@ -53,7 +53,8 @@ afterEach(() => { act(() => root.unmount()); container.remove(); });
 it.each([
   ["https://example.com/report", { kind: "web", url: "https://example.com/report" }],
   ["/Users/demo/project/report.md", { kind: "file", agentKey: "demo", path: "/Users/demo/project/report.md" }],
-  ["artifacts/run_01/report.html", { kind: "resource", chatId: "chat_01", file: "artifacts/run_01/report.html" }],
+  ["@chat/artifacts/run_01/report.html", { kind: "resource", chatId: "chat_01", file: "@chat/artifacts/run_01/report.html" }],
+  ["@workspace/src/app.ts:42:3", { kind: "file", agentKey: "demo", path: "src/app.ts", line: 42 }],
 ])("keeps %s mounted through focus and opens WorkPanel on the first click", async (href, intent) => {
   await act(async () => root.render(<FocusProbe href={String(href)} />));
   const anchor = container.querySelector("a")!;
@@ -63,6 +64,15 @@ it.each([
   await act(async () => anchor.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, button: 0 })));
   expect(openTarget).toHaveBeenCalledTimes(1);
   expect(openTarget).toHaveBeenCalledWith(expect.objectContaining(intent as object));
+});
+
+it.each(["artifacts/run_01/report.html", "src/app.ts"])("does not guess the root of the unscoped path %s", async (href) => {
+  await act(async () => root.render(<FocusProbe href={href} />));
+  const anchor = container.querySelector("a")!;
+  expect(anchor.getAttribute("href")).toBeNull();
+  expect(anchor.getAttribute("title")).toBe("markdown.link.scopeRequired");
+  await act(async () => anchor.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, button: 0 })));
+  expect(openTarget).not.toHaveBeenCalled();
 });
 
 it("uses the updated operation and Agent identity after a genuine context change", async () => {

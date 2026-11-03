@@ -52,7 +52,7 @@ describe("resources request contracts", () => {
     });
 
     await expect(
-      getResourceDocumentMetadata("artifacts/run_1/novel.md", {
+      getResourceDocumentMetadata("@chat/artifacts/run_1/novel.md", {
         chatId: "chat_1",
       }),
     ).resolves.toEqual({
@@ -78,7 +78,7 @@ describe("resources request contracts", () => {
     });
 
     await expect(
-      getResourceDocumentMetadata("artifacts/run_1/novel.md", {
+      getResourceDocumentMetadata("@chat/artifacts/run_1/novel.md", {
         chatId: "chat_1",
       }),
     ).resolves.toEqual({
@@ -309,10 +309,10 @@ describe("resources request contracts", () => {
     setAccessToken("resource-token");
 
     await expect(
-      getResourceBlob("image.png", { chatId: "chat_01" }),
+      getResourceBlob("@chat/image.png", { chatId: "chat_01" }),
     ).resolves.toBe(blob);
     await expect(
-      getResourceText("report.txt", { chatId: "chat_01" }),
+      getResourceText("@chat/report.txt", { chatId: "chat_01" }),
     ).resolves.toBe("artifact text");
 
     expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
@@ -330,46 +330,13 @@ describe("resources request contracts", () => {
     }
   });
 
-  it("sends Workspace and tmp absolute paths with chat context so Platform decides access", async () => {
-    const blob = new Blob(["absolute"], { type: "image/png" });
-    fetchMock.mockResolvedValue({
-      ok: true,
-      status: 200,
-      blob: async () => blob,
-    });
+  it("never reads host absolute paths through the Chat data plane", async () => {
     setAccessToken("absolute-token");
-
-    await expect(
-      getResourceBlob("/Users/alice/project/%E5%A4%8F%E6%97%A5%20%231%25.png", {
-        chatId: "chat_01",
-      }),
-    ).resolves.toBe(blob);
-    await expect(
-      getResourceBlob("/tmp/poster.png", {
-        chatId: "chat_01",
-      }),
-    ).resolves.toBe(blob);
-    await expect(
-      getResourceBlob("/tmp/team.png", {
-        chatId: "chat_01",
-        teamChat: true,
-      }),
-    ).resolves.toBe(blob);
-
-    expect(fetchMock.mock.calls.map(([requestUrl]) => requestUrl)).toEqual([
-      "/api/resource?file=%2FUsers%2Falice%2Fproject%2F%E5%A4%8F%E6%97%A5+%231%25.png&chatId=chat_01",
-      "/api/resource?file=%2Ftmp%2Fposter.png&chatId=chat_01",
-      "/api/resource?file=%2Ftmp%2Fteam.png&chatId=chat_01",
-    ]);
-    for (const [, options] of fetchMock.mock.calls as Array<
-      [string, RequestInit]
-    >) {
-      expect(options.headers).toEqual({
-        "X-Locale": "zh-CN",
-        Authorization: "Bearer absolute-token",
-      });
-      expect(options.credentials).toBe("same-origin");
+    // A host path names a Workspace file, read by agent through /api/file.
+    for (const source of ["/Users/alice/project/夏日 #1%.png", "/tmp/poster.png", "C:\\project\\poster.png"]) {
+      await expect(getResourceBlob(source, { chatId: "chat_01" })).rejects.toThrow(Error);
     }
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it("downloads resources with auth headers and a browser blob download", async () => {
@@ -405,7 +372,7 @@ describe("resources request contracts", () => {
       blob: async () => blob,
     });
 
-    await downloadResource("demo.txt", {
+    await downloadResource("@chat/demo.txt", {
       filename: "demo.txt",
       chatId: "chat_1",
     });
@@ -452,7 +419,7 @@ describe("resources request contracts", () => {
       blob: async () => new Blob(["demo"]),
     });
 
-    await downloadResource("artifacts/run_01/image.png", {
+    await downloadResource("@chat/artifacts/run_01/image.png", {
       filename: "image.png",
       chatId: "chat_01",
     });
@@ -495,7 +462,7 @@ describe("resources request contracts", () => {
     });
 
     await expect(
-      downloadResource("private.txt", { chatId: "chat_01" }),
+      downloadResource("@chat/private.txt", { chatId: "chat_01" }),
     ).rejects.toMatchObject({
       message: expect.stringContaining("下载失败"),
       status: 403,

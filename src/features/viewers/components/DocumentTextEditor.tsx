@@ -8,6 +8,7 @@ import { resolveHtmlVisualizationAssets } from "@/shared/utils/htmlVisualization
 import { t } from "@/shared/i18n";
 import { useAppMessage } from "@/shared/ui/useAppMessage";
 import type { DocumentContentKind } from "@/shared/types/document";
+import type { MarkdownContentProps } from "@/features/viewers/components/MarkdownContent";
 import {
   hasDesktopHostBridge,
   postDesktopHostMessage,
@@ -25,11 +26,21 @@ import { HTML_ELEMENT_REVIEW_MAX } from "../lib/htmlElementReview";
 import { HtmlElementReviewEditor, HtmlElementReviewPanel } from "./HtmlElementReviewPanel";
 import { HtmlElementReviewToolbar } from "./HtmlElementReviewToolbar";
 
+/**
+ * Link handling for a document's Markdown preview, bound to the document's
+ * own agent and Chat. A missing handler makes those links explain that they
+ * cannot open here.
+ */
+export type DocumentMarkdownLinks = Pick<
+  MarkdownContentProps,
+  "agentKey" | "onWorkspaceFileLinkClick" | "onResourceFileLinkClick" | "onWebLinkClick"
+>;
+
 const MarkdownPreview: React.FC<{
   content: string;
   chatId: string;
   teamChat: boolean;
-}> = process.env.NODE_ENV === "test"
+} & DocumentMarkdownLinks> = process.env.NODE_ENV === "test"
   ? ({ content }) => <div>{content}</div>
   : React.lazy(async () => {
       const module = await import("@/features/viewers/components/MarkdownContent");
@@ -148,6 +159,7 @@ export const DocumentTextEditor: React.FC<{
   kind: DocumentContentKind;
   chatId: string;
   teamChat: boolean;
+  markdownLinks?: DocumentMarkdownLinks;
   disabled?: boolean;
   saving?: boolean;
   dirty?: boolean;
@@ -166,6 +178,7 @@ export const DocumentTextEditor: React.FC<{
   kind,
   chatId,
   teamChat,
+  markdownLinks,
   disabled = false,
   saving = false,
   dirty = false,
@@ -487,7 +500,7 @@ export const DocumentTextEditor: React.FC<{
 
   const preview = markdown ? (
     <React.Suspense fallback={null}>
-      <MarkdownPreview content={value} chatId={chatId} teamChat={teamChat} />
+      <MarkdownPreview content={value} chatId={chatId} teamChat={teamChat} {...markdownLinks} />
     </React.Suspense>
   ) : (
     <iframe

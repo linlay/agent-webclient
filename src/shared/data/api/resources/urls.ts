@@ -8,6 +8,12 @@ import type {
   ResourceUrlClassificationOptions,
   ResourceUrlClassification,
 } from "@/shared/data/api/dto/resources";
+import {
+	CHAT_FILE_ALIAS,
+	WORKSPACE_FILE_ALIAS,
+	hasFileAlias,
+	parseLocalAbsolutePath,
+} from "@/shared/utils/fileAddress";
 
 export function buildResourceUrl(file: string, chatId = ""): string {
 	const normalized = String(file || "").trim();
@@ -32,55 +38,15 @@ export function isLegacyResourceUrl(value: string): boolean {
 	}
 }
 
-function decodeSafeResourceSegment(segment: string): string | null {
-	if (!segment) return null;
-	try {
-		const decoded = decodeURIComponent(segment);
-		if (!decoded || decoded === "." || decoded === ".." || decoded.includes("/") || decoded.includes("\\")) {
-			return null;
-		}
-		return decoded;
-	} catch {
-		return null;
-	}
-}
-
-export function isChatScopeResourceRef(value: string, chatId: string): boolean {
-	const normalized = String(value || "").trim();
-	const expectedChatId = String(chatId || "").trim();
-	if (!normalized || !expectedChatId || normalized.startsWith("/") || normalized.includes("\\")) {
-		return false;
-	}
-	if (/^[a-z][a-z\d+.-]*:/i.test(normalized) || normalized.startsWith("//") || normalized.includes("?") || normalized.includes("#")) {
-		return false;
-	}
-	const segments = normalized.split("/");
-	const decodedSegments = segments.map(decodeSafeResourceSegment);
-	if (decodedSegments.some((segment) => segment === null)) {
-		return false;
-	}
-	return decodedSegments[0] !== expectedChatId;
-}
-
-const CHAT_ALIAS = "@chat/";
-const WORKSPACE_ALIAS = "@workspace/";
-
-function hasAlias(value: string, alias: string): boolean {
-	return value.slice(0, alias.length).toLowerCase() === alias;
-}
-
-export function isWorkspaceAliasRef(value: string): boolean {
-	return hasAlias(String(value || "").trim(), WORKSPACE_ALIAS);
-}
-
 /**
- * "@chat/<path>" names the same file as the bare chat-relative reference.
- * Its path is literal: tool results and stored urls are never percent-encoded,
- * so nothing is decoded here. Markdown link targets are URLs and are decoded
- * once at the Markdown boundary by markdownChatAliasToLiteral.
+ * "@chat/<path>" is literal: tool results and stored urls are never
+ * percent-encoded, so nothing is decoded. The transport key encodes each
+ * segment once; Platform decodes it once and keeps a literal percent.
  */
-function chatAliasToScopeRef(source: string): string | null {
-	const segments = source.slice(CHAT_ALIAS.length).replace(/\\/g, "/").split("/");
+function chatAliasToResourceKey(source: string): string | null {
+	const relativePath = source.slice(CHAT_FILE_ALIAS.length).replace(/\\/g, "/");
+	if (relativePath.length > 2_048) return null;
+	const segments = relativePath.split("/");
 	const encoded: string[] = [];
 	for (const segment of segments) {
 		if (!segment || segment === "." || segment === ".." || /[\u0000-\u001f\u007f]/u.test(segment)) {
@@ -98,58 +64,38 @@ function chatAliasToScopeRef(source: string): string | null {
 	return encoded.join("/");
 }
 
+function invalidResource(
+	source: string,
+	invalidReason?: ResourceUrlClassification["invalidReason"],
+): ResourceUrlClassification {
+	return {
+		kind: "invalid",
+		source,
+		fetchUrl: "",
+		requiresPlatformAuth: false,
+		...(invalidReason ? { invalidReason } : {}),
+	};
+}
+
 /**
- * Converts a Markdown link target written with @chat/ into the literal
- * reference. A Markdown renderer percent-encodes the target, and an author may
- * encode it too, so each segment is decoded once; other targets are unchanged.
+ * Classifies a file or media target. A file is named only by an explicit
+ * root: "@chat/" for the current Chat, or "@workspace/" and a host absolute
+ * path for the agent Workspace. A Workspace file is read by agent and path,
+ * never through the Chat data plane, so a link and an image naming the same
+ * path read the same file.
  */
-export function markdownChatAliasToLiteral(target: string | undefined): string | undefined {
-	const value = String(target || "").trim();
-	if (!hasAlias(value, CHAT_ALIAS)) return target;
-	const segments = value.slice(CHAT_ALIAS.length).split("/").map((segment) => {
-		try {
-			return decodeURIComponent(segment);
-		} catch {
-			return segment;
-		}
-	});
-	return CHAT_ALIAS + segments.join("/");
-}
-
-function decodedAbsoluteResourcePath(source: string): string | null {
-	try {
-		const decoded = decodeURIComponent(source);
-		if (
-			!decoded.startsWith("/")
-			|| decoded.startsWith("//")
-			|| decoded.includes("\\")
-			|| decoded.includes("\u0000")
-			|| source.includes("?")
-			|| source.includes("#")
-		) {
-			return null;
-		}
-		const segments = decoded.slice(1).split("/");
-		if (
-			segments.length === 0
-			|| segments.some((segment) => !segment || segment === "." || segment === "..")
-		) {
-			return null;
-		}
-		return decoded;
-	} catch {
-		return null;
-	}
-}
-
 export function classifyResourceUrl(
 	value: string,
 	chatId = "",
 	_options: ResourceUrlClassificationOptions = {},
 ): ResourceUrlClassification {
 	const original = String(value || "").trim();
-	if (isWorkspaceAliasRef(original)) {
-		// A project file is read by agent and path, not through the Chat data plane.
+	// The transport endpoint is never an address, even though it looks absolute.
+	if (isLegacyResourceUrl(original)) {
+		return invalidResource(original);
+	}
+	const localPath = parseLocalAbsolutePath(original);
+	if (hasFileAlias(original, WORKSPACE_FILE_ALIAS) || localPath?.kind === "local") {
 		return {
 			kind: "workspace",
 			source: original,
@@ -157,32 +103,33 @@ export function classifyResourceUrl(
 			requiresPlatformAuth: false,
 		};
 	}
-	const aliased = hasAlias(original, CHAT_ALIAS) ? chatAliasToScopeRef(original) : original;
-	if (aliased === null) {
+	if (localPath?.kind === "unsupported") {
+		return invalidResource(original, "unsupported_path");
+	}
+	if (localPath?.kind === "invalid") {
+		return invalidResource(original);
+	}
+	if (hasFileAlias(original, CHAT_FILE_ALIAS)) {
+		const resourceKey = chatAliasToResourceKey(original);
+		if (resourceKey === null) return invalidResource(original);
+		const expectedChatId = String(chatId || "").trim();
+		if (!expectedChatId) return invalidResource(original, "chat_context_required");
 		return {
-			kind: "invalid",
+			kind: "chat",
 			source: original,
-			fetchUrl: "",
-			requiresPlatformAuth: false,
+			fetchUrl: buildResourceUrl(`${expectedChatId}/${resourceKey}`),
+			resourceKey,
+			requiresPlatformAuth: true,
 		};
 	}
-	const source = aliased;
-	if (isLegacyResourceUrl(source)) {
-		return {
-			kind: "invalid",
-			source,
-			fetchUrl: "",
-			requiresPlatformAuth: false,
-		};
-	}
-	if (/^https?:\/\//i.test(source)) {
+	if (/^https?:\/\//i.test(original)) {
 		try {
-			const parsed = new NativeURL(source);
+			const parsed = new NativeURL(original);
 			if (parsed.protocol === "http:" || parsed.protocol === "https:") {
 				return {
 					kind: "external",
-					source,
-					fetchUrl: source,
+					source: original,
+					fetchUrl: original,
 					requiresPlatformAuth: false,
 				};
 			}
@@ -190,47 +137,18 @@ export function classifyResourceUrl(
 			// Fall through to invalid.
 		}
 	}
-	if (/^(?:data|blob):/i.test(source)) {
+	if (/^(?:data|blob):/i.test(original)) {
 		return {
 			kind: "inline",
-			source,
-			fetchUrl: source,
+			source: original,
+			fetchUrl: original,
 			requiresPlatformAuth: false,
 		};
 	}
-	if (source.startsWith("/")) {
-		const resourcePath = decodedAbsoluteResourcePath(source);
-		if (resourcePath && chatId) {
-			return {
-				kind: "absolute",
-				source,
-				fetchUrl: buildResourceUrl(resourcePath, chatId),
-				resourceKey: resourcePath,
-				requiresPlatformAuth: true,
-			};
-		}
-		return {
-			kind: "invalid",
-			source,
-			fetchUrl: "",
-			requiresPlatformAuth: false,
-		};
+	if (original && !/^[a-z][a-z\d+.-]*:/i.test(original) && !original.startsWith("/") && !original.startsWith("#")) {
+		return invalidResource(original, "unscoped");
 	}
-	if (isChatScopeResourceRef(source, chatId)) {
-		return {
-			kind: "chat",
-			source,
-			fetchUrl: buildResourceUrl(`${chatId}/${source}`),
-			resourceKey: source,
-			requiresPlatformAuth: true,
-		};
-	}
-	return {
-		kind: "invalid",
-		source,
-		fetchUrl: "",
-		requiresPlatformAuth: false,
-	};
+	return invalidResource(original);
 }
 
 export function getResourceRequestTarget(

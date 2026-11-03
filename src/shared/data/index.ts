@@ -39,10 +39,18 @@ export {
 } from "@/shared/data/api/resources";
 export {
   classifyResourceUrl,
-  markdownChatAliasToLiteral,
-  isChatScopeResourceRef,
   isLegacyResourceUrl,
 } from "@/shared/data/api/resources/urls";
+export {
+  CHAT_FILE_ALIAS,
+  WORKSPACE_FILE_ALIAS,
+  formatChatFileAddress,
+  formatWorkspaceFileAddress,
+  hasFileAlias,
+  isLiteralFileTarget,
+  parseLocalAbsolutePath,
+  splitFileLocation,
+} from "@/shared/utils/fileAddress";
 export {
   commitDocument,
   getFileHistory,

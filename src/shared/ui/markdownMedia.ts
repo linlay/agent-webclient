@@ -1,4 +1,5 @@
 import type { XMarkdownProps } from "@ant-design/x-markdown";
+import { isLiteralFileTarget } from "@/shared/utils/fileAddress";
 
 type MarkdownExtension = NonNullable<
   NonNullable<XMarkdownProps["config"]>["extensions"]
@@ -31,13 +32,17 @@ function getMarkdownResourceExtension(source: string): string {
     return "";
   }
 
-  const path = normalized.split(/[?#]/u, 1)[0] || "";
-  const rawName = path.split("/").pop() || "";
+  // A file target is a literal path: "?", "#" and "%" belong to the name.
+  const literal = isLiteralFileTarget(normalized);
+  const path = literal ? normalized : normalized.split(/[?#]/u, 1)[0] || "";
+  const rawName = path.split(/[\\/]/u).pop() || "";
   let name = rawName;
-  try {
-    name = decodeURIComponent(rawName);
-  } catch {
-    return "";
+  if (!literal) {
+    try {
+      name = decodeURIComponent(rawName);
+    } catch {
+      return "";
+    }
   }
 
   const lastDotIndex = name.lastIndexOf(".");

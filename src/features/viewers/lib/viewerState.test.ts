@@ -24,7 +24,7 @@ test("online preview has an independent tab and reuses the original identity acr
 });
 
 test("different owning chats and paths have distinct preview tabs while display metadata does not change identity", () => {
-  const resource: ViewerTarget = { type: "resource", name: "report.xlsx", contentKind: "office", url: "artifacts/report.xlsx", downloadUrl: "artifacts/report.xlsx" };
+  const resource: ViewerTarget = { type: "resource", name: "report.xlsx", contentKind: "office", url: "@chat/artifacts/report.xlsx", downloadUrl: "@chat/artifacts/report.xlsx" };
   expect(getDocumentPreviewTabKey(resource, "a")).not.toBe(getDocumentPreviewTabKey(resource, "b"));
   expect(getDocumentPreviewTabKey(target, "a")).toBe(getDocumentPreviewTabKey({ ...target, name: "new title" }, "b"));
   expect(getDocumentPreviewTabKey(target, "a")).not.toBe(getDocumentPreviewTabKey({ ...target, path: "other/report.xlsx" }, "a"));

@@ -4,9 +4,11 @@ import React, {
   useState,
 } from "react";
 import {
+  WORKSPACE_FILE_ALIAS,
   classifyResourceUrl,
-  markdownChatAliasToLiteral,
   downloadResource,
+  formatWorkspaceFileAddress,
+  hasFileAlias,
   type ResourceUrlClassification,
 } from "@/shared/data";
 import { MarkdownCode, type ConversationMarkdownCodeProps } from "@/features/viewers/components/MarkdownCode";
@@ -38,6 +40,7 @@ import {
 import { useAuthenticatedResourceUrl } from "@/shared/ui/useAuthenticatedResourceUrl";
 import { useDesktopContextMenuTarget } from "@/shared/data/desktop/desktopContextMenu";
 import { copyText } from "@/shared/utils/copy";
+import { useAppMessage } from "@/shared/ui/useAppMessage";
 import { Image } from "antd";
 
 export type { WorkspaceFileLink } from "@/shared/ui/markdownWorkspaceLinks";
@@ -65,7 +68,7 @@ export interface ResourceFileLink {
 const InlineHtmlMarkdownCode = (props: ConversationMarkdownCodeProps) => <MarkdownCode {...props} htmlPreview />;
 
 /**
- * Extracts the filename from a supported ChatScope or absolute resource path.
+ * Extracts the filename from a Chat file address.
  */
 function extractFilenameFromResourceUrl(href: string): string {
   // An @chat/ reference is a literal path: nothing in it is URL syntax.
@@ -96,13 +99,24 @@ function getSafeResourceDisplayName(href: string): string {
  * Returns true when the href needs an authenticated Platform resource fetch.
  */
 function isFetchedResourceKind(kind: ReturnType<typeof classifyResourceUrl>["kind"]): boolean {
-  return kind === "chat" || kind === "absolute";
+  return kind === "chat";
+}
+
+/** Page anchors and system links keep the browser's default behavior. */
+function isPassthroughHref(href: string): boolean {
+  return /^(?:#|mailto:|tel:)/iu.test(href);
+}
+
+function workspaceFileAddress(link: WorkspaceFileLink): string {
+  return hasFileAlias(link.href, WORKSPACE_FILE_ALIAS)
+    ? formatWorkspaceFileAddress(link.filePath, link.line)
+    : link.href;
 }
 
 /**
- * Custom anchor component that intercepts ChatScope and absolute resource links and
- * downloads them via fetch with auth headers (Bearer token) instead
- * of letting the browser navigate directly (which causes 401).
+ * Custom anchor component that opens Chat and Workspace file links in the
+ * current surface instead of letting the browser navigate to an address that
+ * is not a URL. A file link that cannot open here explains why on click.
  */
 type AuthAnchorProps = React.AnchorHTMLAttributes<HTMLAnchorElement> & {
   chatId: string;
@@ -146,20 +160,18 @@ const AuthAnchor: React.FC<AuthAnchorProps> = (props) => {
     download: _download,
     ...rest
   } = props;
-  // A Markdown target is a URL; an @chat/ reference is a literal path.
-  const href = markdownChatAliasToLiteral(markdownHref);
+  const message = useAppMessage();
+  // The Markdown renderer passes file targets literally.
+  const href = String(markdownHref || "").trim();
   const [downloading, setDownloading] = useState(false);
   const contextTargetId = React.useId();
   const classified = useMemo(
-    () => classifyResourceUrl(href || "", chatId, { teamChat }),
+    () => classifyResourceUrl(href, chatId, { teamChat }),
     [chatId, href, teamChat],
   );
   const fetchedResource = isFetchedResourceKind(classified.kind);
   const workspaceFileLink = useMemo(
-    () => classified.kind === "workspace" ||
-      (classified.kind === "absolute" && !String(href || "").startsWith("/tmp/"))
-      ? parseWorkspaceFileHref(href)
-      : null,
+    () => classified.kind === "workspace" ? parseWorkspaceFileHref(href) : null,
     [classified.kind, href],
   );
   const resourceFileLink = useMemo<ResourceFileLink | null>(
@@ -173,6 +185,23 @@ const AuthAnchor: React.FC<AuthAnchorProps> = (props) => {
     [classified, fetchedResource, href, workspaceFileLink],
   );
   const webLink = useMemo(() => parseMarkdownWebHref(href), [href]);
+  const passthrough = isPassthroughHref(href);
+  // A link that cannot open here says why instead of ignoring the click.
+  const unavailableReason = useMemo(() => {
+    if (workspaceFileLink) return onWorkspaceFileLinkClick ? "" : t("markdown.link.workspaceUnavailable");
+    if (resourceFileLink) return onResourceFileLinkClick ? "" : t("markdown.link.chatFileUnavailable");
+    if (webLink || passthrough) return "";
+    switch (classified.invalidReason) {
+      case "unscoped":
+        return t("markdown.link.scopeRequired");
+      case "unsupported_path":
+        return t("markdown.link.unsupportedPath");
+      case "chat_context_required":
+        return t("markdown.link.chatContextRequired");
+      default:
+        return t("markdown.link.unsupported");
+    }
+  }, [classified.invalidReason, onResourceFileLinkClick, onWorkspaceFileLinkClick, passthrough, resourceFileLink, t, webLink, workspaceFileLink]);
   const webLinkTitle = useMemo(
     () =>
       webLink
@@ -205,7 +234,7 @@ const AuthAnchor: React.FC<AuthAnchorProps> = (props) => {
           ...(onWorkspaceFileLinkClick
             ? { "preview-workspace": () => onWorkspaceFileLinkClick(workspaceFileLink) }
             : {}),
-          "copy-workspace-path": () => copyText(workspaceFileLink.filePath),
+          "copy-workspace-path": () => copyText(workspaceFileAddress(workspaceFileLink)),
         },
       };
     }
@@ -240,27 +269,19 @@ const AuthAnchor: React.FC<AuthAnchorProps> = (props) => {
 
   const handleClick = useCallback(
     (e: React.MouseEvent<HTMLAnchorElement>) => {
-      if (resourceFileLink) {
+      if (unavailableReason) {
         e.preventDefault();
-        if (onResourceFileLinkClick) {
-          onResourceFileLinkClick(resourceFileLink);
-        }
+        void message.warning(unavailableReason);
         return;
       }
-
-      if (classified.kind === "invalid") {
+      if (resourceFileLink && onResourceFileLinkClick) {
         e.preventDefault();
+        onResourceFileLinkClick(resourceFileLink);
         return;
       }
-
       if (workspaceFileLink && onWorkspaceFileLinkClick) {
         e.preventDefault();
         onWorkspaceFileLinkClick(workspaceFileLink);
-        return;
-      }
-      if (classified.kind === "workspace") {
-        // An alias is not a browser address; never navigate to it.
-        e.preventDefault();
         return;
       }
       if (
@@ -276,15 +297,12 @@ const AuthAnchor: React.FC<AuthAnchorProps> = (props) => {
       }
     },
     [
-      downloading,
-      href,
-      chatId,
-      teamChat,
-      classified.kind,
+      message,
       onWebLinkClick,
       onResourceFileLinkClick,
       onWorkspaceFileLinkClick,
       resourceFileLink,
+      unavailableReason,
       webLink,
       webLinkTitle,
       workspaceFileLink,
@@ -295,7 +313,8 @@ const AuthAnchor: React.FC<AuthAnchorProps> = (props) => {
     <a
       ref={contextTargetRef}
       {...rest}
-      href={classified.kind === "invalid" ? undefined : href}
+      href={unavailableReason ? undefined : href}
+      {...(unavailableReason ? { title: unavailableReason, "aria-disabled": true } : {})}
       onClick={handleClick}
     >
       {downloading ? t("markdown.downloading") : children}
@@ -310,8 +329,7 @@ type AuthImageProps = MarkdownImageProps & {
 };
 
 const AuthImage: React.FC<AuthImageProps> = (props) => {
-  const { src: markdownSrc, chatId, agentKey, teamChat, alt, ...rendererProps } = props;
-  const src = markdownChatAliasToLiteral(markdownSrc);
+  const { src, chatId, agentKey, teamChat, alt, ...rendererProps } = props;
   const { t } = useI18n();
   const resolved = useAuthenticatedResourceUrl(src, chatId, { teamChat, ...(agentKey ? { agentKey } : {}) });
   const contextTargetId = React.useId();
@@ -379,8 +397,7 @@ type AuthMediaProps = MarkdownImageProps & {
 };
 
 const AuthMedia: React.FC<AuthMediaProps> = (props) => {
-  const { kind, src: markdownSrc, chatId, agentKey, teamChat, alt, title } = props;
-  const src = markdownChatAliasToLiteral(markdownSrc);
+  const { kind, src, chatId, agentKey, teamChat, alt, title } = props;
   const { t } = useI18n();
   const config = markdownMediaConfig[kind];
   const resolved = useAuthenticatedResourceUrl(src, chatId, {

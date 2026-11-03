@@ -1,6 +1,6 @@
 import type { PublishedArtifact } from "@/features/artifacts/lib/artifactsState";
 import type { TimelineSource } from "@/features/timeline/lib/timelineState";
-import { classifyResourceUrl } from "@/shared/data";
+import { classifyResourceUrl, getAgentFile, parseLocalAbsolutePath } from "@/shared/data";
 import {
   buildFileViewerTarget,
   buildResourceViewerTargetFromUrl,
@@ -141,7 +141,7 @@ function resourceRouteIntent(input: {
     input.sourceKind && clean(input.resourceId) && clean(input.relativePath),
   );
   const classification = classifyResourceUrl(file, clean(input.chatId));
-  return classification.kind === "chat" || classification.kind === "absolute"
+  return classification.kind === "chat"
     ? {
         kind: "resource",
         agentKey: input.agentKey,
@@ -243,6 +243,25 @@ export function toSurfaceRouteIntent(intent: OpenTargetIntent): SurfaceRouteInte
         view: "diff",
       };
   }
+}
+
+/**
+ * A host absolute path names a Workspace file only once Platform resolves it
+ * inside the agent Workspace, by the Platform host's own path rules. The
+ * viewer then opens the canonical relative path, so the same file has one
+ * identity whichever way it was linked. Other intents are returned unchanged.
+ */
+export async function resolveWorkspaceFileIntent(
+  intent: OpenTargetIntent,
+  readFile: typeof getAgentFile = getAgentFile,
+): Promise<OpenTargetIntent> {
+  if (intent.kind !== "file") return intent;
+  const localPath = parseLocalAbsolutePath(intent.path);
+  if (localPath?.kind !== "local") return intent;
+  const response = await readFile({ agentKey: intent.agentKey, path: localPath.path });
+  const path = normalizeProjectRelativePath(response.data?.path);
+  if (!path) throw new Error("Platform returned no Workspace path for the file.");
+  return { ...intent, path };
 }
 
 export function buildStandaloneOpenTargetUrl(

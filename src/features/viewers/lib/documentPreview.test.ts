@@ -3,13 +3,15 @@ import type { ViewerTarget } from "./viewerTarget";
 
 const resource = (url: string): ViewerTarget => ({ type: "resource", name: "报告.docx", url, downloadUrl: url, contentKind: "office" });
 
-test("preview sources preserve owning Chat and decode resource URI segments once", () => {
-  expect(resolveDocumentPreviewSource(resource("artifacts/run/%E6%8A%A5%E5%91%8A.docx"), "chat-a"))
-    .toEqual({ kind: "chat-resource", chatId: "chat-a", relativePath: "artifacts/run/报告.docx" });
+test("preview sources preserve owning Chat and read @chat/ paths literally", () => {
+  expect(resolveDocumentPreviewSource(resource("@chat/artifacts/run/报告 100%.docx"), "chat-a"))
+    .toEqual({ kind: "chat-resource", chatId: "chat-a", relativePath: "artifacts/run/报告 100%.docx" });
+  expect(resolveDocumentPreviewSource(resource("@chat/artifacts/run/a%20b.docx"), "chat-a"))
+    .toEqual({ kind: "chat-resource", chatId: "chat-a", relativePath: "artifacts/run/a%20b.docx" });
   expect(resolveDocumentPreviewSource({ ...resource("ignored"), source: {
     kind: "reference", chatId: "owner", agentKey: "a", resourceId: "r", relativePath: "100%报告.docx",
   } }, "wrong")).toEqual({ kind: "chat-resource", chatId: "owner", relativePath: "100%报告.docx" });
-  for (const url of ["https://other.test/a.docx", "blob:test", "/api/resource?file=x", "../a.docx", "artifacts/%2e%2e/a.docx"]) {
+  for (const url of ["https://other.test/a.docx", "blob:test", "/api/resource?file=x", "../a.docx", "artifacts/run/a.docx", "@chat/artifacts/%2e%2e/a.docx"]) {
     expect(resolveDocumentPreviewSource(resource(url), "chat-a")).toBeNull();
   }
 });

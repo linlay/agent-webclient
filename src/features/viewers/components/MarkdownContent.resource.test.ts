@@ -20,7 +20,7 @@ jest.mock("@ant-design/x-markdown", () => ({
         streamStatus: "done",
       }),
       React.createElement(components.img, {
-        src: "artifacts/run_01/demo.mp4",
+        src: "@chat/artifacts/run_01/demo.mp4",
         alt: "video preview",
         title: "demo video",
         children: [],
@@ -38,8 +38,13 @@ jest.mock("@ant-design/x-markdown", () => ({
       }),
       React.createElement(
         components.a,
-        { href: "artifacts/run_01/image.png" },
+        { href: "@chat/artifacts/run_01/image.png" },
         "download",
+      ),
+      React.createElement(
+        components.a,
+        { href: "artifacts/run_01/image.png", "data-kind": "unscoped" },
+        "unscoped",
       ),
       React.createElement(
         components.a,
@@ -78,6 +83,8 @@ describe("MarkdownContent resource image", () => {
       React.createElement(MarkdownContent, {
         content: "![preview](image.png)",
         chatId: "chat_01",
+        onResourceFileLinkClick: () => undefined,
+        onWorkspaceFileLinkClick: () => undefined,
       }),
     );
 
@@ -87,7 +94,7 @@ describe("MarkdownContent resource image", () => {
       { teamChat: false },
     );
     expect(mockUseAuthenticatedResourceUrl).toHaveBeenCalledWith(
-      "artifacts/run_01/demo.mp4",
+      "@chat/artifacts/run_01/demo.mp4",
       "chat_01",
       { teamChat: false, blobMimeTypeFallback: "video/mp4" },
     );
@@ -106,8 +113,11 @@ describe("MarkdownContent resource image", () => {
     expect(html).toContain('class="markdown-audio"');
     expect(html).toContain('aria-label="minimax voice"');
     expect(html).toContain(
-      'href="artifacts/run_01/image.png"',
+      'href="@chat/artifacts/run_01/image.png"',
     );
+    // A path without @chat/ or @workspace/ names no file and says so.
+    expect(html).toContain('data-kind="unscoped" title="File addresses must start with @chat/ or @workspace/" aria-disabled="true"');
+    expect(html).not.toContain('href="artifacts/run_01/image.png"');
     expect(html).not.toContain('download="image.png"');
     expect(html).toContain('data-kind="legacy"');
     expect(html).not.toContain('href="/api/resource');
@@ -123,16 +133,28 @@ describe("MarkdownContent resource image", () => {
     expect(html).not.toContain("renderer-class");
   });
 
-  it("keeps absolute Markdown resources clickable so Platform decides Team access", () => {
+  it("keeps absolute Markdown paths clickable as Workspace files so Platform decides access", () => {
     const html = renderToStaticMarkup(
       React.createElement(MarkdownContent, {
         content: "[workspace](/Users/alice/project/poster.png)",
         chatId: "chat_01",
         teamChat: true,
+        onWorkspaceFileLinkClick: () => undefined,
       }),
     );
 
     expect(html).toContain('data-kind="absolute"');
     expect(html).toContain('href="/Users/alice/project/poster.png"');
+  });
+
+  it("explains a Workspace link where no Workspace file can open", () => {
+    const html = renderToStaticMarkup(
+      React.createElement(MarkdownContent, {
+        content: "[workspace](/Users/alice/project/poster.png)",
+        chatId: "chat_01",
+      }),
+    );
+
+    expect(html).toContain('data-kind="absolute" title="Project files cannot be opened here" aria-disabled="true"');
   });
 });

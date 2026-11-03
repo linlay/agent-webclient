@@ -4,19 +4,27 @@ import { resolveCurrentWorkerSummary } from "@/features/workers/lib/currentWorke
 import { useOptionalWorkPanelTransport } from "@/features/transport/components/RealtimeTransportProvider";
 import { isDesktopAppMode } from "@/shared/utils/routing";
 import { getViewerTargetKey } from "@/features/viewers/lib/viewerTarget";
-import { clean, usesAgentIdentity, toSurfaceRouteIntent, viewerTargetFromIntent, resolvePublishedArtifactIntent, openDesktopWorkPanelTarget, buildStandaloneOpenTargetUrl, type OpenTargetIntent } from "../lib/openTarget";
+import { parseLocalAbsolutePath } from "@/shared/data";
+import { useI18n } from "@/shared/i18n";
+import { useAppMessage } from "@/shared/ui/useAppMessage";
+import { clean, usesAgentIdentity, toSurfaceRouteIntent, viewerTargetFromIntent, resolvePublishedArtifactIntent, resolveWorkspaceFileIntent, openDesktopWorkPanelTarget, buildStandaloneOpenTargetUrl, type OpenTargetIntent } from "../lib/openTarget";
 
 export function useOpenTarget(): (intent: OpenTargetIntent) => boolean {
   const dispatch = useAppDispatch();
   const state = useAppState();
   const workPanel = useOptionalWorkPanelTransport();
+  const message = useAppMessage();
+  const { t } = useI18n();
+  const feedbackRef = useRef({ message, t });
+  feedbackRef.current = { message, t };
+  const openTargetRef = useRef<(intent: OpenTargetIntent) => boolean>(() => false);
   // state 每次 reducer 更新都是新对象；通过 ref 读取最新值，
   // 让 openTarget 引用保持稳定，避免下游 useCallback/useMemo 链
   // 在无关状态变化（如 Composer 输入草稿）时整体失效并引发组件 remount。
   const stateRef = useRef(state);
   stateRef.current = state;
 
-  return useCallback((intent) => {
+  const openTarget = useCallback((intent: OpenTargetIntent): boolean => {
     const state = stateRef.current;
     if (intent.version !== 1) return false;
     const pathname = typeof window === "undefined" ? "/" : window.location.pathname;
@@ -43,6 +51,24 @@ export function useOpenTarget(): (intent: OpenTargetIntent) => boolean {
         : intent,
       state.chatId, state.artifacts,
     );
+    if (
+      normalizedIntent.kind === "file" &&
+      parseLocalAbsolutePath(normalizedIntent.path)?.kind === "local"
+    ) {
+      // Open the Platform-resolved Workspace path, or say why it cannot open.
+      void resolveWorkspaceFileIntent(normalizedIntent).then(
+        (resolved) => {
+          openTargetRef.current(resolved);
+        },
+        (error: unknown) => {
+          const { message, t } = feedbackRef.current;
+          void message.error(t("markdown.link.resolveFailed", {
+            detail: error instanceof Error ? error.message : String(error),
+          }));
+        },
+      );
+      return true;
+    }
 
     if (!desktopMode && pathname === "/") {
       if (normalizedIntent.kind === "overview" || normalizedIntent.kind === "debug") {
@@ -129,4 +155,6 @@ export function useOpenTarget(): (intent: OpenTargetIntent) => boolean {
     window.open(url, "_blank", "noopener,noreferrer");
     return true;
   }, [dispatch, workPanel]);
+  openTargetRef.current = openTarget;
+  return openTarget;
 }

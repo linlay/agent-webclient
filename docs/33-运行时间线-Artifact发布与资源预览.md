@@ -20,7 +20,7 @@ Artifact 与 Reference 的 Standalone 独立 Viewer 统一使用 `/resource-view
 
 Desktop 的展示所有权按权威内容类型分流：Main Chat、Project、Artifact 与 Reference 统一调用 v6 `openDocument`，只提交语义来源。HTML 与图片由 Desktop 原生 WorkPanel Surface 承载，WebClient 不创建重复 WebView；宿主明确返回 `unsupported_native_type` 时才打开 WebClient Document Surface。授权失败、资源缺失、身份或路径不匹配不得回退。旧 bridge 继续兼容历史 Viewer；Standalone 始终使用 WebClient。
 
-Artifact、Reference、普通附件和回答 Markdown 中的文件链接都以 Viewer 为唯一左键入口。`artifacts/...`、`docs/...`、普通文件名等安全相对路径按当前 `chatId` 解释为 ChatScope 资源，打开 Resource Viewer；绝对 Workspace 路径仍打开 File Viewer。原链接、卡片、Viewer 根节点和 Viewer Tab 暴露右键下载 capability，Viewer 内不显示下载工具栏。左键打开失败、内容加载失败或文件类型不受支持时都不得自动触发下载。
+Artifact、Reference、普通附件和回答 Markdown 中的文件链接都以 Viewer 为唯一左键入口。`@chat/...` 打开 Resource Viewer；`@workspace/...[:line]` 与主机绝对路径打开 File Viewer，绝对路径先由 Platform 解析为 Workspace 相对路径再打开，解析失败明确提示原因。没有 `@chat/` 或 `@workspace/` 的相对路径不再猜测来源，渲染为不可跳转文字并在悬停和点击时说明需要显式根；网页、页内锚点与 `mailto:`/`tel:` 不受文件分类影响。行位置写作 `路径:行号`，`:行号:列号` 只取行号。原链接、卡片、Viewer 根节点和 Viewer Tab 暴露右键下载 capability，Viewer 内不显示下载工具栏。左键打开失败、内容加载失败或文件类型不受支持时都不得自动触发下载。
 
 Markdown、文本与代码使用 Monaco，PDF 使用 PDF.js，音视频使用浏览器媒体播放器。Office（包括 DOCX）、压缩包和未知二进制默认显示元信息，不发起客户端正文或伪文本预览；支持的 Office 格式可通过在线预览服务查看。Desktop 中的 Document Surface 可渲染“在 Finder/文件资源管理器中显示”和“用默认应用打开”，纯浏览器不渲染 Desktop-only 操作。宿主请求不携带绝对路径，并由 owner Chat 和当前可信 descriptor 双重校验。
 
@@ -28,7 +28,7 @@ Standalone 的文件标签右键菜单按“刷新、全屏 / 在文件管理器
 
 Artifact、普通附件和回答 Markdown 中的受保护图片、PDF、音视频先使用 Bearer/Cookie fetch 获得后端原始 MIME Blob，再创建短生命周期 object URL 交给媒体元素；卸载或 URL 变化时通过 effect cleanup revoke，同时用 AbortController 取消过期请求。HTML Resource Viewer 则通过同一鉴权 API 读取完整文本并以不带 `allow-same-origin` 的 sandbox `srcDoc` 展示，使 Desktop 可注入受限的元素批注消息桥而不放宽 iframe 隔离；HTML iframe 使用无内边距内容槽贴边展示，页面本身的 body margin 仍按原文保留。受 CORS 限制而无法读取文本的外部 HTML 仍可回退到原 sandbox URL 只读预览，但不声明批注 capability。新 `publishedArtifacts[].url` 形如 `artifacts/run_01/poster.png`。历史 `/api/resource?file=...` Markdown 被分类为非法，不再预览或下载；外部 HTTP(S) 图片继续直接使用外链，跨域下载不发送平台 Bearer，`data:` 与 `blob:` 原样展示。
 
-回答 Markdown 兼容 `![说明](artifacts/run_01/demo.mp4)`、`![说明](@chat/artifacts/run_01/voice.mp3)` 类输出：当图片语法的资源名以 `.m4v`、`.mov`、`.mp4`、`.mpeg`、`.mpg`、`.ogv` 或 `.webm` 结尾时，`MarkdownContent` 将其升级为带 controls 的鉴权 video 渲染；以 `.aac`、`.m4a`、`.mp3`、`.oga`、`.ogg`、`.opus`、`.wav` 或 `.weba` 结尾时升级为带 controls 的鉴权 audio 渲染。音视频共用同一媒体组件，鉴权 Blob、加载占位、失败文案与宿主右键下载语义一致。普通图片改用 antd `Image` 承载，鉴权 Blob URL 同时作为预览源，点击图片放大查看，宿主右键语义仍作用在同一张图上。若受保护资源的 Blob MIME 为空或 `application/octet-stream`，则按已识别的扩展名补齐 `video/*` 或 `audio/*`，已有具体 MIME 不会被覆盖。该后缀判断仅用于兼容 Markdown 无标准音视频语法的边界，`[文字](voice.mp3)` 等链接语法仍是普通资源链接；Artifact 面板仍优先按自身的 MIME/扩展名规则识别预览类型。
+回答 Markdown 兼容 `![说明](@chat/artifacts/run_01/demo.mp4)`、`![说明](@chat/artifacts/run_01/voice.mp3)` 类输出：当图片语法的资源名以 `.m4v`、`.mov`、`.mp4`、`.mpeg`、`.mpg`、`.ogv` 或 `.webm` 结尾时，`MarkdownContent` 将其升级为带 controls 的鉴权 video 渲染；以 `.aac`、`.m4a`、`.mp3`、`.oga`、`.ogg`、`.opus`、`.wav` 或 `.weba` 结尾时升级为带 controls 的鉴权 audio 渲染。音视频共用同一媒体组件，鉴权 Blob、加载占位、失败文案与宿主右键下载语义一致。普通图片改用 antd `Image` 承载，鉴权 Blob URL 同时作为预览源，点击图片放大查看，宿主右键语义仍作用在同一张图上。若受保护资源的 Blob MIME 为空或 `application/octet-stream`，则按已识别的扩展名补齐 `video/*` 或 `audio/*`，已有具体 MIME 不会被覆盖。该后缀判断仅用于兼容 Markdown 无标准音视频语法的边界，`[文字](voice.mp3)` 等链接语法仍是普通资源链接；Artifact 面板仍优先按自身的 MIME/扩展名规则识别预览类型。
 
 Desktop 内容区右键语义只把资源名称、媒体类型和固定 open/download capability 返回宿主，不返回上述 object URL、资源 API URL 或鉴权信息。执行时重新定位当前 AttachmentCard、Markdown 链接或 Viewer，并复用左键的 `ViewerTarget` 构造或统一鉴权下载路径。WorkPanel 的 Artifact/Reference 外层 tab 另通过共享契约的版本化 `workPanel.resource.downloadCurrent` host action 请求下载；只有当前 Resource Viewer 注册处理器并复用同一 `downloadViewerTarget`，其他页面静默忽略，动作本身不携带 route、资源 URL、路径或凭据。
 
@@ -36,19 +36,19 @@ Desktop 原生图片稳定后，WebClient 的 preview-review 只保留 HTML Reso
 
 ## Markdown 内嵌媒体路径
 
-`![名称](资源路径)` 可展示图片，并按文件扩展名升级为音频或视频播放器。Chat 资源使用 `@chat/...` 或安全的 Chat 相对路径；Workspace 资源使用 `@workspace/...`，由所属 Chat 的 Agent 身份与相对文件路径调用现有 HTTP `GET /api/file?agentKey=...&path=...&response=content` 读取二进制内容。主时间线、历史预览、BTW、Automation 结果以及规划和来源预览显式传递对应 Agent 身份，不依赖当前 Agent 目录 hydration。身份缺失或路径非法时不请求资源，读取失败不回退到 ChatScope。媒体 Blob 缓存按 Chat、Agent、路径和 MIME 隔离。
+`![名称](资源路径)` 可展示图片，并按文件扩展名升级为音频或视频播放器。Chat 资源使用 `@chat/...`；Workspace 资源使用 `@workspace/...` 或主机绝对路径，由所属 Chat 的 Agent 身份与文件路径调用现有 HTTP `GET /api/file?agentKey=...&path=...&response=content` 读取二进制内容。链接与图片对同一地址使用同一分类和同一来源。主时间线、历史预览、BTW、Automation 结果以及规划和来源预览显式传递对应 Agent 身份，不依赖当前 Agent 目录 hydration。身份缺失或路径非法时不请求资源，读取失败不回退到 ChatScope。媒体 Blob 缓存按 Chat、Agent、路径和 MIME 隔离。
 
 ```markdown
 ![Workspace 图片](@workspace/docs/images/screenshots/debug-sidebar.png)
 ![Workspace 视频](<@workspace/videos/期权诞生 短片.mp4>)
 ![Workspace 音频](@workspace/audio/voice.mp3)
 ![本地视频](</实际/Workspace/绝对路径/期权诞生 短片.mp4>)
-![临时图片](/tmp/poster.png)
+![Chat 文件](<@chat/artifacts/run_01/申请 表 100%.png>)
 ```
 
-绝对路径仍经 `/api/resource` 携带 Chat 上下文读取，是否处于允许的 Workspace 或系统临时目录、是否有访问权限由 Platform 判定，不能由前端保证任意 Downloads 文件可访问。HTTP(S) 外链继续直接交给媒体元素加载。
+绝对路径与 `@workspace/` 一样经 `/api/file` 读取，是否位于该 Agent 的 Workspace 由 Platform 判定；Workspace 之外（包括系统临时目录和 chats 根）明确失败，不回退到 ChatScope。HTTP(S) 外链继续直接交给媒体元素加载。
 
-包含空格的路径推荐使用 `<...>` 包裹或对空格进行 `%20` 编码；为兼容模型直接输出的本地媒体，Markdown tokenizer 也识别 `![短片](/tmp/期权诞生 短片.mp4)`，仅作用于本地媒体引用，不修改代码块、行内代码或外部网址。播放器使用鉴权 Blob URL，具体 MIME 缺失时按后缀补齐；读取失败或浏览器解码失败时显示对应媒体加载失败提示。
+文件目标（`@chat/`、`@workspace/`、主机绝对路径）在 Markdown 中是字面路径：渲染器不对其做 URL 编码，Viewer 也不解码，`a%20b.png` 就是名为 `a%20b.png` 的文件。路径含空格或不成对括号时使用 `<...>` 包裹；为兼容模型直接输出的本地媒体，Markdown tokenizer 也识别 `![短片](/实际/Workspace/期权诞生 短片.mp4)`，仅作用于本地媒体引用，不修改代码块、行内代码或外部网址。播放器使用鉴权 Blob URL，具体 MIME 缺失时按后缀补齐；读取失败或浏览器解码失败时显示对应媒体加载失败提示。
 
 `qa/markdown-media-preview.tsx` 与 `qa/webpack.markdown-media.cjs` 提供本地媒体夹具页。通过 `MEDIA_QA_VIDEO`、`MEDIA_QA_AUDIO` 指定实际视频和 WAV 文件，启动 `node node_modules/webpack-cli/bin/cli.js serve --config qa/webpack.markdown-media.cjs --mode development` 后访问 `http://127.0.0.1:11963/`。此页面验证前端解析、接口请求和实际解码，不代表真实 Platform 授权联调。
 

@@ -8,11 +8,11 @@ describe("independent Resource/File Viewer targets", () => {
     expect(buildResourceViewerTargetFromRoute({
       agentKey: "agent_1",
       chatId: "chat_1",
-      file: "artifacts/run_1/report.pdf",
+      file: "@chat/artifacts/run_1/report.pdf",
     })).toMatchObject({
       name: "report.pdf",
-      url: "artifacts/run_1/report.pdf",
-      downloadUrl: "artifacts/run_1/report.pdf",
+      url: "@chat/artifacts/run_1/report.pdf",
+      downloadUrl: "@chat/artifacts/run_1/report.pdf",
       type: "resource",
       contentKind: "pdf",
     });
@@ -35,7 +35,7 @@ describe("independent Resource/File Viewer targets", () => {
     expect(buildResourceViewerTargetFromRoute({
       agentKey: "agent_1",
       chatId: "chat_1",
-      file: "artifacts/run_1/archive.zip",
+      file: "@chat/artifacts/run_1/archive.zip",
     })).toMatchObject({ type: "resource", contentKind: "unsupported" });
     expect(buildFileViewerTargetFromRoute({
       agentKey: "agent_1",

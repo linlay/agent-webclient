@@ -26,7 +26,7 @@ export function buildResourceViewerTargetFromRoute(input: {
   const chatId = String(input.chatId || "").trim();
   const file = String(input.file || "").trim();
   const classification = classifyResourceUrl(file, chatId);
-  if (!agentKey || !chatId || !file || (classification.kind !== "chat" && classification.kind !== "absolute")) {
+  if (!agentKey || !chatId || !file || classification.kind !== "chat") {
     return null;
   }
   const target = buildResourceViewerTargetFromUrl(file);

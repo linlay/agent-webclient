@@ -93,8 +93,8 @@ it('shows arrows only toward hidden images and updates them on scrolling and res
 // Exercise the actual Desktop routing as well as the card click, without
 // relying on artifact.publish having populated the current Chat projection.
 it.each([
-  ['image_generate_run_0.png', 'reference'],
-  ['artifacts/run/image.png', 'artifact'],
+  ['@chat/image_generate_run_0.png', 'reference'],
+  ['@chat/artifacts/run/image.png', 'artifact'],
 ])('opens generated %s in the native editable image viewer', async (url, kind) => {
   const done = { ...nodes[0], argsText: '{"n":1}', result: {
     text: JSON.stringify({ ok: true, images: [{ url, artifactId: 'generated-1' }] }), isCode: true,
@@ -114,7 +114,7 @@ it.each([
   })).toBe(true);
   await Promise.resolve();
   expect(openNativeDocument).toHaveBeenCalledWith(expect.objectContaining({ source: {
-    kind, chatId: 'owner', agentKey: 'agent-1', resourceId: 'generated-1', relativePath: url,
+    kind, chatId: 'owner', agentKey: 'agent-1', resourceId: 'generated-1', relativePath: url.slice('@chat/'.length),
   } }));
   expect(openDescriptor).not.toHaveBeenCalled();
 });

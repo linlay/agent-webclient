@@ -13,6 +13,7 @@ import {
   readViewerResourceMetadata,
 } from "@/features/viewers/lib/viewerRuntime";
 import {
+  buildResourceViewerTargetFromUrl,
   detectDocumentContentKind,
   detectViewerContentKind,
   isViewerContentSupported,
@@ -43,7 +44,8 @@ import {
   type DesktopCurrentResourceAction,
   type DesktopCurrentResourceIdentity,
 } from "@/shared/data/desktop/desktopCurrentResourceAction";
-import { DocumentTextEditor } from "@/features/viewers/components/DocumentTextEditor";
+import { DocumentTextEditor, type DocumentMarkdownLinks } from "@/features/viewers/components/DocumentTextEditor";
+import type { OpenTargetIntent } from "@/features/surfaces/lib/openTarget";
 import { BrowserImageEditor } from "@/features/viewers/components/BrowserImageEditor";
 import { DocumentMetadataPanel, StandaloneDocumentPanel } from "@/features/viewers/components/StandaloneDocumentPanel";
 import { DesktopDocumentOpenActions } from "./DesktopDocumentOpenActions";
@@ -126,8 +128,11 @@ interface ContentViewerPanelProps {
   enableDesktopLocalResourceActions?: boolean;
   enableDesktopPreviewReview?: boolean;
   onOpenOnlinePreview?: (preview: DocumentPreviewTabState) => void;
+  /** Opens links in a Markdown preview; without it those links explain they cannot open. */
+  onOpenTarget?: (intent: OpenTargetIntent) => boolean;
   surfaceContext?: {
     chatId: string;
+    agentKey?: string;
     teamChat?: boolean;
   };
 }
@@ -318,6 +323,7 @@ export const ContentViewerPanel: React.FC<ContentViewerPanelProps> = ({
   enableDesktopLocalResourceActions = false,
   enableDesktopPreviewReview = false,
   onOpenOnlinePreview,
+  onOpenTarget,
   surfaceContext,
 }) => {
   const appState = useAppState();
@@ -350,6 +356,59 @@ export const ContentViewerPanel: React.FC<ContentViewerPanelProps> = ({
   const textContainerRef = React.useRef<HTMLPreElement | null>(null);
   const panelRef = React.useRef<HTMLDivElement | null>(null);
   const contextTargetId = React.useId();
+  // Links in a document resolve against the document's own agent and Chat,
+  // never the foreground conversation. A Workspace file has no Chat unless its
+  // surface supplies one.
+  const documentAgentKey = String(
+    target.type === "file"
+      ? target.agentKey
+      : target.source?.agentKey ||
+        surfaceContext?.agentKey ||
+        appState.chatAgentById?.get(chatId) ||
+        currentChat?.agentKey ||
+        currentChat?.firstAgentKey ||
+        "",
+  ).trim();
+  const markdownLinks = React.useMemo<DocumentMarkdownLinks>(() => ({
+    agentKey: documentAgentKey,
+    ...(onOpenTarget && documentAgentKey
+      ? {
+          onWorkspaceFileLinkClick: (link) => {
+            onOpenTarget({
+              version: 1,
+              kind: "file",
+              agentKey: documentAgentKey,
+              path: link.filePath,
+              line: link.line,
+            });
+          },
+        }
+      : {}),
+    ...(onOpenTarget && chatId
+      ? {
+          onResourceFileLinkClick: (link) => {
+            const resourceTarget = buildResourceViewerTargetFromUrl(link.href);
+            if (!resourceTarget) return;
+            onOpenTarget({
+              version: 1,
+              kind: "resource",
+              chatId,
+              ...(documentAgentKey ? { agentKey: documentAgentKey } : {}),
+              file: link.href,
+              resourceTarget,
+              title: link.name,
+            });
+          },
+        }
+      : {}),
+    ...(onOpenTarget
+      ? {
+          onWebLinkClick: (link) => {
+            onOpenTarget({ version: 1, kind: "web", url: link.url, title: link.title });
+          },
+        }
+      : {}),
+  }), [chatId, documentAgentKey, onOpenTarget]);
   const fileRequest = React.useMemo(
     () => target.type === "file"
       ? { agentKey: target.agentKey, path: target.path }
@@ -885,6 +944,7 @@ export const ContentViewerPanel: React.FC<ContentViewerPanelProps> = ({
               kind={documentKind}
               chatId={chatId}
               teamChat={teamChat}
+              markdownLinks={markdownLinks}
               saving={documentSaving}
               dirty={documentDirty}
               canSave={canSaveDocument}
@@ -929,6 +989,7 @@ export const ContentViewerPanel: React.FC<ContentViewerPanelProps> = ({
               kind={documentKind}
               chatId={chatId}
               teamChat={teamChat}
+              markdownLinks={markdownLinks}
               saving={documentSaving}
               dirty={documentDirty}
               canSave={canSaveDocument}

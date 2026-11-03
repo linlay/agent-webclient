@@ -140,11 +140,16 @@ describe("parseWorkspaceFileHref", () => {
     });
   });
 
-  it("parses @workspace/ paths as project-relative files", () => {
-    expect(parseWorkspaceFileHref("@workspace/docs/%E8%AF%B4%E6%98%8E.md:42")).toEqual({
-      href: "@workspace/docs/%E8%AF%B4%E6%98%8E.md:42",
-      filePath: "docs/说明.md",
+  it("parses @workspace/ paths literally as project-relative files", () => {
+    expect(parseWorkspaceFileHref("@workspace/docs/说明 1.md:42:3")).toEqual({
+      href: "@workspace/docs/说明 1.md:42:3",
+      filePath: "docs/说明 1.md",
       line: 42,
+    });
+    // Nothing is decoded: this file is really named "a%20b.md".
+    expect(parseWorkspaceFileHref("@workspace/a%20b.md")).toEqual({
+      href: "@workspace/a%20b.md",
+      filePath: "a%20b.md",
     });
     expect(parseWorkspaceFileHref("@Workspace/Makefile")).toEqual({
       href: "@Workspace/Makefile",
@@ -155,38 +160,27 @@ describe("parseWorkspaceFileHref", () => {
     }
   });
 
-  it("parses repository-relative source paths with line numbers", () => {
-    expect(
-      parseWorkspaceFileHref("src/features/composer/lib/slashCommands.ts:53"),
-    ).toEqual({
-      href: "src/features/composer/lib/slashCommands.ts:53",
-      filePath: "src/features/composer/lib/slashCommands.ts",
-      line: 53,
-    });
+  it.each([
+    ["C:\\project\\src\\app.ts:42", "C:\\project\\src\\app.ts", 42],
+    ["C:/project/src/app.ts:42", "C:/project/src/app.ts", 42],
+    ["file:///Users/demo/project/src/app.ts", "/Users/demo/project/src/app.ts", undefined],
+    ["file:///C:/project/src/app.ts", "C:/project/src/app.ts", undefined],
+    ["/workspace/chat_123/china-gdp-2010-2024.html", "/workspace/chat_123/china-gdp-2010-2024.html", undefined],
+  ])("parses the host path %s for Platform to resolve", (href, filePath, line) => {
+    expect(parseWorkspaceFileHref(href)).toEqual({ href, filePath, ...(line ? { line } : {}) });
   });
 
   it.each([
+    "src/features/composer/lib/slashCommands.ts:53",
     "china-gdp-2010-2024.html",
     "outputs/china-gdp-2010-2024.html",
-    "/workspace/chat_123/china-gdp-2010-2024.html",
     "reports/季度 报表.xhtml",
-  ])("parses previewable workspace file paths: %s", (href) => {
-    expect(parseWorkspaceFileHref(href)).toEqual({
-      href,
-      filePath: href,
-    });
-  });
-
-  it.each([
     "./Makefile",
-    "./.env.example",
     "./AGENTS.md",
-    "./jest.config.cjs",
-  ])("parses extensionless and configuration workspace paths: %s", (href) => {
-    expect(parseWorkspaceFileHref(href)).toEqual({
-      href,
-      filePath: href,
-    });
+    "\\\\server\\share\\a.md",
+    "file://server/share/a.md",
+  ])("does not guess a project file for %s", (href) => {
+    expect(parseWorkspaceFileHref(href)).toBeNull();
   });
 
   it("does not intercept authenticated resource links", () => {

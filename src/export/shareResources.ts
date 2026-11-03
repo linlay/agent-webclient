@@ -1,10 +1,15 @@
-/** Canonical current-Chat path; URLs and other scopes never alias a frozen file. */
+/**
+ * Canonical current-Chat path; URLs and other scopes never alias a frozen file.
+ * An @chat/ address is literal, as Markdown now passes it; other references
+ * are URI references decoded once.
+ */
 export function canonicalChatSourceRef(value: string): string | null {
-  const raw = value.startsWith("@chat/") ? value.slice(6) : value;
+  const literal = value.startsWith("@chat/");
+  const raw = literal ? value.slice(6) : value;
   if (!raw || raw.length > 2_048 || raw !== raw.trim() || /[\\?#:]/u.test(raw) || raw.startsWith("@")) return null;
   try {
     return raw.split("/").map((part) => {
-      const decoded = decodeURIComponent(part);
+      const decoded = literal ? part : decodeURIComponent(part);
       let check = decoded;
       for (let depth = 0; ; depth += 1) {
         if (!check || [".", "..", ".tools", ".btw", ".explain"].includes(check) || /[\\/:\u0000-\u001f\u007f]/u.test(check)) throw new Error("invalid path");

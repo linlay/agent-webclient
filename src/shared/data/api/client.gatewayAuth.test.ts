@@ -86,7 +86,7 @@ describe("API client backend authentication modes", () => {
 		global.fetch = fetchMock as typeof fetch;
 
 		await expect(
-			downloadResource("a.txt", { chatId: "chat" }),
+			downloadResource("@chat/a.txt", { chatId: "chat" }),
 		).rejects.toBeInstanceOf(
 			ApiError,
 		);

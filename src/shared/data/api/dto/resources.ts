@@ -1,4 +1,11 @@
-export type ResourceUrlKind = "chat" | "absolute" | "workspace" | "external" | "inline" | "invalid";
+export type ResourceUrlKind = "chat" | "workspace" | "external" | "inline" | "invalid";
+
+/**
+ * Why a target names no readable file: a relative path without an explicit
+ * root, a network or drive-relative path that is not supported yet, or an
+ * @chat/ address read where no Chat is bound.
+ */
+export type ResourceUrlInvalidReason = "unscoped" | "unsupported_path" | "chat_context_required";
 
 export type DocumentPreviewSource =
   | { kind: "workspace-file"; agentKey: string; path: string }
@@ -30,6 +37,7 @@ export interface ResourceUrlClassification {
 	fetchUrl: string;
 	resourceKey?: string;
 	requiresPlatformAuth: boolean;
+	invalidReason?: ResourceUrlInvalidReason;
 }
 
 export interface ResourceUrlClassificationOptions {

@@ -21,12 +21,12 @@ afterEach(() => { configureI18nRuntime(originalI18n); });
 
 const resourceOptions = { chatId: "chat-1" };
 const resourceRequests: Array<[string, () => Promise<unknown>]> = [
-  ["text", () => getResourceText("private.txt", resourceOptions)],
-  ["document text", () => getResourceDocumentText("private.txt", resourceOptions)],
-  ["blob", () => getResourceBlob("private.txt", resourceOptions)],
+  ["text", () => getResourceText("@chat/private.txt", resourceOptions)],
+  ["document text", () => getResourceDocumentText("@chat/private.txt", resourceOptions)],
+  ["blob", () => getResourceBlob("@chat/private.txt", resourceOptions)],
   ["raw JSONL", () => getChatRawJsonl("chat-1")],
   ["LLM trace", () => getChatLLMTraceRaw("trace.json")],
-  ["download", () => downloadResource("private.txt", resourceOptions)],
+  ["download", () => downloadResource("@chat/private.txt", resourceOptions)],
   ["chat export", () => downloadChatExport("chat-1")],
   ["skill archive", () => downloadAdminSkill("skill-1")],
   ["skill file", () => downloadAdminSkillFile("skill-1", "SKILL.md")],
@@ -83,7 +83,7 @@ describe("resource response compatibility", () => {
       }),
     });
 
-    await expect(getResourceDocumentText("private.txt", {
+    await expect(getResourceDocumentText("@chat/private.txt", {
       ...resourceOptions,
       signal: controller.signal,
     })).resolves.toEqual({

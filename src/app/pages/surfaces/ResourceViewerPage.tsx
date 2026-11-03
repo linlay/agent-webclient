@@ -4,11 +4,13 @@ import { ContentViewerPanel } from "@/features/viewers/components/ContentViewerP
 import { buildResourceViewerTargetFromRoute } from "@/features/surfaces/lib/viewerRouteTargets";
 import { useI18n } from "@/shared/i18n";
 import { IndependentSurfaceFrame } from "@/features/surfaces/components/IndependentSurfaceFrame";
+import { useOpenTarget } from "@/features/surfaces/hooks/useOpenTarget";
 
 export const ResourceViewerPage: React.FC = () => {
   const { agentKey: routeAgentKey } = useParams<{ agentKey: string }>();
   const [searchParams] = useSearchParams();
   const { t } = useI18n();
+  const openTarget = useOpenTarget();
   const agentKey = String(routeAgentKey || "").trim();
   const chatId = String(searchParams.get("chatId") || "").trim();
   const file = String(searchParams.get("file") || "").trim();
@@ -30,7 +32,8 @@ export const ResourceViewerPage: React.FC = () => {
           enableDesktopCurrentResourceDownload
           enableDesktopLocalResourceActions
           enableDesktopPreviewReview
-          surfaceContext={{ chatId, teamChat: false }}
+          onOpenTarget={openTarget}
+          surfaceContext={{ chatId, agentKey, teamChat: false }}
         />
       ) : null}
     </IndependentSurfaceFrame>

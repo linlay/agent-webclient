@@ -58,10 +58,11 @@ describe("Markdown media through the real Markdown parser and resource hook", ()
     if (tag === "video") expect(jest.mocked(URL.createObjectURL).mock.calls[0][0].type).toBe("video/mp4");
   });
 
-  it("renders a local absolute MP4 as a video and reports playback errors", async () => {
-    const path = "/Users/linlay/Downloads/期权诞生 短片.mp4";
-    await act(async () => root.render(<MarkdownContent content={`![短片](<${path}>)`} chatId="absolute-video" />));
-    expect(getResourceBlob).toHaveBeenCalledWith(expect.stringContaining("Downloads/"), { chatId: "absolute-video", teamChat: false });
+  it("reads a local absolute MP4 from the Workspace, like a link to it, and reports playback errors", async () => {
+    const path = "/Users/linlay/project/期权诞生 短片.mp4";
+    await act(async () => root.render(<MarkdownContent content={`![短片](<${path}>)`} chatId="absolute-video" agentKey="owner" />));
+    expect(getAgentFileContentBlob).toHaveBeenCalledWith({ agentKey: "owner", path });
+    expect(getResourceBlob).not.toHaveBeenCalled();
     const video = container.querySelector("video");
     expect(video?.getAttribute("src")).toBe("blob:media-preview");
     expect(video?.hasAttribute("controls")).toBe(true);
@@ -72,10 +73,19 @@ describe("Markdown media through the real Markdown parser and resource hook", ()
 
   it("renders the originally reported video syntax with an unescaped space", async () => {
     await act(async () => root.render(<MarkdownContent
-      content="![期权诞生 短片.mp4](/Users/linlay/Downloads/期权诞生 短片.mp4)" chatId="bare-space-video"
+      content="![期权诞生 短片.mp4](/Users/linlay/project/期权诞生 短片.mp4)" chatId="bare-space-video" agentKey="owner"
     />));
     expect(container.querySelector("video")?.getAttribute("src")).toBe("blob:media-preview");
-    expect(getResourceBlob).toHaveBeenCalledTimes(1);
+    expect(getAgentFileContentBlob).toHaveBeenCalledWith({ agentKey: "owner", path: "/Users/linlay/project/期权诞生 短片.mp4" });
+  });
+
+  it.each([
+    ["申请 表 100%.mp4", "![v](<@chat/artifacts/run_1/申请 表 100%.mp4>)"],
+    ["a%20b.mp4", "![v](@chat/artifacts/run_1/a%20b.mp4)"],
+    ["报告100%.png", "![v](@chat/artifacts/run_1/报告100%.png)"],
+  ])("reads the Chat file named %s literally", async (name, content) => {
+    await act(async () => root.render(<MarkdownContent content={content} chatId="literal-chat" />));
+    expect(getResourceBlob).toHaveBeenCalledWith(`@chat/artifacts/run_1/${name}`, { chatId: "literal-chat", teamChat: false });
   });
 
   it("keeps media examples in code literal and leaves web links with spaces alone", async () => {
