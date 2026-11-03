@@ -35,7 +35,6 @@ import {
 } from "@/app/state/AppContext";
 import { formatTimelineTime } from "@/features/timeline/components/TimelineRow";
 import { ConversationStage } from "@/features/timeline/components/ConversationStage";
-import { RunActivityPlaceholder } from "@/features/timeline/components/RunActivityPlaceholder";
 import { TimelineInteractionProvider, type TimelineInteractionValue } from "@/features/timeline/components/TimelineInteractionContext";
 import { registerDesktopContextMenuTarget } from "@/shared/data/desktop/desktopContextMenu";
 import { useOpenTarget } from "@/features/surfaces/hooks/useOpenTarget";
@@ -49,7 +48,6 @@ import {
   nodesForDetailLevel,
   type TimelineDisplayItem,
 } from "@/features/timeline/lib/timelineDisplay";
-import { hasDisplayableTimelineItem } from "@/features/timeline/lib/runActivityPlaceholder";
 import {
   buildNodeCollapseTargets,
   buildNodeVirtualIndexMap,
@@ -798,27 +796,6 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
       return { kind: "standalone", key: item.key, item };
     });
   }, [displayItems]);
-  const hasDisplayableNode = useMemo(
-    () => hasDisplayableTimelineItem(displayItems),
-    [displayItems],
-  );
-  // Only full may synthesize a thinking placeholder; summary waits for a model announcement.
-  const showActivityPlaceholder = detailLevel === "full" && conversationRunning && !hasDisplayableNode;
-  // Keep one component identity while the copy rotates: a new type each render
-  // would remount the placeholder and restart its rotation on every stream tick.
-  const stageFooter = useMemo(() => {
-    if (!showActivityPlaceholder) return ConversationStageBottomSpacer;
-    const padding = virtualItems.length === 0 ? "tw:pt-5" : "tw:pt-1";
-    const StageFooter: React.FC<{ context: unknown }> = () => (
-      <>
-        <div className={padding}>
-          <RunActivityPlaceholder active scopeKey={activityScopeKey} />
-        </div>
-        <ConversationStageBottomSpacer />
-      </>
-    );
-    return StageFooter;
-  }, [activityScopeKey, showActivityPlaceholder, virtualItems.length]);
 
   const virtualItemKeys = useMemo(
     () => virtualItems.map((item) => item.key),
@@ -2025,7 +2002,7 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
               totalListHeightChanged: handleTotalListHeightChanged,
               rangeChanged: handleRangeChanged,
               isScrolling: handleIsScrolling,
-              Footer: stageFooter,
+              Footer: ConversationStageBottomSpacer,
             }}
           />
         )}
