@@ -192,6 +192,56 @@ describe("DesktopRealtimeTransport", () => {
     transport.dispose();
   });
 
+  it("opens a fresh session for a new Chat query after closure without preallocating Chat or Run identities", async () => {
+    const first = new FakeDesktopPlatformSession();
+    const second = new FakeDesktopPlatformSession();
+    const createSession = jest.fn().mockReturnValueOnce(first).mockImplementationOnce(() => {
+      queueMicrotask(() => second.connected());
+      return second;
+    });
+    const transport = new DesktopRealtimeTransport({ transportVersion: 2, createSession });
+    const client = getDesktopPlatformFrameClient();
+    const owner = { kind: "agent" as const, agentKey: "agent-1" };
+    const oldRun = transport.runs.startQuery({
+      requestId: "old-query", chatId: "old-chat", message: "send once", owner, onEvent: jest.fn(),
+    });
+    first.connected();
+    await flush();
+    const oldQuery = first.sent.find((frame) => frame.type === "/api/query")!;
+    first.frame({ frame: "stream", id: oldQuery.id, event: {
+      type: "run.start", chatId: "old-chat", runId: "old-run", agentKey: "agent-1", seq: 1,
+      timestamp: 1_786_890_000_001,
+    } });
+    await oldRun.identity;
+    first.closed({ reason: "surface_inactive" });
+    await expect(oldRun.completion).resolves.toMatchObject({ reason: "error" });
+
+    const onEvent = jest.fn();
+    const newRun = transport.runs.startQuery({ requestId: "new-query", message: "start a new Chat", owner, onEvent });
+    await flush();
+    const newQuery = second.sent.find((frame) => frame.type === "/api/query")!;
+    expect(createSession).toHaveBeenCalledTimes(2);
+    expect(getDesktopPlatformFrameClient()).toBe(client);
+    expect(newQuery.payload).toMatchObject({ requestId: "new-query", message: "start a new Chat", agentKey: "agent-1" });
+    expect(newQuery.payload).not.toHaveProperty("chatId");
+    expect(newQuery.payload).not.toHaveProperty("runId");
+    second.frame({ frame: "stream", id: newQuery.id, event: {
+      type: "chat.start", chatId: "new-chat", agentKey: "agent-1", seq: 1,
+      timestamp: 1_786_890_000_002,
+    } });
+    second.frame({ frame: "stream", id: newQuery.id, event: {
+      type: "run.start", chatId: "new-chat", runId: "new-run", agentKey: "agent-1", seq: 2,
+      timestamp: 1_786_890_000_003,
+    } });
+    await expect(newRun.identity).resolves.toMatchObject({ chatId: "new-chat", runId: "new-run", owner });
+    expect(onEvent.mock.calls.map(([event]) => event.type)).toEqual(["chat.start", "run.start"]);
+    second.frame({ frame: "stream", id: newQuery.id, reason: "complete", lastSeq: 2 });
+    await expect(newRun.completion).resolves.toMatchObject({ reason: "complete" });
+    expect(first.sent.filter((frame) => frame.type === "/api/query")).toHaveLength(1);
+    expect(second.sent.filter((frame) => frame.type === "/api/query")).toHaveLength(1);
+    transport.dispose();
+  });
+
   it.each<DesktopPlatformSessionClose["reason"]>([
     "protocol_mismatch", "identity_invalidated", "app_shutdown", "disposed",
   ])("does not reopen or lose the host error after a terminal %s close", async (reason) => {
