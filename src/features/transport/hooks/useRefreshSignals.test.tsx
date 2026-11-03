@@ -22,3 +22,17 @@ it("shares subscriptions, ignores initial connection and cleans up the last cons
   act(() => mockPush({ type: "catalog.updated", data: { reason: "skills" } })); expect(push).toHaveBeenCalledTimes(2);
   await act(async () => root.unmount()); expect(mockStop).toHaveBeenCalledTimes(2);
 });
+it("recovers after an attempt that failed before the first connect", async () => {
+  const reconnect = jest.fn();
+  function Probe() { useReconnectSignal(reconnect); return null; }
+  const root = createRoot(document.createElement("div"));
+  await act(async () => root.render(<Probe />));
+  act(() => { mockStatus("connecting"); mockStatus("connected"); });
+  expect(reconnect).not.toHaveBeenCalled();
+  await act(async () => root.unmount());
+  const retired = createRoot(document.createElement("div"));
+  await act(async () => retired.render(<Probe />));
+  act(() => { mockStatus("connecting"); mockStatus("disconnected"); mockStatus("connecting"); mockStatus("connected"); });
+  expect(reconnect).toHaveBeenCalledTimes(1);
+  await act(async () => retired.unmount());
+});

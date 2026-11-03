@@ -18,7 +18,11 @@ type ConnectionWaiter = {
 export class DesktopFramePortClosedError extends Error {
   readonly code = "DESKTOP_FRAME_PORT_CLOSED";
 
-  constructor(message = "Desktop Platform Frame Port is closed") {
+  /** `retryable` marks a retired logical Session that a later operation may replace. */
+  constructor(
+    message = "Desktop Platform Frame Port is closed",
+    readonly retryable = false,
+  ) {
     super(message);
     this.name = "DesktopFramePortClosedError";
   }
@@ -41,7 +45,10 @@ function toRealtimeStatus(state: DesktopPlatformConnectionState): RealtimeConnec
   return "connecting";
 }
 
-/** Desktop host driver: no network reconnect loop; a new operation may reopen a retired logical session. */
+/**
+ * Desktop host driver: no network reconnect loop. A retired logical Session is
+ * replaced once automatically, then on demand or when the surface becomes active.
+ */
 export class DesktopFramePortDriver extends PlatformFrameClient {
   private readonly statusListeners = new Set<StatusListener>();
   private readonly connectionWaiters = new Set<ConnectionWaiter>();
@@ -54,6 +61,10 @@ export class DesktopFramePortDriver extends PlatformFrameClient {
   private canReopenSession = false;
   private closingSession = false;
   private receivedCloseEvent = false;
+  // One automatic replacement per retirement; re-armed only after a Session
+  // connects, so a replacement the host keeps closing cannot loop.
+  private automaticReopenArmed = true;
+  private automaticReopenTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(
     private readonly createSession: () => DesktopPlatformSession,
@@ -121,9 +132,20 @@ export class DesktopFramePortDriver extends PlatformFrameClient {
     return () => this.statusListeners.delete(listener);
   }
 
+  /** Replace a retired Session without failing; used by surface activation. */
+  resume(): void {
+    if (this.disposed || !this.closeError || !this.canReopenSession || this.closingSession) return;
+    try {
+      this.openSession();
+    } catch {
+      // openSession already recorded the failure as the current close state.
+    }
+  }
+
   dispose(): void {
     if (this.disposed) return;
     this.disposed = true;
+    this.clearAutomaticReopen();
     const error = new DesktopFramePortClosedError("Desktop Platform Frame Port disposed");
     this.closeError = error;
     this.canReopenSession = false;
@@ -143,6 +165,7 @@ export class DesktopFramePortDriver extends PlatformFrameClient {
 	}
 
   private openSession(): void {
+    this.clearAutomaticReopen();
     this.releaseSession();
     this.closeError = null;
     this.canReopenSession = false;
@@ -156,7 +179,8 @@ export class DesktopFramePortDriver extends PlatformFrameClient {
     } catch (error) {
       this.closeSession(new DesktopFramePortClosedError(
         error instanceof Error ? error.message : String(error),
-      ), true);
+        true,
+      ));
       throw error;
     }
     this.session = session;
@@ -189,20 +213,40 @@ export class DesktopFramePortDriver extends PlatformFrameClient {
     this.receivedCloseEvent = true;
     this.closeSession(new DesktopFramePortClosedError(
       event.error?.message || `Desktop Platform Frame Port closed: ${event.reason}`,
-    ), event.reason === "surface_inactive");
+      event.reason === "surface_inactive",
+    ));
   }
 
-  private closeSession(error: DesktopFramePortClosedError, canReopen: boolean): void {
+  private closeSession(error: DesktopFramePortClosedError): void {
     this.closingSession = true;
     this.closeError = error;
-    this.canReopenSession = canReopen;
+    this.canReopenSession = error.retryable;
     try {
-      // Fail only the old operations. Recovery is demand-driven and never resends them.
+      // Fail only the old operations. A replacement Session never resends them.
       this.handlePermanentClose(error);
       this.setStatus("disconnected");
     } finally {
       this.closingSession = false;
     }
+    this.scheduleAutomaticReopen();
+  }
+
+  private scheduleAutomaticReopen(): void {
+    if (this.disposed || !this.canReopenSession || !this.automaticReopenArmed) return;
+    this.automaticReopenArmed = false;
+    const generation = this.sessionGeneration;
+    // A macrotask lets rejected operations settle first; a request that already
+    // replaced the Session supersedes this attempt.
+    this.automaticReopenTimer = setTimeout(() => {
+      this.automaticReopenTimer = null;
+      if (this.sessionGeneration === generation) this.resume();
+    }, 0);
+  }
+
+  private clearAutomaticReopen(): void {
+    if (this.automaticReopenTimer === null) return;
+    clearTimeout(this.automaticReopenTimer);
+    this.automaticReopenTimer = null;
   }
 
   private handleState(state: DesktopPlatformConnectionState): void {
@@ -211,11 +255,13 @@ export class DesktopFramePortDriver extends PlatformFrameClient {
     if (next === "disconnected") {
       this.closeSession(new DesktopFramePortClosedError(
         state.error?.message || "Desktop Platform Frame Port closed",
-      ), state.retryable);
+        state.retryable,
+      ));
       return;
     }
     this.setStatus(next);
     if (next === "connected") {
+      this.automaticReopenArmed = true;
       for (const waiter of this.connectionWaiters) waiter.resolve();
       this.connectionWaiters.clear();
     }

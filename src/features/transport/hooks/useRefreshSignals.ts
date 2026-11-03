@@ -35,13 +35,19 @@ export function useReconnectSignal(callback: () => void, enabled = true) {
     if (!entry) {
       const listeners = new Set<() => void>();
       let connected = transport.getStatus() === "connected";
+      // A failed attempt before the first connect (such as a retired Desktop
+      // Session) also counts: loads made during it have already failed.
+      let attempted = transport.getStatus() === "connecting";
       let interrupted = false;
       const stop = transport.subscribeStatus(status => {
         if (status === "connected") {
-          const recovered = connected && interrupted;
+          const recovered = interrupted;
           connected = true; interrupted = false;
           if (recovered) listeners.forEach(listener => listener());
-        } else if (connected && status !== "disposed") interrupted = true;
+        } else if (status === "connecting") {
+          attempted = true;
+          if (connected) interrupted = true;
+        } else if (status !== "disposed" && (connected || attempted)) interrupted = true;
       });
       entry = { listeners, stop }; reconnects.set(transport, entry);
     }

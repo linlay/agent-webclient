@@ -25,15 +25,25 @@ export function useChatNotificationRuntime(options: {
   useEffect(() => {
     let hasConnected = false;
     let previousStatus = realtime.getStatus();
+    // A connection attempt that failed before the first connect (for example a
+    // retired Desktop Session at startup) already failed its loads, so the first
+    // successful connect after it recovers like a reconnect.
+    let attempted = previousStatus === "connecting";
+    let failedAttempt = false;
     return realtime.subscribeStatus((status) => {
       const nextStatus = status === "disposed" ? "disconnected" : status;
       options.dispatch({ type: "SET_WS_STATUS", status: nextStatus });
       if (nextStatus === "connected") {
-        if (hasConnected && previousStatus !== "connected") {
+        if ((hasConnected || failedAttempt) && previousStatus !== "connected") {
           options.onReconnect(options.stateRef.current);
         }
         hasConnected = true;
+        failedAttempt = false;
         options.dispatch({ type: "SET_WS_ERROR_MESSAGE", message: "" });
+      } else if (nextStatus === "connecting") {
+        attempted = true;
+      } else if (attempted && !hasConnected) {
+        failedAttempt = true;
       }
       previousStatus = nextStatus;
     });

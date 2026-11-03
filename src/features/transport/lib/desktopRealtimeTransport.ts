@@ -81,6 +81,8 @@ export class DesktopRealtimeTransport implements RealtimeTransport {
     const active = this.hostSurfaceActive && this.documentVisible;
     if (this.effectiveSurfaceActive === active) return;
     this.effectiveSurfaceActive = active;
+    // Activation replaces a retired Session before recovery reads /api/chat.
+    if (active) this.client.resume();
     this.runs.setSurfaceActive(active);
     if (
       typeof window !== "undefined" &&

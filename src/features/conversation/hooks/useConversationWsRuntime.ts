@@ -1068,11 +1068,16 @@ export function createConversationPushHandler(
 }
 
 export function refreshCurrentChatAfterWsReconnect(state: AppState): void {
-	const chatId = String(state.chatId || "").trim();
+	// A Chat whose load failed while disconnected is retried like its retry button.
+	const failedTargetChatId = state.chatTransition?.phase === "error"
+		? String(state.chatTransition.targetChatId || "").trim()
+		: "";
+	const chatId = failedTargetChatId || String(state.chatId || "").trim();
 	const shouldRefresh = Boolean(
 		chatId
 		&& (
-			state.activeAwaiting
+			failedTargetChatId
+			|| state.activeAwaiting
 			|| state.currentChatActiveRun
 			|| String(state.runId || "").trim()
 		)

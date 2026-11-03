@@ -2601,6 +2601,7 @@ export const zhCNMessages = {
   "platformError.streamSourceUnknown": "未能关联，见技术详情",
   "platformError.code.active_stream_exists": "上一条运行的连接尚未释放，本次请求未能开始。请查看占用信息和技术详情。",
   "platformError.code.active_run_conflict": "当前对话已有运行正在进行。",
+  "platformError.code.DESKTOP_FRAME_PORT_CLOSED": "与桌面端的平台连接已关闭，请重新打开页面或重启应用。",
   "platformError.code.editing_mode_unsupported":
     "当前 Agent 不支持知识库编辑，请重新选择 KBASE Agent",
   "platformError.code.forbidden": "没有权限执行该操作。",
@@ -2688,6 +2689,7 @@ export const zhCNMessages = {
   "platformError.retryableHint": "可以稍后重试。",
   "platformError.special.channelNotConnected":
     "服务通道未连接，请检查后端通道状态。",
+  "platformError.special.desktopFramePortRecovering": "与桌面端的平台连接已中断，正在重新连接。",
   "platformError.technicalDetails": "技术详情",
   "topNav.audio.mute": "静音语音输出",
   "topNav.audio.unmute": "取消静音",

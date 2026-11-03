@@ -69,3 +69,48 @@ it("delivers pushes once and refreshes the latest observed chat only after recon
   expect(mockUnsubscribePush).toHaveBeenCalledTimes(1);
   expect(mockUnsubscribeStatus).toHaveBeenCalledTimes(1);
 });
+
+it("recovers a Chat whose load failed when the first connection attempt was retired", () => {
+  const dispatch = jest.fn();
+  const stateRef = {
+    current: { chatId: "", chatTransition: { targetChatId: "chat_failed", phase: "error", error: "closed" } } as unknown as AppState,
+  };
+  const reload = jest.fn();
+  window.addEventListener("agent:load-chat", reload);
+  const root = createRoot(document.createElement("div"));
+  function Runtime() {
+    useChatNotificationRuntime({ dispatch, stateRef, onPush: jest.fn(), onReconnect: refreshCurrentChatAfterWsReconnect });
+    return null;
+  }
+  try {
+    act(() => root.render(React.createElement(Runtime)));
+    // The retired attempt itself reloads nothing; recovery waits for the next connect.
+    mockOnStatus("connecting");
+    mockOnStatus("disconnected");
+    expect(reload).not.toHaveBeenCalled();
+    mockOnStatus("connecting");
+    mockOnStatus("connected");
+    expect(reload).toHaveBeenCalledTimes(1);
+    expect(reload.mock.calls[0][0].detail).toEqual({ chatId: "chat_failed" });
+  } finally {
+    act(() => root.unmount());
+    window.removeEventListener("agent:load-chat", reload);
+  }
+});
+
+it("treats a clean first connect as startup", () => {
+  const onReconnect = jest.fn();
+  const root = createRoot(document.createElement("div"));
+  function Runtime() {
+    useChatNotificationRuntime({ dispatch: jest.fn(), stateRef: { current: {} as AppState }, onPush: jest.fn(), onReconnect });
+    return null;
+  }
+  try {
+    act(() => root.render(React.createElement(Runtime)));
+    mockOnStatus("connecting");
+    mockOnStatus("connected");
+    expect(onReconnect).not.toHaveBeenCalled();
+  } finally {
+    act(() => root.unmount());
+  }
+});

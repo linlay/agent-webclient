@@ -28,6 +28,18 @@ describe("platformError", () => {
   expect(formatPlatformErrorForDisplay({...payload, diagnostics: {attempt: 1, maxAttempts: 1}}).message).not.toContain("次数已用尽");
  });
 
+ it("distinguishes a recovering Desktop Frame Port from a terminal close", () => {
+  // Same shape as the transport's DesktopFramePortClosedError.
+  const closed = (message: string, retryable: boolean) =>
+   Object.assign(new Error(message), { code: "DESKTOP_FRAME_PORT_CLOSED", retryable });
+  const retired = formatPlatformErrorForDisplay(closed("Desktop Platform Frame Port closed: surface_inactive", true));
+  expect(retired.message).toContain("正在重新连接");
+  expect(retired.message).not.toContain("surface_inactive");
+  const terminal = formatPlatformErrorForDisplay(closed("host stopped", false));
+  expect(terminal.message).toContain("请重新打开页面或重启应用");
+  expect(terminal.error.technicalText).toContain("host stopped");
+ });
+
  it("explains structured EOF reasons and keeps legacy errors readable", () => {
   const error = {code: "provider_stream_failed", category: "model", retryable: true, message: "模型服务流式响应失败"};
   expect(formatPlatformErrorForDisplay({...error, diagnostics: {reason: "stream_ended_before_output"}}).message).toContain("返回有效输出前");

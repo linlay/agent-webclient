@@ -267,6 +267,11 @@ export function formatPlatformErrorForDisplay(
     (isChannelNotConnectedError(error)
       ? translateIfAvailable("platformError.special.channelNotConnected")
       : "") ||
+    // A retired Desktop Session is replaced automatically; only a terminal close
+    // keeps the generic closed message.
+    (error.code === "DESKTOP_FRAME_PORT_CLOSED" && error.retryable === true
+      ? translateIfAvailable("platformError.special.desktopFramePortRecovering")
+      : "") ||
     translateIfAvailable(
       error.code ? `platformError.code.${error.code}` : "",
     ) ||

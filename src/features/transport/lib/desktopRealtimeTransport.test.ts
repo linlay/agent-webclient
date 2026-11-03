@@ -82,7 +82,7 @@ async function flush(): Promise<void> {
 }
 
 describe("DesktopRealtimeTransport", () => {
-  it("reopens a retired session on a new request while keeping the registered client and push subscribers", async () => {
+  it("replaces a retired session once automatically while keeping the registered client and push subscribers", async () => {
     const first = new FakeDesktopPlatformSession();
     const second = new FakeDesktopPlatformSession();
     const createSession = jest.fn()
@@ -96,18 +96,19 @@ describe("DesktopRealtimeTransport", () => {
     const unsubscribePush = transport.push.subscribe({ types: ["chat.updated"] }, pushes);
     first.connected();
     const abandoned = client.request({ type: "/api/chat", payload: { chatId: "chat-1" } });
-    const failure = expect(abandoned).rejects.toMatchObject({ code: "DESKTOP_FRAME_PORT_CLOSED" });
+    const failure = expect(abandoned).rejects.toMatchObject({ code: "DESKTOP_FRAME_PORT_CLOSED", retryable: true });
     await flush();
     first.closed({ reason: "surface_inactive" });
     await failure;
-    await flush();
     expect(createSession).toHaveBeenCalledTimes(1);
     expect(transport.getStatus()).toBe("disconnected");
 
-    const retry = client.request({ type: "/api/chat", payload: { chatId: "chat-1" } });
+    await flush();
     expect(createSession).toHaveBeenCalledTimes(2);
     expect(getDesktopPlatformFrameClient()).toBe(client);
     expect(transport.getStatus()).toBe("connecting");
+    const retry = client.request({ type: "/api/chat", payload: { chatId: "chat-1" } });
+    expect(createSession).toHaveBeenCalledTimes(2);
     second.connected();
     await flush();
     const request = second.sent.find((frame) => frame.type === "/api/chat")!;
@@ -253,7 +254,8 @@ describe("DesktopRealtimeTransport", () => {
     session.connected();
     session.closed({ reason: "surface_inactive" });
     expect(transport.getStatus()).toBe("disconnected");
-    await expect(client.connect()).rejects.toMatchObject({ message: `host stopped: ${reason}` });
+    await expect(client.connect()).rejects.toMatchObject({ message: `host stopped: ${reason}`, retryable: false });
+    await flush();
     await expect(client.request({ type: "/api/chat" })).rejects.toMatchObject({ code: "DESKTOP_FRAME_PORT_CLOSED" });
     expect(createSession).toHaveBeenCalledTimes(1);
     transport.dispose();
@@ -279,20 +281,86 @@ describe("DesktopRealtimeTransport", () => {
     expect(createSession).toHaveBeenCalledTimes(2);
   });
 
-  it("reopens an explicitly retryable closed session only on demand", async () => {
+  it("replaces an explicitly retryable closed session once automatically", async () => {
     const first = new FakeDesktopPlatformSession();
     const second = new FakeDesktopPlatformSession();
     const createSession = jest.fn().mockReturnValueOnce(first).mockReturnValueOnce(second);
     const transport = new DesktopRealtimeTransport({ transportVersion: 2, createSession });
     const client = getDesktopPlatformFrameClient()!;
     first.state({ phase: "closed", logicalGeneration: 1, physicalGeneration: 1, reconnectCount: 0, retryable: true });
-    await flush();
     expect(createSession).toHaveBeenCalledTimes(1);
+    await flush();
+    expect(createSession).toHaveBeenCalledTimes(2);
     const retry = client.connect();
     second.connected();
     await retry;
     expect(createSession).toHaveBeenCalledTimes(2);
     transport.dispose();
+  });
+
+  it("does not automatically replace a replacement that closes before connecting", async () => {
+    const sessions = [new FakeDesktopPlatformSession(), new FakeDesktopPlatformSession(), new FakeDesktopPlatformSession()];
+    const createSession = jest.fn()
+      .mockReturnValueOnce(sessions[0]).mockReturnValueOnce(sessions[1]).mockReturnValueOnce(sessions[2]);
+    const transport = new DesktopRealtimeTransport({ transportVersion: 2, createSession });
+    const client = getDesktopPlatformFrameClient()!;
+    sessions[0].closed({ reason: "surface_inactive" });
+    await flush();
+    expect(createSession).toHaveBeenCalledTimes(2);
+    sessions[1].closed({ reason: "surface_inactive" });
+    await flush();
+    await flush();
+    expect(createSession).toHaveBeenCalledTimes(2);
+    expect(transport.getStatus()).toBe("disconnected");
+    const retry = client.connect();
+    expect(createSession).toHaveBeenCalledTimes(3);
+    sessions[2].connected();
+    await retry;
+    transport.dispose();
+  });
+
+  it("re-arms the automatic replacement once a replacement connects", async () => {
+    const sessions = [new FakeDesktopPlatformSession(), new FakeDesktopPlatformSession(), new FakeDesktopPlatformSession()];
+    const createSession = jest.fn()
+      .mockReturnValueOnce(sessions[0]).mockReturnValueOnce(sessions[1]).mockReturnValueOnce(sessions[2]);
+    const transport = new DesktopRealtimeTransport({ transportVersion: 2, createSession });
+    sessions[0].connected();
+    sessions[0].closed({ reason: "surface_inactive" });
+    await flush();
+    sessions[1].connected();
+    sessions[1].closed({ reason: "surface_inactive" });
+    await flush();
+    expect(createSession).toHaveBeenCalledTimes(3);
+    sessions[2].connected();
+    expect(transport.getStatus()).toBe("connected");
+    transport.dispose();
+  });
+
+  it("lets a request that already replaced the session supersede the automatic attempt", async () => {
+    const first = new FakeDesktopPlatformSession();
+    const second = new FakeDesktopPlatformSession();
+    const createSession = jest.fn().mockReturnValueOnce(first).mockReturnValueOnce(second);
+    const transport = new DesktopRealtimeTransport({ transportVersion: 2, createSession });
+    const client = getDesktopPlatformFrameClient()!;
+    first.closed({ reason: "surface_inactive" });
+    const retry = client.connect();
+    expect(createSession).toHaveBeenCalledTimes(2);
+    await flush();
+    expect(createSession).toHaveBeenCalledTimes(2);
+    second.connected();
+    await retry;
+    transport.dispose();
+  });
+
+  it("does not schedule a replacement after dispose", async () => {
+    const first = new FakeDesktopPlatformSession();
+    const createSession = jest.fn().mockReturnValueOnce(first);
+    const transport = new DesktopRealtimeTransport({ transportVersion: 2, createSession });
+    first.closed({ reason: "surface_inactive" });
+    transport.dispose();
+    await flush();
+    expect(createSession).toHaveBeenCalledTimes(1);
+    expect(transport.getStatus()).toBe("disposed");
   });
 
   it("does not loop when the replacement session immediately replays a closed state", async () => {
@@ -658,6 +726,62 @@ describe("DesktopRealtimeTransport", () => {
     } finally {
       transport.dispose();
       fetchSpy.mockRestore();
+    }
+  });
+
+  it("replaces a retired session when the host activates the surface again", async () => {
+    const originalWindow = (globalThis as { window?: unknown }).window;
+    const originalDocument = (globalThis as { document?: unknown }).document;
+    let lifecycleListener: ((event: unknown, payload: Record<string, unknown>) => void) | null = null;
+    Object.defineProperty(globalThis, "document", {
+      configurable: true,
+      value: { visibilityState: "visible", addEventListener: jest.fn(), removeEventListener: jest.fn() },
+    });
+    Object.defineProperty(globalThis, "window", {
+      configurable: true,
+      value: {
+        electronAPI: {
+          onFromMain: (_channel: string, listener: typeof lifecycleListener) => {
+            lifecycleListener = listener;
+            return () => undefined;
+          },
+        },
+      },
+    });
+    const sessions = [new FakeDesktopPlatformSession(), new FakeDesktopPlatformSession(), new FakeDesktopPlatformSession()];
+    const createSession = jest.fn()
+      .mockReturnValueOnce(sessions[0]).mockReturnValueOnce(sessions[1]).mockReturnValueOnce(sessions[2]);
+    const transport = new DesktopRealtimeTransport({ transportVersion: 2, createSession });
+    const setActive = (active: boolean) => lifecycleListener?.({}, {
+      type: DESKTOP_SURFACE_ACTIVE_CHANGED_MESSAGE_TYPE, active, surfaceId: "agent-webclient-chat",
+    });
+    try {
+      sessions[0].closed({ reason: "surface_inactive" });
+      await flush();
+      sessions[1].closed({ reason: "surface_inactive" });
+      await flush();
+      expect(createSession).toHaveBeenCalledTimes(2);
+      setActive(false);
+      expect(createSession).toHaveBeenCalledTimes(2);
+      setActive(true);
+      expect(createSession).toHaveBeenCalledTimes(3);
+      sessions[2].connected();
+      expect(transport.getStatus()).toBe("connected");
+      // Activation never revives a terminal close.
+      sessions[2].closed({ reason: "protocol_mismatch" });
+      setActive(false);
+      setActive(true);
+      await flush();
+      expect(createSession).toHaveBeenCalledTimes(3);
+    } finally {
+      transport.dispose();
+      for (const [key, value] of [["window", originalWindow], ["document", originalDocument]] as const) {
+        if (value === undefined) {
+          delete (globalThis as Record<string, unknown>)[key];
+        } else {
+          Object.defineProperty(globalThis, key, { configurable: true, value });
+        }
+      }
     }
   });
 
