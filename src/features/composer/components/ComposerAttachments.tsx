@@ -91,7 +91,7 @@ export const ComposerAttachments: React.FC<ComposerAttachmentsProps> = ({
                 openTarget={openTarget}
                 variant="composer"
                 density={useUnifiedComposerAttachmentRow ? "compact" : "default"}
-                skillIcon={attachment.type === "skill" ? <SkillIcon icon={resolveSkillIconUrl(activeSkills, String((attachment.references[0] as { id?: string } | undefined)?.id || attachment.id.split(":").slice(1).join(":")))} size={34} glyphSize={19} fallback="build" /> : undefined}
+                skillIcon={attachment.type === "skill" ? <SkillIcon icon={resolveSkillIconUrl(activeSkills, String((attachment.references[0] as { id?: string } | undefined)?.id || attachment.id.split(":").slice(1).join(":")))} size={34} glyphSize={19} fallback="bolt" /> : undefined}
                 onRemove={attachment.id.startsWith("forced:") ? undefined : () => onRemoveAttachment(attachment.id)}
               />
             ) : (

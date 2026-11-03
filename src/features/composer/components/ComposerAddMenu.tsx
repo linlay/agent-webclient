@@ -70,12 +70,12 @@ const sectionMeta: Record<
   kbases: { icon: "book_2", key: "kbase.title", detailWidth: 320 },
   files: { icon: "attach_file", key: "composer.addMenu.section.files" },
   skills: {
-    icon: "skills",
+    icon: "bolt",
     key: "composer.addMenu.section.skills",
     detailWidth: 320,
   },
   connectors: {
-    icon: "hub",
+    icon: "power_2",
     key: "composer.addMenu.section.connectors",
     detailWidth: 240,
   },

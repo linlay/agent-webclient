@@ -95,7 +95,7 @@ function translateWithFallback(
 }
 
 const SkillListIcon: React.FC<{ icon?: string }> = ({ icon }) => (
-  <SkillIcon icon={icon} fallback="build" size={28} />
+  <SkillIcon icon={icon} size={28} />
 );
 
 const SKILL_IMAGE_EXTENSION_PATTERN =

@@ -3,7 +3,7 @@ import { fetchSkillIcon } from "@/shared/data";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import styles from "./SkillIcon.module.css";
 
-export function SkillIcon({ icon, size = 18, glyphSize, fallback = "build" }: { icon?: string; size?: number; glyphSize?: number; fallback?: "skills" | "build" | "folder" }) {
+export function SkillIcon({ icon, size = 18, glyphSize, fallback = "bolt" }: { icon?: string; size?: number; glyphSize?: number; fallback?: "bolt" | "skills" | "build" | "folder" }) {
   const url = icon?.trim() || "";
   const [loaded, setLoaded] = useState<{ url: string; src: string } | null>(null);
   useEffect(() => {

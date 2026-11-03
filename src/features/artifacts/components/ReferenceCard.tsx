@@ -1,6 +1,7 @@
 import React from "react";
 import type { TimelineAttachment } from "@/features/timeline/lib/timelineState";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
+import { SkillIcon } from "@/features/skills/components/SkillIcon";
 import type { MaterialIconName } from "@/shared/ui/MaterialIcon";
 import { useI18n } from "@/shared/i18n";
 import type { OpenTargetIntent } from "@/features/surfaces/lib/openTarget";
@@ -83,7 +84,7 @@ export const ReferenceCard: React.FC<ReferenceCardProps> = ({
     >
       <span className={withModuleClasses("context-reference-card-icon")} aria-hidden="true">
         {type === "skill" ? (
-          skillIcon ?? <MaterialIcon name="build" style={{ width: 34, height: 34, fontSize: 19 }} />
+          skillIcon ?? <SkillIcon size={34} glyphSize={19} />
         ) : (
           <MaterialIcon name={referenceIcon(type)} />
         )}

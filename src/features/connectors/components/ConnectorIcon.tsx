@@ -27,6 +27,6 @@ export function ConnectorIcon({ item, size = 22, className = "" }: {
   const src = loaded?.url === url ? loaded.src : "";
   return <span className={`${styles.icon} ${className}`} style={{ width: size, height: size }} aria-hidden="true">
     {src ? <img src={src} alt="" onError={() => setLoaded(previous => previous?.src === src ? null : previous)} />
-      : <MaterialIcon name="hub" style={{ fontSize: size }} />}
+      : <MaterialIcon name="power_2" style={{ fontSize: size }} />}
   </span>;
 }

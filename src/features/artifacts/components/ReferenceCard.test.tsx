@@ -31,7 +31,7 @@ it("keeps the skill-center default icon when no avatar url resolves", () => {
   );
   expect(html).toContain('data-reference-type="skill"');
   expect(html).toContain("width:34px");
-  expect(html).toContain('data-material-icon="build"');
+  expect(html).toContain('data-material-icon="bolt"');
   expect(html).not.toContain('data-material-icon="skills"');
 });
 

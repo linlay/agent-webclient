@@ -16,7 +16,6 @@ import { UiButton } from "@/shared/ui/UiButton";
 import { SkillIcon } from "@/features/skills/components/SkillIcon";
 const presentationClasses = bindCssModuleClasses({ ...composerPresentation });
 
-
 const SLASH_COMMAND_POPOVER_CLASS =
   "slash-command-popover tw:max-h-[min(360px,calc(100vh-120px))] tw:overflow-auto";
 const SLASH_COMMAND_LIST_CLASS =
@@ -113,7 +112,12 @@ export const SlashPaletteContent: React.FC<{
               />
               <span className={SLASH_COMMAND_LABEL_CLASS}>{command.label}</span>
               <Typography.Text
-                className={[libraryPresentation.typography, SLASH_COMMAND_DESCRIPTION_CLASS].filter(Boolean).join(" ")}
+                className={[
+                  libraryPresentation.typography,
+                  SLASH_COMMAND_DESCRIPTION_CLASS,
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
                 ellipsis={{
                   tooltip: {
                     title: command.description,
@@ -142,16 +146,27 @@ export const SlashPaletteContent: React.FC<{
               className={`${SLASH_COMMAND_ITEM_CLASS} ${itemStateClass(index === activeSlashIndex)}`}
               variant="ghost"
               size="sm"
-              disabled={skillsDisabled || (skill.kind === "package" && skill.disabled)}
+              disabled={
+                skillsDisabled || (skill.kind === "package" && skill.disabled)
+              }
               role="option"
               aria-selected={index === activeSlashIndex}
               onMouseDown={(event) => event.preventDefault()}
               onClick={() => onSelectSkill(skill)}
             >
-              <SkillIcon icon={skill.icon} size={24} fallback={skill.kind === "package" ? "folder" : "build"} />
+              <SkillIcon
+                icon={skill.icon}
+                size={20}
+                fallback={skill.kind === "package" ? "folder" : "bolt"}
+              />
               <span className={SLASH_COMMAND_LABEL_CLASS}>{skill.label}</span>
               <Typography.Text
-                className={[libraryPresentation.typography, SLASH_COMMAND_DESCRIPTION_CLASS].filter(Boolean).join(" ")}
+                className={[
+                  libraryPresentation.typography,
+                  SLASH_COMMAND_DESCRIPTION_CLASS,
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
                 ellipsis={{
                   tooltip: {
                     title: skill.description,
@@ -159,12 +174,21 @@ export const SlashPaletteContent: React.FC<{
                   },
                 }}
               >
-                {skill.kind === "package" ? t(skill.disabled ? "packageComposer.incomplete" : "skillConsole.packageContains", { count: skill.pkg.skills.length }) : skill.description || t("slashPalette.skill.noDescription")}
+                {skill.kind === "package"
+                  ? t(
+                      skill.disabled
+                        ? "packageComposer.incomplete"
+                        : "skillConsole.packageContains",
+                      { count: skill.pkg.skills.length },
+                    )
+                  : skill.description || t("slashPalette.skill.noDescription")}
               </Typography.Text>
               <Tag className={SLASH_SKILL_SOURCE_CLASS}>
-                {skill.kind === "package" ? t("skillPackageEditor.packages") : skill.configured
-                  ? t("slashPalette.skill.source.agent")
-                  : t("slashPalette.skill.source.center")}
+                {skill.kind === "package"
+                  ? t("skillPackageEditor.packages")
+                  : skill.configured
+                    ? t("slashPalette.skill.source.agent")
+                    : t("slashPalette.skill.source.center")}
               </Tag>
             </UiButton>
           );

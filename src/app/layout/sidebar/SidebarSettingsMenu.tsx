@@ -85,7 +85,7 @@ export function buildSidebarSettingsMenuSections(): SidebarSettingsMenuSection[]
         {
           key: "open-connectors",
           label: t("settingsMenu.connectors"),
-          icon: "power",
+          icon: "power_2",
           action: { type: "open-connectors" },
         },
         {
