@@ -82,6 +82,8 @@ Main Chat Composer 只消费 owner Chat 匹配的 `workPanel.composer.insertDraf
 
 划词动作使用 bridge v6 的 `selectionToolbar.execute`。Desktop 只提供 request/selection/target ID、动作枚举与首尾坐标；WebClient 按坐标、DOM Selection 和语义 target 三重核对后创建最多 50,000 字符的 `type=selection` reference，正文使用顶层 `text`，可选用户批注使用顶层 `annotation`；正文保持引用材料语义，批注属于用户指令。动作结果只允许稳定错误码或 `chatId/runId` handoff，禁止把正文、Prompt、凭据或 URL 回传 Desktop。Standalone 使用本地工具条提供添加引用与侧边提问，不注册 Desktop host action，也不提供详细解释。Desktop 详细解释首发、订阅、续问与控制携带显式解释 purpose，由 Frame Port adapter 转为宿主专用元数据；宿主校验、剥离后统一路由到独立解释 lane，不能与普通 WorkPanel BTW 混用。该能力在 macOS 和 Windows 上一致。
 
+划词按消息或代码的正文归属解析：内联网页、Workspace 文件和 Chat 资源链接的可见文字属于所在消息或代码，支持只选链接的一部分及跨链接选择正文。Desktop 的语义探测以 `purpose: selection` 请求正文所属目标，动作执行和 Standalone 选区读取使用同一归属规则；普通右键仍优先使用链接本身的预览、路径和下载能力。此规则只跳过内联链接，不跨越消息、嵌套代码或独立资源卡片边界，也不将没有正文所属目标的独立链接提升为可操作选区。
+
 ## 相关文件
 - `../src/shared/data/desktop/desktopHostBridge.ts`
 - `../src/shared/data/auth/appAuth.ts`

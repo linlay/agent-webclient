@@ -234,18 +234,28 @@ function readCoordinate(value: unknown) {
     : null;
 }
 
-function readTarget(payload: Record<string, unknown>) {
+function readTarget(payload: Record<string, unknown>, purpose?: "selection") {
   const x = readCoordinate(payload.x);
   const y = readCoordinate(payload.y);
   if (x === null || y === null) return null;
+  if (purpose === "selection") {
+    return resolveTargetFromNode(document.elementFromPoint(x, y));
+  }
   return resolveDesktopContextMenuTargetAt(x, y);
+}
+
+function isInlineSelectionLink(element: Element, target: DesktopContextMenuTargetDescriptor) {
+  // A link's visible text belongs to its message/code selection. Its own
+  // descriptor still takes precedence for ordinary right-click operations.
+  return element.tagName === "A" &&
+    ["web-link", "workspace-file", "chat-resource"].includes(target.kind);
 }
 
 function resolveTargetFromNode(node: Node | null) {
   let element = node instanceof Element ? node : node?.parentElement || null;
   while (element) {
     const target = targets.get(element);
-    if (target) return target;
+    if (target && !isInlineSelectionLink(element, target)) return target;
     element = element.parentElement;
   }
   return null;
@@ -277,7 +287,7 @@ function browserTargetFromNode(node: Node | null) {
   let element = node?.nodeType === 1 ? node as Element : node?.parentElement || null;
   while (element) {
     const target = targets.get(element);
-    if (target) return { element, target };
+    if (target && !isInlineSelectionLink(element, target)) return { element, target };
     element = element.parentElement;
   }
   return null;
@@ -444,8 +454,8 @@ function readSelectionAction(payload: Record<string, unknown>) {
     !hasOnlyKeys(start, ["x", "y"]) ||
     !hasOnlyKeys(end, ["x", "y"])
   ) return null;
-  const startTarget = readTarget({ x: start.x, y: start.y });
-  const endTarget = readTarget({ x: end.x, y: end.y });
+  const startTarget = readTarget({ x: start.x, y: start.y }, "selection");
+  const endTarget = readTarget({ x: end.x, y: end.y }, "selection");
   if (
     !startTarget ||
     !endTarget ||
@@ -567,7 +577,7 @@ function handleResolve(payload: Record<string, unknown>) {
   ) {
     return;
   }
-  const descriptor = readTarget(payload);
+  const descriptor = readTarget(payload, payload.purpose === "selection" ? "selection" : undefined);
   window.postMessage({
     type: WEBVIEW_CONTEXT_MENU_SEMANTIC_RESPONSE_CHANNEL,
     version: WEBVIEW_CONTEXT_MENU_SEMANTIC_VERSION,
