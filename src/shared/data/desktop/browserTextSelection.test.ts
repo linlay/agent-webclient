@@ -1,10 +1,17 @@
 /** @jest-environment jsdom */
 
 import {
+  initializeDesktopContextMenuBridge,
   readBrowserTextSelection,
   registerDesktopContextMenuTarget,
+  registerDesktopSelectionActionHandler,
+  resolveDesktopContextMenuTargetAt,
   resolveBrowserSelectedTextFragment,
 } from "./desktopContextMenu";
+import {
+  AGENT_WEBCLIENT_SELECTION_ACTION,
+  AGENT_WEBCLIENT_SELECTION_ACTION_VERSION,
+} from "@/shared/contracts/generated/agentWebclientBridge";
 import { SELECTED_TEXT_MAX_CHARACTERS } from "@/shared/contracts/selectedTextReference";
 
 function rect(left = 100, top = 100, width = 100, height = 20): DOMRect {
@@ -35,6 +42,26 @@ describe("browser selection semantic boundary", () => {
     cleanups.push(registerDesktopContextMenuTarget(element, { targetId, kind, handlers: {} }));
     hitElement = element;
     return element;
+  }
+
+  function link(message: Element, kind: "web-link" | "workspace-file" | "chat-resource") {
+    message.innerHTML = 'before <a href="/workspace/末位.md"><strong>末位.md</strong></a> after';
+    const anchor = message.querySelector("a")!;
+    cleanups.push(registerDesktopContextMenuTarget(anchor, {
+      targetId: "link-1", kind, url: "https://example.com/guide", handlers: {},
+    }));
+    hitElement = anchor.querySelector("strong")!;
+    return hitElement.firstChild!;
+  }
+
+  function desktopBridge() {
+    let listener!: (event: unknown, payload: unknown) => void;
+    Object.defineProperty(window, "electronAPI", { configurable: true, value: {
+      onFromMain: (_channel: string, callback: typeof listener) => { listener = callback; },
+    } });
+    cleanups.push(() => Reflect.deleteProperty(window, "electronAPI"));
+    cleanups.push(initializeDesktopContextMenuBridge());
+    return (payload: unknown) => listener({}, payload);
   }
 
   beforeEach(() => {
@@ -81,6 +108,82 @@ describe("browser selection semantic boundary", () => {
     const second = target("second");
     select(first.firstChild!, 0, second.firstChild!, 6);
     expect(readBrowserTextSelection()).toBeNull();
+  });
+
+  it.each(["web-link", "workspace-file", "chat-resource"] as const)(
+    "selects nested %s text as part of its message while retaining its context menu target",
+    (kind) => {
+      const message = target();
+      const text = link(message, kind);
+      select(text);
+      const snapshot = readBrowserTextSelection();
+      expect(snapshot).toMatchObject({ targetId: "message-1", targetKind: "message", text: "末位.md" });
+      expect(resolveBrowserSelectedTextFragment(snapshot!)?.reference.text).toBe("末位.md");
+      expect(resolveDesktopContextMenuTargetAt(101, 110)?.kind).toBe(kind);
+      select(text, 0, text, 2);
+      expect(readBrowserTextSelection()?.text).toBe("末位");
+      select(message.firstChild!, 0, message.lastChild!, 6);
+      expect(readBrowserTextSelection()?.text).toBe("before 末位.md after");
+    },
+  );
+
+  it("keeps link selections inside their nearest code or message boundary", () => {
+    const message = target();
+    message.innerHTML = "before <pre></pre> after";
+    const code = message.querySelector("pre")!;
+    cleanups.push(registerDesktopContextMenuTarget(code, { targetId: "code-1", kind: "code", handlers: {} }));
+    select(link(code, "workspace-file"));
+    expect(readBrowserTextSelection()).toMatchObject({ targetId: "code-1", targetKind: "code" });
+    select(message.firstChild!, 0, message.lastChild!, 6);
+    expect(readBrowserTextSelection()).toBeNull();
+    const other = target("other");
+    select(code.querySelector("strong")!.firstChild!, 0, other.firstChild!, 5);
+    expect(readBrowserTextSelection()).toBeNull();
+    const detachedOwner = document.createElement("div");
+    document.body.appendChild(detachedOwner);
+    select(link(detachedOwner, "workspace-file"));
+    expect(readBrowserTextSelection()).toBeNull();
+  });
+
+  it("does not treat a non-link resource card as inline message text", () => {
+    const message = target();
+    message.innerHTML = "before <span>resource card</span> after";
+    const card = message.querySelector("span")!;
+    cleanups.push(registerDesktopContextMenuTarget(card, { targetId: "resource-1", kind: "chat-resource", handlers: {} }));
+    hitElement = card;
+    select(card.firstChild!);
+    expect(readBrowserTextSelection()).toBeNull();
+    select(message.firstChild!, 0, message.lastChild!, 6);
+    expect(readBrowserTextSelection()).toBeNull();
+  });
+
+  it("resolves Desktop selection probes to the message and ordinary right-click probes to the link", () => {
+    const message = target();
+    select(link(message, "workspace-file"));
+    const send = desktopBridge();
+    const post = jest.spyOn(window, "postMessage").mockImplementation(() => undefined);
+    const probe = { action: "contextMenu.resolve", version: 1, requestId: "probe", x: 101, y: 110 };
+    send({ ...probe, purpose: "selection" });
+    expect(post.mock.calls[0][0].target).toMatchObject({ targetId: "message-1", kind: "message" });
+    send(probe);
+    expect(post.mock.calls[1][0].target).toMatchObject({ targetId: "link-1", kind: "workspace-file" });
+  });
+
+  it("executes a Desktop selection action from link text using the owning message identity", async () => {
+    const message = target();
+    select(link(message, "workspace-file"));
+    const send = desktopBridge();
+    const handler = jest.fn(() => ({ ok: true }));
+    cleanups.push(registerDesktopSelectionActionHandler(handler));
+    send({
+      action: AGENT_WEBCLIENT_SELECTION_ACTION, version: AGENT_WEBCLIENT_SELECTION_ACTION_VERSION,
+      requestId: "link-selection", selectionId: "selection-1", operation: "add-to-chat",
+      targetId: "message-1", targetKind: "message", start: { x: 101, y: 110 }, end: { x: 199, y: 110 },
+    });
+    await Promise.resolve();
+    expect(handler).toHaveBeenCalledWith({ action: "add-to-chat", fragment: expect.objectContaining({
+      targetId: "message-1", reference: expect.objectContaining({ text: "末位.md", meta: { sourceKind: "message" } }),
+    }) });
   });
 
   it("rejects a message range that crosses nested code despite matching message endpoints", () => {
