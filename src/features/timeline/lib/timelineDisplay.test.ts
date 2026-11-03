@@ -598,10 +598,10 @@ describe('nodesForDetailLevel', () => {
     { id: 'model_retry_current', kind: 'message', role: 'system', ts: 4 },
     { id: 'run_activity_current', kind: 'message', role: 'system', systemMessageLevel: 'activity', ts: 5 },
   ];
-  it('summary shows content and the activity line only', () => {
-    expect(nodesForDetailLevel(nodes, 'summary').map((node) => node.id)).toEqual(['c', 'run_activity_current']);
+  it('simple shows content and the activity line only', () => {
+    expect(nodesForDetailLevel(nodes, 'simple').map((node) => node.id)).toEqual(['c', 'run_activity_current']);
   });
-  it('full shows details and hides the activity line', () => {
-    expect(nodesForDetailLevel(nodes, 'full').map((node) => node.id)).toEqual(['c', 'r', 't', 'model_retry_current']);
+  it('detailed shows details and hides the activity line', () => {
+    expect(nodesForDetailLevel(nodes, 'detailed').map((node) => node.id)).toEqual(['c', 'r', 't', 'model_retry_current']);
   });
 });

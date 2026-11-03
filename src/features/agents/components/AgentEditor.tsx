@@ -543,7 +543,7 @@ export const AgentEditor: React.FC<AgentEditorProps> = (props) => {
             value={form.interactionConfig?.defaultDetail || "inherit"}
             options={[
               { value: "inherit", label: t("agents.interaction.defaultDetail.inherit"), description: "" },
-              ...(["full", "summary"] as const).map(value => ({
+              ...(["detailed", "simple"] as const).map(value => ({
                 value,
                 label: t(`agents.interaction.defaultDetail.${value}`),
                 description: t(`detailChooser.${value}.description`),
@@ -557,7 +557,7 @@ export const AgentEditor: React.FC<AgentEditorProps> = (props) => {
                 )}
               </div>
             )}
-            onChange={(value: "inherit" | "summary" | "full") => {
+            onChange={(value: "inherit" | "simple" | "detailed") => {
               const overrides = { ...form.interactionConfig };
               if (value === "inherit") delete overrides.defaultDetail;
               else overrides.defaultDetail = value;

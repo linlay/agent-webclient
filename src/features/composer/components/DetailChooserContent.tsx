@@ -3,7 +3,7 @@ import { useI18n } from "@/shared/i18n";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import styles from "./CompactChooser.module.css";
 
-const LEVELS: EventDetailLevel[] = ["full", "summary"];
+const LEVELS: EventDetailLevel[] = ["detailed", "simple"];
 
 export function DetailChooserContent({ current, onSelect }: {
   current: EventDetailLevel;

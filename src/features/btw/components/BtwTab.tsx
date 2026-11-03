@@ -91,7 +91,7 @@ export const BtwTabView: React.FC<BtwTabViewProps> = ({
   onPatchTimelineNode,
   onOpenStandalone,
   onOpenSource,
-  detailLevel = "summary",
+  detailLevel = "simple",
 }) => {
   const { t } = useI18n();
   const { message } = AntdApp.useApp();

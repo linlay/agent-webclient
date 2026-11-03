@@ -80,15 +80,15 @@ function normalizeToolGroupValue(value: unknown): string {
 }
 
 /**
- * The nodes a viewer sees at its detail level. summary hides reasoning, tool
- * calls and the retry notice and shows the announcement line; full shows
- * the details and hides that line. Desktop always receives full events, so
+ * The nodes a viewer sees at its detail level. simple hides reasoning, tool
+ * calls and the retry notice and shows the announcement line; detailed shows
+ * the details and hides that line. Desktop follows the effective event detail level, so
  * this also applies the level there.
  */
 export function nodesForDetailLevel(nodes: TimelineNode[], level: EventDetailLevel): TimelineNode[] {
   return nodes.filter((node) => {
-    if (node.id === RUN_ACTIVITY_NODE_ID) return level !== "full";
-    if (level === "full") return true;
+    if (node.id === RUN_ACTIVITY_NODE_ID) return level !== "detailed";
+    if (level === "detailed") return true;
     return node.kind !== "thinking" && node.kind !== "tool" && node.id !== MODEL_RETRY_NODE_ID;
   });
 }

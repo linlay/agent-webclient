@@ -28,7 +28,7 @@ export function classifyChatSurfaceEvent(input: {
   chatId: string;
   runId: string;
   lastSeq: number;
-  /** Summary streams skip filtered events, so a seq gap is not a loss there. */
+  /** Simple streams skip filtered events, so a seq gap is not a loss there. */
   detailLevel?: EventDetailLevel;
 }): { action: "apply" | "ignore" | "reload"; nextSeq: number } {
   const eventChatId = String(input.event.chatId || input.chatId).trim();
@@ -40,7 +40,7 @@ export function classifyChatSurfaceEvent(input: {
   if (seq && seq <= input.lastSeq) {
     return { action: "ignore", nextSeq: input.lastSeq };
   }
-  if (seq && input.lastSeq && seq > input.lastSeq + 1 && input.detailLevel !== "summary") {
+  if (seq && input.lastSeq && seq > input.lastSeq + 1 && input.detailLevel !== "simple") {
     return { action: "reload", nextSeq: input.lastSeq };
   }
   return { action: "apply", nextSeq: seq || input.lastSeq };

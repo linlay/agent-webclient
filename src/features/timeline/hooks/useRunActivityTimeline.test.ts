@@ -35,7 +35,7 @@ beforeEach(() => {
   jest.useFakeTimers().setSystemTime(100_000);
   container = document.createElement("div");
   root = createRoot(container);
-  options = {scopeKey: "chat-a/run-a", runId: "run-a", active: true, detailLevel: "summary", events: []};
+  options = {scopeKey: "chat-a/run-a", runId: "run-a", active: true, detailLevel: "simple", events: []};
 });
 afterEach(() => {
   act(() => root.unmount());
@@ -135,7 +135,7 @@ it("immediately resets on chat/run switches and never resurrects the old pending
   expect(progress()).toBeUndefined();
   advance(5000); expect(progress()).toBeUndefined();
 });
-it.each([{active:false}, {detailLevel:"full" as const}])("clears immediately when leaving the live summary view", patch => {
+it.each([{active:false}, {detailLevel:"detailed" as const}])("clears immediately when leaving the live simple view", patch => {
   render([activity("A")]);
   advance(100); render([activity("B")]);
   render(nodes, patch);
@@ -157,8 +157,8 @@ it("preserves the dwell deadline during StrictMode effect replay", () => {
   advance(1); expect(progress()).toBe("B");
 });
 
-it("shows the model announcement in summary", () => {
-  options = {...options, detailLevel: "summary"};
+it("shows the model announcement in simple", () => {
+  options = {...options, detailLevel: "simple"};
   render([activity("接下来检查配置加载顺序")]);
   expect(progress()).toBe("接下来检查配置加载顺序");
 });

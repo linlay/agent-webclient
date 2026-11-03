@@ -552,7 +552,7 @@ export function useConversationEventHandler(): {
       if (type === "run.start") {
         const runStartChatId = toText(event.chatId);
         const display = event.display as { defaultDetail?: unknown; effectiveDetail?: unknown } | undefined;
-        if (runStartChatId && display && (display.defaultDetail === "summary" || display.defaultDetail === "full")) {
+        if (runStartChatId && display && (display.defaultDetail === "simple" || display.defaultDetail === "detailed")) {
           dispatch({ type: "UPSERT_CHAT", chat: { chatId: runStartChatId, display: {
             defaultDetail: display.defaultDetail,
             effectiveDetail: normalizeEventDetailLevel(display.effectiveDetail),

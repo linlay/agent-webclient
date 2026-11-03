@@ -25,7 +25,7 @@ export function useRunActivityTimeline(nodes: TimelineNode[], options: {
   const { scopeKey, runId, detailLevel, events } = options;
   const ended = events.some(event => !event.taskId && event.runId === runId &&
     (event.type === "run.complete" || event.type === "run.cancel" || event.type === "run.error"));
-  const active = options.active && detailLevel !== "full" && !ended;
+  const active = options.active && detailLevel !== "detailed" && !ended;
   const activityIndex = nodes.findIndex(node => node.id === RUN_ACTIVITY_NODE_ID);
   const activity = activityIndex >= 0 ? nodes[activityIndex] : null;
   // Content starts rendering immediately. Only the progress line's removal waits.

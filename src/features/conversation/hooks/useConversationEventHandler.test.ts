@@ -655,9 +655,9 @@ describe('useConversationEventHandler live chat binding', () => {
       let handler: ReturnType<typeof useConversationEventHandler> | null = null;
       const Harness = () => {handler = useConversationEventHandler();return null;};
       renderToStaticMarkup(React.createElement(Harness));
-      handler!.handleEvent({type:'run.start',chatId:'chat_1',runId:'run_1',agentKey:'cutej',timestamp:100,display:{defaultDetail:'summary',effectiveDetail:'full'}});
-      expect(stateRef.current.chats[0]).toMatchObject({agentKey:'cutej',display:{defaultDetail:'summary',effectiveDetail:'full'}});
-      handler!.handleEvent({type:'run.start',chatId:'other',runId:'run_2',timestamp:101,display:{defaultDetail:'full',effectiveDetail:'full'}});
+      handler!.handleEvent({type:'run.start',chatId:'chat_1',runId:'run_1',agentKey:'cutej',timestamp:100,display:{defaultDetail:'simple',effectiveDetail:'detailed'}});
+      expect(stateRef.current.chats[0]).toMatchObject({agentKey:'cutej',display:{defaultDetail:'simple',effectiveDetail:'detailed'}});
+      handler!.handleEvent({type:'run.start',chatId:'other',runId:'run_2',timestamp:101,display:{defaultDetail:'detailed',effectiveDetail:'detailed'}});
       expect(stateRef.current.chats).toHaveLength(1);
     } finally {restoreWindow();}
   });
