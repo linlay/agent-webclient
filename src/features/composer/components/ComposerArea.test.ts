@@ -184,8 +184,6 @@ jest.mock("@/features/composer/hooks/useSpeechInput", () => ({
 jest.mock("@/features/composer/hooks/useComposerAttachments", () => ({
   useComposerAttachments: () => ({
     attachmentChatId: "",
-    attachmentScrollState: { canScrollLeft: false, canScrollRight: false },
-    attachmentViewportRef: React.createRef(),
     attachments: [],
     canCaptureDesktopScreenshot: false,
     captureDesktopScreenshot: jest.fn(),
@@ -196,12 +194,10 @@ jest.mock("@/features/composer/hooks/useComposerAttachments", () => ({
     handleFileSelection: jest.fn(),
     handleFilePaste: jest.fn(),
     handleRemoveAttachment: jest.fn(),
-    hasComposerAttachmentOverflow: false,
     hasStagedAttachments: false,
     hasUploadingAttachments: false,
     isCapturingDesktopScreenshot: false,
     openFilePicker: jest.fn(),
-    scrollComposerAttachments: jest.fn(),
     stageReviewAttachment: jest.fn(),
     sendAttachmentMeta: mockComposerAttachmentsState.sendAttachmentMeta,
     sendReferences: mockComposerAttachmentsState.sendReferences,

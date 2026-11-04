@@ -122,7 +122,6 @@ export const SteerBar: React.FC<{
                             <AttachmentCard
                               attachment={attachment}
                               variant="timeline"
-                              density="compact"
                               thumbnailMode="inline"
                             />
                           </div>

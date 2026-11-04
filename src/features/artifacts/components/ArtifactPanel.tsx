@@ -116,7 +116,6 @@ export const ArtifactPanel: React.FC = () => {
                 variant="composer"
                 displayMode="file"
                 thumbnailMode="inline"
-                density="compact"
                 subtitle={formatBytes(artifact.sizeBytes)}
               />
             </li>

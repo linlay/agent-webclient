@@ -42,16 +42,14 @@ describe("ComposerInput mixed image and pasted text", () => {
     const [value, setValue] = useState("");
     const [images, setImages] = useState([image]);
     const textareaRef = useRef<TextAreaRef>(null);
-    const viewportRef = useRef<HTMLDivElement>(null);
     canonical = value;
     return <ComposerInput isVoiceMode={false} isFrontendActive={false} isTimelineEmpty inputValue={value}
       currentWorkerName="" voiceStatus="idle" voiceError="" partialUserText="" partialAssistantText=""
       onInputChange={setValue} onKeyDown={() => {}} onPaste={() => {}} onDragOver={() => {}}
       onDrop={() => {}} onCompositionStart={() => {}} onCompositionEnd={() => {}} textareaRef={textareaRef}
-      renderAttachments={(pastedTexts, count) => <ComposerAttachments attachments={images}
-        attachmentViewportRef={viewportRef} useUnifiedComposerAttachmentRow={false} hasComposerAttachmentOverflow={false}
-        attachmentScrollState={{canScrollLeft:false,canScrollRight:false}} onRemoveAttachment={() => setImages([])}
-        onScroll={() => {}} additionalItemCount={count}>{pastedTexts}</ComposerAttachments>} />;
+      renderAttachments={(pastedTexts) => <ComposerAttachments attachments={images}
+        useUnifiedComposerAttachmentRow={false} onRemoveAttachment={() => setImages([])}>
+        {pastedTexts}</ComposerAttachments>} />;
   }
 
   beforeEach(() => {
@@ -69,11 +67,34 @@ describe("ComposerInput mixed image and pasted text", () => {
     act(() => container.querySelector("textarea")!.dispatchEvent(event));
   }
 
+  it("keeps all attachments and extra content in a wrapping layout without overflow controls", () => {
+    const attachments = Array.from({ length: 8 }, (_, index) => ({
+      ...image, id: `image-${index}`, name: `sample-${index}.png`,
+    }));
+    act(() => root.render(<ComposerAttachments attachments={attachments}
+      useUnifiedComposerAttachmentRow onRemoveAttachment={() => {}}>
+      <div data-testid="extra-attachment">附加引用</div>
+    </ComposerAttachments>));
+    const list = container.querySelector(".composer-attachments")!;
+    expect(list.classList.contains("tw:flex-wrap")).toBe(true);
+    expect(list.classList.contains("tw:w-full")).toBe(true);
+    expect(list.getAttribute("aria-live")).toBe("polite");
+    expect(list.querySelectorAll('[data-testid="image-card"]')).toHaveLength(8);
+    expect(list.querySelector('[data-testid="extra-attachment"]')).not.toBeNull();
+    expect(container.querySelector(".composer-attachments-nav")).toBeNull();
+    expect(container.querySelector(".composer-attachments-viewport")).toBeNull();
+  });
+
   it("places both in the same attachment row and removes pasted text independently", () => {
     paste();
     const preview = container.querySelector('[aria-label="composer.pastedText.preview"]')!;
     const imageCard = container.querySelector('[data-testid="image-card"]')!;
-    expect(preview.closest(".composer-attachments")).toBe(imageCard.closest(".composer-attachments"));
+    const attachments = preview.closest(".composer-attachments")!;
+    expect(attachments).toBe(imageCard.closest(".composer-attachments"));
+    expect(attachments.classList.contains("tw:flex-wrap")).toBe(true);
+    expect(attachments.classList.contains("tw:flex-nowrap")).toBe(false);
+    expect(attachments.classList.contains("tw:w-max")).toBe(false);
+    expect(container.querySelector(".composer-attachments-nav")).toBeNull();
     expect(canonical).toBe(text);
     expect(container.querySelector("textarea")!.value).toBe("");
     act(() => (container.querySelector('[aria-label="composer.pastedText.remove"]') as HTMLButtonElement).click());

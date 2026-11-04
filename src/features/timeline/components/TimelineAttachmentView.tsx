@@ -16,8 +16,8 @@ export function TimelineAttachmentView({ attachment, options, surfaceContext, op
 }) {
   const { generatedImage, skillIcon, ...display } = options;
   if (["chat", "site", "skill", "kbase"].includes(attachment.type ?? "")) {
-    return <ReferenceCard reference={attachment} variant="timeline" density={display.density} openTarget={openTarget}
-      skillIcon={attachment.type === "skill" ? <SkillIcon icon={skillIcon} size={34} glyphSize={19} fallback="build" /> : undefined} />;
+    return <ReferenceCard reference={attachment} variant="timeline" openTarget={openTarget}
+      skillIcon={attachment.type === "skill" ? <SkillIcon icon={skillIcon} size={20} glyphSize={20} fallback="bolt" /> : undefined} />;
   }
   return generatedImage
     ? <GeneratedImageTile key={`${surfaceContext.chatId}:${generatedImage.url}`} image={generatedImage} surface={surfaceContext} />

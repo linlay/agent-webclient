@@ -210,8 +210,6 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     setContextReferences,
     attachmentChatId,
     attachmentResetVersion,
-    attachmentScrollState,
-    attachmentViewportRef,
     attachments,
     canCaptureDesktopScreenshot,
     captureDesktopScreenshot,
@@ -222,14 +220,11 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     handleFileSelection,
     handleFilePaste,
     handleRemoveAttachment,
-    hasComposerAttachmentOverflow,
     hasStagedAttachments,
     hasUploadingAttachments,
     hasFailedAttachments,
     isCapturingDesktopScreenshot,
     openFilePicker,
-    scrollComposerAttachments,
-    refreshComposerAttachmentScroll,
     stageReviewAttachment,
     stageFiles,
     sendAttachmentMeta,
@@ -994,7 +989,6 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
       setActiveSlashIndex,
       slashDismissed,
       setSlashDismissed,
-      attachmentScrollState,
       captureDesktopScreenshot,
       openFilePicker,
       handleSend,
@@ -1008,7 +1002,6 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     [
       activeSlashIndex,
       applyComposerDraft,
-      attachmentScrollState,
       captureDesktopScreenshot,
       executeSlashCommand,
       handleSend,
@@ -1206,14 +1199,8 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
                       attachments={[...displayedForcedSkills.map(skill => ({id:`forced:${skill.id}`,name:skill.label,type:"skill",size:0,status:"ready" as const,error:"",references:[{type:"skill",id:skill.id}]})),...visibleAttachments]}
                       attachmentChatId={state.chatId || attachmentChatId}
                       skills={activeAgentSkills}
-                      attachmentViewportRef={attachmentViewportRef}
                       useUnifiedComposerAttachmentRow={visibleAttachments.length > 1 && pastedTextCount === 0}
-                      hasComposerAttachmentOverflow={hasComposerAttachmentOverflow}
-                      attachmentScrollState={attachmentScrollState}
                       onRemoveAttachment={id => { if (!id.startsWith("forced:")) handleRemoveAttachment(id); }}
-                      onScroll={scrollComposerAttachments}
-                      additionalItemCount={pastedTextCount}
-                      onContentChange={refreshComposerAttachmentScroll}
                     >
                       {pastedTexts}
                     </ComposerAttachments>

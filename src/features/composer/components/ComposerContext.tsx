@@ -1,11 +1,6 @@
 import React, { createContext, useContext } from "react";
 import type { SlashCommandDefinition } from "@/features/composer/lib/slashCommands";
 
-export interface ComposerAttachmentScrollState {
-  canScrollLeft: boolean;
-  canScrollRight: boolean;
-}
-
 export interface ComposerContextValue {
   inputValue: string;
   setInputValue: React.Dispatch<React.SetStateAction<string>>;
@@ -13,7 +8,6 @@ export interface ComposerContextValue {
   setActiveSlashIndex: React.Dispatch<React.SetStateAction<number>>;
   slashDismissed: boolean;
   setSlashDismissed: React.Dispatch<React.SetStateAction<boolean>>;
-  attachmentScrollState: ComposerAttachmentScrollState;
   captureDesktopScreenshot: () => Promise<boolean>;
   openFilePicker: () => void;
   handleSend: () => void;

@@ -67,6 +67,6 @@ describe("AttachmentCard logical resources", () => {
 
     expect(html).toContain('data-attachment-kind="file"');
     expect(html).toContain('role="button"');
-    expect(html).toContain('class="attachment-card attachment-card-timeline attachment-card-default is-file is-interactive"');
+    expect(html).toContain('class="attachment-card attachment-card-timeline is-file is-interactive"');
   });
 });
