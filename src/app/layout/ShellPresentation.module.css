@@ -99,15 +99,23 @@
     color: #2f7c49;
 }
 
-.current-worker-tool-voice:global(.ui-btn):global(.is-hangup) {
-    border-color: color-mix(in srgb, #f06b67 44%, var(--line-soft));
-    background: color-mix(in srgb, #fff0ef 86%, var(--bg-elev-2));
-    color: #d53f3f;
+.current-worker-tool-voice:global(.ui-btn.ui-btn-ghost.is-hangup) {
+    border: 1px solid color-mix(in srgb, var(--accent-danger) 42%, var(--line-soft));
+    background: color-mix(in srgb, var(--accent-danger) 14%, var(--bg-elev-2));
+    color: color-mix(in srgb, var(--accent-danger) 70%, var(--ink));
 }
 
-.current-worker-tool-voice:global(.ui-btn):global(.is-hangup):hover:not(:disabled) {
-    border-color: color-mix(in srgb, #e4564f 52%, var(--line-soft));
-    box-shadow: 0 8px 18px rgba(229, 86, 79, 0.18);
+.current-worker-tool-voice:global(.ui-btn.ui-btn-ghost.is-hangup):hover:not(:disabled) {
+    background: color-mix(in srgb, var(--accent-danger) 22%, var(--bg-elev-2));
+}
+
+.current-worker-tool-voice:global(.ui-btn.ui-btn-ghost.is-hangup):active:not(:disabled) {
+    background: color-mix(in srgb, var(--accent-danger) 28%, var(--bg-elev-2));
+}
+
+.current-worker-tool-voice:global(.ui-btn.ui-btn-ghost.is-hangup):focus-visible {
+    outline: 2px solid var(--accent-danger);
+    outline-offset: 2px;
 }
 
 .current-worker-tool:global(.ui-btn):global(.is-muted):global(.is-active) {

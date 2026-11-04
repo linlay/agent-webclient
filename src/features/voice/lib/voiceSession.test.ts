@@ -3,11 +3,12 @@ import { VoiceSession } from "./voiceSession";
 import type { VoiceCapabilities } from "@/shared/data/api/dto/voice";
 
 const capture = { prepare: jest.fn(async () => undefined), start: jest.fn(), stop: jest.fn(), close: jest.fn() };
-const player = { prepare: jest.fn(async () => undefined), start: jest.fn(), append: jest.fn(), finish: jest.fn(), stop: jest.fn(), close: jest.fn(), setMuted: jest.fn() };
+const player = { playing: false, prepare: jest.fn(async () => undefined), start: jest.fn(), append: jest.fn(), finish: jest.fn(), stop: jest.fn(), close: jest.fn(), setMuted: jest.fn() };
 let drained: () => void;
+let playbackFailed: (message: string) => void;
 let sendPCM: (pcm: Uint8Array) => void;
 jest.mock("./voiceAudioCapture", () => ({ VoiceAudioCapture: jest.fn().mockImplementation(send => { sendPCM = send; return capture; }) }));
-jest.mock("./voiceAudioPlayer", () => ({ VoiceAudioPlayer: jest.fn().mockImplementation(done => { drained = done; return player; }) }));
+jest.mock("./voiceAudioPlayer", () => ({ VoiceAudioPlayer: jest.fn().mockImplementation((done, failed) => { drained = done; playbackFailed = failed; return player; }) }));
 
 class Socket {
   static OPEN = 1;
@@ -40,6 +41,7 @@ async function open(mode: "auto" | "manual" = "auto") {
 }
 beforeEach(() => {
   jest.clearAllMocks();
+  player.playing = false;
   jest.useFakeTimers();
   Object.defineProperty(globalThis, "WebSocket", { value: Socket, configurable: true });
 });
@@ -130,15 +132,15 @@ it("ends only the current turn on a server error and listens again on request", 
   const session = await open();
   frame({ type: "stt", turn: 1, final: true, text: "question" });
   frame({ type: "awaiting", turn: 1, awaitingId: "ask" });
-  frame({ type: "error", code: "no_speech", msg: "没有识别到语音" });
-  expect(patch).toHaveBeenLastCalledWith({ status: "error", error: "没有识别到语音", awaiting: false });
+  frame({ type: "error", turn: 1, code: "chat_busy", msg: "聊天忙" });
+  expect(patch).toHaveBeenLastCalledWith({ status: "error", error: "聊天忙", awaiting: false });
   expect(Socket.instance.close).not.toHaveBeenCalled();
   expect(capture.close).not.toHaveBeenCalled();
   expect(player.stop).toHaveBeenCalledTimes(1);
   session.listen();
   expect(sent().at(-1)).toEqual({ type: "listen", state: "start", mode: "auto" });
   frame({ type: "stt", turn: 2, final: false, text: "again" });
-  expect(patch).toHaveBeenLastCalledWith({ partialUserText: "again" });
+  expect(patch).toHaveBeenLastCalledWith({ partialUserText: "again", partialAssistantText: "" });
   session.close();
 });
 
@@ -150,8 +152,77 @@ it("fails the session for a handshake error and explains a close after a turn er
   expect(Socket.instance.close).toHaveBeenCalledTimes(1);
 
   const session = await open();
-  frame({ type: "error", code: "run_busy_timeout", msg: "任务收尾超时，请重新连接语音" });
+  frame({ type: "error", turn: 1, code: "run_busy_timeout", msg: "任务收尾超时，请重新连接语音" });
   Socket.instance.onclose?.();
   expect(patch).toHaveBeenLastCalledWith({ status: "error", error: "任务收尾超时，请重新连接语音", sessionActive: false });
+  session.close();
+});
+
+it("continues listening after empty input without an error, Query or transcript reset", async () => {
+  const session = await open();
+  patch.mockClear();
+  frame({ type: "stt", turn: 1, final: true, text: "" });
+  expect(sent().filter(value => value.type === "listen")).toHaveLength(2);
+  expect(patch).toHaveBeenLastCalledWith({ status: "listening", error: "", awaiting: false });
+  expect(onRun).not.toHaveBeenCalled(); expect(Socket.instance.close).not.toHaveBeenCalled();
+  session.close();
+});
+
+it("isolates old errors and recognition events from playback and waits for its entire tail", async () => {
+  const session = await open();
+  frame({ type: "stt", turn: 1, final: true, text: "question" });
+  frame({ type: "run", turn: 1, state: "end", finishReason: "complete" });
+  frame({ type: "tts", turn: 1, state: "start", text: "answer" });
+  player.playing = true;
+  const count = sent().length;
+  sendPCM(new Uint8Array(640)); // Environmental sound cannot upload during playback.
+  frame({ type: "stt", turn: 1, final: true, text: "background sound" });
+  frame({ type: "error", turn: 0, code: "tts_failed", msg: "old" });
+  for (const code of ["asr_failed", "recording_limit", "transcript_limit", "invalid_audio", "audio_overflow"]) {
+    frame({ type: "error", turn: 1, code, msg: "late recognition" });
+  }
+  expect(player.stop).not.toHaveBeenCalled(); expect(sent()).toHaveLength(count);
+  expect(patch).toHaveBeenLastCalledWith({ status: "speaking", partialAssistantText: "answer" });
+  frame({ type: "error", turn: 1, code: "turn_busy", msg: "busy" });
+  expect(player.stop).not.toHaveBeenCalled();
+  frame({ type: "tts", turn: 1, state: "stop", reason: "done" });
+  session.listen(); expect(sent()).toHaveLength(count);
+  player.playing = false; drained();
+  expect(sent()).toHaveLength(count + 1);
+  session.close();
+});
+
+it("reports an actual ASR failure during manual finalization without starting another task", async () => {
+  const session = await open("manual");
+  session.stopListening();
+  frame({ type: "error", turn: 1, code: "asr_failed", msg: "recognition failed" });
+  expect(patch).toHaveBeenLastCalledWith({ status: "error", error: "recognition failed", awaiting: false });
+  expect(sent()).toHaveLength(3); expect(onRun).not.toHaveBeenCalled();
+  session.close();
+});
+
+it("keeps the session after exhausted local recovery without aborting or retrying the Run", async () => {
+  const session = await open();
+  frame({ type: "tts", turn: 1, state: "start", text: "answer" });
+  playbackFailed("output unavailable");
+  Socket.instance.onmessage?.({ data: new ArrayBuffer(960) });
+  expect(player.append).not.toHaveBeenCalled(); expect(Socket.instance.close).not.toHaveBeenCalled();
+  session.listen(); expect(sent()).toHaveLength(2);
+  frame({ type: "tts", turn: 1, state: "stop", reason: "done" });
+  expect(player.finish).not.toHaveBeenCalled();
+  session.listen(); expect(sent()).toHaveLength(3);
+  expect(sent().some(value => value.type === "abort")).toBe(false);
+  session.close();
+});
+
+it("lets already received audio finish on a TTS error without starting another listen", async () => {
+  const session = await open();
+  frame({ type: "tts", turn: 1, state: "start", text: "answer" });
+  player.playing = true;
+  frame({ type: "tts", turn: 1, state: "stop", reason: "error" });
+  frame({ type: "error", turn: 1, code: "tts_failed", msg: "provider stopped" });
+  expect(player.stop).not.toHaveBeenCalled();
+  session.listen(); expect(sent()).toHaveLength(2);
+  player.playing = false; drained(); expect(sent()).toHaveLength(2);
   session.close();
 });
