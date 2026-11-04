@@ -342,6 +342,87 @@ describe("standalone document panel", () => {
     expect(readViewerResourceMetadata).toHaveBeenCalledTimes(2);
   });
 
+  describe.each(["audio", "video"] as const)("%s preview recovery", (kind) => {
+    const extension = kind === "video" ? "mp4" : "mp3";
+    const file: ViewerTarget = {
+      type: "resource", name: `recording.${extension}`,
+      url: `artifacts/recording.${extension}`, downloadUrl: `artifacts/recording.${extension}`,
+      contentKind: kind,
+    };
+    const failure = kind === "video" ? "视频加载失败，请下载查看。" : "音频加载失败，请下载查看。";
+    const media = () => container.querySelector<HTMLMediaElement>(kind)!;
+    const setError = (element: HTMLMediaElement, error: { code: number } | null) => {
+      Object.defineProperty(element, "error", { configurable: true, value: error });
+    };
+    async function fail() {
+      const element = media();
+      setError(element, { code: 3 });
+      await act(async () => element.dispatchEvent(new Event("error")));
+      expect(container.textContent).toContain(failure);
+      return element;
+    }
+    beforeEach(() => {
+      jest.mocked(readViewerResourceMetadata).mockResolvedValue({ documentKind: `document-${kind}` } as never);
+      jest.mocked(useAuthenticatedResourceUrl).mockReturnValue({ url: "blob:recording-1", loading: false, error: null });
+    });
+
+    it.each(["loadstart", "loadeddata", "canplay", "playing"])("clears the previous failure on recovered %s", async (event) => {
+      await render(0, file);
+      const element = await fail();
+      setError(element, null);
+      await act(async () => element.dispatchEvent(new Event(event)));
+      expect(container.textContent).not.toContain(failure);
+      expect(media()).toBe(element);
+      expect(downloadViewerTarget).not.toHaveBeenCalled();
+      await fail();
+    });
+
+    it("keeps a real failure visible through unrelated renders and stale readiness events", async () => {
+      await render(0, file);
+      const element = await fail();
+      await render(0, file);
+      await act(async () => element.dispatchEvent(new Event("canplay")));
+      expect(container.textContent).toContain(failure);
+    });
+
+    it("ignores an error event when the media element has no current failure", async () => {
+      await render(0, file);
+      setError(media(), null);
+      expect(media().error).toBeNull();
+      await act(async () => media().dispatchEvent(new Event("error")));
+      expect(container.textContent).not.toContain(failure);
+    });
+
+    it("does not carry a failure or late events into a fresh Blob for the same file", async () => {
+      await render(0, file);
+      const oldMedia = await fail();
+      jest.mocked(useAuthenticatedResourceUrl).mockReturnValue({ url: "blob:recording-2", loading: false, error: null });
+      await render(0, file);
+      expect(media().getAttribute("src")).toBe("blob:recording-2");
+      expect(container.textContent).not.toContain(failure);
+      await act(async () => oldMedia.dispatchEvent(new Event("error")));
+      expect(container.textContent).not.toContain(failure);
+    });
+
+    it("clears the failed attempt when the host refreshes the same file", async () => {
+      await render(0, file);
+      await fail();
+      await render(1, file);
+      expect(container.textContent).not.toContain(failure);
+      expect(jest.mocked(useAuthenticatedResourceUrl).mock.calls.at(-1)![2]!.refreshKey).toBeTruthy();
+    });
+
+    it("clears a resource-fetch failure as soon as the current request recovers", async () => {
+      jest.mocked(useAuthenticatedResourceUrl).mockReturnValue({ url: "", loading: false, error: new Error("Resource unavailable") });
+      await render(0, file);
+      expect(container.querySelector(".status-line")?.textContent).toBeTruthy();
+      jest.mocked(useAuthenticatedResourceUrl).mockReturnValue({ url: "blob:recording-2", loading: false, error: null });
+      await render(0, file);
+      expect(media()).not.toBeNull();
+      expect(container.querySelector(".status-line")).toBeNull();
+    });
+  });
+
   it("preserves unsaved text when refresh is cancelled and reloads only after confirmation", async () => {
     const file: ViewerTarget = { type: "file", agentKey: "coder", path: "draft.txt", name: "draft.txt", contentKind: "text" };
     jest.mocked(getAgentFile).mockResolvedValue({ data: {

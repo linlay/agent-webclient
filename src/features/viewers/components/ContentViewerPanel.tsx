@@ -445,6 +445,12 @@ export const ContentViewerPanel: React.FC<ContentViewerPanelProps> = ({
     refreshKey: documentReloadRequest ? `${contextTargetId}:${documentReloadRequest}` : undefined,
   });
   const mediaUrl = authenticatedResource.url;
+  const mediaErrorMessage = authenticatedResource.error
+    ? t("contentViewer.error.loadText")
+    : mediaError;
+  const handleMediaReady = (event: React.SyntheticEvent<HTMLMediaElement>) => {
+    if (!event.currentTarget.error) setMediaError("");
+  };
   const viewerName = workspaceFileResponse?.name || target.name;
   const onlinePreview = useOnlineDocumentPreview({
     target, chatId, name: viewerName,
@@ -503,14 +509,9 @@ export const ContentViewerPanel: React.FC<ContentViewerPanelProps> = ({
   }, [contextTargetRef]);
 
   React.useEffect(() => {
+    // A retry can replace the Blob without changing the semantic file URL.
     setMediaError("");
-  }, [contentKind, viewerUrl]);
-
-  React.useEffect(() => {
-    if (authenticatedResource.error) {
-      setMediaError(t("contentViewer.error.loadText"));
-    }
-  }, [authenticatedResource.error]);
+  }, [contentKind, viewerUrl, mediaUrl, documentReloadRequest]);
 
   React.useEffect(() => {
     setWorkspaceFile(null);
@@ -1039,30 +1040,42 @@ export const ContentViewerPanel: React.FC<ContentViewerPanelProps> = ({
         {contentKind === "audio" && mediaUrl ? (
           <div className={CONTENT_VIEWER_MEDIA_SHELL_CLASS_NAME}>
             <audio
+              key={mediaUrl}
               className={CONTENT_VIEWER_AUDIO_CLASS_NAME}
               src={mediaUrl}
               controls
               preload="metadata"
-              onError={() =>
-                setMediaError(t("contentViewer.error.audio"))
-              }
+              onLoadStart={handleMediaReady}
+              onLoadedData={handleMediaReady}
+              onCanPlay={handleMediaReady}
+              onPlaying={handleMediaReady}
+              onError={(event) => {
+                if (event.currentTarget.error) setMediaError(t("contentViewer.error.audio"));
+              }}
             />
           </div>
         ) : null}
 
         {contentKind === "video" && mediaUrl ? (
           <video
+            key={mediaUrl}
             className={CONTENT_VIEWER_VIDEO_CLASS_NAME}
             src={mediaUrl}
             controls
             preload="metadata"
-            onError={() => setMediaError(t("contentViewer.error.video"))}
+            onLoadStart={handleMediaReady}
+            onLoadedData={handleMediaReady}
+            onCanPlay={handleMediaReady}
+            onPlaying={handleMediaReady}
+            onError={(event) => {
+              if (event.currentTarget.error) setMediaError(t("contentViewer.error.video"));
+            }}
           />
         ) : null}
 
-        {mediaError ? (
+        {mediaErrorMessage ? (
           <div className={CONTENT_VIEWER_STATUS_CLASS_NAME}>
-            {mediaError}
+            {mediaErrorMessage}
           </div>
         ) : null}
       </div> : null}
