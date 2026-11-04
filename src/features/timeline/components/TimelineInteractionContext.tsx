@@ -33,7 +33,6 @@ export interface TimelineInteractionValue {
   renderContentView?: (segment: ContentSegment, chatId: string, binding: ContentViewBinding, runId?: string, sourceId?: string) => React.ReactNode;
   renderMarkdown?: (props: MarkdownContentProps) => React.ReactNode;
   renderAttachment?: (attachment: TimelineAttachment, options: {
-    density?: "default" | "compact";
     displayMode?: "auto" | "file" | "preview";
     subtitle?: string;
     skillIcon?: string;

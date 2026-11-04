@@ -3,6 +3,7 @@
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { TimelineRow } from "@/features/timeline/components/TimelineRow";
+import { TimelineInteractionProvider, type TimelineInteractionValue } from "./TimelineInteractionContext";
 import type { TimelineNode } from "@/features/timeline/lib/timelineState";
 
 // Popover 在 jsdom 里不挂内容，而这里要看的正是弹层里的引用行，所以直接把内容一并渲染。
@@ -65,6 +66,31 @@ it("lists a sent message's quotes without offering the locate action", () => {
     expect(row.getAttribute("title")).toBeNull();
     expect(row.textContent).toContain("quoted passage");
     expect(row.textContent).toContain("please simplify");
+  } finally {
+    act(() => root.unmount());
+  }
+});
+
+it.each([1, 2])("omits density for %i attachments while retaining preview selection", (count) => {
+  const container = document.createElement("div");
+  const root = createRoot(container);
+  type RenderAttachment = NonNullable<TimelineInteractionValue["renderAttachment"]>;
+  const renderAttachment = jest.fn<ReturnType<RenderAttachment>, Parameters<RenderAttachment>>(
+    (attachment) => React.createElement("span", null, attachment.name),
+  );
+  const attachments = Array.from({ length: count }, (_, index) => ({
+    id: `file-${index}`, name: `notes-${index}.txt`, type: "file", url: `notes-${index}.txt`,
+  }));
+  try {
+    act(() => root.render(React.createElement(TimelineInteractionProvider, {
+      value: { renderAttachment },
+      children: React.createElement(TimelineRow, { node: { ...userNode, attachments } }),
+    })));
+    expect(renderAttachment).toHaveBeenCalledTimes(count);
+    for (const [, options] of renderAttachment.mock.calls) {
+      expect(options).not.toHaveProperty("density");
+      expect(options).toHaveProperty("displayMode", count > 1 ? "file" : "auto");
+    }
   } finally {
     act(() => root.unmount());
   }

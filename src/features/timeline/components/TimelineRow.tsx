@@ -379,13 +379,11 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
               {visibleAttachmentItems.map((attachment, index) => (
                 <React.Fragment key={`${attachment.name}_${index}`}>
                   {interaction?.renderAttachment?.(attachment, {
-                    density: hasMultipleAttachments ? "compact" : "default",
                     displayMode: hasMultipleAttachments ? "file" : "auto",
                     subtitle: getTimelineAttachmentSubtitle(attachment, t, hasMultipleAttachments),
                     skillIcon: attachment.type === "skill" ? resolveSkillIconUrl(activeAgentSkills, String(attachment.id || attachment.name || "")) : undefined,
                   }) ?? (["chat", "site", "skill", "kbase"].includes(attachment.type || "")
-                    ? <ReferenceCard reference={attachment} variant="timeline" openTarget={interaction?.openTarget}
-                        density={hasMultipleAttachments ? "compact" : "default"} />
+                    ? <ReferenceCard reference={attachment} variant="timeline" openTarget={interaction?.openTarget} />
                     : <span>{attachment.name}</span>)}
                 </React.Fragment>
               ))}

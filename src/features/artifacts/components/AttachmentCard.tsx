@@ -28,7 +28,6 @@ interface AttachmentCardProps {
   variant: "composer" | "timeline";
   status?: "uploading" | "ready" | "error";
   displayMode?: "auto" | "file" | "preview";
-  density?: "default" | "compact";
   thumbnailMode?: "auto" | "icon" | "inline";
   subtitle?: string;
   trailingNode?: React.ReactNode;
@@ -57,7 +56,6 @@ export const AttachmentCard: React.FC<AttachmentCardProps> = ({
   variant,
   status,
   displayMode = "auto",
-  density = "default",
   thumbnailMode = "auto",
   subtitle = "",
   trailingNode,
@@ -128,7 +126,6 @@ export const AttachmentCard: React.FC<AttachmentCardProps> = ({
   const semanticClasses = [
     "attachment-card",
     `attachment-card-${variant}`,
-    `attachment-card-${density}`,
     hasImagePreview ? "is-image" : "is-file",
     canActivate ? "is-interactive" : "",
     status ? `is-${status}` : "",
@@ -257,7 +254,7 @@ export const AttachmentCard: React.FC<AttachmentCardProps> = ({
               />
             </span>
           ) : (
-            <FileIcon filename={attachment.name} />
+            <FileIcon filename={attachment.name} size={20} />
           )}
           <span className={withModuleClasses("attachment-card-file-copy")}>
             <span className={withModuleClasses("attachment-card-title")} title={attachment.name}>

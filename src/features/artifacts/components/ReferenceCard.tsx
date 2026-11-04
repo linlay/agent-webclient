@@ -5,12 +5,12 @@ import { SkillIcon } from "@/features/skills/components/SkillIcon";
 import type { MaterialIconName } from "@/shared/ui/MaterialIcon";
 import { useI18n } from "@/shared/i18n";
 import type { OpenTargetIntent } from "@/features/surfaces/lib/openTarget";
+import attachmentStyles from "./AttachmentCard.module.css";
 import styles from "./ReferenceCard.module.css";
 
 interface ReferenceCardProps {
   reference: TimelineAttachment;
   variant: "composer" | "timeline";
-  density?: "default" | "compact";
   /** Host-rendered authenticated skill avatar; absent in read-only exports. */
   skillIcon?: React.ReactNode;
   onRemove?: () => void;
@@ -24,14 +24,13 @@ function referenceIcon(type: string): MaterialIconName {
 function withModuleClasses(...classNames: string[]): string {
   return [
     ...classNames,
-    ...classNames.map((className) => styles[className]).filter(Boolean),
+    ...classNames.flatMap((className) => [attachmentStyles[className], styles[className]]).filter(Boolean),
   ].filter(Boolean).join(" ");
 }
 
 export const ReferenceCard: React.FC<ReferenceCardProps> = ({
   reference,
   variant,
-  density = "default",
   skillIcon,
   onRemove,
   openTarget,
@@ -45,11 +44,12 @@ export const ReferenceCard: React.FC<ReferenceCardProps> = ({
   const skillId = type === "skill" ? String(reference.id || "").trim() : "";
   const canOpenSkill = Boolean(skillId && openTarget);
   const semanticClasses = [
+    "attachment-card",
+    `attachment-card-${variant}`,
+    "is-file",
     "context-reference-card",
-    `context-reference-card-${variant}`,
-    `context-reference-card-${density}`,
     "is-" + type,
-    ...(canOpenSkill ? ["is-openable"] : []),
+    ...(canOpenSkill ? ["is-interactive"] : []),
   ];
   const classes = withModuleClasses(...semanticClasses);
 
@@ -82,33 +82,34 @@ export const ReferenceCard: React.FC<ReferenceCardProps> = ({
       onClick={canOpenSkill ? handleOpenSkill : undefined}
       onKeyDown={canOpenSkill ? handleKeyDown : undefined}
     >
-      <span className={withModuleClasses("context-reference-card-icon")} aria-hidden="true">
-        {type === "skill" ? (
-          skillIcon ?? <SkillIcon size={34} glyphSize={19} />
-        ) : (
-          <MaterialIcon name={referenceIcon(type)} />
-        )}
-      </span>
-      <span className={withModuleClasses("context-reference-card-copy")}>
-        <span className={withModuleClasses("context-reference-card-title")} title={reference.name}>
-          {reference.name}
+      <div className={withModuleClasses("attachment-card-file-shell")}>
+        <span className={withModuleClasses("context-reference-card-icon")} aria-hidden="true">
+          {type === "skill" ? (
+            skillIcon ?? <SkillIcon size={20} glyphSize={20} />
+          ) : (
+            <MaterialIcon name={referenceIcon(type)} style={{ fontSize: 20 }} />
+          )}
         </span>
-        <span className={withModuleClasses("context-reference-card-subtitle")}>{subtitle}</span>
-      </span>
+        <span className={withModuleClasses("attachment-card-file-copy")}>
+          <span className={withModuleClasses("attachment-card-title")} title={reference.name}>
+            <span className={withModuleClasses("attachment-card-name")}>{reference.name}</span>
+          </span>
+          <span className={withModuleClasses("attachment-card-subtitle")} title={subtitle}>{subtitle}</span>
+        </span>
+      </div>
       {onRemove ? (
         <button
           type="button"
-          className={withModuleClasses("context-reference-card-remove")}
+          className={withModuleClasses("attachment-card-remove")}
           onClick={(event) => {
+            event.preventDefault();
             event.stopPropagation();
             onRemove();
           }}
-          aria-label={t("composer.reference.remove", {
+          aria-label={t("attachments.remove", {
             name: reference.name,
           })}
-          title={t("composer.reference.remove", {
-            name: reference.name,
-          })}
+          title={t("attachments.removeTitle")}
         >
           <MaterialIcon name="close" />
         </button>

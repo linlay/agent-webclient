@@ -37,11 +37,6 @@ interface UseComposerAttachmentsInput {
   onError?: (message: string) => void;
 }
 
-export interface ComposerAttachmentScrollState {
-  canScrollLeft: boolean;
-  canScrollRight: boolean;
-}
-
 function addTimestampToFilename(filename: string) {
   // 找到最后一个 . 的位置（分割文件名和后缀）
   const dotIndex = filename.lastIndexOf(".");
@@ -67,7 +62,6 @@ export function useComposerAttachments(input: UseComposerAttachmentsInput) {
   const localFilesAllowed = interactionConfig?.attachment.localFiles ?? true;
   const chatRecordsAllowed = interactionConfig?.attachment.chatRecords ?? true;
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const attachmentViewportRef = useRef<HTMLDivElement>(null);
   const attachmentsRef = useRef<ComposerAttachment[]>([]);
   const latestAttachmentIdByNameRef = useRef(new Map<string, string>());
   const stagedFilesByAttachmentIdRef = useRef(new Map<string, File>());
@@ -107,11 +101,6 @@ export function useComposerAttachments(input: UseComposerAttachmentsInput) {
   }, [dispatch, state.chatId, attachmentChatId]);
   const [isCapturingDesktopScreenshot, setIsCapturingDesktopScreenshot] =
     useState(false);
-  const [attachmentScrollState, setAttachmentScrollState] =
-    useState<ComposerAttachmentScrollState>({
-      canScrollLeft: false,
-      canScrollRight: false,
-    });
 
   const readyAttachments = useMemo(
     () => attachments.filter((attachment) => attachment.status === "ready"),
@@ -173,48 +162,9 @@ export function useComposerAttachments(input: UseComposerAttachmentsInput) {
     [readyAttachments],
   );
   const useUnifiedComposerAttachmentRow = attachments.length > 1;
-  const hasComposerAttachmentOverflow =
-    attachmentScrollState.canScrollLeft || attachmentScrollState.canScrollRight;
   const canCaptureDesktopScreenshot = useMemo(
     () => (localFilesAllowed && canUseDesktopScreenshotBridge()),
     [localFilesAllowed],
-  );
-
-  const updateComposerAttachmentScrollState = useCallback(() => {
-    const viewport = attachmentViewportRef.current;
-    if (!viewport) {
-      setAttachmentScrollState({
-        canScrollLeft: false,
-        canScrollRight: false,
-      });
-      return;
-    }
-
-    const maxScrollLeft = Math.max(
-      viewport.scrollWidth - viewport.clientWidth,
-      0,
-    );
-    setAttachmentScrollState({
-      canScrollLeft: viewport.scrollLeft > 4,
-      canScrollRight:
-        maxScrollLeft > 4 && viewport.scrollLeft < maxScrollLeft - 4,
-    });
-  }, []);
-
-  const scrollComposerAttachments = useCallback(
-    (direction: "left" | "right") => {
-      const viewport = attachmentViewportRef.current;
-      if (!viewport) {
-        return;
-      }
-
-      const distance = Math.max(viewport.clientWidth * 0.72, 220);
-      viewport.scrollBy({
-        left: direction === "left" ? -distance : distance,
-        behavior: "smooth",
-      });
-    },
-    [],
   );
 
   const clearComposerAttachments = useCallback(() => {
@@ -229,10 +179,6 @@ export function useComposerAttachments(input: UseComposerAttachmentsInput) {
     setAttachments([]);
     setAttachmentResetVersion(version => version + 1);
     setAttachmentChatId("");
-    setAttachmentScrollState({
-      canScrollLeft: false,
-      canScrollRight: false,
-    });
   }, [dispatch, state.chatId, restoredReferences, setAttachmentChatId]);
 
   const openFilePicker = useCallback(() => {
@@ -589,45 +535,6 @@ export function useComposerAttachments(input: UseComposerAttachmentsInput) {
     attachmentsRef.current = attachments;
   }, [attachments]);
 
-  useEffect(() => {
-    updateComposerAttachmentScrollState();
-  }, [attachments, updateComposerAttachmentScrollState]);
-
-  useEffect(() => {
-    const viewport = attachmentViewportRef.current;
-    if (!viewport) {
-      return;
-    }
-
-    const handleScroll = () => {
-      updateComposerAttachmentScrollState();
-    };
-
-    handleScroll();
-    viewport.addEventListener("scroll", handleScroll, {
-      passive: true,
-    });
-    window.addEventListener("resize", handleScroll);
-
-    let resizeObserver: ResizeObserver | null = null;
-    if (typeof ResizeObserver !== "undefined") {
-      resizeObserver = new ResizeObserver(() => {
-        updateComposerAttachmentScrollState();
-      });
-      resizeObserver.observe(viewport);
-      const content = viewport.firstElementChild;
-      if (content instanceof Element) {
-        resizeObserver.observe(content);
-      }
-    }
-
-    return () => {
-      viewport.removeEventListener("scroll", handleScroll);
-      window.removeEventListener("resize", handleScroll);
-      resizeObserver?.disconnect();
-    };
-  }, [attachments.length, updateComposerAttachmentScrollState]);
-
   useEffect(
     () => () => {
       attachmentsRef.current.forEach((attachment) => {
@@ -660,8 +567,6 @@ export function useComposerAttachments(input: UseComposerAttachmentsInput) {
     setContextReferences,
     attachmentChatId,
     attachmentResetVersion,
-    attachmentScrollState,
-    attachmentViewportRef,
     attachments,
     canCaptureDesktopScreenshot,
     captureDesktopScreenshot,
@@ -672,7 +577,6 @@ export function useComposerAttachments(input: UseComposerAttachmentsInput) {
     handleFileSelection,
     handleFilePaste,
     handleRemoveAttachment,
-    hasComposerAttachmentOverflow,
     hasStagedAttachments,
     hasUploadingAttachments,
     hasFailedAttachments,
@@ -681,8 +585,6 @@ export function useComposerAttachments(input: UseComposerAttachmentsInput) {
     readyAttachments,
     stageReviewAttachment,
     stageFiles,
-    scrollComposerAttachments,
-    refreshComposerAttachmentScroll: updateComposerAttachmentScrollState,
     sendAttachmentMeta,
     sendReferences,
     setAttachments,

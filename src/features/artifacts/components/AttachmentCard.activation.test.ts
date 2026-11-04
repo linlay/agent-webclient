@@ -32,9 +32,23 @@ describe('uploaded attachment activation', () => {
   expect(error).toHaveBeenCalled();expect(open).not.toHaveBeenCalled();
   expect(useAuthenticatedResourceUrl).toHaveBeenLastCalledWith('', 'chat-1', {teamChat:false});
  });
+ it.each(['composer', 'timeline'] as const)('uses the default layout without density classes in %s', async (variant) => {
+  await act(async () => root.render(React.createElement(AttachmentCard, {
+   attachment:{id:'r',name:'notes.txt',url:'notes.txt'},variant,
+  })));
+  const card=container.querySelector('.attachment-card')!;
+  expect(card.classList.contains(`attachment-card-${variant}`)).toBe(true);
+  expect(card.classList.contains('attachment-card-compact')).toBe(false);
+  expect(card.classList.contains('attachment-card-default')).toBe(false);
+  expect(card.querySelector('.attachment-card-file-shell')).not.toBeNull();
+  expect(card.querySelector('img')?.getAttribute('width')).toBe('20');
+ });
  it('does not open the preview when removing an attachment with the keyboard', async () => {
   const remove=jest.fn();
   await act(async () => root.render(React.createElement(AttachmentCard, { attachment:{id:'r',name:'表单.docx',url:'表单.docx'},variant:'composer',onRemove:remove })));
+  const icon=container.querySelector('.attachment-card-file-shell img')!;
+  expect(icon.getAttribute('width')).toBe('20');
+  expect(icon.getAttribute('height')).toBe('20');
   const button=container.querySelector('button')!;
   await act(async () => { button.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',bubbles:true}));button.click(); });
   expect(remove).toHaveBeenCalledTimes(1);expect(open).not.toHaveBeenCalled();

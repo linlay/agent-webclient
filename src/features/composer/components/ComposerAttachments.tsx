@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React from "react";
 import { useOpenTarget } from "@/features/surfaces/hooks/useOpenTarget";
 import { AttachmentCard } from "@/features/artifacts/components/AttachmentCard";
 import { SkillIcon } from "@/features/skills/components/SkillIcon";
@@ -9,153 +9,81 @@ import { normalizeTimelineAttachments } from "@/features/events/lib/timelineAtta
 import { resolveSkillIconUrl } from "@/features/skills/lib/skillDisplayName";
 import type { AgentSkill } from "@/shared/data/api/dto/agents";
 import { useI18n } from "@/shared/i18n";
-import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 
 interface ComposerAttachmentsProps {
   attachmentChatId?: string;
   attachments: ComposerAttachment[];
   /** 当前 Agent 的技能目录，用于解析 skill 引用的自有头像。 */
   skills?: readonly AgentSkill[];
-  attachmentViewportRef: React.RefObject<HTMLDivElement>;
   useUnifiedComposerAttachmentRow: boolean;
-  hasComposerAttachmentOverflow: boolean;
-  attachmentScrollState: {
-    canScrollLeft: boolean;
-    canScrollRight: boolean;
-  };
   onRemoveAttachment: (attachmentId: string) => void;
-  onScroll: (direction: "left" | "right") => void;
   children?: React.ReactNode;
-  additionalItemCount?: number;
-  onContentChange?: () => void;
 }
 
-const COMPOSER_ATTACHMENTS_VIEWPORT_CLASS =
-  "composer-attachments-viewport tw:w-full tw:min-w-0 tw:overflow-x-auto tw:overflow-y-hidden tw:[-ms-overflow-style:none] tw:[scrollbar-width:none] tw:[&::-webkit-scrollbar]:hidden";
 const COMPOSER_ATTACHMENTS_CLASS =
-  "composer-attachments tw:flex tw:w-max tw:min-w-full tw:flex-nowrap tw:items-stretch tw:gap-[4px]";
-const COMPOSER_ATTACHMENTS_SHELL_CLASS =
-  "composer-attachments-shell tw:relative tw:w-full tw:min-w-0";
-const COMPOSER_ATTACHMENTS_SHELL_STATE_CLASS = {
-  default: "",
-  scrollable: "is-scrollable tw:px-[30px]",
-} as const;
-const COMPOSER_ATTACHMENTS_NAV_CLASS =
-  "composer-attachments-nav tw:absolute tw:top-1/2 tw:z-[2] tw:grid tw:h-6 tw:w-6 tw:-translate-y-1/2 tw:place-items-center tw:rounded-lg tw:border tw:border-[color-mix(in_srgb,var(--line-soft)_88%,transparent)] tw:bg-[color-mix(in_srgb,rgba(255,255,255,.96)_96%,var(--bg-elev-2))] tw:p-0 tw:text-ink-muted tw:shadow-[0_4px_10px_rgba(17,39,76,0.08)] tw:hover:bg-[color-mix(in_srgb,#fff_96%,var(--bg-elev-2))] tw:hover:text-ink-1 tw:disabled:cursor-default tw:disabled:opacity-35 tw:disabled:shadow-none tw:[&_.material-icon]:text-base";
-const COMPOSER_ATTACHMENTS_NAV_SIDE_CLASS = {
-  left: "is-left tw:left-0",
-  right: "is-right tw:right-0",
-} as const;
+  "composer-attachments tw:flex tw:w-full tw:min-w-0 tw:flex-wrap tw:items-stretch tw:gap-[4px]";
 
 export const ComposerAttachments: React.FC<ComposerAttachmentsProps> = ({
   attachmentChatId,
   attachments,
   skills,
-  attachmentViewportRef,
   useUnifiedComposerAttachmentRow,
-  hasComposerAttachmentOverflow,
-  attachmentScrollState,
   onRemoveAttachment,
-  onScroll,
   children,
-  additionalItemCount = 0,
-  onContentChange,
 }) => {
   const { t } = useI18n();
   const openTarget = useOpenTarget();
   const activeSkills = skills ?? [];
-  const itemCount = attachments.length + additionalItemCount;
-
-  useEffect(() => {
-    onContentChange?.();
-  }, [attachments.length, additionalItemCount, onContentChange]);
 
   return (
-    <div className={`${COMPOSER_ATTACHMENTS_SHELL_CLASS} ${hasComposerAttachmentOverflow ? COMPOSER_ATTACHMENTS_SHELL_STATE_CLASS.scrollable : COMPOSER_ATTACHMENTS_SHELL_STATE_CLASS.default}`.trim()}>
-      <div
-        ref={attachmentViewportRef}
-        className={COMPOSER_ATTACHMENTS_VIEWPORT_CLASS}
-        aria-live="polite"
-      >
-        <div className={COMPOSER_ATTACHMENTS_CLASS}>
-          {attachments.map((attachment) => (
-            ["chat","site","skill","kbase"].includes(attachment.type || "") ? (
-              <ReferenceCard
-                key={attachment.id}
-                reference={{
-                  id: attachment.id.split(":").slice(1).join(":"),
-                  name: attachment.name,
-                  type: attachment.type,
-                  url: attachment.resourceUrl,
-                }}
-                openTarget={openTarget}
-                variant="composer"
-                density={useUnifiedComposerAttachmentRow ? "compact" : "default"}
-                skillIcon={attachment.type === "skill" ? <SkillIcon icon={resolveSkillIconUrl(activeSkills, String((attachment.references[0] as { id?: string } | undefined)?.id || attachment.id.split(":").slice(1).join(":")))} size={34} glyphSize={19} fallback="bolt" /> : undefined}
-                onRemove={attachment.id.startsWith("forced:") ? undefined : () => onRemoveAttachment(attachment.id)}
-              />
-            ) : (
-              <AttachmentCard
-                key={attachment.id}
-                surfaceContext={attachmentChatId ? { chatId: attachmentChatId } : undefined}
-                attachment={{
-                  id: normalizeTimelineAttachments(attachment.references)[0]?.id,
-                  name: attachment.name,
-                  size: attachment.size,
-                  type: attachment.type,
-                  mimeType: attachment.mimeType,
-                  url: attachment.resourceUrl,
-                  previewUrl: attachment.previewUrl,
-                }}
-                variant="composer"
-                status={attachment.status === "staged" ? "ready" : attachment.status}
-                displayMode={useUnifiedComposerAttachmentRow ? "file" : "auto"}
-                thumbnailMode={
-                  useUnifiedComposerAttachmentRow ? "inline" : "auto"
-                }
-                subtitle={getComposerAttachmentSubtitle(
-                  attachment,
-                  useUnifiedComposerAttachmentRow,
-                  t,
-                )}
-                onRemove={attachment.id.startsWith("forced:") ? undefined : () => onRemoveAttachment(attachment.id)}
-                removeLabel={t("composer.attachments.removeFile", {
-                  name: attachment.name,
-                })}
-              />
-            )
-          ))}
-          {children}
-        </div>
-      </div>
-      {itemCount > 0 && (
-        <>
-          {hasComposerAttachmentOverflow && (
-            <button
-              type="button"
-              className={`${COMPOSER_ATTACHMENTS_NAV_CLASS} ${COMPOSER_ATTACHMENTS_NAV_SIDE_CLASS.left}`}
-              onClick={() => onScroll("left")}
-              disabled={!attachmentScrollState.canScrollLeft}
-              aria-label={t("composer.attachments.viewLeft")}
-              title={t("composer.attachments.viewLeft")}
-            >
-              <MaterialIcon name="chevron_left" />
-            </button>
-          )}
-          {hasComposerAttachmentOverflow && (
-            <button
-              type="button"
-              className={`${COMPOSER_ATTACHMENTS_NAV_CLASS} ${COMPOSER_ATTACHMENTS_NAV_SIDE_CLASS.right}`}
-              onClick={() => onScroll("right")}
-              disabled={!attachmentScrollState.canScrollRight}
-              aria-label={t("composer.attachments.viewRight")}
-              title={t("composer.attachments.viewRight")}
-            >
-              <MaterialIcon name="chevron_right" />
-            </button>
-          )}
-        </>
-      )}
+    <div className={COMPOSER_ATTACHMENTS_CLASS} aria-live="polite">
+      {attachments.map((attachment) => (
+        ["chat","site","skill","kbase"].includes(attachment.type || "") ? (
+          <ReferenceCard
+            key={attachment.id}
+            reference={{
+              id: attachment.id.split(":").slice(1).join(":"),
+              name: attachment.name,
+              type: attachment.type,
+              url: attachment.resourceUrl,
+            }}
+            openTarget={openTarget}
+            variant="composer"
+            skillIcon={attachment.type === "skill" ? <SkillIcon icon={resolveSkillIconUrl(activeSkills, String((attachment.references[0] as { id?: string } | undefined)?.id || attachment.id.split(":").slice(1).join(":")))} size={20} glyphSize={20} fallback="bolt" /> : undefined}
+            onRemove={attachment.id.startsWith("forced:") ? undefined : () => onRemoveAttachment(attachment.id)}
+          />
+        ) : (
+          <AttachmentCard
+            key={attachment.id}
+            surfaceContext={attachmentChatId ? { chatId: attachmentChatId } : undefined}
+            attachment={{
+              id: normalizeTimelineAttachments(attachment.references)[0]?.id,
+              name: attachment.name,
+              size: attachment.size,
+              type: attachment.type,
+              mimeType: attachment.mimeType,
+              url: attachment.resourceUrl,
+              previewUrl: attachment.previewUrl,
+            }}
+            variant="composer"
+            status={attachment.status === "staged" ? "ready" : attachment.status}
+            displayMode={useUnifiedComposerAttachmentRow ? "file" : "auto"}
+            thumbnailMode={
+              useUnifiedComposerAttachmentRow ? "inline" : "auto"
+            }
+            subtitle={getComposerAttachmentSubtitle(
+              attachment,
+              useUnifiedComposerAttachmentRow,
+              t,
+            )}
+            onRemove={attachment.id.startsWith("forced:") ? undefined : () => onRemoveAttachment(attachment.id)}
+            removeLabel={t("composer.attachments.removeFile", {
+              name: attachment.name,
+            })}
+          />
+        )
+      ))}
+      {children}
     </div>
   );
 };
