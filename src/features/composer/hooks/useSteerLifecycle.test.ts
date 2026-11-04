@@ -77,7 +77,7 @@ function mount(sendOverrides: Record<string, unknown> = {}, connectQuery = false
       modelOverride: {}, skillReferenceAgentKey: '',
       selectSlashItem: () => null, onSelectSlashSkill: jest.fn(), showSlashPalette: false,
       sendAttachmentMeta: [], sendReferences: [], setInputValue, setSlashDismissed: jest.fn(),
-      textareaRef: { current: null },
+      speechListening: false, stopSpeechInput: jest.fn(), textareaRef: { current: null },
       updateMentionSuggestions: jest.fn(), executeSlashCommandInput: {}, ...sendOverrides,
     } as any);
     events = useConversationEventHandler();

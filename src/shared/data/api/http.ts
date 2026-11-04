@@ -245,7 +245,6 @@ export async function requestJson<T = unknown>(
     headers?: Record<string, string>;
     jsonContentType?: boolean;
     retryUnauthorized?: boolean;
-    suppressAuthRedirect?: boolean;
   } = {},
 ): Promise<ApiResponse<T>> {
   const response = await requestWithAuth(path, options);

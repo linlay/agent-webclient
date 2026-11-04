@@ -7,7 +7,7 @@ const player = { playing: false, prepare: jest.fn(async () => undefined), start:
 let drained: () => void;
 let playbackFailed: (message: string) => void;
 let sendPCM: (pcm: Uint8Array) => void;
-jest.mock("@/shared/media/audioCapture", () => ({ AudioCapture: jest.fn().mockImplementation(send => { sendPCM = send; return capture; }) }));
+jest.mock("./voiceAudioCapture", () => ({ VoiceAudioCapture: jest.fn().mockImplementation(send => { sendPCM = send; return capture; }) }));
 jest.mock("./voiceAudioPlayer", () => ({ VoiceAudioPlayer: jest.fn().mockImplementation((done, failed) => { drained = done; playbackFailed = failed; return player; }) }));
 
 class Socket {

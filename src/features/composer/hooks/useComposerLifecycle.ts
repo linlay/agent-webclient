@@ -52,21 +52,23 @@ export function useComposerLifecycle({
   applyComposerDraft,
   chatId,
   closeMention,
+  isFrontendActive,
   isVoiceMode,
   setInputValue,
   stageReviewAttachment,
   setSlashDismissed,
-  cancelDictation,
+  stopSpeechInput,
   textareaRef,
 }: {
   applyComposerDraft: (draft: string) => void;
   chatId: string;
   closeMention: () => void;
+  isFrontendActive: boolean;
   isVoiceMode: boolean;
   setInputValue: Dispatch<SetStateAction<string>>;
   stageReviewAttachment: (file: File) => boolean;
   setSlashDismissed: Dispatch<SetStateAction<boolean>>;
-  cancelDictation: () => void;
+  stopSpeechInput: () => void;
   textareaRef: RefObject<TextAreaRef>;
 }) {
   useEffect(() => {
@@ -177,7 +179,7 @@ export function useComposerLifecycle({
   }, [closeMention, setInputValue, setSlashDismissed]);
 
   useEffect(() => {
-    if (!isVoiceMode) return;
-    cancelDictation();
-  }, [isVoiceMode, cancelDictation]);
+    if (!isVoiceMode && !isFrontendActive) return;
+    stopSpeechInput();
+  }, [isFrontendActive, isVoiceMode, stopSpeechInput]);
 }

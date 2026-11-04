@@ -37,7 +37,6 @@ export function useVoiceChatRuntime(): void {
       const capabilities = current.voiceChat.capabilities;
       const currentWorker = resolveCurrentWorkerSummary(current);
       if (!isVoiceEnabled() || !capabilities?.enabled || currentWorker?.type !== "agent") return;
-      window.dispatchEvent(new Event("agent:dictation-cancel"));
       sessionRef.current?.close();
       const binding = { agentKey: currentWorker.sourceId, chatId: current.chatId || "" };
       bindingRef.current = binding;

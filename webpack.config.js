@@ -28,7 +28,6 @@ const runtimeConfigEnvKeys = [
   'CONVERSATION_EXPORT_ASSET_ORIGIN',
   'BRAND_ID',
   'VOICE_ENABLED',
-  'DICTATION_ENABLED',
 ];
 
 function parseEnvFileContent(content) {
@@ -285,27 +284,6 @@ module.exports = (env, argv) => {
           target: apiTarget,
           changeOrigin: true,
           ws: true,
-        },
-        {
-          context: ['/api/dictation/capabilities', '/api/dictation/ws'],
-          target: process.env.DICTATION_BASE_URL || 'http://127.0.0.1:11964',
-          changeOrigin: true,
-          ws: true,
-          onProxyReq(proxyReq, req, res) {
-            const origin = req.headers.origin;
-            if (req.url !== '/api/dictation/capabilities' || req.method !== 'GET' ||
-                (origin && origin !== `http://${req.headers.host}` && origin !== `https://${req.headers.host}`)) {
-              proxyReq.destroy(); res.writeHead(403); res.end(); return;
-            }
-            if (origin) proxyReq.setHeader('Origin', new URL(process.env.DICTATION_BASE_URL || 'http://127.0.0.1:11964').origin);
-          },
-          onProxyReqWs(proxyReq, req, socket) {
-            const origin = req.headers.origin;
-            if (req.url !== '/api/dictation/ws' || (origin !== `http://${req.headers.host}` && origin !== `https://${req.headers.host}`)) {
-              proxyReq.destroy(); socket.destroy(); return;
-            }
-            proxyReq.setHeader('Origin', new URL(process.env.DICTATION_BASE_URL || 'http://127.0.0.1:11964').origin);
-          },
         },
         {
           context: ['/api/voice/ws'],

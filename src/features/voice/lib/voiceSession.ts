@@ -1,6 +1,6 @@
 import type { VoiceCapabilities } from "@/shared/data/api/dto/voice";
 import type { VoiceChatState } from "./voiceState";
-import { AudioCapture } from "@/shared/media/audioCapture";
+import { VoiceAudioCapture } from "./voiceAudioCapture";
 import { VoiceAudioPlayer } from "./voiceAudioPlayer";
 
 type SessionOptions = {
@@ -16,7 +16,7 @@ type SessionOptions = {
 // One connection owns only its microphone, playback and current media controls.
 export class VoiceSession {
   private socket: WebSocket | null = null;
-  private readonly capture = new AudioCapture(pcm => this.sendPCM(pcm));
+  private readonly capture = new VoiceAudioCapture(pcm => this.sendPCM(pcm));
   private readonly player = new VoiceAudioPlayer(() => this.playbackDrained(), message => {
     this.playbackFailed = true;
     this.lastError = message;

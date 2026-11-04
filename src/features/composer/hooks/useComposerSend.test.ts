@@ -590,8 +590,7 @@ describe('useComposerSend active run gate', () => {
     createRequestIdMock.mockImplementation((prefix: string) => `${prefix}_request`);
   });
 
-  it.each(['', 'upload-chat'].flatMap(uploadChatId => ['plain', 'dictation'].map(mode => ({uploadChatId, mode}))))('sends only the settled draft with upload identity %j', async ({uploadChatId, mode}) => {
-    const finalText = mode === 'dictation' ? 'final dictation' : 'hello';
+  it.each(['', 'upload-chat'])('clears the composer and sends the new-chat draft with upload identity %j', (uploadChatId) => {
     const state = createInitialState();
     state.pendingNewChatAgentKey = 'agent-a';
     state.composerDraft = 'hello';
@@ -696,11 +695,12 @@ describe('useComposerSend active run gate', () => {
         setInputValue,
         setSlashDismissed,
         showSlashPalette: false,
+        speechListening: false,
         state,
         stateRef: { current: state },
         querySessionsRef: { current: new Map() },
         activeQuerySessionRequestIdRef: { current: '' },
-
+        stopSpeechInput: jest.fn(),
         textareaRef: React.createRef(),
         updateMentionSuggestions: jest.fn(),
       });
@@ -709,7 +709,7 @@ describe('useComposerSend active run gate', () => {
 
     try {
       renderToStaticMarkup(React.createElement(Harness));
-      actions?.handleSend(false, mode === 'dictation' ? finalText : undefined);
+      actions?.handleSend();
     } finally {
       Object.defineProperty(globalThis, 'window', {
         configurable: true,
@@ -721,14 +721,13 @@ describe('useComposerSend active run gate', () => {
       });
     }
 
-    expect(sendMessage).toHaveBeenCalledTimes(1);
     expect(setInputValue).toHaveBeenCalledWith('');
     expect(dispatch).toHaveBeenCalledWith({
       type: 'SET_COMPOSER_DRAFT',
       draft: '',
     });
     expect(clearComposerAttachments).toHaveBeenCalledTimes(1);
-    expect(sendMessage).toHaveBeenCalledWith(expect.objectContaining({message: finalText, chatId: uploadChatId || undefined, agentKey: 'agent-a', skillReferenceAgentKey: 'agent-a', references: [...(['code-review'] || []).map(id => ({type:"skill",id})), ...(['library-a'] || []).map(id => ({type:"kbase",id}))]}));
+    expect(sendMessage).toHaveBeenCalledWith(expect.objectContaining({message: 'hello', chatId: uploadChatId || undefined, agentKey: 'agent-a', skillReferenceAgentKey: 'agent-a', references: [...(['code-review'] || []).map(id => ({type:"skill",id})), ...(['library-a'] || []).map(id => ({type:"kbase",id}))]}));
     expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({ type: 'BEGIN_COMPOSER_SUBMISSION', draft: expect.objectContaining({ schemaVersion: 2, uploadChatId, references: [{type:'skill',id:'code-review'},{type:'kbase',id:'library-a'}] }) }));
     expect(operationOrder).toEqual(['clear-draft', 'clear-references', 'send-message']);
   });
@@ -806,9 +805,10 @@ describe('useComposerSend active run gate', () => {
         setInputValue,
         setSlashDismissed,
         showSlashPalette: false,
+        speechListening: false,
         state,
         stateRef: { current: state },
-
+        stopSpeechInput: jest.fn(),
         textareaRef: React.createRef(),
         updateMentionSuggestions: jest.fn(),
       });
@@ -906,11 +906,12 @@ describe('useComposerSend active run gate', () => {
         setInputValue,
         setSlashDismissed: jest.fn(),
         showSlashPalette: false,
+        speechListening: false,
         state,
         stateRef: { current: state },
         querySessionsRef: { current: new Map() },
         activeQuerySessionRequestIdRef: { current: '' },
-
+        stopSpeechInput: jest.fn(),
         textareaRef: React.createRef(),
         updateMentionSuggestions: jest.fn(),
       });

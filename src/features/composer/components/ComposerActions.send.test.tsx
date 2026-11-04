@@ -30,8 +30,8 @@ test.each([
       planningMode={false} canUsePlanningMode={false} editingMode={false} canUseEditingMode={false}
       currentChatId="chat" currentAgentKey="agent" isMainChatRunning={running} selectedSkillIds={["word"]}
       lockedSkillIds={["word"]} onSelectSkills={jest.fn()} onSelectSkill={jest.fn()}
-      dictationEnabled={false} hasUploadingAttachments={false} dictationActive={false} dictationSupported={false}
-      dictationStatus="ready" sendDisabled={disabled} onAccessLevelChange={jest.fn()} onControlParamsChange={jest.fn()}
+      voiceEnabled={false} hasUploadingAttachments={false} speechListening={false} speechSupported={false}
+      speechStatus="ready" sendDisabled={disabled} onAccessLevelChange={jest.fn()} onControlParamsChange={jest.fn()}
       onModelOverrideChange={jest.fn()} onTogglePlanningMode={jest.fn()} onEditingModeChange={jest.fn()} onAddReference={jest.fn()}
     />));
     const button = container.querySelector<HTMLButtonElement>("#send-btn")!;

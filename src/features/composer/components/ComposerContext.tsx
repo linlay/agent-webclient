@@ -13,7 +13,7 @@ export interface ComposerContextValue {
   handleSend: () => void;
   interruptCurrentRun: () => Promise<void>;
   executeSlashCommand: (commandId: SlashCommandDefinition["id"]) => Promise<void>;
-  toggleDictation: () => void;
+  toggleSpeechInput: () => void;
   applyComposerDraft: (draft: string) => void;
 }
 

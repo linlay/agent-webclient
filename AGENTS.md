@@ -114,7 +114,7 @@ Native `wait` 使用 `tool.wait/tool.wait.update` 投影同 Run 等待，时间�
 - 本地开发代理依赖 `webpack.config.js` 中的 `devServer.proxy`，普通 API 与主 `/ws` 代理目标由 `BASE_URL` 控制，语音 HTTP 与精确 `/api/voice/ws` 同样使用 `BASE_URL`；入口须部署 `VOICE_ENABLED=true` 和 capabilities.enabled。
 - Desktop Program Bundle 只交付 `frontend/dist` 和 manifest；静态资源、SPA fallback、`/api/*`、`/api/voice/*` 与 `/ws` 代理由 Desktop main process 托管。
 - Desktop main process 负责 Program Bundle 的静态托管和代理；WebClient 仓库不维护第二套生产发布链。
-- 实时语音依赖浏览器 AudioContext、getUserMedia 与 Platform v1 PCM；输入框听写通过独立 agent-dictation，二者复用 shared/media 采集与编码，各自拥有独立会话。浏览器兼容性需单独验证。
+- 实时语音依赖浏览器 AudioContext、getUserMedia 与 Platform v1 PCM；文字输入的浏览器 SpeechRecognition 仍是独立听写消费者。浏览器兼容性需单独验证。
 - `src/app/index.tsx` 只引入 `src/shared/styles/globals.css` 作为真正的全局样式入口；领域组件自行引入 `*.module.css`，Ant Design portal 通过局部 `:global(...)` 兼容，不得把领域选择器放回 shared globals。
 
 ## 8. 开发流程

@@ -1,4 +1,4 @@
-export const PCM_FRAME_BYTES = 640;
+export const VOICE_CHAT_FRAME_BYTES = 640;
 
 export function floatTo16BitPCM(float32Array: Float32Array): Int16Array {
 	const output = new Int16Array(float32Array.length);

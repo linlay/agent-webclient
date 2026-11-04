@@ -167,7 +167,7 @@ export const ComposerInput: React.FC<ComposerInputProps> = ({
                   (inputExpanded ? 1 : 0),
                 maxRows: inputMaxRows,
               }}
-              disabled={disabled}
+              disabled={isFrontendActive || disabled}
               value={pastedText.inputValue}
               onChange={(event) => pastedText.handleInputChange(event.target.value, event.target.selectionStart)}
               onSelect={pastedText.captureSelection}

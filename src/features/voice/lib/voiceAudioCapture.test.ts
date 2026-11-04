@@ -1,5 +1,5 @@
 /** @jest-environment jsdom */
-import { AudioCapture } from "./audioCapture";
+import { VoiceAudioCapture } from "./voiceAudioCapture";
 
 const trackStop = jest.fn();
 const media = { getTracks: () => [{ stop: trackStop }] } as unknown as MediaStream;
@@ -24,7 +24,7 @@ beforeEach(() => {
 
 it("uses actual sampling rate, emits 20ms frames, then flushes the even tail once", async () => {
   getUserMedia.mockResolvedValue(media);
-  const send = jest.fn(); const capture = new AudioCapture(send);
+  const send = jest.fn(); const capture = new VoiceAudioCapture(send);
   await capture.prepare(); capture.start();
   Context.current.processor.onaudioprocess?.({ inputBuffer: { getChannelData: () => new Float32Array(1024).fill(.5) } });
   expect(send.mock.calls.map(([chunk]) => chunk.byteLength)).toEqual([640]);
@@ -39,7 +39,7 @@ it("uses actual sampling rate, emits 20ms frames, then flushes the even tail onc
 it("releases a late microphone grant after the session was closed", async () => {
   let grant!: (media: MediaStream) => void;
   getUserMedia.mockReturnValue(new Promise<MediaStream>(resolve => { grant = resolve; }));
-  const capture = new AudioCapture(jest.fn());
+  const capture = new VoiceAudioCapture(jest.fn());
   const preparing = capture.prepare(); capture.close(); grant(media); await preparing;
   expect(trackStop).toHaveBeenCalledTimes(1);
   expect(Context.current.source.connect).not.toHaveBeenCalled();
@@ -56,7 +56,7 @@ it("falls back to the default context rate when the microphone rejects a 16kHz c
     }
   }
   Object.defineProperty(globalThis, "AudioContext", { configurable: true, value: Rejecting });
-  const send = jest.fn(); const capture = new AudioCapture(send);
+  const send = jest.fn(); const capture = new VoiceAudioCapture(send);
   await capture.prepare(); capture.start();
   expect(contexts.map(context => context.options?.sampleRate)).toEqual([16000, undefined]);
   expect(contexts[0].close).toHaveBeenCalledTimes(1);

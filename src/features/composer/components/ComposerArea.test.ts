@@ -1,4 +1,3 @@
-/** @jest-environment jsdom */
 jest.mock("@/features/composer/hooks/useDesktopAwaitingDigit", () => ({useDesktopAwaitingDigit: jest.fn()}));
 jest.mock("@/features/composer/hooks/useDesktopNativeShare", () => ({
   useDesktopNativeShare: () => ({ pending: false, busy: false, blocked: false, error: "", retry: jest.fn(), complete: async () => true }),
@@ -10,9 +9,8 @@ jest.mock("@/features/composer/hooks/useAgentAvailability", () => ({
 import { interactionDefaults } from "@/shared/contracts/interaction";
 import * as selectedTextHooks from "@/features/selection/hooks/useSelectedTextFragments";
 import { createSelectedTextFragment, selectedTextReferenceToAttachment } from "@/features/selection/lib/selectedTextReference";
-import React, { act } from "react";
-import { createRoot } from "react-dom/client";
-const { renderToStaticMarkup } = require("react-dom/server.node");
+import React from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { createInitialState } from "@/app/state/state";
 import { ComposerArea } from "@/features/composer/components/ComposerArea";
 
@@ -101,12 +99,9 @@ jest.mock("@/shared/icons/material", () => ({
     React.createElement("span", { "data-icon": name }),
 }));
 
-let mockSend: () => void;
 jest.mock("@/features/composer/components/ComposerContext", () => ({
-  ComposerProvider: ({ children, value }: { children: React.ReactNode; value: { handleSend: () => void } }) => {
-    mockSend = value.handleSend;
-    return React.createElement("div", { className: "composer-provider" }, children);
-  },
+  ComposerProvider: ({ children }: { children: React.ReactNode }) =>
+    React.createElement("div", { className: "composer-provider" }, children),
 }));
 
 jest.mock("@/features/composer/components/ComposerAttachments", () => ({
@@ -126,7 +121,6 @@ const mockHostRequiredSkills = {
   skills: [] as string[],
 };
 const mockComposerAttachmentsState = {
-  hasStagedAttachments: false,
   sendAttachmentMeta: [] as unknown[],
   sendReferences: [] as unknown[],
 };
@@ -176,20 +170,14 @@ jest.mock("@/features/timeline/lib/timelineDisplay", () => ({
   buildTimelineDisplayItems: () => [],
 }));
 
-const mockFinishDictation = jest.fn<Promise<string | undefined> | null, []>(() => null);
-const mockSendImmediately = jest.fn();
-const mockUpload = jest.fn(async () => { mockComposerAttachmentsState.hasStagedAttachments = false; return true; });
-
-jest.mock("@/features/composer/hooks/useDictationInput", () => ({
-  useDictationInput: () => ({
-    dictationEnabled: true,
-    finishDictation: mockFinishDictation,
-    dictationSupported: true,
-    dictationActive: false,
-    dictationState: "idle",
-    dictationStatus: "",
-    toggleDictation: jest.fn(),
-    cancelDictation: jest.fn(),
+jest.mock("@/features/composer/hooks/useSpeechInput", () => ({
+  useSpeechInput: () => ({
+    speechSupported: true,
+    speechListening: false,
+    speechState: "idle",
+    speechStatus: "",
+    toggleSpeechInput: jest.fn(),
+    stopSpeechInput: jest.fn(),
   }),
 }));
 
@@ -206,7 +194,7 @@ jest.mock("@/features/composer/hooks/useComposerAttachments", () => ({
     handleFileSelection: jest.fn(),
     handleFilePaste: jest.fn(),
     handleRemoveAttachment: jest.fn(),
-    hasStagedAttachments: mockComposerAttachmentsState.hasStagedAttachments,
+    hasStagedAttachments: false,
     hasUploadingAttachments: false,
     isCapturingDesktopScreenshot: false,
     openFilePicker: jest.fn(),
@@ -214,7 +202,7 @@ jest.mock("@/features/composer/hooks/useComposerAttachments", () => ({
     sendAttachmentMeta: mockComposerAttachmentsState.sendAttachmentMeta,
     sendReferences: mockComposerAttachmentsState.sendReferences,
     useUnifiedComposerAttachmentRow: false,
-    uploadStagedAttachments: mockUpload,
+    uploadStagedAttachments: jest.fn(async () => true),
   }),
 }));
 
@@ -262,8 +250,7 @@ jest.mock("@/features/composer/hooks/useComposerSend", () => ({
     applyComposerDraft: jest.fn(),
     executeSlashCommand: jest.fn(),
     handleCancelSteer: jest.fn(),
-    handleSend: mockSendImmediately,
-    handleSubmitQueuedSteer: mockSendImmediately,
+    handleSend: jest.fn(),
     handleSteer: jest.fn(),
     interruptCurrentRun: jest.fn(),
     };
@@ -332,6 +319,9 @@ const globalWithStorage = globalThis as typeof globalThis & {
     setItem: jest.Mock;
     removeItem: jest.Mock;
   };
+  document?: {
+    body: unknown;
+  };
 };
 
 describe("ComposerArea", () => {
@@ -339,12 +329,11 @@ describe("ComposerArea", () => {
 
   beforeEach(() => {
     mockAgentAvailability.status = "available";
-    Object.defineProperty(globalWithStorage, "localStorage", { configurable: true, value: {
-      getItem: jest.fn(() => null), setItem: jest.fn(), removeItem: jest.fn(),
-    }});
-    mockFinishDictation.mockReset().mockReturnValue(null);
-    mockSendImmediately.mockClear(); mockUpload.mockClear();
-    mockComposerAttachmentsState.hasStagedAttachments = false;
+    globalWithStorage.localStorage = {
+      getItem: jest.fn(() => null),
+      setItem: jest.fn(),
+      removeItem: jest.fn(),
+    };
     mockComposerInputProps.length = 0;
     mockComposerActionsProps.length = 0;
     mockComposerSendInputs.length = 0;
@@ -369,52 +358,13 @@ describe("ComposerArea", () => {
 
   afterAll(() => {
     if (originalLocalStorage) {
-      Object.defineProperty(globalWithStorage, "localStorage", { configurable: true, value: originalLocalStorage });
+      globalWithStorage.localStorage = originalLocalStorage;
       return;
     }
     delete globalWithStorage.localStorage;
   });
 
-  it.each([false, true])("uses one finalization path before sending (attachments=%s)", async attachments => {
-    (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
-    let settle!: (text: string | undefined) => void;
-    mockFinishDictation.mockReturnValue(new Promise(resolve => { settle = resolve; }));
-    mockComposerAttachmentsState.hasStagedAttachments = attachments;
-    const container = document.createElement("div"), root = createRoot(container);
-    try {
-      await act(async () => root.render(React.createElement(ComposerArea)));
-      act(() => { mockSend(); mockSend(); });
-      expect(mockFinishDictation).toHaveBeenCalledTimes(1);
-      expect(mockUpload).not.toHaveBeenCalled();
-      expect(mockSendImmediately).not.toHaveBeenCalled();
-      await act(async () => settle("final draft"));
-      expect(mockUpload).toHaveBeenCalledTimes(attachments ? 1 : 0);
-      expect(mockSendImmediately).toHaveBeenCalledTimes(1);
-      expect(mockSendImmediately).toHaveBeenCalledWith(false, "final draft");
-    } finally { act(() => root.unmount()); container.remove(); }
-  });
-
-  it.each(["edit", "scope", "failure", "unmount", "pagehide", "voice"])("cancels a pending send on %s", async reason => {
-    (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
-    let settle!: (text: string | undefined) => void;
-    mockFinishDictation.mockReturnValue(new Promise(resolve => { settle = resolve; }));
-    const container = document.createElement("div"), root = createRoot(container);
-    try {
-      await act(async () => root.render(React.createElement(ComposerArea)));
-      act(() => mockSend());
-      if (reason === "edit") act(() => mockComposerInputProps.at(-1)!.onInputChange("edited"));
-      if (reason === "scope") {
-        useAppState.mockReturnValue({ ...createInitialState(), chatId: "other" });
-        await act(async () => root.render(React.createElement(ComposerArea)));
-      }
-      if (reason === "unmount") act(() => root.unmount());
-      if (reason === "pagehide" || reason === "voice") act(() => window.dispatchEvent(new Event(reason === "voice" ? "agent:dictation-cancel" : "pagehide")));
-      await act(async () => settle(reason === "failure" ? undefined : "late draft"));
-      expect(mockSendImmediately).not.toHaveBeenCalled();
-    } finally { act(() => root.unmount()); container.remove(); }
-  });
-
-  it("keeps drafts editable while blocking execution for an unavailable Agent", () => {
+  it("keeps disabled inputs mounted and shows the unavailable link in the action row", () => {
     mockAgentAvailability.status = "unavailable";
     mockResolveCurrentWorkerSummary.mockReturnValue({ type: "agent", sourceId: "deleted", relatedChats: [], raw: null });
     mockComposerAwaitingState.isAwaitingActive = true;
@@ -422,7 +372,7 @@ describe("ComposerArea", () => {
     expect(html).toContain('href="/agents/deleted"');
     expect(html).toContain("composer.agent.unavailable");
     expect(html).not.toContain("awaiting-shell");
-    expect(mockComposerInputProps[0].disabled).toBe(false);
+    expect(mockComposerInputProps[0].disabled).toBe(true);
     expect(mockComposerActionsProps[0].sendDisabled).toBe(true);
     expect(mockComposerActionsProps[0].interruptDisabled).toBe(false);
   });
@@ -431,7 +381,7 @@ describe("ComposerArea", () => {
     const html = renderToStaticMarkup(React.createElement(ComposerArea));
     expect(html).toContain(`composer.agent.${status}`);
     expect(html).not.toContain('href="/agents/');
-    expect(mockComposerInputProps[0].disabled).toBe(false);
+    expect(mockComposerInputProps[0].disabled).toBe(status !== "checking");
     expect(mockComposerActionsProps[0].sendDisabled).toBe(true);
   });
 
@@ -685,12 +635,19 @@ describe("ComposerArea", () => {
   });
 
   it("mounts slash palette popover outside clipped composer containers", () => {
-    const body = document.body;
+    const originalDocument = globalWithStorage.document;
+    const body = {};
+    globalWithStorage.document = { body };
 
     renderToStaticMarkup(React.createElement(ComposerArea));
 
     expect(mockComposerPopoverProps[0].getPopupContainer()).toBe(body);
 
+    if (originalDocument) {
+      globalWithStorage.document = originalDocument;
+      return;
+    }
+    delete globalWithStorage.document;
   });
   it("executes the component effects without losing choices while details are pending", () => {
     const state = {...createInitialState(), chatId: "chat", planningMode: true, editingMode: true};

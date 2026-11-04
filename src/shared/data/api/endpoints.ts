@@ -1140,9 +1140,6 @@ export const dataEndpoints = createEndpointRegistry({
     key: "view.invoke", path: "/api/view/invoke", method: "POST", transport: "auto",
     wsBackends: PLATFORM_WS_BACKENDS, payload: params => params,
   }),
-  dictationCapabilities: defineEndpoint({
-    key: "dictation.capabilities", path: "/api/dictation/capabilities", method: "GET", transport: "http",
-  }),
   voiceCapabilities: defineEndpoint({
     key: "voice.capabilities",
     path: "/api/voice/capabilities",

@@ -71,8 +71,7 @@
           "MEMORY_ENABLED",
           "CONVERSATION_EXPORT_ASSET_ORIGIN",
           "BRAND_ID",
-          "VOICE_ENABLED",
-          "DICTATION_ENABLED"
+          "VOICE_ENABLED"
         ]
       },
       "spaRoutes": [
@@ -99,34 +98,6 @@
         "/memory"
       ],
       "proxyRoutes": [
-        {
-          "match": "exact",
-          "path": "/api/dictation/capabilities",
-          "targetEnv": "DICTATION_BASE_URL",
-          "http": true,
-          "websocket": false,
-          "optional": true,
-          "auth": "agent-platform-access-token",
-          "disabledResponse": {
-            "status": 503,
-            "json": {
-              "code": 503,
-              "msg": "dictation unavailable"
-            }
-          }
-        },
-        {
-          "match": "exact",
-          "path": "/api/dictation/ws",
-          "targetEnv": "DICTATION_BASE_URL",
-          "http": false,
-          "websocket": true,
-          "optional": true,
-          "auth": "agent-platform-access-token",
-          "stripRequestHeaders": [
-            "sec-websocket-extensions"
-          ]
-        },
         {
           "match": "exact",
           "path": "/api/voice/ws",
@@ -163,18 +134,6 @@
           "target": "/healthz"
         }
       ]
-    },
-    "envBindings": [
-      {
-        "key": "DICTATION_BASE_URL",
-        "fromService": "agent-dictation",
-        "template": "http://127.0.0.1:{{port}}",
-        "onlyIfDefault": true,
-        "defaults": [
-          "",
-          "http://127.0.0.1:11964"
-        ]
-      }
-    ]
+    }
   }
 }

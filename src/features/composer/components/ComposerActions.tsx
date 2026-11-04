@@ -96,12 +96,11 @@ interface ComposerActionsProps extends Omit<
   editingMode: boolean;
   canUseEditingMode: boolean;
   currentChatId: string;
-  dictationEnabled: boolean;
-  dictationDisabled?: boolean;
+  voiceEnabled: boolean;
   hasUploadingAttachments: boolean;
-  dictationActive: boolean;
-  dictationSupported: boolean;
-  dictationStatus: string;
+  speechListening: boolean;
+  speechSupported: boolean;
+  speechStatus: string;
   sendDisabled: boolean;
   onAccessLevelChange: (value: QueryAccessLevel) => void;
   onControlParamsChange: (params: Record<string, unknown>) => void;
@@ -146,12 +145,11 @@ const ComposerActionsPure: React.FC<
   editingMode,
   canUseEditingMode,
   currentChatId,
-  dictationEnabled,
-  dictationDisabled = false,
+  voiceEnabled,
   hasUploadingAttachments,
-  dictationActive,
-  dictationSupported,
-  dictationStatus,
+  speechListening,
+  speechSupported,
+  speechStatus,
   sendDisabled,
   onAccessLevelChange,
   onControlParamsChange,
@@ -175,7 +173,7 @@ const ComposerActionsPure: React.FC<
     captureDesktopScreenshot,
     openFilePicker,
     interruptCurrentRun,
-    toggleDictation,
+    toggleSpeechInput,
     handleSend,
   } = useComposerContext();
   const attachmentActionsDisabled =
@@ -220,7 +218,7 @@ const ComposerActionsPure: React.FC<
     0,
     CONNECTOR_STACK_MAX_ICONS,
   );
-  const voiceButtonStateClass = dictationActive
+  const voiceButtonStateClass = speechListening
     ? VOICE_BUTTON_STATE_CLASS.listening
     : VOICE_BUTTON_STATE_CLASS.idle;
   // 截屏入口位于 “+” 菜单的添加文件分组，这里只负责说明当前的禁用原因
@@ -451,22 +449,26 @@ const ComposerActionsPure: React.FC<
               onAccessLevelChange={onAccessLevelChange}
               onModelOverrideChange={onModelOverrideChange}
             />
-            {dictationEnabled ? (
+            {voiceEnabled ? (
               <UiButton
                 className={`${VOICE_BUTTON_BASE_CLASS} ${voiceButtonStateClass}`}
                 variant="secondary"
                 size="sm"
                 iconOnly
-                disabled={dictationDisabled || !dictationSupported}
-                onClick={toggleDictation}
+                disabled={interactionDisabled || isFrontendActive}
+                onClick={toggleSpeechInput}
                 aria-label={
-                  !dictationSupported
+                  !speechSupported
                     ? t("composer.actions.voiceUnavailable")
-                    : dictationActive
+                    : speechListening
                       ? t("composer.actions.stopVoiceInput")
                       : t("composer.actions.voiceInput")
                 }
-                title={dictationStatus}
+                title={
+                  isFrontendActive
+                    ? t("composer.actions.voiceInputDisabled.frontendActive")
+                    : speechStatus
+                }
               >
                 <SkinVisual slot="chat.voice">
                   <MaterialIcon name="mic" />
