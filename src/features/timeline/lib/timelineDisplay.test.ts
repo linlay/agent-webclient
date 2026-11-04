@@ -601,7 +601,13 @@ describe('nodesForDetailLevel', () => {
   it('simple shows content and the activity line only', () => {
     expect(nodesForDetailLevel(nodes, 'simple').map((node) => node.id)).toEqual(['c', 'run_activity_current']);
   });
-  it('detailed shows details and hides the activity line', () => {
-    expect(nodesForDetailLevel(nodes, 'detailed').map((node) => node.id)).toEqual(['c', 'r', 't', 'model_retry_current']);
+  it('detailed shows details and the server activity line', () => {
+    expect(nodesForDetailLevel(nodes, 'detailed').map((node) => node.id)).toEqual(['c', 'r', 't', 'model_retry_current', 'run_activity_current']);
   });
+});
+
+it("both levels keep a server activity message without classification", () => {
+  const activity: TimelineNode = {id: "run_activity_current", kind: "message", text: "等待模型响应", ts: 1};
+  expect(nodesForDetailLevel([activity], "detailed")).toEqual([activity]);
+  expect(nodesForDetailLevel([activity], "simple")).toEqual([activity]);
 });

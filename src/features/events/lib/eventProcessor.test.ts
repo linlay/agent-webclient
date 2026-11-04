@@ -1917,6 +1917,13 @@ describe("run progress activity", () => {
   const activity = (message: string, extra: Record<string, unknown> = {}): AgentEvent => ({
     type: "run.activity", runId: "r", timestamp: 1, seq: 0, message, ...extra,
   });
+  it("projects a plain server message and clears on an empty message", () => {
+    const state = createState();
+    processAndApply(state, activity("等待模型响应"), "live", false);
+    expect(state.timelineNodes.get("run_activity_current")).toMatchObject({text: "等待模型响应"});
+    processAndApply(state, activity(""), "live", false);
+    expect(state.timelineOrder).not.toContain("run_activity_current");
+  });
   it("keeps only the latest activity at the timeline end", () => {
     const state = createState();
     state.timelineNodes.set("other", {id: "other", kind: "message", ts: 0});
