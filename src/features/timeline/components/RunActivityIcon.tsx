@@ -15,9 +15,9 @@ export interface RunActivityIconProps extends Partial<RunActivityAppearance> {
 
 /** Each activity owns one independent work clock and never joins the pointer/idle runtime. */
 export function RunActivityIcon({ variant = "general", color, motion, animated = true,
-  cycleDurationMs = 12000, className, style }: RunActivityIconProps) {
+  cycleDurationMs = 4000, className, style }: RunActivityIconProps) {
   const element = useRef<SVGSVGElement>(null);
-  const interval = Number.isFinite(cycleDurationMs) ? Math.max(4000, cycleDurationMs) : 12000;
+  const interval = Number.isFinite(cycleDurationMs) ? Math.max(4000, cycleDurationMs) : 4000;
   useEffect(() => {
     const svg = element.current;
     if (!svg) return;
@@ -35,7 +35,7 @@ export function RunActivityIcon({ variant = "general", color, motion, animated =
       timer = setTimeout(() => {
         current = motion || chooseAgentMotion(AGENT_WORK_MOTIONS, current);
         start();
-      }, interval + Math.random() * 4000);
+      }, interval + Math.random() * 2000);
     };
     start();
     preference?.addEventListener("change", start);
@@ -50,7 +50,7 @@ export function RunActivityIcon({ variant = "general", color, motion, animated =
   return <span className={[styles.icon, className].filter(Boolean).join(" ")}
     style={{ ...style, ...(color ? { color } : {}) }} aria-hidden="true"
     data-run-activity-icon="" data-variant={variant} data-animated={animated}>
-    <svg ref={element} viewBox="20 35 160 145" fill="currentColor" focusable="false" data-work-motion={motion || "focus"}>
+    <svg ref={element} style={{ width: 32, height: 32 }} viewBox="20 35 160 145" fill="currentColor" focusable="false" data-work-motion={motion || "focus"}>
       <ellipse data-agent-shadow="" className={styles.avatarShadow} cx="100" cy={variant === "team" ? 172 : 162}
         rx="56" ry={variant === "team" ? 6 : 9} fill="currentColor" />
       <g data-agent-motion="" className={styles.avatarMotion}>

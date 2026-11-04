@@ -26,11 +26,11 @@ function render(props: RunActivityIconProps = {}) { act(() => root.render(<React
 function advance(ms: number) { act(() => jest.advanceTimersByTime(ms)); }
 function motion() { return container.querySelector("[data-work-motion]")?.getAttribute("data-work-motion"); }
 
-it("uses only four independent work actions, without repeats or short gesture clocks", () => {
-  render({ cycleDurationMs: 4000 }); expect(motion()).toBe("focus");
+it("uses the default 4–6 second work clock without repeated actions", () => {
+  render(); expect(motion()).toBe("focus");
   const seen = new Set([motion()]);
   for (let i = 0; i < 20; i++) {
-    const before = motion(); advance(5999); expect(motion()).toBe(before);
+    const before = motion(); advance(4999); expect(motion()).toBe(before);
     advance(1); expect(motion()).not.toBe(before); expect(AGENT_WORK_MOTIONS).toContain(motion()); seen.add(motion());
     expect(jest.getTimerCount()).toBe(1);
   }
@@ -41,11 +41,11 @@ it("uses only four independent work actions, without repeats or short gesture cl
 it("does not restart work on message rerenders or respond to pointer movement", () => {
   render({ cycleDurationMs: 4000 }); advance(3000); render({ cycleDurationMs: 4000, color: "red" });
   container.dispatchEvent(new MouseEvent("pointermove", { bubbles: true, clientX: 200 }));
-  advance(2999); expect(motion()).toBe("focus"); advance(1); expect(motion()).toBe("hop");
+  advance(1999); expect(motion()).toBe("focus"); advance(1); expect(motion()).toBe("hop");
 });
 it("keeps each activity clock separate", () => {
   act(() => root.render(<><RunActivityIcon cycleDurationMs={4000} /><RunActivityIcon cycleDurationMs={8000} /></>));
-  advance(6000);
+  advance(5000);
   const icons = container.querySelectorAll("[data-work-motion]");
   expect(icons[0].getAttribute("data-work-motion")).toBe("hop");
   expect(icons[1].getAttribute("data-work-motion")).toBe("focus");

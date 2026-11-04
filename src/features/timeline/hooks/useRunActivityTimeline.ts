@@ -25,7 +25,7 @@ export function useRunActivityTimeline(nodes: TimelineNode[], options: {
   const { scopeKey, runId, detailLevel, events } = options;
   const ended = events.some(event => !event.taskId && event.runId === runId &&
     (event.type === "run.complete" || event.type === "run.cancel" || event.type === "run.error"));
-  const active = options.active && detailLevel !== "detailed" && !ended;
+  const active = options.active && !ended;
   const activityIndex = nodes.findIndex(node => node.id === RUN_ACTIVITY_NODE_ID);
   const activity = activityIndex >= 0 ? nodes[activityIndex] : null;
   // Content starts rendering immediately. Only the progress line's removal waits.
@@ -48,7 +48,7 @@ export function useRunActivityTimeline(nodes: TimelineNode[], options: {
       if (display.node !== next) setDisplay({ ...display, node: next });
       return;
     }
-    const remaining = MIN_ACTIVITY_DWELL_MS - (Date.now() - display.shownAt);
+    const remaining = detailLevel === "detailed" ? 0 : MIN_ACTIVITY_DWELL_MS - (Date.now() - display.shownAt);
     const applyLatest = () => setDisplay({ scopeKey, node: next, shownAt: Date.now() });
     if (remaining <= 0) {
       applyLatest();
@@ -58,9 +58,10 @@ export function useRunActivityTimeline(nodes: TimelineNode[], options: {
     // original deadline. Cleanup also handles unmount, run end and scope changes.
     const timer = setTimeout(applyLatest, remaining);
     return () => clearTimeout(timer);
-  }, [active, scopeKey, next, display]);
+  }, [active, scopeKey, next, display, detailLevel]);
 
-  const visible = active ? (display.scopeKey === scopeKey ? display.node : next) : null;
+  const current = active ? (display.scopeKey === scopeKey ? display.node : next) : null;
+  const visible = detailLevel === "detailed" ? next : current;
   return useMemo(() => {
     const result = nodes.filter(node => node.id !== RUN_ACTIVITY_NODE_ID);
     if (visible) result.push(visible);

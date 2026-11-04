@@ -135,7 +135,7 @@ it("immediately resets on chat/run switches and never resurrects the old pending
   expect(progress()).toBeUndefined();
   advance(5000); expect(progress()).toBeUndefined();
 });
-it.each([{active:false}, {detailLevel:"detailed" as const}])("clears immediately when leaving the live simple view", patch => {
+it.each([{active:false}])("clears immediately when leaving the live simple view", patch => {
   render([activity("A")]);
   advance(100); render([activity("B")]);
   render(nodes, patch);
@@ -161,4 +161,17 @@ it("shows the model announcement in simple", () => {
   options = {...options, detailLevel: "simple"};
   render([activity("接下来检查配置加载顺序")]);
   expect(progress()).toBe("接下来检查配置加载顺序");
+});
+
+it("detailed displays server messages directly and clears immediately", () => {
+  render([], {detailLevel: "detailed"});
+  expect(progress()).toBeUndefined();
+  render([activity("等待模型响应")]);
+  expect(progress()).toBe("等待模型响应");
+  advance(100);
+  render([activity("服务端的新消息")]);
+  expect(progress()).toBe("服务端的新消息");
+  render([]);
+  expect(progress()).toBeUndefined();
+  expect(jest.getTimerCount()).toBe(0);
 });
