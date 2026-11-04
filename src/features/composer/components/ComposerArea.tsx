@@ -13,6 +13,7 @@ import { canContinueChat, hasQueryHistory, hasSendableContent, hasSendableQuery 
 import React, {
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -55,7 +56,7 @@ import {
   type SlashPaletteItem,
   type ResolvedSlashPackageDefinition,
 } from "@/features/composer/lib/slashCommands";
-import { useSpeechInput } from "@/features/composer/hooks/useSpeechInput";
+import { useDictationInput } from "@/features/composer/hooks/useDictationInput";
 import { useActiveRunIdentity } from "@/features/composer/hooks/useActiveRunIdentity";
 import { useComposerAttachments } from "@/features/composer/hooks/useComposerAttachments";
 import { useDesktopNativeShare } from "@/features/composer/hooks/useDesktopNativeShare";
@@ -146,6 +147,8 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
   const isComposingRef = useRef(false);
   const deferredSendRequestedRef = useRef(false);
   const deferredDirectSteerRef = useRef(false);
+  const deferredDictationDraftRef = useRef<string | undefined>(undefined);
+  const deferredSendGenerationRef = useRef(0);
   const [deferredSendReady, setDeferredSendReady] = useState(false);
   const [inputValue, setInputValue] = useState("");
   const [controlParams, setControlParams] = useState<Record<string, unknown>>(
@@ -670,13 +673,16 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
   );
 
   const {
-    speechSupported,
-    speechListening,
-    speechState,
-    speechStatus,
-    toggleSpeechInput,
-    stopSpeechInput,
-  } = useSpeechInput({
+    dictationEnabled,
+    finishDictation,
+    dictationSupported,
+    dictationActive,
+    dictationState,
+    dictationStatus,
+    toggleDictation,
+    cancelDictation,
+  } = useDictationInput({
+    scopeKey: JSON.stringify([state.chatId, state.workerSelectionKey, currentAgentKey]),
     inputValue,
     setInputValue,
     setSlashDismissed,
@@ -838,38 +844,57 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     setInputValue,
     setSlashDismissed,
     showSlashPalette,
-    speechListening,
     state,
     stateRef,
     querySessionsRef,
     activeQuerySessionRequestIdRef,
-    stopSpeechInput,
     textareaRef,
     updateMentionSuggestions,
     onRecordMessage: recordSentMessage,
   });
 
+  useLayoutEffect(() => {
+    const cancelPendingSend = () => {
+      deferredSendGenerationRef.current++;
+      deferredSendRequestedRef.current = false;
+    };
+    window.addEventListener("pagehide", cancelPendingSend);
+    window.addEventListener("agent:dictation-cancel", cancelPendingSend);
+    return () => {
+      cancelPendingSend();
+      window.removeEventListener("pagehide", cancelPendingSend);
+      window.removeEventListener("agent:dictation-cancel", cancelPendingSend);
+    };
+  }, [state.chatId, state.workerSelectionKey, currentAgentKey, isVoiceMode]);
+
   const handleSend = useCallback((directSteer = false) => {
     if (chatTransitionBlocking || nativeShare.busy || nativeShare.blocked) return;
     if (hasInvalidSelectedSkills) { void message.error(t("packageComposer.invalidSelection")); return; }
-    if (!hasStagedAttachments && !nativeShare.pending) {
+    if (deferredSendRequestedRef.current) return;
+    const finished = finishDictation();
+    if (!finished && !hasStagedAttachments && !nativeShare.pending) {
       if (directSteer) handleSubmitQueuedSteer();
       else handleSendImmediately();
       return;
     }
-    if (deferredSendRequestedRef.current) return;
     deferredDirectSteerRef.current = directSteer;
     deferredSendRequestedRef.current = true;
     setDeferredSendReady(false);
+    const generation = deferredSendGenerationRef.current;
     void (async () => {
+      const finalDraft = finished ? await finished : undefined;
+      if (generation !== deferredSendGenerationRef.current) return;
+      if (finished && finalDraft === undefined) { deferredSendRequestedRef.current = false; return; }
+      deferredDictationDraftRef.current = finalDraft;
       const uploaded = !hasStagedAttachments || await uploadStagedAttachments();
       // Confirm native import only after Platform has persisted every file.
       // Until then the share URL and source remain available for refresh/retry.
       const confirmed = uploaded && await nativeShare.complete();
+      if (generation !== deferredSendGenerationRef.current) return;
       if (confirmed) setDeferredSendReady(true);
       else deferredSendRequestedRef.current = false;
     })();
-  }, [chatTransitionBlocking, handleSendImmediately, handleSubmitQueuedSteer, hasStagedAttachments, uploadStagedAttachments, hasInvalidSelectedSkills, message, t, nativeShare]);
+  }, [chatTransitionBlocking, handleSendImmediately, handleSubmitQueuedSteer, hasStagedAttachments, uploadStagedAttachments, hasInvalidSelectedSkills, message, t, nativeShare, finishDictation]);
 
   useEffect(() => {
     if (
@@ -881,8 +906,8 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     deferredSendRequestedRef.current = false;
     setDeferredSendReady(false);
     if (chatTransitionBlocking || hasInvalidSelectedSkills) return;
-    if (deferredDirectSteerRef.current) handleSubmitQueuedSteer();
-    else handleSendImmediately();
+    if (deferredDirectSteerRef.current) handleSubmitQueuedSteer(deferredDictationDraftRef.current);
+    else handleSendImmediately(false, deferredDictationDraftRef.current);
   }, [chatTransitionBlocking, handleSendImmediately, handleSubmitQueuedSteer, hasStagedAttachments, hasUploadingAttachments, hasInvalidSelectedSkills, deferredSendReady]);
 
   const handleSelectSlashItem = useCallback(
@@ -929,12 +954,10 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     (state.pendingSteers[String(state.chatId || "")] || []).length > 0;
   const shouldShowSteerBar =
     !isFrontendActive && !isAwaitingActive && hasPendingSteers;
-  const showSpeechHint =
-    voiceEnabled &&
+  const showDictationHint =
+    dictationEnabled &&
     !isVoiceMode &&
-    (!speechSupported ||
-      speechState === "error" ||
-      speechState === "unsupported");
+    (!dictationSupported || dictationState === "error");
   const sendDisabled =
     nativeShare.busy || nativeShare.blocked ||
     hasInvalidSelectedSkills ||
@@ -943,7 +966,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     isAwaitingActive ||
     hasUploadingAttachments ||
     hasFailedAttachments ||
-    !(isMainChatRunning ? hasSendableContent(inputValue, combinedSendReferences, true) : hasSendableQuery(inputValue, combinedSendReferences, hasQueryHistory(state), canContinueChat(state)));
+    (!dictationActive && !(isMainChatRunning ? hasSendableContent(inputValue, combinedSendReferences, true) : hasSendableQuery(inputValue, combinedSendReferences, hasQueryHistory(state), canContinueChat(state))));
 
   const handleKeyDown = useComposerKeyboard({
     onSubmitQueuedSteer: isMainChatRunning && !isFrontendActive && !chatTransitionBlocking ? () => handleSend(true) : undefined,
@@ -972,12 +995,11 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     applyComposerDraft,
     chatId: state.chatId,
     closeMention,
-    isFrontendActive,
     isVoiceMode,
     setInputValue,
     stageReviewAttachment,
     setSlashDismissed,
-    stopSpeechInput,
+    cancelDictation,
     textareaRef,
   });
 
@@ -996,7 +1018,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
       executeSlashCommand: async (commandId) => {
         await executeSlashCommand(commandId);
       },
-      toggleSpeechInput,
+      toggleDictation,
       applyComposerDraft,
     }),
     [
@@ -1011,7 +1033,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
       setActiveSlashIndex,
       setSlashDismissed,
       slashDismissed,
-      toggleSpeechInput,
+      toggleDictation,
     ],
   );
 
@@ -1190,7 +1212,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
                 <ComposerInput
                   isVoiceMode={isVoiceMode}
                   isFrontendActive={isFrontendActive}
-                  disabled={conversationBlocking || (agentExecutionBlocked && agentAvailability.status !== "checking")}
+                  disabled={conversationBlocking}
                   isTimelineEmpty={isTimelineEmpty}
                   inputValue={inputValue}
                   draftScopeKey={state.chatId}
@@ -1218,6 +1240,10 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
                   emptyInputMinRows={emptyInputMinRows}
                   inputMaxRows={inputMaxRows}
                   onInputChange={(next) => {
+                    deferredSendGenerationRef.current++;
+                    deferredSendRequestedRef.current = false;
+                    setDeferredSendReady(false);
+                    cancelDictation();
                     inputHistory.reset(state.chatId);
                     dispatch({ type: "SET_COMPOSER_DRAFT", draft: next });
                     setInputValue(next);
@@ -1274,11 +1300,12 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
                   editingMode={editingMode}
                   canUseEditingMode={editingModeAvailable}
                   currentChatId={state.chatId}
-                  voiceEnabled={voiceEnabled}
+                  dictationEnabled={dictationEnabled}
+                  dictationDisabled={conversationBlocking}
                   hasUploadingAttachments={hasUploadingAttachments}
-                  speechListening={speechListening}
-                  speechSupported={speechSupported}
-                  speechStatus={speechStatus}
+                  dictationActive={dictationActive}
+                  dictationSupported={dictationSupported}
+                  dictationStatus={dictationStatus}
                   sendDisabled={sendDisabled}
                   onAccessLevelChange={handleAccessLevelChange}
                   onControlParamsChange={setControlParams}
@@ -1296,8 +1323,8 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
                   onSelectSkills={handleSelectPackageSkills}
                   lockedSkillIds={forcedSkills.map(skill => skill.id)}
                 />
-                {showSpeechHint && (
-                  <div className={VOICE_HINT_CLASS}>{speechStatus}</div>
+                {showDictationHint && (
+                  <div className={VOICE_HINT_CLASS}>{dictationStatus}</div>
                 )}
               </div>
               {showWonders &&

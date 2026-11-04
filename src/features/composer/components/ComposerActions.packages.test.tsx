@@ -8,7 +8,7 @@ const skills = [
   { id: "excel", displayName: "Excel", configured: false },
 ];
 jest.mock("@/features/composer/components/ComposerContext", () => ({
-  useComposerContext: () => ({ captureDesktopScreenshot: jest.fn(), openFilePicker: jest.fn(), interruptCurrentRun: jest.fn(), toggleSpeechInput: jest.fn(), handleSend: jest.fn() }),
+  useComposerContext: () => ({ captureDesktopScreenshot: jest.fn(), openFilePicker: jest.fn(), interruptCurrentRun: jest.fn(), toggleDictation: jest.fn(), handleSend: jest.fn() }),
 }));
 jest.mock("@/features/composer/components/ControlsForm", () => ({ ControlsForm: () => null }));
 jest.mock("@/features/composer/components/QuerySettingsControls", () => ({ QuerySettingsControls: () => null }));
@@ -41,8 +41,8 @@ test("Actions forwards bulk selection and locked member IDs to the real package 
       planningMode={false} canUsePlanningMode={false} editingMode={false} canUseEditingMode={false}
       currentChatId="chat" currentAgentKey="agent" isMainChatRunning={false} selectedSkillIds={["word"]}
       lockedSkillIds={["word"]} onSelectSkills={onSelectSkills} onSelectSkill={jest.fn()}
-      voiceEnabled={false} hasUploadingAttachments={false} speechListening={false} speechSupported={false}
-      speechStatus="ready" sendDisabled={false} onAccessLevelChange={jest.fn()} onControlParamsChange={jest.fn()}
+      dictationEnabled={false} hasUploadingAttachments={false} dictationActive={false} dictationSupported={false}
+      dictationStatus="ready" sendDisabled={false} onAccessLevelChange={jest.fn()} onControlParamsChange={jest.fn()}
       onModelOverrideChange={jest.fn()} onTogglePlanningMode={jest.fn()} onEditingModeChange={jest.fn()} onAddReference={jest.fn()}
     />));
     act(() => container.querySelector<HTMLButtonElement>('[aria-label="composer.addMenu.open"]')!.click());

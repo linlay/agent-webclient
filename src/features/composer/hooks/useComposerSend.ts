@@ -106,7 +106,6 @@ interface UseComposerSendInput {
   sendReferences: unknown[];
   setInputValue: Dispatch<SetStateAction<string>>;
   setSlashDismissed: Dispatch<SetStateAction<boolean>>;
-  speechListening: boolean;
   state: Pick<
     AppState,
     | "abortController"
@@ -134,7 +133,6 @@ interface UseComposerSendInput {
   stateRef: MutableRefObject<AppState>;
   querySessionsRef: MutableRefObject<Map<string, LiveQuerySession>>;
   activeQuerySessionRequestIdRef: MutableRefObject<string>;
-  stopSpeechInput: () => void;
   textareaRef: RefObject<TextAreaRef>;
   updateMentionSuggestions: (value: string) => void;
   onRecordMessage?: (message: string) => void;
@@ -166,12 +164,10 @@ export function useComposerSend(input: UseComposerSendInput) {
     sendReferences,
     setInputValue,
     setSlashDismissed,
-    speechListening,
     state,
     stateRef,
     querySessionsRef,
     activeQuerySessionRequestIdRef,
-    stopSpeechInput,
     textareaRef,
     updateMentionSuggestions,
     onRecordMessage,
@@ -478,15 +474,12 @@ export function useComposerSend(input: UseComposerSendInput) {
     }
   }, [dispatch, resolveCurrentOwner, runs, messageApi, stateRef, t]);
 
-  const handleSend = useCallback((directSteer = false) => {
+  const handleSend = useCallback((directSteer = false, finalText?: string) => {
     directSteer = directSteer || Array.from(stateRef.current.timelineNodes.values()).some(node => node.runId === stateRef.current.runId && node.toolWait && node.status === "running" && !node.result);
     if (isAgentExecutionBlocked(stateRef.current)) return;
     if (isAwaitingActive || isVoiceMode) return;
-    if (speechListening) {
-      stopSpeechInput();
-    }
 
-    const selectedSlashItem = !directSteer && showSlashPalette ? selectSlashItem() : null;
+    const selectedSlashItem = finalText === undefined && !directSteer && showSlashPalette ? selectSlashItem() : null;
     if (selectedSlashItem) {
       if (selectedSlashItem.kind === "command") {
         void executeSlashCommand(selectedSlashItem.id);
@@ -496,7 +489,7 @@ export function useComposerSend(input: UseComposerSendInput) {
       return;
     }
 
-    const message = inputValue.trim();
+    const message = (finalText ?? inputValue).trim();
     if (!hasSendableQuery(message, sendReferences, hasQueryHistory(stateRef.current), canContinueChat(stateRef.current)) && !hasSendableContent(message, sendReferences, true)) return;
     if (hasUploadingAttachments || hasFailedAttachments) return;
     if (pendingSendRef.current && pendingSentMessageRef.current === message && pendingSentReferencesRef.current === referenceSignature) {
@@ -701,7 +694,6 @@ export function useComposerSend(input: UseComposerSendInput) {
     setInputValue,
     setSlashDismissed,
     showSlashPalette,
-    speechListening,
     state.chatAgentById,
     state.chatId,
     state.chats,
@@ -713,17 +705,17 @@ export function useComposerSend(input: UseComposerSendInput) {
     state.workerIndexByKey,
     state.workerSelectionKey,
     stateRef,
-    stopSpeechInput,
     submitCompactCommand,
     t,
     onRecordMessage,
   ]);
 
-  const handleSubmitQueuedSteer = useCallback(() => {
+  const handleSubmitQueuedSteer = useCallback((finalText?: string) => {
     if (isAwaitingActive || isVoiceMode) return;
     const currentState = stateRef.current;
     const runtime = resolveMainChatRuntime(currentState, activeQuerySessionRequestIdRef, querySessionsRef);
     if (!runtime.running) return;
+    if (finalText !== undefined) { handleSend(true, finalText); return; }
     if (hasSendableContent(inputValue, sendReferences, true)) {
       handleSend(true);
       return;

@@ -92,8 +92,9 @@ const CURRENT_WORKER_CARD_CLASS =
   presentationClasses("current-worker-card tw:relative tw:flex tw:items-center tw:justify-center tw:gap-2.5 tw:max-[1279px]:min-w-0 tw:max-[1279px]:gap-2 tw:max-[1279px]:px-3 tw:max-[1279px]:py-0");
 const CURRENT_WORKER_NAME_CLASS =
   "current-worker-name tw:min-w-0 tw:truncate tw:text-sm tw:font-semibold tw:leading-[1.2] tw:text-ink-1";
-const TOP_NAV_ICON_BUTTON_CLASS =
-  "top-nav-icon-btn ui-icon-hover-24 tw:h-6 tw:min-h-6 tw:w-6 tw:min-w-6 tw:rounded-lg tw:p-0";
+const TOP_NAV_ICON_BUTTON_SIZE_CLASS =
+  "top-nav-icon-btn tw:h-6 tw:min-h-6 tw:w-6 tw:min-w-6 tw:rounded-lg tw:p-0";
+const TOP_NAV_ICON_BUTTON_CLASS = `${TOP_NAV_ICON_BUTTON_SIZE_CLASS} ui-icon-hover-24`;
 const CURRENT_WORKER_TOOL_BASE_CLASS =
   presentationClasses(`${TOP_NAV_ICON_BUTTON_CLASS} current-worker-tool`);
 const VOICE_TOOL_CLASS_BY_MODE = {
@@ -101,10 +102,9 @@ const VOICE_TOOL_CLASS_BY_MODE = {
     CURRENT_WORKER_TOOL_BASE_CLASS,
     presentationClasses("current-worker-tool-voice is-call tw:text-[#2f7c49]"),
   ].join(" "),
-  hangup: [
-    CURRENT_WORKER_TOOL_BASE_CLASS,
-    presentationClasses("current-worker-tool-voice is-hangup tw:border tw:[border-color:color-mix(in_srgb,#f06b67_44%,var(--line-soft))] tw:bg-[color-mix(in_srgb,#fff0ef_86%,var(--bg-elev-2))] tw:text-[#d53f3f] tw:hover:[border-color:color-mix(in_srgb,#e4564f_52%,var(--line-soft))] tw:hover:shadow-[0_8px_18px_rgba(229,86,79,0.18)]"),
-  ].join(" "),
+  hangup: presentationClasses(
+    `${TOP_NAV_ICON_BUTTON_SIZE_CLASS} current-worker-tool current-worker-tool-voice is-hangup`,
+  ),
 } as const;
 const MUTED_TOOL_ACTIVE_CLASS =
   "is-muted tw:border tw:[border-color:color-mix(in_srgb,#ff945f_38%,var(--line-soft))] tw:bg-[color-mix(in_srgb,#fff0e6_84%,var(--bg-elev-2))] tw:text-[#cf5f18]";

@@ -1,6 +1,6 @@
-import { Pcm16Encoder, VOICE_CHAT_FRAME_BYTES } from "./voiceChatAudio";
+import { Pcm16Encoder, PCM_FRAME_BYTES } from "./pcmAudio";
 
-export class VoiceAudioCapture {
+export class AudioCapture {
   private stream: MediaStream | null = null;
   private context: AudioContext | null = null;
   private source: MediaStreamAudioSourceNode | null = null;
@@ -53,9 +53,9 @@ export class VoiceAudioCapture {
       merged.set(this.remain);
       merged.set(bytes, this.remain.length);
       let offset = 0;
-      while (offset + VOICE_CHAT_FRAME_BYTES <= merged.length) {
-        this.send(merged.slice(offset, offset + VOICE_CHAT_FRAME_BYTES));
-        offset += VOICE_CHAT_FRAME_BYTES;
+      while (offset + PCM_FRAME_BYTES <= merged.length) {
+        this.send(merged.slice(offset, offset + PCM_FRAME_BYTES));
+        offset += PCM_FRAME_BYTES;
       }
       this.remain = merged.slice(offset);
     };

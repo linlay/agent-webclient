@@ -1,6 +1,6 @@
 import type { VoiceCapabilities } from "@/shared/data/api/dto/voice";
 import type { VoiceChatState } from "./voiceState";
-import { VoiceAudioCapture } from "./voiceAudioCapture";
+import { AudioCapture } from "@/shared/media/audioCapture";
 import { VoiceAudioPlayer } from "./voiceAudioPlayer";
 
 type SessionOptions = {
@@ -16,11 +16,16 @@ type SessionOptions = {
 // One connection owns only its microphone, playback and current media controls.
 export class VoiceSession {
   private socket: WebSocket | null = null;
-  private readonly capture = new VoiceAudioCapture(pcm => this.sendPCM(pcm));
-  private readonly player = new VoiceAudioPlayer(() => this.playbackDrained());
+  private readonly capture = new AudioCapture(pcm => this.sendPCM(pcm));
+  private readonly player = new VoiceAudioPlayer(() => this.playbackDrained(), message => {
+    this.playbackFailed = true;
+    this.lastError = message;
+    this.options.patch({ status: "error", error: message });
+  });
   private closed = false;
   private ready = false;
   private listening = false;
+  private recognizing = false;
   private aborting = false;
   private abortTimer: ReturnType<typeof setTimeout> | null = null;
   private turn = 0;
@@ -29,6 +34,7 @@ export class VoiceSession {
   private runComplete = false;
   private speechDone = false;
   private receivingAudio = false;
+  private playbackFailed = false;
   private lastError = "";
 
   constructor(private readonly options: SessionOptions) {}
@@ -65,7 +71,7 @@ export class VoiceSession {
       if (this.closed) return;
       try {
         if (event.data instanceof ArrayBuffer) {
-          if (!this.aborting && this.receivingAudio) this.player.append(event.data);
+          if (!this.aborting && this.receivingAudio && !this.playbackFailed) this.player.append(event.data);
           return;
         }
         if (typeof event.data !== "string") throw new Error("Invalid voice message");
@@ -90,15 +96,16 @@ export class VoiceSession {
   }
 
   listen(): void {
-    if (!this.ready || this.closed || this.aborting || this.listening || this.awaiting || this.receivingAudio) return;
+    if (!this.ready || this.closed || this.aborting || this.recognizing || this.awaiting || this.receivingAudio || this.player.playing) return;
     this.turn++;
     this.runComplete = false;
     this.speechDone = false;
     this.lastError = "";
     this.send({ type: "listen", state: "start", mode: this.options.mode });
     this.listening = true;
+    this.recognizing = true;
     this.capture.start();
-    this.options.patch({ status: "listening", error: "", partialUserText: "", partialAssistantText: "", awaiting: false });
+    this.options.patch({ status: "listening", error: "", awaiting: false });
   }
 
   stopListening(): void {
@@ -113,6 +120,7 @@ export class VoiceSession {
     if (!this.ready || this.closed || this.aborting) return;
     this.aborting = true;
     this.listening = false;
+    this.recognizing = false;
     this.receivingAudio = false;
     this.capture.stop();
     this.player.stop();
@@ -138,9 +146,15 @@ export class VoiceSession {
     }
     if (type === "error") {
       const error = String(message.msg || message.code || "Voice failed");
-      // Before hello the server closes; afterwards an error ends only the current turn.
-      if (this.ready) this.endTurn(error);
-      else this.fail(error);
+      if (!this.ready) { this.fail(error); return; }
+      if (this.aborting || message.turn !== this.turn) return;
+      if (message.code === "turn_busy" || message.code === "invalid_request") {
+        this.options.patch({ error }); // Only this control request was rejected.
+        return;
+      }
+      // Recognition can finish after capture stopped, but never owns playback.
+      if (["asr_failed", "recording_limit", "transcript_limit", "invalid_audio", "audio_overflow"].includes(String(message.code)) && !this.recognizing) return;
+      this.endTurn(error, message.code === "tts_failed");
       return;
     }
     if (type === "abort") {
@@ -155,11 +169,15 @@ export class VoiceSession {
     }
     if (!this.ready || this.aborting || message.turn !== this.turn) return;
     if (type === "stt") {
-      this.options.patch({ partialUserText: String(message.text || "") });
+      if (!this.recognizing) return;
+      const text = String(message.text || "");
+      if (text) this.options.patch({ partialUserText: text, partialAssistantText: "" });
       if (message.final === true) {
         this.capture.stop();
         this.listening = false;
-        this.options.patch({ status: "thinking" });
+        this.recognizing = false;
+        if (text) this.options.patch({ status: "thinking" });
+        else this.listen(); // Empty input ends no Run and needs no reconnect.
       }
     } else if (type === "run") {
       if (message.state === "start" && typeof message.chatId === "string" && typeof message.runId === "string") {
@@ -177,24 +195,27 @@ export class VoiceSession {
       if (message.state === "start") {
         this.capture.stop();
         this.listening = false;
+        this.recognizing = false;
         this.speechDone = false;
         this.receivingAudio = true;
+        this.playbackFailed = false;
         this.player.start(this.sampleRate);
         this.options.patch({ status: "speaking", partialAssistantText: String(message.text || "") });
       } else if (message.state === "stop") {
         this.receivingAudio = false;
         this.speechDone = message.reason === "done";
-        this.player.finish();
+        if (!this.playbackFailed) this.player.finish();
       }
     }
   }
 
   // Keeps the connection so the user can speak again without a new hello.
-  private endTurn(error: string): void {
+  private endTurn(error: string, keepAudio = false): void {
     this.lastError = error;
     this.capture.stop();
-    this.player.stop();
+    if (!keepAudio) this.player.stop();
     this.listening = false;
+    this.recognizing = false;
     this.receivingAudio = false;
     this.awaiting = false;
     this.runComplete = false;
@@ -203,7 +224,7 @@ export class VoiceSession {
   }
 
   private playbackDrained(): void {
-    if (this.closed || this.aborting) return;
+    if (this.closed || this.aborting || this.playbackFailed) return;
     if (this.runComplete && this.speechDone && !this.awaiting) this.listen();
     else if (this.awaiting) this.options.patch({ status: "thinking" });
   }

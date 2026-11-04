@@ -1,4 +1,4 @@
-import { Pcm16Encoder } from "./voiceChatAudio";
+import { Pcm16Encoder } from "./pcmAudio";
 
 it.each([16000, 44100, 48000])("keeps exactly one second at 16kHz across arbitrary %iHz callbacks", sampleRate => {
   const encoder = new Pcm16Encoder(sampleRate);
