@@ -59,10 +59,15 @@ export const DESKTOP_PUSH_TIME_CONTRACT: Record<string, PushTimeContract> = {
   "chat.deleted": {},
   "chat.renamed": {},
   "chat.archived": {},
+  // agent-platform broadcasts the restored Chat as an active Chat summary, so
+  // `lastRunAt`/`archivedAt` never appear here. Requiring them rejected the
+  // whole Push, which kept restored Chats out of every push-driven list. Any
+  // present structured instant is still format-checked by
+  // `hasValidNestedPlatformTimeFields`.
   "archive.restored": {
     summary: {
-      required: ["createdAt", "updatedAt", "lastRunAt", "archivedAt"],
-      optional: ["readAt"],
+      required: ["createdAt", "updatedAt"],
+      optional: ["readAt", "lastRunAt", "archivedAt"],
     },
   },
   "archive.deleted": {},

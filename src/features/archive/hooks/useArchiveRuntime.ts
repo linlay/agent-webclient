@@ -1,8 +1,12 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Modal } from "antd";
 import { useAppContext } from "@/app/state/AppContext";
 import type { Agent } from "@/features/agents/lib/agentState";
 import type { Chat } from "@/features/chats/lib/chatState";
+import {
+  usePushSignal,
+  useReconnectSignal,
+} from "@/features/transport/hooks/useRefreshSignals";
 import {
   archiveChats,
   deleteArchive,
@@ -27,6 +31,7 @@ import {
 import { t } from "@/shared/i18n";
 
 const ARCHIVE_PAGE_SIZE = 30;
+const ARCHIVE_REFRESH_DEBOUNCE_MS = 120;
 
 export type RestoredArchiveChatSummary = Pick<
   ChatSummaryResponse,
@@ -90,9 +95,14 @@ export function useArchiveRuntime(options: UseArchiveRuntimeOptions) {
     },
     [options.onSelectedChatIdChange],
   );
+  const selectedRef = useRef(selected);
+  selectedRef.current = selected;
+  const reloadTimerRef = useRef<number | undefined>(undefined);
 
-  const loadArchives = useCallback(async () => {
-    if (!options.active) return;
+  const loadArchives = useCallback(async (): Promise<
+    ArchivedSummaryResponse[]
+  > => {
+    if (!options.active) return [];
     setLoadingList(true);
     try {
       const trimmedQuery = query.trim();
@@ -112,7 +122,7 @@ export function useArchiveRuntime(options: UseArchiveRuntimeOptions) {
         );
         setItems(results);
         setTotal(response.data?.count || results.length);
-        return;
+        return results;
       }
       const accumulated: ArchivedSummaryResponse[] = [];
       let offset = 0;
@@ -130,6 +140,7 @@ export function useArchiveRuntime(options: UseArchiveRuntimeOptions) {
       }
       setItems(accumulated);
       setTotal(accumulated.length);
+      return accumulated;
     } catch (error) {
       dispatch({
         type: "APPEND_DEBUG",
@@ -137,6 +148,7 @@ export function useArchiveRuntime(options: UseArchiveRuntimeOptions) {
       });
       setItems([]);
       setTotal(0);
+      return [];
     } finally {
       setLoadingList(false);
     }
@@ -201,6 +213,41 @@ export function useArchiveRuntime(options: UseArchiveRuntimeOptions) {
     const timer = window.setTimeout(() => void loadArchives(), 180);
     return () => window.clearTimeout(timer);
   }, [loadArchives, options.active]);
+
+  // Archive data is shared with other surfaces: the Desktop sidebar, bulk
+  // archive and other windows archive or restore Chats without touching this
+  // page. The Archive route is a sibling of the conversation shell, so the
+  // chat Push handler is not mounted here — subscribe to the Push transport
+  // directly, and also reload after a reconnect that may have missed one.
+  const reloadFromPush = useCallback(() => {
+    if (!options.active) return;
+    if (reloadTimerRef.current !== undefined) {
+      window.clearTimeout(reloadTimerRef.current);
+    }
+    reloadTimerRef.current = window.setTimeout(() => {
+      reloadTimerRef.current = undefined;
+      void loadArchives().then((nextItems) => {
+        const currentSelected = String(selectedRef.current || "").trim();
+        if (!currentSelected) return;
+        if (nextItems.some((item) => item.chatId === currentSelected)) return;
+        updateSelected("");
+        setDetail(null);
+      });
+    }, ARCHIVE_REFRESH_DEBOUNCE_MS);
+  }, [loadArchives, options.active, updateSelected]);
+  useEffect(
+    () => () => {
+      if (reloadTimerRef.current !== undefined) {
+        window.clearTimeout(reloadTimerRef.current);
+        reloadTimerRef.current = undefined;
+      }
+    },
+    [],
+  );
+  usePushSignal("chat.archived", reloadFromPush, options.active);
+  usePushSignal("archive.restored", reloadFromPush, options.active);
+  usePushSignal("archive.deleted", reloadFromPush, options.active);
+  useReconnectSignal(reloadFromPush, options.active);
 
   useEffect(() => {
     if (!options.active) return;

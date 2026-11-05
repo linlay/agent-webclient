@@ -20,12 +20,16 @@ const VALID_PUSH_DATA: Record<string, Record<string, unknown>> = {
   'chat.renamed': {},
   'chat.archived': {},
   'archive.restored': {
+    // The shape agent-platform actually broadcasts: an active Chat summary.
     summary: {
+      chatId: 'chat_restored',
+      chatName: 'Restored',
+      agentKey: 'agent_a',
       createdAt: EPOCH_MS,
       updatedAt: EPOCH_MS,
-      lastRunAt: EPOCH_MS,
-      archivedAt: EPOCH_MS,
-      readAt: EPOCH_MS,
+      lastRunId: 'run_restored',
+      lastRunContent: 'restored response',
+      read: { isRead: false },
     },
   },
   'archive.deleted': {},
@@ -83,13 +87,18 @@ describe('Desktop WebSocket push time contract', () => {
     expect(validatesPush(type, { ...data, [field]: EPOCH_MS + 0.5 })).toBe(false);
   });
 
-  it('validates archive.restored summary times and keeps readAt optional there', () => {
+  it('validates archive.restored summary times and keeps archive-only instants optional', () => {
     const archive = VALID_PUSH_DATA['archive.restored'];
     const summary = archive.summary as Record<string, unknown>;
-    const withoutReadAt = { ...summary };
-    delete withoutReadAt.readAt;
+    const withoutOptional = { ...summary };
+    delete withoutOptional.readAt;
 
-    expect(validatesPush('archive.restored', { summary: withoutReadAt })).toBe(true);
+    expect(validatesPush('archive.restored', { summary: withoutOptional })).toBe(true);
+    expect(
+      validatesPush('archive.restored', {
+        summary: { ...summary, lastRunAt: EPOCH_MS, archivedAt: EPOCH_MS },
+      }),
+    ).toBe(true);
     expect(
       validatesPush('archive.restored', {
         summary: { ...summary, archivedAt: Math.floor(EPOCH_MS / 1000) },
@@ -98,6 +107,11 @@ describe('Desktop WebSocket push time contract', () => {
     expect(
       validatesPush('archive.restored', {
         summary: { ...summary, readAt: String(EPOCH_MS) },
+      }),
+    ).toBe(false);
+    expect(
+      validatesPush('archive.restored', {
+        summary: { chatId: 'chat_restored', createdAt: EPOCH_MS },
       }),
     ).toBe(false);
   });

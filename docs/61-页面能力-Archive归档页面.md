@@ -14,6 +14,8 @@ Archive 是独立 `features/archive` 领域，不归 Settings。现有组件/run
 ## 核心流程
 进入 `/archives` 后，`ArchivesPage` 将路由参数映射为当前选中的 archived chat。`ArchiveConsole` 调用 archives list/search/detail 接口加载数据；恢复或删除后失效 chats 相关缓存并刷新列表。恢复并打开时会跳转回对应 agent 对话路由。
 
+归档与恢复可能由其他 surface 发起（Desktop 侧栏、另一个窗口、批量归档）。`/archives` 是对话壳层的同级路由，页面内没有对话推送处理器，因此 `useArchiveRuntime` 通过 `usePushSignal` 直接订阅 `chat.archived`、`archive.restored`、`archive.deleted`，并用 `useReconnectSignal` 覆盖断线期间漏掉的推送；收到信号后去抖重载列表，选中项已不在新列表时清空选中与详情。
+
 ## 边界与非目标
 - 归档索引、归档存储和恢复语义由后端负责。
 - Archive 页面不维护 Memory records，也不调度 Automation。

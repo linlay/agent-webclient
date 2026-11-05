@@ -52,11 +52,9 @@ function withPushContractTime(frame: Record<string, unknown>): Record<string, un
 				summary: {
 					...(container.summary as Record<string, unknown>),
 					createdAt: (container.summary as Record<string, unknown>).createdAt ?? EPOCH_MS,
-					updatedAt: (container.summary as Record<string, unknown>).updatedAt ?? EPOCH_MS,
-					lastRunAt: (container.summary as Record<string, unknown>).lastRunAt ?? EPOCH_MS,
-            archivedAt: (container.summary as Record<string, unknown>).archivedAt ?? EPOCH_MS
-        }
-    }
+					updatedAt: (container.summary as Record<string, unknown>).updatedAt ?? EPOCH_MS
+				}
+			}
 		};
 	}
 
@@ -502,11 +500,19 @@ describe("createConversationPushHandler", () => {
 				chatId: "chat_restored",
 				agentKey: "agent_a",
 				summary: {
+					pinned: false,
+					primary: false,
 					chatId: "chat_restored",
 					chatName: "Restored",
-            agentKey: "agent_a"
-        }
-    }
+					agentKey: "agent_a",
+					mode: "GENERAL",
+					createdAt: EPOCH_MS,
+					updatedAt: EPOCH_MS,
+					lastRunId: "run_restored",
+					lastRunContent: "restored response",
+					read: { isRead: false }
+				}
+			}
 		}) as WsPushFrame);
 
 		expect(dispatch).toHaveBeenCalledWith({
