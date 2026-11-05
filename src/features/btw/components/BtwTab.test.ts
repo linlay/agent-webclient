@@ -262,4 +262,27 @@ describe("BtwTab composer controls", () => {
     expect(html).toContain("selection.fragment.segments");
     expect(html).not.toContain("data-selection-annotations");
   });
+
+  it("enables the header copy action once a BTW answer exists", () => {
+    const html = renderSession({
+      projection: {
+        timelineOrder: ["answer_1"],
+        timelineNodes: new Map([
+          ["answer_1", { id: "answer_1", kind: "content", text: "the latest answer" }],
+        ]),
+        events: [],
+        taskItemsById: {},
+      },
+    });
+    const button = findButton(html, "btw.copyLatestAnswer");
+
+    expect(button).not.toContain("disabled");
+    expect(html).toContain('data-icon="content_copy"');
+  });
+
+  it("disables the header copy action until a BTW answer exists", () => {
+    const html = renderSession();
+
+    expect(findButton(html, "btw.copyLatestAnswer")).toContain("disabled");
+  });
 });

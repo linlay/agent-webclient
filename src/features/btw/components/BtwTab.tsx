@@ -20,6 +20,7 @@ import {
 import { type EventDetailLevel } from "@/shared/data/eventDetailLevel";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
+import { copyText } from "@/shared/utils/copy";
 import { useI18n } from "@/shared/i18n";
 import { SCROLLBAR_THIN_CLASS_NAME } from "@/shared/styles/scrollbarClassNames";
 import { useOpenTarget } from "@/features/surfaces/hooks/useOpenTarget";
@@ -128,6 +129,19 @@ export const BtwTabView: React.FC<BtwTabViewProps> = ({
   const canResetBranch = Boolean(
     session?.btwId || session?.error || timelineEntries.length > 0,
   );
+  // BTW answers are transcript nodes: copy the raw text so the action keeps
+  // working when the current detail level hides parts of the timeline.
+  const latestAnswer = useMemo(() => {
+    if (!session) return "";
+    const { timelineOrder, timelineNodes } = session.projection;
+    for (let index = timelineOrder.length - 1; index >= 0; index -= 1) {
+      const node = timelineNodes.get(timelineOrder[index]);
+      if (node?.kind === "content" && String(node.text || "").trim()) {
+        return String(node.text || "");
+      }
+    }
+    return "";
+  }, [session]);
 
   useEffect(() => {
     if (!session?.focusToken) return;
@@ -194,6 +208,18 @@ export const BtwTabView: React.FC<BtwTabViewProps> = ({
             </span>
           </span>
           <Flex gap={2}>
+            <Tooltip title={t("btw.copyLatestAnswer")}>
+              <UiButton
+                variant="ghost"
+                size="sm"
+                iconOnly
+                disabled={!latestAnswer}
+                aria-label={t("btw.copyLatestAnswer")}
+                onClick={() => void copyText(latestAnswer)}
+              >
+                <MaterialIcon name="content_copy" />
+              </UiButton>
+            </Tooltip>
             {session && onOpenStandalone ? (
               <Tooltip title={t("planningTimeline.openInSidebar")}>
                 <UiButton
