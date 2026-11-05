@@ -511,6 +511,10 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
           <NodeIcon kind="awaiting-answer" />
         </div>
         <div className={TIMELINE_FLOW_CONTENT_CLASS_NAME}>
+          {node.delegatedBy && <p>
+            {t("mailbox.delegated", {agent: node.delegatedBy})}
+            {node.delegatedLevel && ` · ${t("mailbox.grant", {level: node.delegatedLevel})}`}
+          </p>}
           <AwaitingAnswerBlock node={node} />
           {timeNode}
         </div>

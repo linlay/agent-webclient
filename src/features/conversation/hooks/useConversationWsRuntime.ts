@@ -839,6 +839,7 @@ export function createConversationPushHandler(
 	return (frame) => {
 		const wireType = readPushWireType(frame);
 		const liveEvent = toPushEvent(frame);
+
 		if (!hasValidRequiredPushTime(wireType, liveEvent, frame)) {
 			appendWsDebug(
 				options.dispatch,
@@ -857,6 +858,10 @@ export function createConversationPushHandler(
 		const type = String(liveEvent.type || "");
 		const currentChatId = String(options.stateRef.current.chatId || "").trim();
 		const eventChatId = String(liveEvent.chatId || "").trim();
+    if (typeof window !== "undefined" && typeof window.dispatchEvent === "function" && typeof CustomEvent === "function" &&
+        ["run.start", "run.complete", "run.cancel", "run.error", "chat.updated", "chat.awaiting"].includes(type) && eventChatId) {
+      window.dispatchEvent(new CustomEvent("agent:chat-runtime-updated", {detail: {chatId: eventChatId}}));
+    }
 
 		if (type === "heartbeat") {
 			return;

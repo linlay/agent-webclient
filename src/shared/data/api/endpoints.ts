@@ -177,6 +177,7 @@ const PLATFORM_WS_BACKENDS = ["platform"] as const;
 const PLATFORM_AND_GATEWAY_WS_BACKENDS = ["platform", "gateway"] as const;
 
 export const dataEndpoints = createEndpointRegistry({
+  mailDetail: defineEndpoint<{mailId: string}>({ key: "mailbox.detail", path: "/api/mails/detail", method: "GET", transport: "http" }),
   mails: defineEndpoint<import("./dto/mailbox").MailListParams>({ key: "mailbox.list", path: "/api/mails", method: "GET", transport: "http" }),
   mailAction: defineEndpoint<import("./dto/mailbox").MailActionParams>({ key: "mailbox.action", path: "/api/mails/action", method: "POST", transport: "http" }),
   execute: defineEndpoint<import("./dto/execute").ExecuteRequest>({
@@ -867,6 +868,7 @@ export const dataEndpoints = createEndpointRegistry({
     payload: (options = {}) =>
       compactPayload({
         agentKey: options.agentKey,
+        openedBy: options.openedBy,
         mode: options.mode,
         hasWorkspace: options.hasWorkspace,
         pinned: options.pinned,

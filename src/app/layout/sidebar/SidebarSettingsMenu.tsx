@@ -68,7 +68,6 @@ export function buildSidebarSettingsMenuSections(): SidebarSettingsMenuSection[]
       key: "entry",
       title: t("settingsMenu.section.entry"),
       items: [
-        ...(isPlatformBackendMode() ? [{ key: "open-mailbox", label: t("mailbox.title"), icon: "question_answer" as const, action: { type: "open-mailbox" as const } }] : []),
         ...(isPlatformBackendMode() && !isDesktopAppMode() ? [{ key: "open-webapps", label: t("webapps.title"), icon: "inventory_2" as const, action: { type: "open-webapps" as const } }] : []),
         {
           key: "open-agents",

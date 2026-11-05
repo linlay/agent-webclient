@@ -62,6 +62,7 @@ export const LeftSidebar: React.FC = () => {
       onOpenSearch={openGlobalSearch}
       onOpenCommand={(type) => openCommandOverlay({ type })}
       onOpenMemory={openMemory}
+      onOpenMailbox={()=>setMailboxOpen(true)}
       renderSettingsMenu={(close) => (
         <SidebarSettingsMenu
           onAction={(action) => {

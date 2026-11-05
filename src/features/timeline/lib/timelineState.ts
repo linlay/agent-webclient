@@ -139,6 +139,8 @@ export interface RelatedChat {
 }
 
 export interface TimelineNode {
+  delegatedBy?: string;
+  delegatedLevel?: string;
   mail?: import("@/shared/data/api/dto/mailbox").MailMetadata;
 	relatedChat?: RelatedChat;
 	id: string;

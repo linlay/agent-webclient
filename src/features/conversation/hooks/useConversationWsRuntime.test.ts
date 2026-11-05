@@ -1971,7 +1971,8 @@ describe("createConversationPushHandler continued", () => {
         lastRunContent: "updated elsewhere"
     })
 		});
-		expect(dispatchEvent).not.toHaveBeenCalled();
+		expect(dispatchEvent).toHaveBeenCalledWith(expect.objectContaining({type: "agent:chat-runtime-updated", detail: {chatId: "chat_active"}}));
+		expect(dispatchEvent).not.toHaveBeenCalledWith(expect.objectContaining({type: "agent:refresh-worker-data"}));
 		expect(handleEvent).not.toHaveBeenCalled();
 	});
 
@@ -2181,7 +2182,8 @@ describe("createConversationPushHandler continued", () => {
     stateStreaming: true
 			}),
 		]);
-		expect(dispatchEvent).not.toHaveBeenCalled();
+		expect(dispatchEvent).toHaveBeenCalledWith(expect.objectContaining({type: "agent:chat-runtime-updated", detail: {chatId: "chat_active"}}));
+		expect(dispatchEvent).not.toHaveBeenCalledWith(expect.objectContaining({type: "agent:refresh-worker-data"}));
 		expect(handleEvent).not.toHaveBeenCalled();
 	});
 
@@ -2312,7 +2314,9 @@ describe("createConversationPushHandler continued", () => {
         lastRunId: "run_failed"
     })
 		});
-		expect(dispatchEvent).not.toHaveBeenCalled();
+		expect(dispatchEvent).toHaveBeenCalledTimes(2);
+    expect(dispatchEvent).toHaveBeenCalledWith(expect.objectContaining({type: "agent:chat-runtime-updated", detail: {chatId: "chat_active"}}));
+    expect(dispatchEvent).not.toHaveBeenCalledWith(expect.objectContaining({type: "agent:refresh-worker-data"}));
 		expect(handleEvent).not.toHaveBeenCalled();
 	});
 

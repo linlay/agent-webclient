@@ -166,6 +166,7 @@ interface WorkerNavigatorProps {
   onOpenProject: (agentKey: string) => void;
   onOpenCommand: (type: "automation" | "agents" | "kbases") => void;
   onOpenMemory: () => void;
+  onOpenMailbox?: () => void;
   onOpenSearch: () => void;
   renderSettingsMenu: (close: () => void) => React.ReactNode;
   settingsSummary?: React.ReactNode;
@@ -175,6 +176,7 @@ export const WorkerNavigator: React.FC<WorkerNavigatorProps> = ({
   onOpenProject,
   onOpenCommand,
   onOpenMemory,
+  onOpenMailbox,
   onOpenSearch,
   renderSettingsMenu,
   settingsSummary,
@@ -683,7 +685,7 @@ export const WorkerNavigator: React.FC<WorkerNavigatorProps> = ({
 
         <div className={CHAT_LIST_CLASS} id="chat-list">
           {state.leftDrawerOpen && quickActionsEnabled && (
-            <WorkerQuickActions onOpenCommand={onOpenCommand} onOpenMemory={onOpenMemory}
+            <WorkerQuickActions onOpenMailbox={onOpenMailbox} onOpenCommand={onOpenCommand} onOpenMemory={onOpenMemory}
               hideNewChat={state.primaryNavigation}
               newChatDisabled={!currentGeneralKey}
               onNewChat={() => startNewConversationForWorker(currentGeneralKey, { focusComposerOnComplete: true })} />

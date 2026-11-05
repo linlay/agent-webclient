@@ -5,6 +5,7 @@ export interface MailMetadata {
   kind: MailKind;
   outcome?: string;
   fromAgentKey: string;
+  fromAgentName?: string;
   fromChatId: string;
 }
 export interface MailRecord {
@@ -15,10 +16,14 @@ export interface MailRecord {
   toAgentKey: string;
   toChatId: string;
   fromAgentKey: string;
+  fromAgentName?: string;
   fromChatId: string;
   fromRunId: string;
   message: string;
   accessLevel?: string;
+  awaitingId?: string;
+  awaitingMode?: string;
+  awaitingSource?: string;
   evidence?: "none" | "consumed" | "unknown";
   outcome?: string;
   purgedAt?: number;

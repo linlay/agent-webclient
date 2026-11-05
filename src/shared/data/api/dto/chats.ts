@@ -1,4 +1,5 @@
 export interface GetChatsOptions {
+  openedBy?: string;
   agentKey?: string;
   mode?: string;
   hasWorkspace?: boolean;

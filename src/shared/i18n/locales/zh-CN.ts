@@ -64,6 +64,12 @@ export const zhCNMessages = {
   "planDialog.executionAccess": "Agent 当前默认执行权限：{level}",
 
   "mailbox.attachment": "附件：{name} · @chat/{path}",
+  "mailbox.idle": "空闲",
+  "mailbox.unavailable": "邮件记录已不可用",
+  "mailbox.openWorker": "去分身会话处理",
+  "mailbox.reject": "拒绝",
+  "mailbox.delegated": "由 {agent} 代答",
+  "mailbox.grant": "审批依据：{level}",
   "mailbox.title": "收件箱",
   "mailbox.agent": "收件 Agent",
   "mailbox.kind": "消息类型",

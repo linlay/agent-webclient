@@ -1,0 +1,45 @@
+/** @jest-environment jsdom */
+import React, { act } from "react";
+import { createRoot } from "react-dom/client";
+import { MailAskCard } from "./MailAskCard";
+import { getMailDetail } from "@/shared/data/api/requests/mailbox";
+import { postJson } from "@/shared/data/api/http";
+jest.mock("@/shared/data/api/requests/mailbox", () => ({ ...jest.requireActual("@/shared/data/api/requests/mailbox"), getMailDetail: jest.fn() }));
+jest.mock("@/shared/data/api/http", () => ({ postJson: jest.fn() }));
+jest.mock("@/shared/i18n", () => ({ useI18n: () => ({ t: (key: string) => key }) }));
+const detail = jest.mocked(getMailDetail);
+const submit = jest.mocked(postJson);
+beforeAll(() => { Object.defineProperty(window, "matchMedia", { writable: true, value: () => ({ matches: false, addListener: () => { }, removeListener: () => { }, addEventListener: () => { }, removeEventListener: () => { } }) }); (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true; });
+const mail = { mailId: "m", kind: "ask" as const, status: "delivered" as const, createdAt: 1, toAgentKey: "lead", toChatId: "parent", fromAgentKey: "worker", fromChatId: "child", fromRunId: "run", awaitingId: "await", awaitingMode: "question", message: JSON.stringify({ questions: [{ id: "q", question: "Choose", options: [{ label: "Yes", value: "yes" }] }] }) };
+it("refreshes an ask card after mail.updated and disables resolved actions", async () => {
+    detail.mockResolvedValue({ code: 0, data: mail } as any);
+    const host = document.createElement("div");
+    document.body.append(host);
+    const root = createRoot(host);
+    await act(async () => { root.render(<MailAskCard mailId="m"/>); });
+    expect(host.textContent).toContain("worker");
+    expect(host.querySelector("form")).not.toBeNull();
+    expect(host.querySelector("a")?.href).toContain("chatId=child");
+    const before = detail.mock.calls.length;
+    await act(async () => {window.dispatchEvent(new CustomEvent("agent:mail-updated", {detail: {mailId: "unrelated"}}));});
+    expect(detail).toHaveBeenCalledTimes(before);
+    detail.mockResolvedValue({ code: 0, data: { ...mail, status: "done" } } as any);
+    await act(async () => { window.dispatchEvent(new CustomEvent("agent:mail-updated", {detail: {mailId: "m"}})); });
+    expect(host.querySelector("form")).toBeNull();
+    expect(host.textContent).toContain("mailbox.status.done");
+    await act(async () => root.unmount());
+    host.remove();
+});
+it("submits as the human to the frozen worker waiting item", async () => {
+    detail.mockResolvedValue({ code: 0, data: { ...mail, awaitingMode: "form", message: JSON.stringify({ fields: [] }) } } as any);
+    submit.mockResolvedValue({ code: 0 } as any);
+    const host = document.createElement("div");
+    document.body.append(host);
+    const root = createRoot(host);
+    await act(async () => { root.render(<MailAskCard mailId="m"/>); });
+    await act(async () => { host.querySelector("form")?.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true })); });
+    expect(submit).toHaveBeenCalledWith("/api/submit", expect.objectContaining({ runId: "run", agentKey: "worker", awaitingId: "await", param: { decision: "approve", data: {} } }));
+    expect(submit.mock.calls.at(-1)?.[1]).not.toHaveProperty("origin");
+    await act(async () => root.unmount());
+    host.remove();
+});

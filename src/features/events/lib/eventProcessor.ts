@@ -66,6 +66,7 @@ function routeStreamEvent(
 	}
 
 	if (
+		type === "request.submit" ||
 		type === "content.start" ||
 		type === "content.delta" ||
 		type === "content.end" ||

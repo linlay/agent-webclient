@@ -193,3 +193,8 @@ export function putChatOrder(params: UpdateChatOrderRequest): Promise<ApiRespons
     body: JSON.stringify(params),
   });
 }
+
+export function getOpenedChats(agentKey: string, signal?: AbortSignal) {
+  const query = endpointQuery(dataEndpoints.chats, {openedBy: agentKey});
+  return requestJson<import("../dto/chats").ChatSummaryResponse[]>(withQuery(dataEndpoints.chats.path, query), {signal});
+}

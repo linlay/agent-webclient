@@ -1955,3 +1955,13 @@ describe("run progress activity", () => {
     expect(state.timelineNodes.has("model_retry_current")).toBe(false);
   });
 });
+
+for (const mode of ["live", "replay"] as const) {
+ it(`preserves delegated answer audit in ${mode}`,()=>{
+ const state=createState();
+ processAndApply(state,{type:"request.submit",runId:"child",awaitingId:"ask",origin:{type:"agent",agentKey:"lead"},accessGrant:{accessLevel:"auto_approve"}} as AgentEvent,mode,false);
+ processAndApply(state,{type:"awaiting.answer",runId:"child",awaitingId:"ask",mode:"approval",status:"success",approvals:[]} as AgentEvent,mode,false);
+ expect(state.timelineNodes.get("awaiting_answer_child_ask")).toMatchObject({kind:"awaiting-answer",delegatedBy:"lead",delegatedLevel:"auto_approve"});
+ expect(state.timelineOrder.filter(id=>id==="awaiting_answer_child_ask")).toHaveLength(1);
+ });
+}

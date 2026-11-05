@@ -1648,7 +1648,7 @@ describe('replayEvent tool migration', () => {
     expect(dispatch).not.toHaveBeenCalledWith({ type: 'RESET_ACTIVE_CONVERSATION' });
   });
 
-  it.each([false, true])('restores chat_start permission on load (active=%s)', async (active) => {
+  it.each([false, true])('restores chat_send permission on load (active=%s)', async (active) => {
     const state = createInitialState();
     const scope = resolveComposerAccessScope(state.accessToken);
     const target = { scope, chatId: 'started-chat', agentKey: '' };

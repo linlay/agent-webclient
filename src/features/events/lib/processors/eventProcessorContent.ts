@@ -207,6 +207,24 @@ export function processContentEvent(
     return commands;
   }
 
+  if (type === "request.submit") {
+    const origin = event.origin as Record<string, unknown> | undefined;
+    if (origin?.type !== "agent") return [];
+    const nodeId = `awaiting_answer_${toText(event.runId) || "run"}_${toText(event.awaitingId)}`;
+    const existing = state.getTimelineNode(nodeId);
+    if (!existing) commands.push({cmd: "APPEND_TIMELINE_ORDER", nodeId});
+    const grant = event.accessGrant as Record<string, unknown> | undefined;
+    commands.push({
+      cmd: "SET_TIMELINE_NODE",
+      id: nodeId,
+      node: {
+        ...(existing || {id: nodeId, kind: "awaiting-answer", text: "", ts: timestamp}),
+        delegatedBy: toText(origin.agentKey),
+        delegatedLevel: toText(grant?.accessLevel),
+      },
+    });
+    return commands;
+  }
   if (isAwaitingAnswerStreamEvent(type)) {
     const runId = toText(event.runId);
     const awaitingId = toText(event.awaitingId);
@@ -224,6 +242,8 @@ export function processContentEvent(
       node: {
         id: nodeId,
         kind: "awaiting-answer",
+        delegatedBy: existing?.delegatedBy,
+        delegatedLevel: existing?.delegatedLevel,
         ...applyTaskBindingToNode(event, state, existing),
         awaitingId,
         title: awaitingAnswerTitle(event),

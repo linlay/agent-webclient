@@ -64,6 +64,12 @@ export const enUSMessages = {
   "planDialog.executionAccess": "Agent current default execution permission: {level}",
 
   "mailbox.attachment": "Attachment: {name} · @chat/{path}",
+  "mailbox.idle": "Idle",
+  "mailbox.unavailable": "Mail record is unavailable",
+  "mailbox.openWorker": "Open worker conversation",
+  "mailbox.reject": "Reject",
+  "mailbox.delegated": "Answered by {agent}",
+  "mailbox.grant": "Approval level: {level}",
   "mailbox.title": "Mailbox",
   "mailbox.agent": "Recipient Agent",
   "mailbox.kind": "Message kind",

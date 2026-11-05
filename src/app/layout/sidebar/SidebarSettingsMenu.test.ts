@@ -41,7 +41,6 @@ describe("buildSidebarSettingsMenuSections", () => {
 
     expect(sections.map((section) => section.title)).toEqual(["设置"]);
     expect(sections[0]?.items.map((item) => item.label)).toEqual([
-      "收件箱",
       "网站应用",
       "智能体",
       "技能中心",

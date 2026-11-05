@@ -1,3 +1,4 @@
+import {OpenedChats} from "./OpenedChats";
 import React, { useMemo } from "react";
 import { useAppContext } from "@/app/state/AppContext";
 import { AgentIcon } from "@/shared/icons/agent";
@@ -52,6 +53,7 @@ export function PrimaryChatNavigation(props: {
         {!props.collapsed && <UiButton size="mini" variant="ghost" iconOnly className={styles.history}
           title={t("leftSidebar.navigation.showHistory")} aria-label={`${agent.name}: ${t("leftSidebar.navigation.showHistory")}`}
           onClick={() => props.onOpenHistory(agent.key)}><MaterialIcon name="history" /></UiButton>}
+        {!props.collapsed && <OpenedChats agentKey={agent.key} onSelectChat={props.onSelectChat} />}
       </div>;
     })}
     {!rows.length && !props.collapsed && <div className={styles.empty}>{t("leftSidebar.navigation.primaryEmpty")}</div>}
