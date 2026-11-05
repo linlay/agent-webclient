@@ -7,6 +7,7 @@ import {
 } from "@/features/agents/lib/projectCreation";
 import type { AgentCreationGroupOption, AgentCreationTypeKey } from "@/shared/data";
 import { useI18n } from "@/shared/i18n";
+import { resolveModelPresentation } from "@/shared/icons/model";
 import { MaterialIcon, type MaterialIconName } from "@/shared/ui/MaterialIcon";
 import styles from "./AgentProjectCreateDialog.module.css";
 
@@ -196,10 +197,26 @@ export const AgentProjectCreateDialog: React.FC<{
                   disabled={runtime.submitting}
                   style={{ width: "100%" }}
                   showSearch
-                  options={options.models.map((model) => ({
-                    value: model.key,
-                    label: model.name || model.key,
-                  }))}
+                  optionFilterProp="searchText"
+                  options={options.models.map((model) => {
+                    const presentation = resolveModelPresentation(model);
+                    const name = model.name || model.key;
+                    return {
+                      value: model.key,
+                      searchText: `${name} ${model.key}`,
+                      label: (
+                        <span className={styles.modelLabel}>
+                          <img
+                            className={`${styles.modelIcon}${presentation.isMonochrome ? ` ${styles.monochrome}` : ""}`}
+                            src={presentation.icon}
+                            alt=""
+                            aria-hidden
+                          />
+                          <span className={styles.modelName}>{name}</span>
+                        </span>
+                      ),
+                    };
+                  })}
                   placeholder={t("leftSidebar.createProject.modelPlaceholder")}
                   onChange={runtime.setModelKey}
                 />

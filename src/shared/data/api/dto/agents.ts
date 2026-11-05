@@ -208,13 +208,13 @@ export interface AgentCreationGroupOption {
 
 export interface AgentCreationDefaultsResponse {
   types: Array<Omit<AgentCreationTypeOption, "supportsGroups" | "groupsUnsupportedReason" | "defaultGroups">>;
-  models: Array<{ key: string; name?: string }>;
+  models: Array<{ key: string; name?: string; icon?: string }>;
 }
 
 export interface AgentCreationOptionsResponse {
   types: AgentCreationTypeOption[];
   groups: AgentCreationGroupOption[];
-  models: Array<{ key: string; name?: string }>;
+  models: Array<{ key: string; name?: string; icon?: string }>;
 }
 
 /** GET /api/admin/host/directories: directories on the Agent Platform host. */
