@@ -29,7 +29,7 @@ afterEach(async () => {
   URL.revokeObjectURL = revokeObjectURL;
 });
 
-it("uses a hub without requesting missing icons", async () => {
+it("uses a connector mark without requesting missing icons", async () => {
   await mount();
   expect(fetchConnectorIcon).not.toHaveBeenCalled();
   expect(container.querySelector("img")).toBeNull();

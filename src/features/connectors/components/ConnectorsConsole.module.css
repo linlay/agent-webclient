@@ -776,3 +776,20 @@
     grid-template-rows: minmax(80px, 1fr) minmax(0, 3fr);
   }
 }
+.importIconRow { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.importIconPreview { width: 36px; height: 36px; object-fit: contain; border-radius: 6px; }
+
+.importIconPalette { display: flex; flex-wrap: wrap; gap: 8px; }
+.importIconChoice { display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; padding: 3px; border: 1px solid transparent; border-radius: 12px; color: var(--ink-muted); background: transparent; cursor: pointer; }
+.importIconChoice[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); background: var(--surface-soft); }
+.importIconChoice:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.catalogIcon:has(img) { padding: 3px; border-radius: 7px; background: var(--surface-soft); }
+
+.importField { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.importIdentity { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; }
+.importIconControls { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
+@media (max-width: 480px) { .importIdentity { grid-template-columns: 1fr; } }
+
+.importIconChoice img { display: block; width: 32px; height: 32px; border-radius: 9px; }
+.importIconChoice:hover { background: var(--bg-hover); }

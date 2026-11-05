@@ -174,7 +174,7 @@ it("projects compact detail bindings for the existing mount write workflow", asy
 });
 
 it("imports MCP URLs over direct uncached HTTP without automatically replaying a mutation", async () => {
-  const params = { mcpUrl: "https://example.test/mcp?key=synthetic-key", authMode: "none" as const };
+  const params = { name: "团队知识库", mcpUrl: "https://example.test/mcp?key=synthetic-key", authMode: "none" as const };
   await importConnectorMCP(params);
   expect(requestJson).toHaveBeenCalledWith("/api/admin/connectors/import-mcp", {
     method: "POST", body: JSON.stringify(params), cache: "no-store", retryUnauthorized: false,

@@ -253,7 +253,7 @@ export function ConnectorsConsole({
           }}
         >
           <span className={styles.itemHeading}>
-            <ConnectorIcon item={item} />
+            <ConnectorIcon item={item} size={28} className={styles.catalogIcon} />
             <strong>{item.name}</strong>
             {itemPinned && (
               <MaterialIcon
@@ -267,9 +267,6 @@ export function ConnectorsConsole({
               {t("connectors.version", { version: item.version })}
             </span>
           </span>
-          {item.description && (
-            <span className={styles.description}>{item.description}</span>
-          )}
           <span className={styles.itemFooter}>
             <span className={styles.itemStatus}>
               {(item.mcp || []).some(

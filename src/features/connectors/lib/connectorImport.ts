@@ -1,3 +1,4 @@
+import type { ImportConnectorMCPRequest } from "@/shared/data/api/dto/connectors";
 // Mirrors connector.MaxArchiveUploadBytes; the backend validates package contents.
 export const CONNECTOR_ARCHIVE_MAX_BYTES = 64 * 1024 * 1024;
 
@@ -32,3 +33,35 @@ export function connectorImportErrorKey(error: unknown): string {
   if (value?.status === 403 && value.code === "builtin_connector_readonly") return "connectors.import.error.builtin";
   return "";
 }
+
+export const CONNECTOR_MCP_ICON_MAX_BYTES = 32 * 1024;
+
+export function connectorUrlToId(raw: string): string {
+  if (!validateConnectorMCPURL(raw)) return "";
+  const url = new URL(raw.trim());
+  const host = url.hostname.replace(/^\[|\]$/g, "").toLowerCase();
+  const local = host === "localhost" || host === "::1" || /^127(?:\.\d{1,3}){3}$/.test(host);
+  return `${local ? "local" : host}${url.port ? `-${url.port}` : ""}`
+    .replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 64).replace(/-+$/g, "");
+}
+
+export function validConnectorImportId(id: string): boolean {
+  return /^[a-z0-9][a-z0-9._-]{0,63}$/.test(id) && !id.startsWith("builtin.");
+}
+
+export function readConnectorImportIcon(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error("connectors.import.mcp.iconReadFailed"));
+    reader.onload = () => {
+      const data = String(reader.result || "").split(",")[1] || "";
+      try {
+        if (!atob(data).startsWith("\x89PNG\r\n\x1a\n")) throw new Error();
+        resolve(data);
+      } catch { reject(new Error("connectors.import.mcp.invalidIcon")); }
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+export const CONNECTOR_IMPORT_ICON_PRESETS: NonNullable<ImportConnectorMCPRequest["iconPreset"]>[] = ["hub", "database", "terminal", "code", "folder", "search", "bolt", "build"];

@@ -38,7 +38,7 @@ it("uses a provided Standalone Router navigation so the editor's final dirty blo
   await act(async () => actions.open({ kind: "connector", target: { id: "edited" } }));
   expect(navigate).toHaveBeenCalledTimes(1); expect(assign).not.toHaveBeenCalled();
   const target = new URL(navigate.mock.calls[0][0], "http://localhost");
-  expect(target.pathname).toBe("/agent/default"); expect(target.searchParams.get("composerSkill")).toBe("platform-admin");
+  expect(target.pathname).toBe("/agent/default"); expect(target.searchParams.has("composerSkill")).toBe(false);
 });
 it("fails visibly without a Desktop default and does not silently select another Agent", async () => {
   (window.location as any).href = "http://localhost/skills";

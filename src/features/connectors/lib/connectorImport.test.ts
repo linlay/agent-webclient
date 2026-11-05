@@ -1,4 +1,4 @@
-import { CONNECTOR_ARCHIVE_MAX_BYTES, connectorImportErrorKey, isConnectorImportConflict, validateConnectorArchive, validateConnectorMCPURL } from "./connectorImport";
+import { connectorUrlToId, validConnectorImportId, CONNECTOR_ARCHIVE_MAX_BYTES, connectorImportErrorKey, isConnectorImportConflict, validateConnectorArchive, validateConnectorMCPURL } from "./connectorImport";
 
 describe("connector ZIP validation", () => {
   it("accepts ZIP names without requiring browser MIME detection and enforces the backend upload limit", () => {
@@ -23,3 +23,16 @@ it.each([
   ["https://user:password@example.test/mcp", false], ["ftp://example.test/mcp", false],
   ["https:example.test/mcp", false], ["not a URL", false],
 ])("validates MCP URL %s", (url, valid) => expect(validateConnectorMCPURL(url as string)).toBe(valid));
+
+it("generates connector IDs from URL host and port, excluding paths and credentials", () => {
+  expect(connectorUrlToId("https://example.com/mcp?key=private")).toBe("example-com");
+  expect(connectorUrlToId("http://127.0.0.1:8080/mcp")).toBe("local-8080");
+  expect(connectorUrlToId("http://localhost:3000/sse")).toBe("local-3000");
+  expect(connectorUrlToId("http://[::1]:8080/mcp")).toBe("local-8080");
+  expect(connectorUrlToId("https://example.com:443/mcp")).toBe("example-com");
+  expect(connectorUrlToId("https://example.com:8443/mcp")).toBe("example-com-8443");
+  expect(connectorUrlToId("invalid")).toBe("");
+  expect(validConnectorImportId("team-knowledge")).toBe(true);
+  expect(validConnectorImportId("../escape")).toBe(false);
+  expect(validConnectorImportId("builtin.foo")).toBe(false);
+});

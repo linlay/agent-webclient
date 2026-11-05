@@ -143,7 +143,15 @@ export interface ImportConnectorArchiveRequest {
 
 export interface ImportConnectorMCPRequest {
   mcpUrl: string;
-  authMode?: "mcp" | "none";
+  name: string;
+  id?: string;
+  description?: string;
+  /** Base64 PNG data, at most 32 KiB decoded. */
+  iconPng?: string;
+  iconPreset?: "hub" | "database" | "terminal" | "code" | "folder" | "search" | "bolt" | "build";
+  authMode?: "mcp" | "none" | "oneid" | "token";
+  tokenAuth?: "bearer" | "header" | "basic";
+  headerName?: string;
 }
 
 export interface ImportConnectorArchiveResponse {

@@ -15,7 +15,7 @@ export function resourceComposerPrefill(request: ResourceAssistantRequest, t: Tr
     ? t("resourceAssistant.draft.update", { resource, name: JSON.stringify(target.name || target.id), id: JSON.stringify(target.id), category })
     : t("resourceAssistant.draft.create", { resource, category });
   if (draft.length > 2048) throw new Error(t("resourceAssistant.draftTooLong"));
-  return { composerSkill: request.kind === "automation" ? "platform-automation" : "platform-admin", composerDraft: draft };
+  return { composerDraft: draft };
 }
 
 let lastNewChat = 0;

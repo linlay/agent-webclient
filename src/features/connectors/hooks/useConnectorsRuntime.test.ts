@@ -319,7 +319,7 @@ it.each([{ builtin: true }, { readOnly: true }, { canDelete: false }])("rejects 
 it("preserves drafts on failed MCP import, then selects the installed connector even if refresh fails", async () => {
   await mount();
   await act(async () => current.updateDraft('{"name":"Unsaved"}'));
-  const params = { mcpUrl: "https://mcp.example.test/mcp", authMode: "none" as const };
+  const params = { name: "团队知识库", mcpUrl: "https://mcp.example.test/mcp", authMode: "none" as const };
   jest.spyOn(window, "confirm").mockReturnValue(false);
   await act(async () => expect(current.importMCP(params)).resolves.toBeNull());
   expect(importConnectorMCP).not.toHaveBeenCalled();

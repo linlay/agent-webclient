@@ -6,8 +6,9 @@ describe("resource assistant URL", () => {
   it.each(["automation", "skill", "agent", "connector", "registry"] as const)("prefills %s without sending or binding a chat", kind => {
     const url = new URL(resourceAssistantUrl("default chat", resourceComposerPrefill({ kind }, t)), "https://test.invalid");
     expect(url.pathname).toBe("/agent/default%20chat");
-    expect([...url.searchParams.keys()].sort()).toEqual(["composerDraft", "composerSkill", "newChat"]);
-    expect(url.searchParams.get("composerSkill")).toBe(kind === "automation" ? "platform-automation" : "platform-admin");
+    expect([...url.searchParams.keys()].sort()).toEqual(["composerDraft", "newChat"]);
+    expect(url.searchParams.has("composerSkill")).toBe(false);
+    expect(url.searchParams.get("composerDraft")).not.toContain("所选技能");
     expect(url.searchParams.get("newChat")).toMatch(/^[1-9]\d{12}$/);
     expect(url.searchParams.get("composerDraft")).toContain("……");
   });

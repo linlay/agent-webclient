@@ -1,7 +1,8 @@
+import { isAppMode } from "@/shared/utils/routing";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ApiError, cancelConnectorAuth, getConnectorAuthStatus, getConnectorConnection, prepareConnector, logoutConnectorAuth, startConnectorAuth } from "@/shared/data";
 import type { ConnectorAuthMode, ConnectorAuthSession, ConnectorSummary } from "@/shared/data";
-import { connectorAuthDeadline, connectorAuthViewStatus, isConnectorAuthActive, readConnectorAuthAction, readConnectorAuthSession, supportsConnectorAuthCheck, supportsConnectorLogin } from "../lib/connectorAuth";
+import { connectorAuthDeadline, connectorAuthViewStatus, isConnectorAuthActive, readConnectorAuthAction, readConnectorAuthSession, supportsConnectorAuthCheck, supportsConnectorLogin, safeConnectorAuthorizationUrl } from "../lib/connectorAuth";
 import type { ConnectorAuthViewStatus } from "../lib/connectorAuth";
 import { ensureConnectorPrepared, waitForConnectorPoll } from "../lib/connectorChat";
 import { confirmCredentialState } from "../lib/connectorCredentials";
@@ -54,6 +55,29 @@ export function useConnectorAuth({ id, mode, readOnly = false, onStatusChange, o
     let deadlineTimer: ReturnType<typeof setTimeout> | undefined;
     let requestTimer: ReturnType<typeof setTimeout> | undefined;
     let lastCheckedAt = 0;
+    let loginWindow: Window | null = null;
+    let openSystemBrowser = false;
+    const closeWaitingWindow = () => {
+      try { loginWindow?.close(); } catch { /* The user may already have closed it. */ }
+      loginWindow = null;
+      openSystemBrowser = false;
+    };
+    const openAuthorization = () => {
+      if (!openSystemBrowser) return;
+      if (session?.authBrowser === "embedded") { closeWaitingWindow(); return; }
+      if (session?.status !== "preparing" && session?.status !== "pending") {
+        closeWaitingWindow(); return;
+      }
+      const url = safeConnectorAuthorizationUrl(session.authorizationUrl);
+      if (connectorAuthViewStatus(session) === "expired" || session.authorizationUrl && !url) { closeWaitingWindow(); return; }
+      if (session.status !== "pending" || !url) return;
+      openSystemBrowser = false;
+      try {
+        if (loginWindow && !loginWindow.closed) loginWindow.location.replace(url);
+        else window.open(url, "_blank", "noopener,noreferrer");
+      } catch { /* The panel retains a link if opening was blocked. */ }
+      loginWindow = null;
+    };
     const permanentError = () => error instanceof ApiError && [401, 403, 404, 405].includes(error.status || 0);
     const schedulePoll = () => {
       clearTimeout(pollTimer);
@@ -67,6 +91,7 @@ export function useConnectorAuth({ id, mode, readOnly = false, onStatusChange, o
 
     const publish = () => {
       if (disposed) return;
+      if (operation !== "start") openAuthorization();
       const status = mode === "none" ? "no_auth" : connectorAuthViewStatus(session);
       setState({ identity, browserRequestRevision, browserSessionId, session, status, checking: !!request && !operation, operation, error, preparingDependency });
       if (reportedStatus !== status) {
@@ -95,6 +120,16 @@ export function useConnectorAuth({ id, mode, readOnly = false, onStatusChange, o
         if (session?.status === "pending" && !expired) { browserSessionId = session.sessionId; browserRequestRevision += 1; publish(); }
         return true;
       }
+      if (action === "start" && mode === "mcp" && session?.authBrowser !== "embedded") {
+        // Reserve a tab during the click, before awaiting authorization discovery.
+        // Desktop routes the final URL to the OS browser and needs no blank tab.
+        closeWaitingWindow();
+        openSystemBrowser = true;
+        if (!isAppMode()) {
+          try { loginWindow = window.open("about:blank", "_blank"); if (loginWindow) loginWindow.opener = null; } catch { loginWindow = null; }
+        }
+      }
+      if (action === "cancel" || action === "logout") closeWaitingWindow();
       // A user action supersedes an in-flight poll. Its late response cannot restore an old link.
       clearTimeout(pollTimer);
       clearTimeout(requestTimer);
@@ -156,6 +191,7 @@ export function useConnectorAuth({ id, mode, readOnly = false, onStatusChange, o
         return true;
       } catch (cause) {
         if (!current()) return false;
+        if (action === "start") closeWaitingWindow();
         error = clearingCredentials ? new Error("connectors.credentials.clearFailed") : timedOut ? new Error("connectors.auth.error.timeout") : cause instanceof Error ? cause : new Error(String(cause));
         return false;
       } finally {
@@ -180,6 +216,7 @@ export function useConnectorAuth({ id, mode, readOnly = false, onStatusChange, o
     if (observe && pollInactive) document.addEventListener("visibilitychange", onVisible);
     return () => {
       disposed = true;
+      closeWaitingWindow();
       sequence += 1;
       clearTimeout(pollTimer);
       clearTimeout(deadlineTimer);

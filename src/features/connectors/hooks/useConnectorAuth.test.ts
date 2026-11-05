@@ -3,9 +3,11 @@ import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { ApiError, cancelConnectorAuth, getConnectorAuthStatus, getConnectorConnection, prepareConnector, logoutConnectorAuth, startConnectorAuth } from "@/shared/data";
 import type { ApiResponse, ConnectorAuthSession, ConnectorSummary, ConnectorAuthMode } from "@/shared/data";
+import { isAppMode } from "@/shared/utils/routing";
 import { useConnectorAuth } from "./useConnectorAuth";
 import { confirmCredentialState, credentialStateCheckRequired, requireCredentialStateCheck } from "../lib/connectorCredentials";
 
+jest.mock("@/shared/utils/routing", () => ({ isAppMode: jest.fn(() => false) }));
 jest.mock("@/shared/data", () => ({
   ApiError: jest.requireActual("@/shared/data/api/http").ApiError,
   getConnectorAuthStatus: jest.fn(), startConnectorAuth: jest.fn(), cancelConnectorAuth: jest.fn(), logoutConnectorAuth: jest.fn(),
@@ -36,6 +38,7 @@ beforeEach(() => {
   (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
   jest.useFakeTimers();
   jest.resetAllMocks();
+  jest.spyOn(window, "open").mockReturnValue(null);
   confirmCredentialState("demo");
   confirmCredentialState("other");
   jest.mocked(getConnectorAuthStatus).mockResolvedValue(response("unauthorized"));
@@ -523,4 +526,60 @@ it("switching to no_auth aborts the previous check and ignores its result",async
  expect(current.status).toBe("no_auth");
  expect(current.checking).toBe(false);
  expect(getConnectorAuthStatus).toHaveBeenCalledTimes(1);
+});
+
+it("opens the authorization page from the login click, including a URL received by polling, only once", async () => {
+  const replace = jest.fn(); const close = jest.fn();
+  const popup = {closed:false, opener:window, location:{replace}, close};
+  jest.mocked(window.open).mockReturnValue(popup as unknown as Window);
+  await mount({mode:"mcp"});
+  const pending = deferred<ApiResponse<ConnectorAuthSession>>();
+  jest.mocked(startConnectorAuth).mockReturnValueOnce(pending.promise);
+  await act(async () => { void current.start(); });
+  expect(window.open).toHaveBeenCalledWith("about:blank", "_blank");
+  expect(popup.opener).toBeNull();
+  await act(async () => pending.resolve(response("preparing", {authBrowser:"system"})));
+  expect(close).not.toHaveBeenCalled();
+  jest.mocked(getConnectorAuthStatus).mockResolvedValue(response("pending", {authBrowser:"system", authorizationUrl:"https://login.example/authorize"}));
+  await advance();
+  expect(replace).toHaveBeenCalledWith("https://login.example/authorize");
+  await advance();
+  expect(replace).toHaveBeenCalledTimes(1); expect(window.open).toHaveBeenCalledTimes(1);
+});
+
+it("opens the final authorization URL directly in Desktop", async () => {
+  jest.mocked(isAppMode).mockReturnValue(true);
+  await mount({mode:"mcp"});
+  jest.mocked(startConnectorAuth).mockResolvedValue(response("pending", {authBrowser:"system",authorizationUrl:"https://login.example/authorize"}));
+  await act(async () => current.start());
+  expect(window.open).toHaveBeenCalledTimes(1);
+  expect(window.open).toHaveBeenCalledWith("https://login.example/authorize", "_blank", "noopener,noreferrer");
+});
+
+it("does not open restored sessions or embedded authorization in an external browser", async () => {
+  jest.mocked(getConnectorAuthStatus).mockResolvedValueOnce(response("pending", {authorizationUrl:"https://login.example/authorize"}));
+  await mount({mode:"mcp"});
+  expect(window.open).not.toHaveBeenCalled();
+  jest.mocked(getConnectorAuthStatus).mockResolvedValue(response("unauthorized", {authBrowser:"embedded"}));
+  await act(async () => current.refresh());
+  jest.mocked(startConnectorAuth).mockResolvedValue(response("pending", {authBrowser:"embedded",authorizationUrl:"https://login.example/authorize"}));
+  await act(async () => current.start());
+  expect(window.open).not.toHaveBeenCalled();
+  expect(current.browserSessionId).toBe("session-1");
+});
+
+it("closes a waiting tab after failure and ignores late completion after switching connectors", async () => {
+  const close=jest.fn(), replace=jest.fn();
+  jest.mocked(window.open).mockReturnValue({closed:false,close,location:{replace}} as unknown as Window);
+  await mount({mode:"mcp"});
+  jest.mocked(startConnectorAuth).mockRejectedValueOnce(new Error("discovery failed"));
+  await act(async () => current.start());
+  expect(close).toHaveBeenCalledTimes(1);
+  const pending=deferred<ApiResponse<ConnectorAuthSession>>();
+  jest.mocked(startConnectorAuth).mockReturnValueOnce(pending.promise);
+  await act(async () => {void current.start();});
+  jest.mocked(getConnectorAuthStatus).mockResolvedValue(response("unauthorized",{connectorId:"other"}));
+  await mount({id:"other",mode:"mcp"});
+  await act(async () => pending.resolve(response("pending",{authorizationUrl:"https://stale.example/authorize"})));
+  expect(close).toHaveBeenCalledTimes(2); expect(replace).not.toHaveBeenCalled();
 });
