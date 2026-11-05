@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import { flushSync } from "react-dom";
 import { useAppContext } from "@/app/state/AppContext";
 import { resolveCurrentWorkerSummary } from "@/features/workers/lib/currentWorker";
+import { shouldCreatePrimaryChat } from "@/features/chats/lib/primaryChatIntent";
 import { ensureAccessToken, getVoiceCapabilities } from "@/shared/data";
 import { isVoiceEnabled } from "@/shared/config/featureFlags";
 import { isDesktopAppMode } from "@/shared/utils/routing";
@@ -11,23 +12,43 @@ import type { VoiceChatState } from "../lib/voiceState";
 export function useVoiceChatRuntime(): void {
   const { state, stateRef, dispatch } = useAppContext();
   const sessionRef = useRef<VoiceSession | null>(null);
+  const capabilitiesRetry = useRef<(() => void) | null>(null);
   const bindingRef = useRef({ agentKey: "", chatId: "" });
   const worker = resolveCurrentWorkerSummary(state);
   const agentKey = worker?.type === "agent" ? worker.sourceId : "";
 
   useEffect(() => {
     if (!isVoiceEnabled()) return;
-    const controller = new AbortController();
-    void getVoiceCapabilities(controller.signal).then(capabilities => {
-      if (controller.signal.aborted) return;
-      dispatch({ type: "PATCH_VOICE_CHAT", patch: {
-        capabilities, selectedVoice: capabilities.defaultVoice,
-      } });
-    }).catch(() => {
-      // A failed capability request leaves the entry unavailable. Auth uses the shared client.
-    });
-    return () => controller.abort();
-  }, [dispatch, state.accessToken]);
+    let controller: AbortController | null = null;
+    let loaded = false;
+    const load = () => {
+      if (controller || loaded) return;
+      controller = new AbortController();
+      const request = controller;
+      void getVoiceCapabilities(request.signal).then(capabilities => {
+        if (request.signal.aborted) return;
+        loaded = true;
+        const selected = stateRef.current.voiceChat.selectedVoice;
+        dispatch({ type: "PATCH_VOICE_CHAT", patch: {
+          capabilities, selectedVoice: capabilities.voices.some(voice => voice.id === selected) ? selected : capabilities.defaultVoice,
+        } });
+      }).catch(() => {
+        // Retry only on an explicit connectivity recovery; disabled is a valid response.
+      }).finally(() => { if (controller === request) controller = null; });
+    };
+    capabilitiesRetry.current = load;
+    window.addEventListener("online", load);
+    load();
+    return () => {
+      controller?.abort();
+      capabilitiesRetry.current = null;
+      window.removeEventListener("online", load);
+    };
+  }, [dispatch, state.accessToken, stateRef]);
+
+  useEffect(() => {
+    if (state.wsStatus === "connected") capabilitiesRetry.current?.();
+  }, [state.wsStatus]);
 
   useEffect(() => {
     const patch = (value: Partial<VoiceChatState>) => dispatch({ type: "PATCH_VOICE_CHAT", patch: value });
@@ -40,8 +61,16 @@ export function useVoiceChatRuntime(): void {
       sessionRef.current?.close();
       const binding = { agentKey: currentWorker.sourceId, chatId: current.chatId || "" };
       bindingRef.current = binding;
+      const newChat = !binding.chatId;
+      const primary = shouldCreatePrimaryChat({
+        desktop: isDesktopAppMode(), pathname: window.location.pathname, search: window.location.search,
+        agentKey: binding.agentKey, isNewChatQuery: newChat,
+        primaryNavigation: current.primaryNavigation === true,
+        hasPrimary: !current.agents.some(agent => agent.key === binding.agentKey && !agent.primaryChat?.chatId),
+      });
       const session = new VoiceSession({
         capabilities, agentKey: binding.agentKey, chatId: binding.chatId,
+        newChat, primary,
         voice: detail.selectedVoice || current.voiceChat.selectedVoice || capabilities.defaultVoice, mode: detail.mode || current.voiceChat.mode,
         patch: value => { if (sessionRef.current === session) patch(value); },
         onRun: (chatId, runId) => {

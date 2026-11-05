@@ -9,10 +9,32 @@ export class VoiceAudioCapture {
   private remain = new Uint8Array(0);
   private listening = false;
   private disposed = false;
+  private preparing: Promise<void> | null = null;
 
-  constructor(private readonly send: (pcm: Uint8Array) => void) {}
+  constructor(private readonly send: (pcm: Uint8Array) => void, private readonly failed: (message: string) => void) {}
 
-  async prepare(): Promise<void> {
+  get ready(): boolean {
+    return !this.disposed && this.context?.state === "running" && this.liveTrack;
+  }
+
+  private get liveTrack(): boolean {
+    return this.stream?.getAudioTracks().some(track => track.readyState === "live") === true;
+  }
+
+  prepare(): Promise<void> {
+    if (this.disposed) return Promise.reject(new Error("Microphone closed"));
+    if (!this.preparing) this.preparing = this.prepareMedia().finally(() => { this.preparing = null; });
+    return this.preparing;
+  }
+
+  private async prepareMedia(): Promise<void> {
+    if (this.ready) return;
+    if (this.context && this.context.state !== "closed" && this.liveTrack) {
+      await this.context.resume();
+      if (!this.disposed && !this.ready) throw new Error("Microphone could not resume");
+      return;
+    }
+    this.releaseMedia();
     // Called from the user's gesture, before the permission await.
     this.context = new AudioContext({ sampleRate: 16000 });
     const resumed = this.context.resume().then(() => null, (error: unknown) => error);
@@ -61,10 +83,16 @@ export class VoiceAudioCapture {
     };
     this.source.connect(this.processor);
     this.processor.connect(context.destination);
+    const unavailable = () => {
+      if (this.listening && !this.ready) this.failed("Microphone unavailable. Reconnect to speak again.");
+    };
+    context.onstatechange = unavailable;
+    stream.getAudioTracks().forEach(track => { track.onended = unavailable; });
+    if (!this.ready) throw new Error("Microphone could not start");
   }
 
   start(): void {
-    if (!this.context || this.disposed) return;
+    if (!this.ready || !this.context) throw new Error("Microphone is not ready");
     this.encoder = new Pcm16Encoder(this.context.sampleRate);
     this.remain = new Uint8Array(0);
     this.listening = true;
@@ -78,7 +106,13 @@ export class VoiceAudioCapture {
 
   close(): void {
     this.disposed = true;
+    this.releaseMedia();
+  }
+
+  private releaseMedia(): void {
     this.stop();
+    if (this.context) this.context.onstatechange = null;
+    this.stream?.getAudioTracks().forEach(track => { track.onended = null; });
     if (this.processor) this.processor.onaudioprocess = null;
     this.processor?.disconnect();
     this.source?.disconnect();
