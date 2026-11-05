@@ -1,5 +1,5 @@
 import { isDesktopAppMode } from "@/shared/utils/routing";
-import { shouldCreatePrimaryChat } from "../lib/primaryChatIntent";
+import { shouldCreatePrimaryChat } from "@/features/chats/lib/primaryChatIntent";
 import { referenceIds, queryReferences } from "@/shared/contracts/references";
 import { loadKBaseOptions, unavailableKbaseIds } from "@/features/kbases/lib/kbaseOptions";
 import { MAX_KBASE_REFERENCES } from "@/features/kbases/lib/kbaseSelection";

@@ -2,7 +2,7 @@
 import { VoiceSession } from "./voiceSession";
 import type { VoiceCapabilities } from "@/shared/data/api/dto/voice";
 
-const capture = { prepare: jest.fn(async () => undefined), start: jest.fn(), stop: jest.fn(), close: jest.fn() };
+const capture = { ready: true, prepare: jest.fn(async () => undefined), start: jest.fn(), stop: jest.fn(), close: jest.fn() };
 const player = { playing: false, prepare: jest.fn(async () => undefined), start: jest.fn(), append: jest.fn(), finish: jest.fn(), stop: jest.fn(), close: jest.fn(), setMuted: jest.fn() };
 let drained: () => void;
 let playbackFailed: (message: string) => void;
@@ -61,6 +61,30 @@ it("sends v1 media controls and uses the bearer subprotocol without URL credenti
   frame({ type: "run", turn: 1, state: "start", chatId: "chat", runId: "real-run" });
   expect(onRun).toHaveBeenCalledWith("chat", "real-run");
   expect(sent().filter(value => value.type).map(value => value.type)).toEqual(["hello", "listen", "listen"]);
+  session.close();
+});
+it.each([false, true])("sends explicit creation in hello (primary=%s) without changing media controls", async primary => {
+  const session = new VoiceSession({ capabilities, agentKey: "agent", chatId: "", newChat: true, primary, voice: "voice", mode: "auto", patch, onRun });
+  await session.prepare(); session.connect("test-token"); Socket.instance.onopen?.();
+  expect(sent()[0]).toMatchObject({ type: "hello", newChat: true });
+  expect(sent()[0].chatId).toBeUndefined();
+  expect(sent()[0].primary).toBe(primary ? true : undefined);
+  frame({ type: "hello", version: 1, agentKey: "agent", chatId: "fresh-chat", audio: { output: { codec: "pcm_s16le", channels: 1, sampleRate: 24000 } } });
+  expect(sent()[1]).toEqual({ type: "listen", state: "start", mode: "auto" });
+  frame({ type: "run", turn: 1, state: "start", chatId: "fresh-chat", runId: "fresh-run" });
+  expect(onRun).toHaveBeenCalledWith("fresh-chat", "fresh-run");
+  session.close();
+});
+it("does not retry a rejected creation handshake without its new-Chat intent", async () => {
+  const session = new VoiceSession({ capabilities, agentKey: "agent", chatId: "", newChat: true, voice: "voice", mode: "auto", patch, onRun });
+  await session.prepare(); session.connect("test-token"); Socket.instance.onopen?.();
+  frame({ type: "error", code: "invalid_request", msg: "unsupported hello" });
+  jest.advanceTimersByTime(20000);
+  expect(sent()).toHaveLength(1);
+  expect(sent()[0].newChat).toBe(true);
+  expect(capture.start).not.toHaveBeenCalled();
+  expect(onRun).not.toHaveBeenCalled();
+  expect(Socket.instance.close).toHaveBeenCalledTimes(1);
   session.close();
 });
 
@@ -183,8 +207,6 @@ it("isolates old errors and recognition events from playback and waits for its e
   }
   expect(player.stop).not.toHaveBeenCalled(); expect(sent()).toHaveLength(count);
   expect(patch).toHaveBeenLastCalledWith({ status: "speaking", partialAssistantText: "answer" });
-  frame({ type: "error", turn: 1, code: "turn_busy", msg: "busy" });
-  expect(player.stop).not.toHaveBeenCalled();
   frame({ type: "tts", turn: 1, state: "stop", reason: "done" });
   session.listen(); expect(sent()).toHaveLength(count);
   player.playing = false; drained();
@@ -224,5 +246,40 @@ it("lets already received audio finish on a TTS error without starting another l
   expect(player.stop).not.toHaveBeenCalled();
   session.listen(); expect(sent()).toHaveLength(2);
   player.playing = false; drained(); expect(sent()).toHaveLength(2);
+  session.close();
+});
+
+it("does not count an awaiting hint drain as final playback after run.end", async () => {
+  const session = await open();
+  frame({ type: "stt", turn: 1, final: true, text: "question" });
+  frame({ type: "awaiting", turn: 1, awaitingId: "ask" });
+  frame({ type: "tts", turn: 1, state: "start", text: "confirm in UI" });
+  frame({ type: "tts", turn: 1, state: "stop", reason: "done" });
+  frame({ type: "run", turn: 1, state: "end", finishReason: "complete" });
+  drained();
+  expect(sent()).toHaveLength(2);
+  frame({ type: "tts", turn: 1, state: "start", text: "final answer" });
+  Socket.instance.onmessage?.({ data: new ArrayBuffer(960) });
+  frame({ type: "tts", turn: 1, state: "stop", reason: "done" });
+  drained();
+  expect(player.append).toHaveBeenCalledTimes(1);
+  expect(sent()).toHaveLength(3);
+  session.close();
+});
+
+it("reports a rejected listen even when the server reports its preceding turn", async () => {
+  const session = await open();
+  frame({ type: "error", turn: 0, code: "turn_busy", msg: "turn not released" });
+  expect(capture.close).toHaveBeenCalledTimes(1);
+  expect(patch).toHaveBeenLastCalledWith({ status: "error", error: "turn not released", sessionActive: false });
+  expect(sent().some(value => value.type === "abort")).toBe(false);
+});
+
+it("uses the abort barrier's turn to resume instead of carrying a divergent counter", async () => {
+  const session = await open();
+  session.abort();
+  frame({ type: "abort", turn: 0 });
+  frame({ type: "stt", turn: 1, final: false, text: "resynchronized" });
+  expect(patch).toHaveBeenLastCalledWith({ partialUserText: "resynchronized", partialAssistantText: "" });
   session.close();
 });
