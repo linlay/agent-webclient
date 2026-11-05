@@ -60,14 +60,11 @@
 
 .attachment-card-file-icon {
     flex: 0 0 auto;
-    width: 32px;
-    height: 32px;
+    width: 28px;
+    height: 28px;
     display: grid;
     place-items: center;
-    border-radius: 12px;
-    color: #fff;
-    background: linear-gradient(180deg, #398af7, #1c73ea);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28);
+    border-radius: 4px;
 }
 
 .attachment-card-file-icon.is-thumbnail {

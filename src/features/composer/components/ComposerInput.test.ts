@@ -40,8 +40,6 @@ function renderComposerInput(props: Partial<React.ComponentProps<typeof Composer
       onInputChange: jest.fn(),
       onKeyDown: jest.fn(),
       onPaste: jest.fn(),
-      onDragOver: jest.fn(),
-      onDrop: jest.fn(),
       onCompositionStart: jest.fn(),
       onCompositionEnd: jest.fn(),
       textareaRef: React.createRef(),

@@ -1,3 +1,4 @@
+import { ConversationFileDropProvider } from "@/shared/ui/ConversationFileDrop";
 import { bindCssModuleClasses } from "@/shared/utils/cssModuleClasses";
 import appPresentation from "@/app/layout/ShellPresentation.module.css";
 import { useConversationSurface } from "@/shared/ui/ConversationSurfaceContext";
@@ -235,7 +236,7 @@ export const CopilotShell: React.FC = () => {
   const [params] = useSearchParams();
   return <ConversationSurfaceProvider expectedChatId={params.get("chatId") || undefined}>
     <TimelineTextSearchProvider>
-      <CopilotShellContent />
+      <ConversationFileDropProvider><CopilotShellContent /></ConversationFileDropProvider>
     </TimelineTextSearchProvider>
   </ConversationSurfaceProvider>;
 };

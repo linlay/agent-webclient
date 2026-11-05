@@ -98,6 +98,7 @@ import { resolveEditingModeSync, shouldClearPlanningMode } from "@/features/comp
 import { resolveSkillDisplayName } from "@/features/skills/lib/skillDisplayName";
 import { selectedTextFragmentFromAttachment } from "@/features/selection/lib/selectedTextReference";
 
+import { FileDropOverlay, useFileDropTarget, useConversationFileDropReceiver } from "@/shared/ui/ConversationFileDrop";
 import { useAgentAvailability } from "@/features/composer/hooks/useAgentAvailability";
 const presentationClasses = bindCssModuleClasses({ ...composerPresentation });
 
@@ -204,6 +205,8 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
   const presentation = useConversationSurface();
   const conversationBlocking = presentation?.blocked ?? areConversationInteractionsBlocked(state);
   const chatTransitionBlocking = agentExecutionBlocked || conversationBlocking;
+  const inputDisabled = conversationBlocking || (agentExecutionBlocked && agentAvailability.status !== "checking");
+  const fileDropAllowed = !inputDisabled && !isFrontendActive && !isVoiceMode && interactionConfig.attachment.localFiles;
   useDesktopAwaitingDigit({ state, stateRef, blocked: chatTransitionBlocking || isAnyOverlayOpen });
   const {
     addContextReference,
@@ -215,7 +218,6 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     captureDesktopScreenshot,
     clearComposerAttachments,
     fileInputRef,
-    handleFileDragOver,
     handleFileDrop,
     handleFileSelection,
     handleFilePaste,
@@ -241,6 +243,10 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     },
     state,
   });
+  const fileDropReceiver = { enabled: fileDropAllowed, resetKey: `${state.chatId}:${state.workerSelectionKey}`, onDrop: handleFileDrop };
+  const stageFileDragActive = useConversationFileDropReceiver(fileDropReceiver);
+  const fileDrop = useFileDropTarget(fileDropReceiver);
+  const fileDropHighlight = fileDropAllowed && (fileDrop.active || stageFileDragActive);
   const nativeShare = useDesktopNativeShare({
     enabled: enableNewChatContext,
     chatId: state.chatId,
@@ -1161,7 +1167,10 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
               <div
                 ref={composerPillRef}
                 className={`${COMPOSER_PILL_CLASS} ${isFrontendActive ? COMPOSER_PILL_FRONTEND_CLASS : ""} ${isVoiceMode ? COMPOSER_PILL_VOICE_CLASS : ""}`}
+                data-file-drag-active={fileDropHighlight ? "true" : undefined}
+                {...fileDrop.handlers}
               >
+                {fileDropHighlight && <FileDropOverlay title={t("composer.attachments.dropTitle")} hint={t("composer.attachments.dropHint")} />}
                 <FailedSubmissions agentKey={currentAgentKey} chatId={state.chatId} drafts={state.failedSubmissions || []}
                   restore={requestId => dispatch({ type: "RESTORE_FAILED_SUBMISSION", requestId })}
                   discard={requestId => dispatch({ type: "DISCARD_FAILED_SUBMISSION", requestId })} />
@@ -1190,7 +1199,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
                 <ComposerInput
                   isVoiceMode={isVoiceMode}
                   isFrontendActive={isFrontendActive}
-                  disabled={conversationBlocking || (agentExecutionBlocked && agentAvailability.status !== "checking")}
+                  disabled={inputDisabled}
                   isTimelineEmpty={isTimelineEmpty}
                   inputValue={inputValue}
                   draftScopeKey={state.chatId}
@@ -1235,8 +1244,6 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
                   }}
                   onKeyDown={handleKeyDown}
                   onPaste={handleFilePaste}
-                  onDragOver={handleFileDragOver}
-                  onDrop={handleFileDrop}
                   onCompositionStart={() => {
                     isComposingRef.current = true;
                   }}

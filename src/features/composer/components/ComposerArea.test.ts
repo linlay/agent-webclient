@@ -120,6 +120,7 @@ const mockHostRequiredSkills = {
   agentKey: "",
   skills: [] as string[],
 };
+const mockHandleFileDrop = jest.fn();
 const mockComposerAttachmentsState = {
   sendAttachmentMeta: [] as unknown[],
   sendReferences: [] as unknown[],
@@ -190,7 +191,7 @@ jest.mock("@/features/composer/hooks/useComposerAttachments", () => ({
     clearComposerAttachments: jest.fn(),
     fileInputRef: React.createRef(),
     handleFileDragOver: jest.fn(),
-    handleFileDrop: jest.fn(),
+    handleFileDrop: mockHandleFileDrop,
     handleFileSelection: jest.fn(),
     handleFilePaste: jest.fn(),
     handleRemoveAttachment: jest.fn(),
@@ -329,6 +330,7 @@ describe("ComposerArea", () => {
 
   beforeEach(() => {
     mockAgentAvailability.status = "available";
+    mockHandleFileDrop.mockClear();
     globalWithStorage.localStorage = {
       getItem: jest.fn(() => null),
       setItem: jest.fn(),
@@ -362,6 +364,50 @@ describe("ComposerArea", () => {
       return;
     }
     delete globalWithStorage.localStorage;
+  });
+
+  function getDropZoneProps() {
+    renderToStaticMarkup(React.createElement(ComposerArea));
+    const stack = mockComposerPopoverProps[0].children;
+    return React.Children.toArray(stack.props.children)
+      .find((child: any) => child.props?.onDrop) as React.ReactElement<React.HTMLAttributes<HTMLDivElement>>;
+  }
+
+  it("handles file drops only on the composer frame", () => {
+    mockResolveCurrentWorkerSummary.mockReturnValue({
+      type: "agent", sourceId: "agent", relatedChats: [],
+      raw: { mode: "REACT", interactionConfig: interactionDefaults("REACT") },
+    });
+    const zone = getDropZoneProps();
+    const event = { dataTransfer: { types: ["Files"], files: [{ name: "sample.txt" }] }, preventDefault: jest.fn(), stopPropagation: jest.fn() };
+    zone.props.onDrop!(event as any);
+    expect(event.preventDefault).toHaveBeenCalledTimes(1);
+    expect(mockHandleFileDrop).toHaveBeenCalledTimes(1);
+    expect(mockHandleFileDrop).toHaveBeenCalledWith(event);
+    expect(mockComposerInputProps[0].onDrop).toBeUndefined();
+    expect(mockComposerInputProps[0].onDragOver).toBeUndefined();
+    expect(zone.props.onDragEnter).toBeDefined();
+    expect(zone.props.onDragLeave).toBeDefined();
+  });
+
+  it("prevents file navigation without uploading while input is disabled", () => {
+    mockAgentAvailability.status = "unavailable";
+    const zone = getDropZoneProps();
+    const event = { dataTransfer: { types: ["Files"], files: [{ name: "sample.txt" }] }, preventDefault: jest.fn(), stopPropagation: jest.fn() };
+    zone.props.onDrop!(event as any);
+    expect(event.preventDefault).toHaveBeenCalledTimes(1);
+    expect(mockHandleFileDrop).not.toHaveBeenCalled();
+    zone.props.onDragOver!(event as any);
+    expect((event.dataTransfer as any).dropEffect).toBe("none");
+  });
+
+  it("does not intercept plain text drops", () => {
+    const zone = getDropZoneProps();
+    const event = { dataTransfer: { types: ["text/plain"], files: [] }, preventDefault: jest.fn() };
+    zone.props.onDragEnter!(event as any);
+    zone.props.onDrop!(event as any);
+    expect(event.preventDefault).not.toHaveBeenCalled();
+    expect(mockHandleFileDrop).not.toHaveBeenCalled();
   });
 
   it("keeps disabled inputs mounted and shows the unavailable link in the action row", () => {

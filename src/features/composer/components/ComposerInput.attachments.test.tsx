@@ -45,8 +45,8 @@ describe("ComposerInput mixed image and pasted text", () => {
     canonical = value;
     return <ComposerInput isVoiceMode={false} isFrontendActive={false} isTimelineEmpty inputValue={value}
       currentWorkerName="" voiceStatus="idle" voiceError="" partialUserText="" partialAssistantText=""
-      onInputChange={setValue} onKeyDown={() => {}} onPaste={() => {}} onDragOver={() => {}}
-      onDrop={() => {}} onCompositionStart={() => {}} onCompositionEnd={() => {}} textareaRef={textareaRef}
+      onInputChange={setValue} onKeyDown={() => {}} onPaste={() => {}}
+      onCompositionStart={() => {}} onCompositionEnd={() => {}} textareaRef={textareaRef}
       renderAttachments={(pastedTexts) => <ComposerAttachments attachments={images}
         useUnifiedComposerAttachmentRow={false} onRemoveAttachment={() => setImages([])}>
         {pastedTexts}</ComposerAttachments>} />;

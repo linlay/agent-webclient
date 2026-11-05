@@ -1283,6 +1283,8 @@ export const zhCNMessages = {
   "composer.actions.send": "发送",
   "composer.actions.stopVoiceInput": "停止语音输入",
   "composer.actions.upload": "上传文件",
+  "composer.attachments.dropTitle": "松开鼠标上传文件",
+  "composer.attachments.dropHint": "支持一次拖入多个文件",
   "composer.actions.uploadDisabled.frontendActive":
     "前端工具处理中，暂时不能上传文件。",
   "composer.actions.uploadDisabled.streaming": "当前运行中，暂不支持追加文件。",

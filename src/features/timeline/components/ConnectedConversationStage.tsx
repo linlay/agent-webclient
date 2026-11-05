@@ -1,3 +1,4 @@
+import { useConversationFileDropTarget } from "@/shared/ui/ConversationFileDrop";
 import { AgentIcon } from "@/shared/icons/agent";
 import { isDesktopAppMode } from "@/shared/utils/routing";
 import { useRunActivityTimeline } from "../hooks/useRunActivityTimeline";
@@ -512,6 +513,7 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
   onResendInNewChat,
 }) => {
   const { t } = useI18n();
+  const fileDrop = useConversationFileDropTarget();
   const message = useAppMessage();
   const state = useAppState();
   useViewPreviewPublisher(isDesktopAppMode() || surfaceMode === "main" ? state.chatId : "", state.timelineNodes);
@@ -1946,7 +1948,8 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
 
   return (
     <TimelineInteractionProvider value={interaction}>
-    <div className={CONVERSATION_STAGE_CLASS_NAME} ref={containerRef}>
+    <div className={CONVERSATION_STAGE_CLASS_NAME} ref={containerRef}
+      {...fileDrop.handlers}>
       <div
         className="tw:absolute tw:inset-0 tw:flex tw:flex-col"
         data-conversation-content="timeline"

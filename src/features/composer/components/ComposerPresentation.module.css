@@ -528,6 +528,10 @@ html[data-theme="dark"] .composer-pill {
     box-shadow: none;
 }
 
+.composer-pill[data-file-drag-active="true"] {
+    border-color: transparent;
+}
+
 html[data-theme="dark"] .composer-control-input {
     background: color-mix(in srgb,
             var(--bg-elev-1) 96%,

@@ -1,3 +1,4 @@
+import { ConversationFileDropProvider } from "@/shared/ui/ConversationFileDrop";
 import { referencesForNewChat } from "@/features/timeline/lib/queryResend";
 import { bindCssModuleClasses } from "@/shared/utils/cssModuleClasses";
 import appPresentation from "@/app/layout/ShellPresentation.module.css";
@@ -350,7 +351,7 @@ export const AgentChatShell: React.FC = () => {
   const [params] = useSearchParams();
   return <ConversationSurfaceProvider expectedChatId={params.get("chatId") || undefined}>
     <TimelineTextSearchProvider>
-      <AgentChatShellContent />
+      <ConversationFileDropProvider><AgentChatShellContent /></ConversationFileDropProvider>
     </TimelineTextSearchProvider>
   </ConversationSurfaceProvider>;
 };

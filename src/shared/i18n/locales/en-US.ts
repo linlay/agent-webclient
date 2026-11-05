@@ -1212,6 +1212,8 @@ export const enUSMessages = {
   "composer.actions.send": "Send",
   "composer.actions.stopVoiceInput": "Stop voice input",
   "composer.actions.upload": "Upload files",
+  "composer.attachments.dropTitle": "Drop files to upload",
+  "composer.attachments.dropHint": "You can drop multiple files at once",
   "composer.actions.uploadDisabled.frontendActive": "A frontend tool is active. File uploads are temporarily unavailable.",
   "composer.actions.uploadDisabled.streaming": "A run is active. Appending files is not supported right now.",
   "composer.actions.uploadDisabled.voiceMode": "Switch back to text input before uploading files.",

@@ -1,3 +1,4 @@
+import { ConversationFileDropProvider } from "@/shared/ui/ConversationFileDrop";
 import { bindCssModuleClasses } from "@/shared/utils/cssModuleClasses";
 import appPresentation from "@/app/layout/ShellPresentation.module.css";
 import { ConversationSurfaceProvider } from "@/features/conversation/components/ConversationSurfaceProvider";
@@ -41,7 +42,7 @@ const APP_SHELL_COLUMN_CLASS_BY_STATE = {
 export const AppShell: React.FC = () => (
   <ConversationSurfaceProvider>
     <TimelineTextSearchProvider>
-      <AppShellContent />
+      <ConversationFileDropProvider><AppShellContent /></ConversationFileDropProvider>
     </TimelineTextSearchProvider>
   </ConversationSurfaceProvider>
 );
