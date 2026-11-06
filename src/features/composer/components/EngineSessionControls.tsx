@@ -42,6 +42,7 @@ export function EngineSessionNotice({ session, engineId, running, themeMode }: E
     session_configuration_stale: t("acp.configStale"),
     session_restore_failed: t("acp.restoreFailed"),
     engine_busy: t("acp.busy"),
+    dependency_missing: t("acp.dependencyMissing"),
   };
   const locked = session.busy || running || session.auth?.state === "authenticating";
   const operationId = session.auth?.authOperationId;

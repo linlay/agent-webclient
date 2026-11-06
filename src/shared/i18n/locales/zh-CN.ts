@@ -118,6 +118,7 @@ export const zhCNMessages = {
   "acp.configStale": "配置已变化，请重新准备并确认后发送。",
   "acp.restoreFailed": "无法恢复原会话，请检查引擎状态或新建会话。",
   "acp.busy": "引擎正在处理其他操作，请稍后重试。",
+  "acp.dependencyMissing": "请先在运行引擎的电脑上安装并配置对应 CLI，然后重试。插件不包含 CLI。",
   "acp.unavailable": "引擎暂不可用，请检查插件和连接后重试。",
   "acp.connecting": "连接中…",
   "acp.loadingConfig": "加载配置…",

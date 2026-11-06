@@ -10,6 +10,7 @@ import { ApiError } from '@/shared/data/api/http';
 jest.mock('@/shared/data/api/requests/agentEngine', () => ({ previewEngineConfig: jest.fn(), prepareEngineSession: jest.fn(), getEngineSessionConfig: jest.fn(), configureEngineSession: jest.fn(), getEngineAuthStatus: jest.fn(), startEngineAuth: jest.fn(), cancelEngineAuth: jest.fn() }));
 const prepared = (chatId: string, value = 'A', revision = 1) => ({ chatId, engineId: 'engine', preparationId: 'p-' + chatId, configRevision: revision, configOptions: [{ id: 'model', type: 'select' as const, name: 'Model', currentValue: value, choices: [{ value: 'A', name: 'A' }, { value: 'B', name: 'B' }] }] });
 beforeEach(() => {
+  (api.getEngineSessionConfig as jest.Mock).mockReset().mockRejectedValue(new ApiError('missing', {data:{errorCode:'session_configuration_stale'}}));
   (api.previewEngineConfig as jest.Mock).mockReset().mockResolvedValue({data: {engineId:'engine',configOptions:prepared('').configOptions}});
 });
 test('configuration is confirmed before sending and late Chat responses cannot overwrite the current Chat', async () => {
@@ -591,5 +592,54 @@ test('busy discovery leaves cached controls and sending available, then stops re
     await act(async()=>{await jest.advanceTimersByTimeAsync(6000);});
     expect(api.previewEngineConfig).toHaveBeenCalledTimes(requests);
     expect(api.prepareEngineSession).not.toHaveBeenCalled();
+  } finally {act(()=>root.unmount());jest.useRealTimers();}
+});
+
+test('switching resident Chats reads their snapshots without preparing again, but send still verifies', async () => {
+  (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
+  jest.clearAllMocks();
+  const root = createRoot(document.createElement('div'));
+  let current!: ReturnType<typeof useEngineSession>;
+  function Probe({chatId}: {chatId: string}) {
+    current = useEngineSession({active:true, enabled:true, engineId:'engine', agentKey:'project', chatId, running:false});
+    return null;
+  }
+  (api.getEngineSessionConfig as jest.Mock).mockImplementation(chatId => Promise.resolve({data: prepared(chatId, chatId === 'one' ? 'A' : 'B')}));
+  (api.prepareEngineSession as jest.Mock).mockImplementation(({chatId}) => Promise.resolve({data: prepared(chatId)}));
+  try {
+    for (const chatId of ['one','two','one']) {
+      await act(async () => root.render(<Probe chatId={chatId}/>));
+      expect(current.prepared?.chatId).toBe(chatId);
+      expect(current.prepared?.configOptions[0].currentValue).toBe(chatId === 'one' ? 'A' : 'B');
+      expect(current.busy).toBe(false);
+    }
+    expect(api.prepareEngineSession).not.toHaveBeenCalled();
+    await act(async () => {expect(await current.verifyBeforeSend()).toBe(true);});
+    expect(api.prepareEngineSession).toHaveBeenCalledTimes(1);
+  } finally {act(() => root.unmount());}
+});
+
+test('uncached discovery stops loading after bounded capacity retries and supports explicit retry', async () => {
+  (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
+  jest.clearAllMocks();
+  jest.useFakeTimers();
+  const root = createRoot(document.createElement('div'));
+  let current!: ReturnType<typeof useEngineSession>;
+  function Probe() {current=useEngineSession({active:true,enabled:true,engineId:'engine',agentKey:'project',chatId:'',running:false});return null;}
+  (api.previewEngineConfig as jest.Mock).mockImplementation((_key,refresh)=>refresh
+    ? Promise.reject(new ApiError('engine_busy',{data:{errorCode:'engine_busy'}}))
+    : Promise.resolve({data:{engineId:'engine',configOptions:[]}}));
+  (api.prepareEngineSession as jest.Mock).mockImplementation(({chatId})=>Promise.resolve({data:prepared(chatId)}));
+  try {
+    await act(async()=>root.render(<Probe/>));
+    expect(current.previewLoading).toBe(true);
+    await act(async()=>{await jest.advanceTimersByTimeAsync(30000);});
+    expect(current.previewLoading).toBe(false);
+    expect(current.error).toBe('engine_busy');
+    expect((api.previewEngineConfig as jest.Mock).mock.calls.filter(([,refresh])=>refresh)).toHaveLength(3);
+    expect(jest.getTimerCount()).toBe(0);
+    await act(async()=>{await current.prepare();});
+    expect(current.error).toBe('');
+    expect(current.canSend).toBe(true);
   } finally {act(()=>root.unmount());jest.useRealTimers();}
 });

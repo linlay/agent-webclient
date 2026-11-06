@@ -127,9 +127,26 @@ export function useEngineSession(input: Input) {
     if (chatId && drafts.current.get(draftScope) === chatId) drafts.current.delete(draftScope);
   }, [chatId, draftScope]);
   useEffect(() => {
-    // The selected Chat activates after navigation is ready, without input focus.
-    if (chatId && active && enabled && !running && !stateRef.current.prepared && !stateRef.current.error)
-      void prepare();
+    // Navigation reads an existing session before asking the host to acquire a
+    // preparation slot. Explicit retry and sending still perform full prepare.
+    if (!chatId || !active || !enabled || running || stateRef.current.prepared || stateRef.current.error) return;
+    const target = current.current;
+    target.busy = true;
+    update(target, {busy: true});
+    void (async () => {
+      let missing = false;
+      try {
+        const {data} = await api.getEngineSessionConfig(chatId, target.controller.signal);
+        update(target, {prepared: data});
+      } catch (error) {
+        missing = errorCode(error) === 'session_configuration_stale';
+        if (!missing) update(target, {error: errorCode(error)});
+      } finally {
+        target.busy = false;
+        update(target, {busy: false});
+      }
+      if (missing && current.current === target && !target.controller.signal.aborted && !runningRef.current) await prepare();
+    })();
   }, [scope, enabled, active]);
   useEffect(() => {
     if (!enabled || chatId || running || !engineId || !agentKey) return;
@@ -150,6 +167,7 @@ export function useEngineSession(input: Input) {
       update(target, {preview: true, error: '', prepared: {chatId: target.chatId, engineId: data.engineId,
         preparationId: '', configRevision: 0, configOptions: options}});
     };
+    let retries = 0;
     const refresh = async () => {
       let retryScheduled = false;
       try { apply((await api.previewEngineConfig(agentKey, true, target.controller.signal)).data); }
@@ -158,9 +176,13 @@ export function useEngineSession(input: Input) {
           || (stateRef.current.prepared && !stateRef.current.preview)) return;
         const code = errorCode(error);
         if (code === 'engine_busy') {
-          // Discovery yields to real work; it never locks or errors the composer.
-          retryScheduled = true;
-          timer = setTimeout(refresh, 5000);
+          // Keep cached controls usable; an uncached preview must not spin forever.
+          if (retries++ < 2) {
+            retryScheduled = true;
+            timer = setTimeout(refresh, 5000);
+          } else if (!stateRef.current.prepared) {
+            update(target, {error: code});
+          }
         } else if (code === 'auth_required') {
           update(target, {error: code});
           try { const {data} = await api.getEngineAuthStatus(engineId, target.controller.signal); if (!disposed) update(target, {auth: data}); } catch { /* Sending or explicit retry reports the failure. */ }

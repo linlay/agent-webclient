@@ -242,7 +242,7 @@ it("keeps mode and model visible after sending and reopening a running Chat with
   await act(async () => root.render(<div />));
   await act(async () => root.render(<Composer chatId="chat" running />));
   expectSettings();
-  expect(api.prepareEngineSession).toHaveBeenCalledTimes(1);
+  expect(api.prepareEngineSession).not.toHaveBeenCalled();
   expect(api.configureEngineSession).not.toHaveBeenCalled();
 });
 
@@ -254,4 +254,13 @@ it("retains confirmed mode and model while a pending prepare overlaps Run hydrat
   expect(container.textContent).toContain("6.1 Sol · Medium");
   expect(Array.from(container.querySelectorAll("button")).every(button => button.disabled)).toBe(true);
   expect(container.querySelector('[role="status"]')).toBeNull();
+});
+
+it("explains missing local CLI and offers the existing retry action", async () => {
+  session.prepared = null;
+  session.error = "dependency_missing";
+  await act(async () => root.render(<EngineSessionNotice session={session} engineId="any/plugin" running={false} themeMode="light" />));
+  expect(container.querySelector('[role="alert"]')?.getAttribute("aria-label")).toBe("acp.dependencyMissing");
+  await clickText("button", "acp.retry");
+  expect(session.prepare).toHaveBeenCalledTimes(1);
 });

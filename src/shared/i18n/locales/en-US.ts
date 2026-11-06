@@ -118,6 +118,7 @@ export const enUSMessages = {
   "acp.configStale": "Settings changed. Prepare again and review them before sending.",
   "acp.restoreFailed": "The session could not be restored. Check the engine or start a new chat.",
   "acp.busy": "The engine is busy. Try again shortly.",
+  "acp.dependencyMissing": "Install and configure the corresponding CLI on the engine host, then retry. The plugin does not include the CLI.",
   "acp.unavailable": "The engine is unavailable. Check the plugin and connection, then retry.",
   "acp.connecting": "Connecting…",
   "acp.loadingConfig": "Loading settings…",
