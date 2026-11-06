@@ -1,6 +1,4 @@
 import type { QueryAccessLevel } from "@/shared/data";
-import { getBackendMode } from "@/shared/config/backendMode";
-import { getGatewaySession } from "@/shared/data/auth/gatewaySession";
 
 export interface ComposerAccessState {
   accessLevelByChatId: Record<string, QueryAccessLevel>;
@@ -16,25 +14,7 @@ export interface ComposerAccessTarget {
 
 const STORAGE_KEY = "agent-webclient.composer-access.v3";
 
-// An opaque credential identifies standalone sessions without persisting the credential.
-function credentialFingerprint(value: string): string {
-  let a = 2166136261;
-  let b = 5381;
-  for (let i = 0; i < value.length; i += 1) {
-    a = Math.imul(a ^ value.charCodeAt(i), 16777619);
-    b = Math.imul(b, 33) ^ value.charCodeAt(i);
-  }
-  return `${a >>> 0}:${b >>> 0}`;
-}
-
-export function resolveComposerAccessScope(accessToken: string): string {
-  const mode = getBackendMode();
-  const context = typeof window === "undefined" ? "" : window.__AGENT_APP_AUTH_CONTEXT || "";
-  const identity = mode === "gateway"
-    ? `user:${getGatewaySession()?.user?.subject || "anonymous"}`
-    : context ? `desktop:${context}` : `credential:${credentialFingerprint(accessToken || "")}`;
-  return JSON.stringify([mode, identity]);
-}
+export { resolveStorageIdentity as resolveComposerAccessScope } from "@/shared/data/auth/storageIdentity";
 
 export function composerAccessKey(target: ComposerAccessTarget): string {
   return JSON.stringify([target.scope, target.chatId || target.agentKey]);

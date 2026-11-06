@@ -1,3 +1,5 @@
+import type { SendUserMessageRequest, SendUserMessageReceipt } from "./dto/mailbox";
+import { sendUserMessageHttp } from "./requests/mailbox";
 import { getKBaseOptionsHttp } from "./requests/kbases";
 import type { EventDetailLevel } from "@/shared/data/eventDetailLevel";
 import {
@@ -679,4 +681,8 @@ export function getKBaseOptions(agentKey: string, signal?: AbortSignal) {
 
 export function invokeView(params: import("@/shared/contracts/view").ViewActionRequest): Promise<ApiResponse<import("@/shared/contracts/view").ViewActionResult>> {
   return routeEndpoint(dataEndpoints.viewInvoke, params, () => invokeViewHttp(params));
+}
+
+export function sendUserMessage(input: SendUserMessageRequest, detail?: EventDetailLevel): Promise<ApiResponse<SendUserMessageReceipt>> {
+  return routeEndpoint(dataEndpoints.send, input, () => sendUserMessageHttp(input, detail), undefined, detail);
 }

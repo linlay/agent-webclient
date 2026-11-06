@@ -19,6 +19,12 @@ jest.mock("@/features/kbases/lib/kbaseOptions", () => ({
  ...jest.requireActual("@/features/kbases/lib/kbaseOptions"), loadKBaseOptions: (...args: unknown[]) => mockLoadKBaseOptions(...args),
 }));
 const startQuery = jest.fn();
+// Nonempty params intentionally keep these streaming/legacy query regressions on /api/query.
+function legacyQuery(actions: ReturnType<typeof useMessageActions>, ...args: Parameters<ReturnType<typeof useMessageActions>["sendMessage"]>) {
+  const [message, references = [], attachments = [], params = {}, ...rest] = args;
+  return actions.sendMessage(message, references, attachments, { ...params, compatibilityQuery: true }, ...rest);
+}
+
 
 function createDetachTestState(overrides: Record<string, unknown> = {}) {
   return {
@@ -159,7 +165,7 @@ describe("useMessageActions temporary pin", () => {
     let actions: ReturnType<typeof useMessageActions>;
     const Harness = () => { actions = useMessageActions({ onAgentEvent }); return null; };
     renderToStaticMarkup(React.createElement(Harness));
-    const sending = actions!.sendMessage('hello');
+    const sending = legacyQuery(actions!, 'hello');
     await Promise.resolve();
     dispatch({ type: 'ENQUEUE_PENDING_STEER', chatId: 'chat_1', steer: {
       steerId: 'steer-1', runId: 'run_1', requestId: 'req-steer', message: 'steering', status: 'sending', createdAt: 1,
@@ -188,7 +194,7 @@ describe("useMessageActions temporary pin", () => {
     const Harness = () => { actions = useMessageActions({ onAgentEvent: jest.fn() }); return null; };
     renderToStaticMarkup(React.createElement(Harness));
     const references = [{ type: "selection", text: "selected passage" }];
-    await actions!.sendMessage("", references);
+    await legacyQuery(actions!, "", references);
     if (hasHistory) expect(startQuery).toHaveBeenCalledWith(expect.objectContaining({ message: "", references }));
     else expect(startQuery).not.toHaveBeenCalled();
   });
@@ -233,7 +239,7 @@ describe("useMessageActions temporary pin", () => {
     };
     renderToStaticMarkup(React.createElement(Harness));
 
-    await actions?.sendMessage("hello", [...([]), ...([" pdf ", "PDF", "mock-skill"]).map(id => ({type:"skill",id}))], [], {}, undefined, undefined, "", "", false, "agent-coder"
+    await legacyQuery(actions!, "hello", [...([]), ...([" pdf ", "PDF", "mock-skill"]).map(id => ({type:"skill",id}))], [], {}, undefined, undefined, "", "", false, "agent-coder"
     );
 
     expect(dispatch).toHaveBeenCalledWith({
@@ -272,7 +278,7 @@ describe("useMessageActions temporary pin", () => {
     };
     renderToStaticMarkup(React.createElement(Harness));
 
-    await actions?.sendMessage(
+    await legacyQuery(actions!,
       "hello",
       [],
       [],
@@ -373,7 +379,7 @@ describe("useMessageActions temporary pin", () => {
       };
       renderToStaticMarkup(React.createElement(Harness));
 
-      const sending = actions?.sendMessage(
+      const sending = legacyQuery(actions!,
         "hello",
         [],
         [],
@@ -465,7 +471,7 @@ describe("useMessageActions temporary pin", () => {
     };
     renderToStaticMarkup(React.createElement(Harness));
 
-    await actions?.sendMessage("hello");
+    await legacyQuery(actions!, "hello");
 
     expect(startQuery).not.toHaveBeenCalled();
     expect(dispatch).not.toHaveBeenCalledWith(
@@ -486,7 +492,7 @@ describe("useMessageActions temporary pin", () => {
     let actions: ReturnType<typeof useMessageActions> | null = null;
     const Harness = () => { actions = useMessageActions({ onAgentEvent: jest.fn() }); return null; };
     renderToStaticMarkup(React.createElement(Harness));
-    await actions!.sendMessage("must not send");
+    await legacyQuery(actions!, "must not send");
     expect(startQuery).not.toHaveBeenCalled();
     expect(dispatch).not.toHaveBeenCalled();
   });
@@ -522,7 +528,7 @@ describe("useMessageActions temporary pin", () => {
     };
     renderToStaticMarkup(React.createElement(Harness));
 
-    await actions?.sendMessage("must not send");
+    await legacyQuery(actions!, "must not send");
 
     expect(startQuery).not.toHaveBeenCalled();
     expect(dispatch).not.toHaveBeenCalled();
@@ -581,7 +587,7 @@ describe("useMessageActions temporary pin", () => {
     };
     renderToStaticMarkup(React.createElement(Harness));
 
-    await actions?.sendMessage(
+    await legacyQuery(actions!,
       "edit",
       [],
       [],
@@ -745,7 +751,7 @@ it("maps a query admission rejection to Agent state and restores the captured su
   let actions!: ReturnType<typeof useMessageActions>;
   function Probe() { actions = useMessageActions({ onAgentEvent: jest.fn() }); return null; }
   renderToStaticMarkup(React.createElement(Probe));
-  await actions.sendMessage("hello", [], [], {}, undefined, undefined, "", "agent-coder", false, "", "rejected-request");
+  await legacyQuery(actions!, "hello", [], [], {}, undefined, undefined, "", "agent-coder", false, "", "rejected-request");
   expect(stateRef.current.agentAvailability["agent-coder"]).toBe("unavailable");
   expect(stateRef.current.composerDraft).toBe("hello");
   expect(stateRef.current.composerReferences).toEqual([{type:"file",url:"resource://test"},{type:"skill",id:"pdf"}]);
@@ -779,7 +785,7 @@ describe("required libraries through message actions", () => {
   stateRef.current.chatId = chatId;
   if (chatId) stateRef.current.chats = [{ chatId, agentKey: "general" }];
   if (hasPrimary) stateRef.current.agents[0].primaryChat = { chatId: "existing" };
-  await actions.sendMessage("继续");
+  await legacyQuery(actions!, "继续");
   expect(startQuery).toHaveBeenCalled();
   const input = startQuery.mock.calls[0][0];
   if (expected) expect(input.primary).toBe(true);
@@ -794,13 +800,13 @@ describe("required libraries through message actions", () => {
     const { stateRef, actions } = harness();
     stateRef.current.primaryNavigation = preference;
     window.location.search = "?newChat=1793000000000";
-    await actions.sendMessage("ordinary");
+    await legacyQuery(actions!, "ordinary");
     expect(startQuery.mock.calls[0][0]).not.toHaveProperty("primary");
     startQuery.mockClear();
     window.location.search = "?newChat=1793000000001&primaryNewChat=true";
     stateRef.current.chatId = "upload-placeholder";
     stateRef.current.chats = [{ chatId: "upload-placeholder", agentKey: "general" }];
-    await actions.sendMessage("primary");
+    await legacyQuery(actions!, "primary");
     expect(startQuery.mock.calls[0][0]).toMatchObject({ primary: true, chatId: "upload-placeholder" });
   } finally {
     globalThis.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = previousConfig;
@@ -820,7 +826,7 @@ describe("required libraries through message actions", () => {
     {type: "kbase", id: "b", name: "团队资料"},
     {type: "file", name: "说明.pdf", url: "resource://document"},
   ];
-  const sending = actions.sendMessage("最新的工作是什么", references);
+  const sending = legacyQuery(actions!, "最新的工作是什么", references);
   // Admission and identity resolve, but the Run remains active.
   for (let i = 0; i < 10 && !startQuery.mock.calls.length; i++) await Promise.resolve();
   expect(startQuery).toHaveBeenCalledWith(expect.objectContaining({references: [
@@ -845,7 +851,7 @@ describe("required libraries through message actions", () => {
   stateRef.current.workerSelectionKey = "agent:team";
   stateRef.current.workerIndexByKey.set("agent:team", {key: "agent:team", sourceId: "team", type: "agent"} as any);
   const ids = ["a", "b"];
-  await actions.sendMessage("@mentioned compare", [...([]), ...(ids).map(id => ({type:"kbase",id}))], [], {}, undefined, undefined, "", "general", false, "", "");
+  await legacyQuery(actions!, "@mentioned compare", [...([]), ...(ids).map(id => ({type:"kbase",id}))], [], {}, undefined, undefined, "", "general", false, "", "");
   ids.push("later");
   expect(mockLoadKBaseOptions).toHaveBeenCalledWith("mentioned");
   expect(startQuery).toHaveBeenCalledWith(expect.objectContaining({owner: {kind: "agent", agentKey: "mentioned"}, message: "compare", planningMode: true, references: [...(["a", "b"] || []).map(id => ({type:"kbase",id}))]}));
@@ -855,16 +861,16 @@ describe("required libraries through message actions", () => {
  it("rejects unavailable libraries before creating a Run and does not borrow current selection on empty resend", async () => {
   const {stateRef, actions} = harness();
   mockLoadKBaseOptions.mockResolvedValue({capability: {available: true}, libraries: [{id: "a", readable: false}]});
-  await actions.sendMessage("hello", [...([]), ...(["a"]).map(id => ({type:"kbase",id}))], [], {}, undefined, undefined, "", "general", false, "", "");
+  await legacyQuery(actions!, "hello", [...([]), ...(["a"]).map(id => ({type:"kbase",id}))], [], {}, undefined, undefined, "", "general", false, "", "");
   expect(startQuery).not.toHaveBeenCalled();
   stateRef.current.composerReferences = [{type:"kbase",id:"a"}];
-  await actions.sendMessage("original had no libraries", [], [], {}, undefined, undefined, "", "general", false, "", "");
+  await legacyQuery(actions!, "original had no libraries", [], [], {}, undefined, undefined, "", "general", false, "", "");
   expect(startQuery).toHaveBeenCalledWith(expect.objectContaining({references: undefined}));
  });
  it("promotes the original Agent draft only after query acceptance", async () => {
   const {stateRef, actions} = harness();
   stateRef.current.composerReferences = [{type:"kbase",id:"a"}];
-  await actions.sendMessage("hello", [...([]), ...(["a"]).map(id => ({type:"kbase",id}))], [], {}, undefined, undefined, "", "general", false, "", "");
+  await legacyQuery(actions!, "hello", [...([]), ...(["a"]).map(id => ({type:"kbase",id}))], [], {}, undefined, undefined, "", "general", false, "", "");
   expect(startQuery).toHaveBeenCalledWith(expect.objectContaining({references:[{type:"kbase",id:"a"}]}));
   expect(stateRef.current).not.toHaveProperty("selectedKbasesByScope");
  });
@@ -872,7 +878,7 @@ describe("required libraries through message actions", () => {
   const {stateRef, actions} = harness();
   let resolveCatalog!: (value: unknown) => void;
   mockLoadKBaseOptions.mockReturnValue(new Promise(resolve => { resolveCatalog = resolve; }));
-  const pending = actions.sendMessage("hello", [...([]), ...(["a"]).map(id => ({type:"kbase",id}))], [], {}, undefined, undefined, "", "general", false, "", "");
+  const pending = legacyQuery(actions!, "hello", [...([]), ...(["a"]).map(id => ({type:"kbase",id}))], [], {}, undefined, undefined, "", "general", false, "", "");
   stateRef.current.chatId = "other-chat";
   resolveCatalog({capability: {available: true}, libraries: [{id: "a", name: "A", readable: true}]});
   await pending;
@@ -882,21 +888,21 @@ describe("required libraries through message actions", () => {
  it("limits normalized exact IDs to eight and ignores empty or duplicate IDs", async () => {
   const {stateRef, actions} = harness();
   const ids = Array.from({length: 9}, (_, i) => `lib-${i}`);
-  await actions.sendMessage("too many", [...([]), ...(ids).map(id => ({type:"kbase",id}))], [], {}, undefined, undefined, "", "general", false, "", "");
+  await legacyQuery(actions!, "too many", [...([]), ...(ids).map(id => ({type:"kbase",id}))], [], {}, undefined, undefined, "", "general", false, "", "");
   expect(startQuery).not.toHaveBeenCalled();
   expect(mockLoadKBaseOptions).not.toHaveBeenCalled();
   expect([...stateRef.current.timelineNodes.values()].some(node => node.systemMessageLevel === "error")).toBe(true);
   mockLoadKBaseOptions.mockResolvedValue({capability: {available: true}, libraries: ids.map(id => ({id, name: id, readable: true}))});
-  await actions.sendMessage("eight distinct", [...([]), ...([...ids.slice(0, 8), " lib-0 ", "", " "]).map(id => ({type:"kbase",id}))], [], {}, undefined, undefined, "", "general", false, "", "");
+  await legacyQuery(actions!, "eight distinct", [...([]), ...([...ids.slice(0, 8), " lib-0 ", "", " "]).map(id => ({type:"kbase",id}))], [], {}, undefined, undefined, "", "general", false, "", "");
   expect(startQuery).toHaveBeenCalledWith(expect.objectContaining({references: [...(ids.slice(0, 8) || []).map(id => ({type:"kbase",id}))]}));
  });
  it("rejects a mixed readable/unreadable selection as a whole and allows empty selection when disabled", async () => {
   const {actions} = harness();
   mockLoadKBaseOptions.mockResolvedValue({capability: {available: true}, libraries: [{id: "a", readable: true}, {id: "b", readable: false}]});
-  await actions.sendMessage("both", [...([]), ...(["a", "b"]).map(id => ({type:"kbase",id}))], [], {}, undefined, undefined, "", "general", false, "", "");
+  await legacyQuery(actions!, "both", [...([]), ...(["a", "b"]).map(id => ({type:"kbase",id}))], [], {}, undefined, undefined, "", "general", false, "", "");
   expect(startQuery).not.toHaveBeenCalled();
   mockLoadKBaseOptions.mockReset().mockRejectedValue(new Error("kbase.disabled"));
-  await actions.sendMessage("without libraries", [...([]), ...(["", " "]).map(id => ({type:"kbase",id}))], [], {}, undefined, undefined, "", "general", false, "", "");
+  await legacyQuery(actions!, "without libraries", [...([]), ...(["", " "]).map(id => ({type:"kbase",id}))], [], {}, undefined, undefined, "", "general", false, "", "");
   expect(mockLoadKBaseOptions).not.toHaveBeenCalled();
   expect(startQuery).toHaveBeenCalledWith(expect.objectContaining({references: undefined}));
  });

@@ -24,3 +24,7 @@ export interface MailAskSubmission {
 export function submitMailAsk(input: MailAskSubmission) {
   return postJson(dataEndpoints.submit.path, input);
 }
+
+export function sendUserMessageHttp(input: import("../dto/mailbox").SendUserMessageRequest, detail?: import("@/shared/data/eventDetailLevel").EventDetailLevel) {
+  return postJson<import("../dto/mailbox").SendUserMessageReceipt>(`${dataEndpoints.send.path}${detail ? `?detail=${encodeURIComponent(detail)}` : ""}`, input);
+}

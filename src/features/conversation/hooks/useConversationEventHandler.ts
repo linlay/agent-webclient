@@ -1,3 +1,5 @@
+import { consumeUserOutbox } from "@/features/mailbox/lib/userOutbox";
+import { resolveStorageIdentity } from "@/shared/data/auth/storageIdentity";
 import { normalizeEventDetailLevel } from "@/shared/data/eventDetailLevel";
 import { recordRenderBreadcrumb } from "@/shared/utils/renderDiagnostics";
 import { useCallback, useEffect, useRef } from "react";
@@ -490,6 +492,9 @@ export function useConversationEventHandler(): {
         }
       }
 
+      if ((type === "request.query" || type === "request.steer") && event.mailOrigin === "user" && event.requestId) {
+        consumeUserOutbox(resolveStorageIdentity(state.accessToken), String(event.requestId));
+      }
       if (type === "request.query") {
         const text = readRequestQueryText(event);
         if (event.chatId)
@@ -520,7 +525,7 @@ export function useConversationEventHandler(): {
               ? text || undefined
               : undefined,
         });
-        return;
+        if (!event.mailId) return;
       }
 
       if (type === "request.steer") {

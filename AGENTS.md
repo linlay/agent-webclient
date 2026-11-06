@@ -14,7 +14,7 @@ Chat 置顶由 Platform `/api/chats/order` 与 `chat-pinned.json` 管理，WebCl
 
 工具时间线支持临时 `tool.output`：按 `toolId` 投影 stdout/stderr segment 和单调 `chunkIndex`，单调用最多保留 1 MiB 头尾；运行期使用只读 xterm 按实际缓冲内容完整增高展示并解释换行、回车、退格和 ANSI 控制，`tool.result` 是唯一终态并销毁、替换过程终端。过程输出只属于 live/attach 状态，不进入冷回放、transcript 或导出。
 
-Native `wait` 使用 `tool.wait/tool.wait.update` 投影同 Run 等待，时间线使用独立小卡片按绝对期限本地倒计时，不显示参数表或折叠控件。说明只取本次调用的 description（实时事件优先，其次调用参数），不回退工具定义说明；结束后按结果 `reason` 显示结束原因并移除倒计时、进度条和按钮。“立即继续”仅在根 Run 等待的卡片 hover、键盘聚焦或提交中显示，不经过输入框，直接向 `/api/steer` 发送空白 steer；Platform 把它当作正文为空的普通 steer，回显的 `request.steer` 没有内容，沿用既有规则不渲染用户消息，结果带 `continued: true` 时卡片显示“已立即继续”。等待中的输入框发送仍直接 steer；attach 的 `seq:0` 快照不修改续传 cursor，冷回放与导出不保留等待过程。
+Native `wait` 使用 `tool.wait/tool.wait.update` 投影同 Run 等待，时间线使用独立小卡片按绝对期限本地倒计时，不显示参数表或折叠控件。说明只取本次调用的 description（实时事件优先，其次调用参数），不回退工具定义说明；结束后按结果 `reason` 显示结束原因并移除倒计时、进度条和按钮。“立即继续”仅在根 Run 等待的卡片 hover、键盘聚焦或提交中显示，不经过输入框，直接向 `/api/steer` 发送空白 steer；Platform 把它当作正文为空的普通 steer，回显的 `request.steer` 没有内容，沿用既有规则不渲染用户消息，结果带 `continued: true` 时卡片显示“已立即继续”。等待中的输入框文本走 `/api/send`，只进入待消费队列，不代替等待项作答；attach 的 `seq:0` 快照不修改续传 cursor，冷回放与导出不保留等待过程。
 
 ## 2. 技术栈
 - 框架：React 18
@@ -31,7 +31,7 @@ Native `wait` 使用 `tool.wait/tool.wait.update` 投影同 Run 等待，时间�
 
 核心调用链如下：
 - 用户在 Composer 区输入消息
-- `src/features/composer/hooks/useMessageActions.ts` 通过 `RunTransport.startQuery` 发起 `/api/query` Run
+- `src/features/composer/hooks/useMessageActions.ts` 通过统一数据层 `/api/send` 受理普通用户文本；空消息续跑、专用 params 等保留 `RunTransport.startQuery` 的 `/api/query` 路径
 - `src/features/transport/lib/platformRunTransport.ts` 与 `src/features/transport/lib/platformFrameClient.ts` 统一传输 Run stream 和控制请求，`src/features/events/lib/eventProcessor.ts` 将协议事件投影为命令
 - `src/features/conversation/hooks/useConversationEventHandler.ts` 统一消费 SSE、WebSocket、Composer 与 Voice 事件源，并将命令归并为当前对话运行态
 - `src/features/timeline/components/*`、`src/app/layout/*`、`src/features/plan/components/PlanPanel.tsx`、`src/features/tools/components/FrontendToolContainer.tsx` 根据状态树渲染
@@ -98,7 +98,8 @@ Native `wait` 使用 `tool.wait/tool.wait.update` 投影同 Run 等待，时间�
 - `GET /api/project/tree`
 - `GET /api/project/changes`
 - `GET /api/project/diff`
-- `POST /api/query`：对话流入口；`agentKey` 是唯一 Agent 路由字段（包含 TEAM），缺省时由后端按现有上下文推导
+- `POST /api/send`：直连 Platform/Desktop 的普通主聊天文本发送，返回 mailId/chatId/delivery/runId，支持活动会话插入或排队、按 requestId 幂等；收件箱三箱按 box 过滤，角标为待收取总数。
+- `POST /api/query`：保留的对话流及专用入口；`agentKey` 是唯一 Agent 路由字段（包含 TEAM），缺省时由后端按现有上下文推导
 - `GET /api/attach`：Run 事件续接；必须传 `runId` 和 `agentKey`，后端按 run metadata 校验 agentKey
 - `POST /api/submit`：Run 前端工具 / awaiting 提交；必须传 `runId` 和 `agentKey`，后端按 run metadata 校验 agentKey
 - `POST /api/interrupt`：Run 中断；必须传 `runId` 和 `agentKey`，后端按 run metadata 校验 agentKey

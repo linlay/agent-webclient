@@ -1,3 +1,4 @@
+import { getBackendMode } from "@/shared/config/backendMode";
 import { locateSelectedTextReference } from "@/shared/data/desktop/selectedTextLocate";
 import { bindCssModuleClasses } from "@/shared/utils/cssModuleClasses";
 import composerPresentation from "@/features/composer/components/ComposerPresentation.module.css";
@@ -945,8 +946,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     nativeShare.busy || nativeShare.blocked ||
     hasInvalidSelectedSkills ||
     chatTransitionBlocking ||
-    isFrontendActive ||
-    isAwaitingActive ||
+    (getBackendMode() === "gateway" && (isFrontendActive || isAwaitingActive)) ||
     hasUploadingAttachments ||
     hasFailedAttachments ||
     !(isMainChatRunning ? hasSendableContent(inputValue, combinedSendReferences, true) : hasSendableQuery(inputValue, combinedSendReferences, hasQueryHistory(state), canContinueChat(state)));

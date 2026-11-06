@@ -1,3 +1,4 @@
+import type { SendUserMessageRequest } from "./dto/mailbox";
 import { queryReferences } from "@/shared/contracts/references";
 import {
   compactPayload,
@@ -1029,6 +1030,13 @@ export const dataEndpoints = createEndpointRegistry({
     method: "POST",
     transport: "ws",
     payload: buildBTWPayload,
+  }),
+  send: defineEndpoint<SendUserMessageRequest>({
+    key: "mail.send",
+    path: "/api/send",
+    method: "POST",
+    transport: "auto",
+    wsBackends: PLATFORM_WS_BACKENDS,
   }),
   query: defineEndpoint<QueryStreamParams>({
     key: "runs.query",

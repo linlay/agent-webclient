@@ -732,7 +732,35 @@ describe('useComposerSend active run gate', () => {
     expect(operationOrder).toEqual(['clear-draft', 'clear-references', 'send-message']);
   });
 
-  it.each(['hello', ''])('queues selection references with or without text during an active run (%s)', (inputValue) => {
+  it.each(['gateway', 'platform'] as const)('routes reference-only active input for the %s backend', (backend) => {
+    const inputValue = '';
+    const backendMode = require('@/shared/config/backendMode') as typeof import('@/shared/config/backendMode');
+    const mode = jest.spyOn(backendMode, 'getBackendMode').mockReturnValue(backend);
+    const sendMessage = jest.fn();
+    const originalWindow = globalThis.window;
+    const originalCustomEvent = globalThis.CustomEvent;
+    Object.defineProperty(globalThis, 'window', {
+      configurable: true,
+      value: {
+        location: { search: '', pathname: '/' },
+        localStorage: { getItem: jest.fn(() => null), setItem: jest.fn() },
+        dispatchEvent: jest.fn((event: Event) => {
+          if (event.type === 'agent:send-message') sendMessage((event as CustomEvent).detail);
+          return true;
+        }),
+      },
+    });
+    Object.defineProperty(globalThis, 'CustomEvent', {
+      configurable: true,
+      value: class TestCustomEvent<T = unknown> {
+        detail: T | undefined;
+        type: string;
+        constructor(type: string, init?: CustomEventInit<T>) {
+          this.type = type;
+          this.detail = init?.detail;
+        }
+      },
+    });
     const state = createInitialState();
     state.chatId = 'chat-1';
     state.currentChatActiveRun = {
@@ -743,6 +771,8 @@ describe('useComposerSend active run gate', () => {
     state.chatAgentById = new Map([['chat-1', 'agent-a']]);
     state.runAgentById = new Map([['run-active', 'agent-a']]);
     state.streaming = false;
+    // An active Chat always has a previous Run.
+    state.chats = [{ chatId: 'chat-1', agentKey: 'agent-a', lastRunId: 'run-active' } as (typeof state.chats)[number]];
     const dispatch = jest.fn();
     const setInputValue = jest.fn();
     const setSlashDismissed = jest.fn();
@@ -815,24 +845,38 @@ describe('useComposerSend active run gate', () => {
       return null;
     };
 
-    renderToStaticMarkup(React.createElement(Harness));
-    actions?.handleSend();
+    try {
+      renderToStaticMarkup(React.createElement(Harness));
+      actions?.handleSend();
+    } finally {
+      mode.mockRestore();
+      Object.defineProperty(globalThis, 'window', { configurable: true, value: originalWindow });
+      Object.defineProperty(globalThis, 'CustomEvent', { configurable: true, value: originalCustomEvent });
+    }
 
-    expect(dispatch).toHaveBeenCalledWith({
-      type: 'ENQUEUE_PENDING_STEER',
-      chatId: 'chat-1',
-      steer: expect.objectContaining({
-        message: inputValue,
-        requestId: 'req_request',
-        runId: 'run-active',
-        status: 'queued',
-        references: [
-          { id: 'image-1', type: 'image' },
-          { id: 'selection-1', type: 'selection', text: 'selected text' },
-          {type:'kbase',id:'library-a'},
-        ],
-      }),
-    });
+    const references = [
+      { id: 'image-1', type: 'image' },
+      { id: 'selection-1', type: 'selection', text: 'selected text' },
+      {type:'kbase',id:'library-a'},
+    ];
+    if (backend === 'gateway') {
+      // Gateway has no /api/send yet, so active input stays a steer.
+      expect(dispatch).toHaveBeenCalledWith({
+        type: 'ENQUEUE_PENDING_STEER',
+        chatId: 'chat-1',
+        steer: expect.objectContaining({
+          message: inputValue,
+          requestId: 'req_request',
+          runId: 'run-active',
+          status: 'queued',
+          references,
+        }),
+      });
+      expect(sendMessage).not.toHaveBeenCalled();
+    } else {
+      expect(dispatch).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'ENQUEUE_PENDING_STEER' }));
+      expect(sendMessage).toHaveBeenCalledWith(expect.objectContaining({ message: inputValue, references }));
+    }
     expect(setInputValue).toHaveBeenCalledWith('');
     expect(closeMention).toHaveBeenCalled();
     expect(dispatch).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'SET_SELECTED_KBASES' }));

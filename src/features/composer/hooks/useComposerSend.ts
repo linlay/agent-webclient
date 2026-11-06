@@ -1,3 +1,4 @@
+import { getBackendMode } from "@/shared/config/backendMode";
 import type { PendingSteer } from "@/features/composer/lib/composerState";
 import { isAgentExecutionBlocked } from "@/features/agents/lib/agentAvailability";
 import { useCallback, useEffect, useRef } from "react";
@@ -481,7 +482,7 @@ export function useComposerSend(input: UseComposerSendInput) {
   const handleSend = useCallback((directSteer = false) => {
     directSteer = directSteer || Array.from(stateRef.current.timelineNodes.values()).some(node => node.runId === stateRef.current.runId && node.toolWait && node.status === "running" && !node.result);
     if (isAgentExecutionBlocked(stateRef.current)) return;
-    if (isAwaitingActive || isVoiceMode) return;
+    if (isVoiceMode || (getBackendMode() === "gateway" && isAwaitingActive)) return;
     if (speechListening) {
       stopSpeechInput();
     }
@@ -565,7 +566,7 @@ export function useComposerSend(input: UseComposerSendInput) {
       activeQuerySessionRequestIdRef,
       querySessionsRef,
     );
-    if (mainRuntime.running) {
+    if (mainRuntime.running && (getBackendMode() === "gateway" || (!message && sendReferences.length === 0))) {
       const activeRunId = mainRuntime.runId || resolveCurrentRunId();
       if (!activeChatId || !activeRunId) {
         dispatch({
@@ -720,7 +721,7 @@ export function useComposerSend(input: UseComposerSendInput) {
   ]);
 
   const handleSubmitQueuedSteer = useCallback(() => {
-    if (isAwaitingActive || isVoiceMode) return;
+    if (isVoiceMode) return;
     const currentState = stateRef.current;
     const runtime = resolveMainChatRuntime(currentState, activeQuerySessionRequestIdRef, querySessionsRef);
     if (!runtime.running) return;

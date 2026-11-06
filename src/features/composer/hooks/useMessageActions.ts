@@ -1,3 +1,9 @@
+import { ApiError } from "@/shared/data/api/http";
+import { getBackendMode } from "@/shared/config/backendMode";
+import { chatDetailLevel } from "@/features/chats/lib/chatDetailLevel";
+import { sendUserMessage } from "@/shared/data/api/routedClient";
+import { acceptUserOutbox, isUndeliveredMailStatus, putUserOutbox, updateUserOutbox } from "@/features/mailbox/lib/userOutbox";
+import type { SendUserMessageRequest } from "@/shared/data/api/dto/mailbox";
 import { isDesktopAppMode } from "@/shared/utils/routing";
 import { shouldCreatePrimaryChat } from "@/features/chats/lib/primaryChatIntent";
 import { referenceIds, queryReferences } from "@/shared/contracts/references";
@@ -57,6 +63,7 @@ import { notifySelectedTextReferencesAccepted } from "@/features/selection/lib/s
 
 interface SendMessageEventDetail {
   submissionRequestId?: string;
+  planningMode?: boolean;
   message?: unknown;
   references?: unknown;
   attachments?: unknown;
@@ -289,6 +296,7 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
       editingMode: boolean | undefined = undefined,
       skillReferenceAgentKey = "",
       submissionRequestId = "",
+      planningModeOverride: boolean | undefined = undefined,
     ) => {
       const submissionSession = getDataSessionRevision();
       const rawMessage = String(inputMessage ?? "").trim();
@@ -304,6 +312,7 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
         return;
       }
 
+      const mailboxSend = getBackendMode() !== "gateway" && (Boolean(rawMessage) || normalizedReferences.length > 0) && Object.keys(params).length === 0;
       /* ── Parallel-query guard ── */
       const currentActiveReqId = String(
         activeQuerySessionRequestIdRef.current || "",
@@ -319,7 +328,7 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
         targetChatId,
       });
 
-      if (!canSend) {
+      if (!mailboxSend && !canSend) {
         // Same chat is already streaming — block duplicate submit
         return;
       }
@@ -412,7 +421,7 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
       const kbaseReferenceIds = referenceIds(normalizedReferences,"kbase");
       const validationChatId = stateRef.current.chatId;
       const validationTransitionSeq = stateRef.current.chatTransition?.seq;
-      const planningMode = Boolean(stateRef.current.planningMode);
+      const planningMode = planningModeOverride ?? Boolean(stateRef.current.planningMode);
       if (kbaseReferenceIds.length > 0) {
         try {
           if (kbaseReferenceIds.length > MAX_KBASE_REFERENCES) throw new Error(t("kbase.selectionLimit", {count: MAX_KBASE_REFERENCES}));
@@ -429,7 +438,7 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
         }
         if (stateRef.current.chatId !== validationChatId || stateRef.current.chatTransition?.seq !== validationTransitionSeq) return;
         const activeRequestId = activeQuerySessionRequestIdRef.current;
-        if (!canSendToTargetChat({
+        if (!mailboxSend && !canSendToTargetChat({
           currentActiveSession: activeRequestId ? querySessionsRef.current.get(activeRequestId) ?? null : null,
           currentChatActiveRun: stateRef.current.currentChatActiveRun,
           currentStateChatId: stateRef.current.chatId,
@@ -491,6 +500,57 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
             agentKey: mention.mentionAgentKey,
           });
         }
+      }
+
+      if (mailboxSend) {
+        const requestId = submissionRequestId || createRequestId("req");
+        const request: SendUserMessageRequest = {
+          requestId, message: cleanMessage, chatId: chatId || undefined, agentKey: selectedAgentKey,
+          references: normalizedReferences.length ? normalizedReferences : undefined,
+          ...(primary ? { primary: true } : {}),
+          ...(planningMode ? { planningMode: true } : {}), editingMode, accessLevel,
+          model: model ? { key: model.key, reasoningEffort: model.reasoningEffort, serviceTier: model.serviceTier } : undefined,
+        };
+        const pendingRoute = readPendingAgentChatRoute();
+        putUserOutbox({ scope: accessScope, request, createdAt: Date.now(), newChat: isNewChatQuery });
+        dispatch({ type: "REQUEST_CONVERSATION_SCROLL", chatId, reason: "local-send" });
+        try {
+          const { data: receipt } = await sendUserMessage(request, chatDetailLevel(stateRef.current));
+          if (getDataSessionRevision() !== submissionSession) return;
+          acceptUserOutbox(accessScope, requestId, receipt);
+          if (isUndeliveredMailStatus(receipt.status)) {
+            // Accepted, then failed on the spot: there is no Run to attach.
+            updateUserOutbox(accessScope, requestId, { undelivered: true, error: receipt.error?.message || receipt.status });
+            dispatch({ type: "SETTLE_COMPOSER_SUBMISSION", requestId, accepted: true });
+            return;
+          }
+          dispatch({ type: "SETTLE_COMPOSER_SUBMISSION", requestId, accepted: true });
+          notifySelectedTextReferencesAccepted(normalizedReferences);
+          const stillCurrent = stateRef.current.chatId === validationChatId && stateRef.current.chatTransition?.seq === validationTransitionSeq;
+          if (!stillCurrent) return;
+          if (receipt.ignoredOptions?.length) {
+            const id = `ignored_${requestId}`;
+            dispatch({ type: "SET_TIMELINE_NODE", id, node: { id, kind: "message", role: "system", ts: Date.now(), text: t("mailbox.outbox.ignored", { options: receipt.ignoredOptions.join(", ") }) } });
+            dispatch({ type: "APPEND_TIMELINE_ORDER", id });
+          }
+          dispatch({ type: "SET_CHAT_ID", chatId: receipt.chatId });
+          dispatch({ type: "SET_CHAT_AGENT_BY_ID", chatId: receipt.chatId, agentKey: selectedAgentKey });
+          if (isNewChatQuery && accessLevel) dispatch({ type: "SET_COMPOSER_ACCESS_LEVEL", target: { scope: accessScope, chatId: receipt.chatId, agentKey: "" }, value: accessLevel, initializeOnly: true });
+          if (isNewChatQuery && model?.key) dispatch({ type: "SET_COMPOSER_MODEL", target: { scope: accessScope, chatId: receipt.chatId, agentKey: "" }, value: model, initializeOnly: true });
+          if (isNewChatQuery && (!pendingRoute || pendingRoute === readPendingAgentChatRoute())) notifyNewChatCreated({ chatId: receipt.chatId, agentKey: selectedAgentKey });
+          if (typeof window !== "undefined" && receipt.runId && receipt.runId !== stateRef.current.currentChatActiveRun?.runId) {
+            window.dispatchEvent(new CustomEvent("agent:attach-run", { detail: { chatId: receipt.chatId, runId: receipt.runId, agentKey: selectedAgentKey, owner: selectedOwner, lastSeq: 0 } }));
+          }
+        } catch (error) {
+          if (getDataSessionRevision() !== submissionSession) return;
+          const rejected = error instanceof ApiError && error.status !== null && error.status >= 400 && error.status < 500;
+          updateUserOutbox(accessScope, requestId, {
+            undelivered: rejected, uncertain: !rejected,
+            error: error instanceof Error ? error.message : String(error),
+          });
+          dispatch({ type: "SETTLE_COMPOSER_SUBMISSION", requestId, accepted: true });
+        }
+        return;
       }
 
       /* Add user message to timeline (mention prefix is routing metadata, not message body) */
@@ -928,6 +988,7 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
           editingMode,
           skillReferenceAgentKey,
           detail.submissionRequestId,
+          typeof detail.planningMode === "boolean" ? detail.planningMode : undefined,
         ).finally(() => {
           if (detail.submissionRequestId) dispatch({ type: "SETTLE_COMPOSER_SUBMISSION", requestId: detail.submissionRequestId, accepted: false });
         });

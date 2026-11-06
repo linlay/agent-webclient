@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { Alert, Button, Drawer, Empty, Input, Modal, Select, Space, Spin, Tag } from "antd";
-import type { MailKind, MailRecord, MailStatus } from "@/shared/data/api/dto/mailbox";
+import { Alert, Button, Drawer, Empty, Input, Modal, Select, Space, Spin, Tag, Tabs } from "antd";
+import type { MailBox, MailKind, MailRecord, MailStatus } from "@/shared/data/api/dto/mailbox";
 import { getMails, getMailDetail, actOnMail } from "@/shared/data/api/requests/mailbox";
 import { useI18n } from "@/shared/i18n";
 import { canActOnMail, mailBody, mailEvidenceKey } from "../lib/mailPresentation";
@@ -11,6 +11,7 @@ const statuses: MailStatus[] = ["suspended", "queued", "inflight", "delivered", 
 const pageSize = 50;
 export function MailboxPanel({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { t, locale } = useI18n();
+  const [box, setBox] = useState<MailBox>("pending");
   const [rows, setRows] = useState<MailRecord[]>([]);
   const [detail, setDetail] = useState<MailRecord>();
   const [total, setTotal] = useState(0);
@@ -30,12 +31,12 @@ export function MailboxPanel({ open, onClose }: { open: boolean; onClose: () => 
     const current = ++sequence.current;
     setLoading(true); setError("");
     try {
-      const response = await getMails({ kind, status, agentKey: agentKey.trim(), limit: pageSize, offset: page * pageSize }, controller.signal);
+      const response = await getMails({ box, kind, status, agentKey: agentKey.trim(), limit: pageSize, offset: page * pageSize }, controller.signal);
       if (sequence.current === current) {setRows(response.data?.mails || []);setTotal(response.data?.total || 0); }
     } catch (err) {
       if (!controller.signal.aborted && sequence.current === current) setError(err instanceof Error ? err.message : String(err));
     } finally { if (sequence.current === current) setLoading(false); }
-  }, [kind, status, agentKey, page]);
+  }, [box, kind, status, agentKey, page]);
   useEffect(() => {
     if (!open) return;
     void refresh();
@@ -53,6 +54,7 @@ export function MailboxPanel({ open, onClose }: { open: boolean; onClose: () => 
     finally { setPending(false); }
   };
   return <Drawer title={t("mailbox.title")} open={open} onClose={onClose} width={660}>
+    <Tabs activeKey={box} onChange={value => { setBox(value as MailBox); setStatus(undefined); setPage(0); }} items={["pending", "received", "trash"].map(key => ({ key, label: t(`mailbox.box.${key}`) }))} />
     <div className={styles.filters}>
       <Input aria-label={t("mailbox.agent")} placeholder={t("mailbox.agent")} value={agentKey} onChange={e => { setAgentKey(e.target.value); setPage(0); }} allowClear />
       <Select aria-label={t("mailbox.kind")} placeholder={t("mailbox.kind")} value={kind} onChange={value => { setKind(value); setPage(0); }} allowClear options={kinds.map(value => ({ value, label: t(`mailbox.kind.${value}`) }))} />
@@ -64,13 +66,13 @@ export function MailboxPanel({ open, onClose }: { open: boolean; onClose: () => 
       {!rows.length && !loading ? <Empty description={t("mailbox.empty")} /> : <div className={styles.list}>
         {rows.map(mail => <article key={mail.mailId} className={styles.mail} data-mail-kind={mail.kind}>
           <div className={styles.heading}><Space wrap><Tag>{t(`mailbox.kind.${mail.kind}`)}</Tag><Tag color={mail.status === "suspended" ? "orange" : undefined}>{t(`mailbox.status.${mail.status}`)}</Tag>{mail.outcome && <span>{t(`mailbox.outcome.${mail.outcome}`)}</span>}</Space><time>{new Date(mail.createdAt).toLocaleString(locale)}</time></div>
-          <div className={styles.address}><a href={`/?${new URLSearchParams({ chatId: mail.fromChatId })}`}>{mail.fromAgentKey}</a><span>→</span><a href={`/?${new URLSearchParams({ chatId: mail.toChatId })}`}>{mail.toAgentKey}</a></div>
+          <div className={styles.address}>{mail.originType === "user" ? <span>{t("mailbox.user")}</span> : <a href={`/?${new URLSearchParams({ chatId: mail.fromChatId })}`}>{mail.fromAgentKey}</a>}<span>→</span><a href={`/?${new URLSearchParams({ chatId: mail.toChatId })}`}>{mail.toAgentKey}</a></div>
           <Button type="link" onClick={() => {void getMailDetail(mail.mailId).then(r=>setDetail(r.data)).catch(e=>setError(String(e)));}}>{mail.mailId}</Button>
           {mail.purgedAt ? <p>{t("mailbox.purged")}</p> : <pre className={styles.message}>{mailBody(mail)}</pre>}
           {mail.files?.map(file => <div key={file.path} className={styles.attachment}>{t("mailbox.attachment", { name: file.name, path: file.path })}</div>)}
           {mail.error?.message && <Alert type="error" message={mail.error.message} />}
           {mail.status === "suspended" && <Alert type="warning" showIcon message={t(mailEvidenceKey(mail))} description={t("mailbox.access", { level: mail.accessLevel || "default" })} />}
-          {canActOnMail(mail) && <Space><Button onClick={() => setConfirmation({ mail, action: "redeliver" })}>{t("mailbox.redeliver")}</Button><Button danger onClick={() => setConfirmation({ mail, action: "discard" })}>{t("mailbox.discard")}</Button></Space>}
+          {box === "pending" && canActOnMail(mail) && <Space><Button onClick={() => setConfirmation({ mail, action: "redeliver" })}>{t("mailbox.redeliver")}</Button><Button danger onClick={() => setConfirmation({ mail, action: "discard" })}>{t("mailbox.discard")}</Button></Space>}
         </article>)}
       </div>}
     </Spin>

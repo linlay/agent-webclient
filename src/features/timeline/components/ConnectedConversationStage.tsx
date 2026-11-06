@@ -1,3 +1,4 @@
+import { PendingMailMessages } from "@/features/mailbox/components/PendingMailMessages";
 import { useConversationFileDropTarget } from "@/shared/ui/ConversationFileDrop";
 import { AgentIcon } from "@/shared/icons/agent";
 import { isDesktopAppMode } from "@/shared/utils/routing";
@@ -2010,6 +2011,7 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
           />
         )}
 
+        <PendingMailMessages />
         {renderScrollToBottomControl()}
       </div>
       {presentation.blocked ? (

@@ -34,6 +34,7 @@ export function readReferences(event: AgentEvent): unknown[] {
 }
 
 export function readMailMetadata(event: AgentEvent): import("@/shared/data/api/dto/mailbox").MailMetadata | undefined {
+  if (event.mailOrigin === "user") return undefined;
   const id = toText(event.mailId), kind = toText(event.mailKind);
   if (!id || !["letter", "reply", "notify", "ask"].includes(kind)) return undefined;
   const origin = event.origin as Record<string, unknown> | undefined;
