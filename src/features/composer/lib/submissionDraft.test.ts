@@ -30,3 +30,13 @@ it("discards legacy submission drafts instead of translating their selections", 
  const next = appReducer(state, {type:"SETTLE_COMPOSER_SUBMISSION",requestId:"r",accepted:false});
  expect(next.composerReferences).toEqual([]); expect(next.composerDraft).toBe(""); expect(next.submissionDrafts).toEqual({});
 });
+
+it("merges failed references without duplicating an image or losing skill display metadata", () => {
+ const image = {type:"file",id:"image",url:"resource://picture.png",name:"picture.png"};
+ const skill = {type:"skill",id:"design",name:"Design",meta:{selectedViaPackageId:"design-package"}};
+ let state = appReducer(createInitialState(), {type:"BEGIN_COMPOSER_SUBMISSION",draft:{...draft,references:[image,skill]}});
+ state = appReducer(state,{type:"SET_COMPOSER_REFERENCES",references:[image]});
+ state = appReducer(state,{type:"SETTLE_COMPOSER_SUBMISSION",requestId:"r",accepted:false});
+ state = appReducer(state,{type:"RESTORE_FAILED_SUBMISSION",requestId:"r"});
+ expect(state.composerReferences).toEqual([image,skill]);
+});

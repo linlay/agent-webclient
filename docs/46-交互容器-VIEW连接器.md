@@ -50,7 +50,7 @@ Team 外层仍使用汇总 HITL，成员 VIEW 位于 `forms[i].form.view`。宿�
 
 主要实现：`shared/contracts/view.ts`、`shared/data/api/requests/views.ts`、`shared/utils/viewDocument.ts`、`timeline/components/ViewEmbed.tsx`、`tools/lib/viewFrame.ts` 与 `tools/hooks/useAwaitingFrameDocument.ts`。
 
-QLC 当前提供 JSON 展示和 JSON 表单兜底，尚未解释专有控件。资源应预打包，暂不支持 CSS @import、JS 模块依赖解析或远端 CDN。在线回放支持 VIEW，独立会话 HTML 导出不内联模板。旧 `/api/viewport` 与旧 viewport fence 已移除。builtin 来源使用 native 或 HTML；Desktop 与 ACP bridge 同步携带统一 view 引用。
+QLC 当前提供 JSON 展示和 JSON 表单兜底，尚未解释专有控件。资源应预打包，暂不支持 CSS @import、JS 模块依赖解析或远端 CDN。在线回放支持 VIEW，独立会话 HTML 导出不内联模板。旧 `/api/viewport` 与旧 viewport fence 已移除。builtin 来源使用 native 或 HTML；Desktop 沿用统一 view 引用；ACP stdio 不沿用旧 Bridge VIEW 转发。
 
 包结构、远端模板协议、凭据、错误码和迁移步骤以相邻 Platform 的 `docs/VIEW连接器.md` 为完整契约。
 

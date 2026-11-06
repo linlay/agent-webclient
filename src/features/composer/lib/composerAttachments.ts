@@ -42,6 +42,29 @@ export interface ComposerContextReferenceInput {
 
 export type { ComposerRequiredSkill } from "@/features/composer/lib/composerState";
 
+// Draft references retain UI metadata; wire normalization happens only when sending.
+export function composerReferenceIdentity(reference: unknown): string {
+  if (reference && typeof reference === "object") {
+    const ref = reference as Record<string, unknown>;
+    if (ref.type !== "selection") {
+      const id = typeof ref.id === "string" ? ref.id.trim() : "";
+      const url = typeof ref.url === "string" ? ref.url.trim() : "";
+      if (id || url) return JSON.stringify([ref.type, ref.type === "skill" ? id.toLowerCase() : id || url]);
+    }
+  }
+  return JSON.stringify(reference) ?? "";
+}
+
+export function mergeComposerReferences(...groups: unknown[][]): unknown[] {
+  const seen = new Set<string>();
+  return groups.flat().filter(reference => {
+    const key = composerReferenceIdentity(reference);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 export function createComposerContextAttachment(
 	reference: ComposerContextReferenceInput,
 ): ComposerAttachment {

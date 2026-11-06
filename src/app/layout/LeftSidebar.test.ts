@@ -1042,27 +1042,7 @@ describe("LeftSidebar", () => {
         }
     }
     });
-    const acpRequest = buildCoderAgentCreateRequest(
-      "/Users/demo/Project/acp-coder",
-      {
-        name: "ACP Coder",
-    acpBridgeId: "proxy-acp-codex"
-      },
-    );
-    expect(acpRequest).toEqual({
-      isProject: true,
-      definition: {
-        name: "ACP Coder",
-        mode: "CODER",
-        icon: { name: "coder" },
-        engine: "acp",
-        runtimeConfig: {
-          workspaceRoot: "/Users/demo/Project/acp-coder",
-            acpBridgeId: "proxy-acp-codex"
-        }
-    }
-    });
-    expect(JSON.stringify(acpRequest)).not.toContain("coderBackend");
+
   });
 
   it("builds a minimal kbase project create request", () => {

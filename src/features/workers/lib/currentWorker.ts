@@ -98,16 +98,11 @@ export function workerHasWorkspace(
 export function supportsActiveRunContextCompact(
   worker: CurrentWorkerSummary | null | undefined,
 ): boolean {
-  if (!worker || false) return true;
-  const mode = toText(worker.raw?.mode).toUpperCase().replace(/-/g, "_");
-  if (mode === "PROXY" || mode === "CHANNEL" || mode === "ACP_PROXY") {
-    return false;
-  }
+  if (!worker) return true;
+  const mode = toText(worker.raw?.mode).toUpperCase();
   const definition = worker.raw?.definition as Record<string, unknown> | undefined;
-  const runtimeConfig = (definition?.runtimeConfig || worker.raw?.runtimeConfig) as
-    | Record<string, unknown>
-    | undefined;
-  return !toText(runtimeConfig?.acpBridgeId);
+  const engine = toText(worker.raw?.engine || definition?.engine).toLowerCase();
+  return engine !== "acp" && mode !== "PROXY" && mode !== "CHANNEL";
 }
 
 export function resolveCurrentWorkerSummary(

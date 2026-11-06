@@ -19,6 +19,9 @@ jest.mock("@/features/kbases/lib/kbaseOptions", () => ({
  ...jest.requireActual("@/features/kbases/lib/kbaseOptions"), loadKBaseOptions: (...args: unknown[]) => mockLoadKBaseOptions(...args),
 }));
 const startQuery = jest.fn();
+const mockMessageError = jest.fn();
+jest.mock("@/shared/ui/useAppMessage", () => ({useAppMessage:()=>({error:mockMessageError})}));
+
 
 function createDetachTestState(overrides: Record<string, unknown> = {}) {
   return {
@@ -752,6 +755,27 @@ it("maps a query admission rejection to Agent state and restores the captured su
   expect(stateRef.current.restoredSteerReferencesByChatId[""]).toHaveLength(2);
 });
 
+it.each(["resource_reference_unavailable", "resource_reference_too_large"])("shows %s when a new Chat submission is rejected", async code => {
+  const {ApiError} = jest.requireActual("@/shared/data");
+  mockMessageError.mockClear();
+  const stateRef = {current:createInitialState()};
+  stateRef.current.agents=[{key:"kimi",name:"Kimi",mode:"CODER"}];
+  stateRef.current.pendingNewChatAgentKey="kimi";
+  stateRef.current.agentAvailability={kimi:"available"};
+  stateRef.current=appReducer(stateRef.current,{type:"BEGIN_COMPOSER_SUBMISSION",draft:{requestId:"failed-upload",chatId:"",agentKey:"kimi",message:"111",schemaVersion:2,references:[{type:"file",url:"@chat/图片.png"}],uploadChatId:"upload-chat"}});
+  const dispatch=jest.fn(action=>{stateRef.current=appReducer(stateRef.current,action);});
+  useAppContext.mockReturnValue({state:stateRef.current,stateRef,dispatch,querySessionsRef:{current:new Map()},chatQuerySessionIndexRef:{current:new Map()},activeQuerySessionRequestIdRef:{current:""}});
+  startQuery.mockImplementation(()=>{throw new ApiError(code,{status:400,data:{error:{code,message:code}}});});
+  let actions!:ReturnType<typeof useMessageActions>;
+  function Probe(){actions=useMessageActions({onAgentEvent:jest.fn()});return null;}
+  renderToStaticMarkup(React.createElement(Probe));
+  await actions.sendMessage("111",[{type:"file",url:"@chat/图片.png"}],[],{},undefined,undefined,"upload-chat","kimi",false,"","failed-upload");
+  expect(stateRef.current.composerDraft).toBe("111");
+  expect(mockMessageError).toHaveBeenCalledTimes(1);
+  expect(mockMessageError).toHaveBeenCalledWith(expect.any(String));
+  expect([...stateRef.current.timelineNodes.values()]).toContainEqual(expect.objectContaining({role:"system",systemMessageLevel:"error",errorDetail:expect.objectContaining({code})}));
+});
+
 describe("required libraries through message actions", () => {
  function harness() {
   const stateRef = {current: createInitialState()};
@@ -768,6 +792,35 @@ describe("required libraries through message actions", () => {
   renderToStaticMarkup(React.createElement(Probe));
   return {stateRef, dispatch, actions};
  }
+ it("reloads the accepted Chat after Platform loses Run control identity without resending or replacing the draft", async () => {
+  const previousWindow = globalThis.window;
+  const events: CustomEvent[] = [];
+  Object.defineProperty(globalThis, "window", { configurable: true, value: {
+    location: { pathname: "/agent/general", search: "" },
+    dispatchEvent: (event: CustomEvent) => { events.push(event); return true; },
+  }});
+  try {
+    const { stateRef, actions } = harness();
+    const { RealtimeTransportError } = await import("@/features/transport/contracts/realtimeTransportErrors");
+    let finish!: (result: unknown) => void;
+    startQuery.mockReturnValue({
+      identity: Promise.resolve({chatId: "accepted-chat", runId: "run", owner: {kind: "agent", agentKey: "general"}}),
+      completion: new Promise(resolve => { finish = resolve; }),
+    });
+    const sending = actions.sendMessage("initial query");
+    for (let i=0; i<30 && stateRef.current.chatId!=="accepted-chat"; i++) await Promise.resolve();
+    expect(stateRef.current.chatId).toBe("accepted-chat");
+    stateRef.current.composerDraft = "unsent follow-up";
+    stateRef.current.composerDraftByChatId = {"accepted-chat": "unsent follow-up"};
+    finish({reason: "error", error: new RealtimeTransportError("run_control_identity_unavailable", "run has no control identity")});
+    await sending;
+    expect(events.filter(event => event.type === "agent:load-chat").map(event => event.detail)).toEqual([
+      {chatId: "accepted-chat", forceReload: true, focusComposerOnComplete: false},
+    ]);
+    expect(startQuery).toHaveBeenCalledTimes(1);
+    expect(stateRef.current.composerDraft).toBe("unsent follow-up");
+  } finally { Object.defineProperty(globalThis, "window", { configurable: true, value: previousWindow }); }
+ });
  it.each([
   [true, "", false, true],
   [false, "", false, false],

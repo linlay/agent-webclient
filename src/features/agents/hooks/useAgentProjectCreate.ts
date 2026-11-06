@@ -1,3 +1,4 @@
+import { usePushSignal, useReconnectSignal } from "@/features/transport/hooks/useRefreshSignals";
 import { listKBases } from "@/shared/data/api/requests/kbases";
 import type { KnowledgeBase } from "@/shared/data/api/dto/kbases";
 import { useRef, useState } from "react";
@@ -25,8 +26,9 @@ import { canUseDesktopFileSystemBridge, selectWorkspaceDirectory } from "@/share
 const PROBLEM_MESSAGES: Record<ProjectCreationProblem, string> = {
   typeUnavailable: "leftSidebar.createProject.typeUnavailable",
   directoryRequired: "leftSidebar.createProject.directoryRequired",
+  engineUnavailable: "leftSidebar.createProject.engineUnavailable",
   modelRequired: "leftSidebar.createProject.modelRequired",
-  acpBridgeRequired: "leftSidebar.createProject.acpRequired",
+  engineRequired: "leftSidebar.createProject.acpRequired",
 };
 
 function errorMessage(error: unknown): string {
@@ -72,19 +74,22 @@ export function useAgentProjectCreate(options: {
       const response = await loadAgentCreationOptions();
       if (seq !== loadSeq.current) return;
       setCreationOptions(response);
-      setSelection(initialProjectCreationSelection(response));
+      setSelection(current => current ?? initialProjectCreationSelection(response));
     } catch (loadError) {
       if (seq !== loadSeq.current) return;
-      setCreationOptions(null);
-      setSelection(null);
       setOptionsError(errorMessage(loadError));
     } finally {
       if (seq === loadSeq.current) setOptionsLoading(false);
     }
   };
 
+  usePushSignal("agent_engines.changed", () => void loadOptions(), open);
+  useReconnectSignal(() => void loadOptions(), open);
+
   const begin = () => {
     if (open) return;
+    setCreationOptions(null);
+    setSelection(null);
     setWorkspaceDirState("");
     setProjectName("");
     setProjectNameTouched(false);
@@ -176,7 +181,7 @@ export function useAgentProjectCreate(options: {
     : null;
 
   const submit = async () => {
-    if (!creationOptions || !selection || submitting) return;
+    if (!creationOptions || !selection || submitting || optionsLoading || optionsError) return;
     if (problem) {
       setError(t(PROBLEM_MESSAGES[problem]));
       return;
@@ -237,8 +242,8 @@ export function useAgentProjectCreate(options: {
       updateSelection((current, loaded) => setProjectCreationGroups(loaded, current, groupKeys)),
     setModelKey: (modelKey: string) =>
       updateSelection((current) => ({ ...current, modelKey })),
-    setAcpBridgeId: (acpBridgeId: string) =>
-      updateSelection((current) => ({ ...current, acpBridgeId })),
+    setEngineId: (engineId: string) =>
+      updateSelection((current) => ({ ...current, engineId })),
     openBrowser: () => void openDirectoryBrowser(),
     closeBrowser,
     browseTo: (path: string) => void browseTo(path),

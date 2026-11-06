@@ -1,4 +1,4 @@
-import { queryReferences } from "@/shared/contracts/references";
+import { mergeComposerReferences } from "./composerAttachments";
 import type { ComposerState, ComposerAction, SubmissionDraft } from "./composerState";
 function restore<S extends ComposerState & { chatId: string }>(state: S, draft: SubmissionDraft): S {
   return { ...state,
@@ -33,7 +33,7 @@ export function reduceSubmissionDraft<S extends ComposerState & { chatId: string
       if (!draft || draft.schemaVersion !== 2) return next;
       return restore(next, { ...draft,
         message: [state.composerDraft, draft.message].filter(Boolean).join("\n\n"),
-        references: queryReferences([...state.composerReferences, ...draft.references]),
+        references: mergeComposerReferences(state.composerReferences, draft.references),
       });
     }
     case "SET_SKILL_REJECTION": return { ...state, skillRejection: action.rejection };

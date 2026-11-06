@@ -47,8 +47,6 @@ function creationOptions(): AgentCreationOptionsResponse {
       {
         key: "acp",
         label: "External",
-        mode: "CODER",
-        icon: { name: "coder" },
         engine: "acp",
         available: true,
         workspaceRequired: true,
@@ -57,7 +55,7 @@ function creationOptions(): AgentCreationOptionsResponse {
         supportsGroups: false,
         baseTools: [],
         defaultGroups: [],
-        acpBridges: [{ id: "claude" }, { id: "codex" }],
+        engineDirectory: { apiVersion: 1, ready:true, catalogGeneration:"g", revision:1, engines: ["claude/agent", "codex/agent"].map(engineId => ({engineId, pluginId:engineId, pluginVersion:"1.0.0", enabled:true, syncState:"applied",dependencyState:"ready",authState:"unknown",runtimeState:"stopped",capabilities:{question:false,permission:false,configuration:false,resume:false,image:false,file:false,planning:false,access_level:false,service_tier:false,steer:false,boolean_config:false}})) },
       },
     ],
     groups: [group("office"), group("web-data"), group("automation"), group("broken", false)],
@@ -140,7 +138,7 @@ describe("projectCreation", () => {
     );
   });
 
-  it("sends concrete definitions for native types and only the bridge for the external engine", () => {
+  it("sends concrete definitions for native types and only the plugin identity for the external engine", () => {
     const options = creationOptions();
     const general = initialProjectCreationSelection(options);
     expect(buildProjectCreateRequest(options, general, "/project")).toEqual({
@@ -150,18 +148,16 @@ describe("projectCreation", () => {
     expect(projectCreationProblem(options, general, "  ")).toBe("directoryRequired");
 
     const acp = changeProjectCreationType(options, { ...general, modelKey: "other-model" }, "acp");
-    expect(acp.acpBridgeId).toBe("claude");
-    expect(buildProjectCreateRequest(options, { ...acp, acpBridgeId: "codex" }, "/project")).toEqual({
+    expect(acp.engineId).toBe("claude/agent");
+    expect(buildProjectCreateRequest(options, { ...acp, engineId: "codex/agent" }, "/project")).toEqual({
       isProject: true,
       definition: {
-        mode: "CODER",
-        icon: { name: "coder" },
         engine: "acp",
-        runtimeConfig: { workspaceRoot: "/project", acpBridgeId: "codex" },
+        runtimeConfig: { workspaceRoot: "/project", engineId: "codex/agent" },
       },
     });
-    expect(projectCreationProblem(options, { ...acp, acpBridgeId: "" }, "/project")).toBe(
-      "acpBridgeRequired",
+    expect(projectCreationProblem(options, { ...acp, engineId: "" }, "/project")).toBe(
+      "engineRequired",
     );
     options.types[3].available = false;
     expect(projectCreationProblem(options, acp, "/project")).toBe("typeUnavailable");

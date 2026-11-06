@@ -4,6 +4,7 @@ import { dispatchDesktopAwaitingDigit, DESKTOP_AWAITING_DIGIT_MESSAGE_TYPE } fro
 import React, { act } from "react";
 import { createRoot, Root } from "react-dom/client";
 import { QuestionDialog } from "./index";
+import { reduceActiveAwaiting } from "@/features/tools/lib/awaitingRuntime";
 import { AwaitingShell } from "@/features/composer/components/AwaitingShell";
 import { AIAwaitQuestionType } from "@/shared/contracts/agentEvents";
 import type { QuestionActiveAwaiting } from "@/features/tools/lib/toolsState";
@@ -165,4 +166,17 @@ test("sidebar single-choice digit submits through the same question handler", as
   });
   await settle(); expect(submit).toHaveBeenCalledTimes(1);
   expect(submit.mock.calls[0][0]).toMatchObject({ runId: "run", awaitingId: "ask" });
+});
+
+
+test("a question event submits the existing option value without ACP metadata", async () => {
+  const awaiting = reduceActiveAwaiting(null, {
+    type: "awaiting.ask", runId: "run", awaitingId: "ask", mode: "question",
+    questions: [{id:"choice",question:"Choose",type:"select",options:[{label:"OK",value:"opaque-value"}]}],
+  });
+  await render(awaiting as QuestionActiveAwaiting); await settle();
+  await act(async () => checkboxes()[0].closest("label")!.click()); await settle();
+  const button = Array.from(host.querySelectorAll("button")).find(item => item.textContent?.includes("approvalDialog.action.submit"))!;
+  await act(async () => button.click());
+  expect(submit).toHaveBeenCalledWith({runId:"run",awaitingId:"ask",params:[{id:"choice",answer:"opaque-value"}]});
 });

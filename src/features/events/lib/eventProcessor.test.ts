@@ -1965,3 +1965,9 @@ for (const mode of ["live", "replay"] as const) {
  expect(state.timelineOrder.filter(id=>id==="awaiting_answer_child_ask")).toHaveLength(1);
  });
 }
+test('backend approval history uses the existing read-only answer representation',()=>{
+ const {buildAwaitingAnswerEnvelope}=require('./processors/eventProcessorAwaiting');
+ const answer=buildAwaitingAnswerEnvelope({type:'awaiting.answer',runId:'r',awaitingId:'a',mode:'approval',status:'answered',approvals:[{id:'approval-1',description:'Edit file',decision:'approve'}]});
+ expect(answer).toMatchObject({status:'answered'});
+ expect(JSON.stringify(answer)).not.toContain('optionId');
+});

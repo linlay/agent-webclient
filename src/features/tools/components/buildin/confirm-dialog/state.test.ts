@@ -119,6 +119,12 @@ describe("confirm dialog state helpers", () => {
     ).toBeNull();
   });
 
+  it("keeps the existing required-answer behavior for text questions", () => {
+    const question = { id: "note", type: AIAwaitQuestionType.Text, question: "Note" };
+    expect(getAwaitingAnswerError(question, undefined)).not.toBeNull();
+    expect(getAwaitingAnswerError(question, {id:"note",answer:"ok"})).toBeNull();
+  });
+
   it("validates date and datetime answers with exact formats", () => {
     expect(
       getAwaitingAnswerError(

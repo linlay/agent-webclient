@@ -158,3 +158,57 @@ it('restores the New Chat upload identity with references after history uploads,
     expect(actions.sendReferences).toEqual([]);
   } finally { act(() => root.unmount()); }
 });
+
+it.each([false, true])('restores image and skill submissions without duplication (new edits: %s)', async (edited) => {
+  (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
+  upload.mockReset();
+  upload.mockImplementation(async ({ filename }: any) => ({ data: {
+    chatId: 'upload-chat',
+    upload: { id: filename, type: 'file', name: filename, url: 'resource://' + filename, mimeType: 'image/png' },
+  } }));
+  let state = createInitialState();
+  let actions!: ReturnType<typeof useComposerAttachments>;
+  let dispatch!: React.Dispatch<any>;
+  const Harness = () => {
+    const [current, send] = React.useReducer(appReducer, state);
+    state = current;
+    dispatch = send;
+    actions = useComposerAttachments({ dispatch: send, state: current, mainChatRunning: false, isFrontendActive: false, isVoiceMode: false });
+    React.useEffect(() => { send({ type: 'SET_COMPOSER_REFERENCES', references: actions.sendReferences }); }, [actions.sendReferences]);
+    return null;
+  };
+  const pasteImage = async (name: string) => {
+    await act(async () => {
+      actions.handleFilePaste({ clipboardData: { files: [new File(['png'], name, { type: 'image/png' })] }, preventDefault: jest.fn() } as any);
+    });
+  };
+  const root = createRoot(document.createElement('div'));
+  try {
+    act(() => root.render(React.createElement(Harness)));
+    await pasteImage('picture.png');
+    act(() => actions.setContextReferences('skill', [{ type: 'skill', id: 'design-a', name: 'Design A' }]));
+    const submitted = actions.sendReferences;
+    act(() => {
+      actions.clearComposerAttachments();
+      dispatch({ type: 'BEGIN_COMPOSER_SUBMISSION', draft: {
+        requestId: 'r', chatId: '', agentKey: 'kimi', message: 'make a poster',
+        uploadChatId: 'upload-chat', schemaVersion: 2, references: submitted,
+      } });
+    });
+    if (edited) await pasteImage('next.png');
+    act(() => dispatch({ type: 'SETTLE_COMPOSER_SUBMISSION', requestId: 'r', accepted: false }));
+    expect(state.failedSubmissions).toHaveLength(edited ? 1 : 0);
+    if (edited) act(() => dispatch({ type: 'RESTORE_FAILED_SUBMISSION', requestId: 'r' }));
+    expect(state.composerDraft).toBe('make a poster');
+    expect(actions.attachmentChatId).toBe('upload-chat');
+    expect(actions.sendReferences).toHaveLength(edited ? 3 : 2);
+    expect(actions.sendReferences).toEqual(expect.arrayContaining(submitted));
+    act(() => actions.setContextReferences('skill', [{ type: 'skill', id: 'design-b', name: 'Design B' }]));
+    expect(actions.sendReferences).toEqual(expect.arrayContaining([submitted[0], { type: 'skill', id: 'design-b', name: 'Design B' }]));
+    expect(actions.sendReferences).toHaveLength(edited ? 3 : 2);
+    act(() => actions.setContextReferences('skill', []));
+    expect(actions.sendReferences).toHaveLength(edited ? 2 : 1);
+    if (edited) act(() => actions.handleRemoveAttachment(actions.attachments.find(item => item.name.startsWith('next_'))!.id));
+    expect(actions.sendReferences).toEqual([submitted[0]]);
+  } finally { act(() => root.unmount()); }
+});

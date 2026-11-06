@@ -7,19 +7,16 @@ export function workspaceNameFromPath(path: string): string {
 
 export function buildCoderAgentCreateRequest(
   workspaceDir: string,
-  options: { name?: string; acpBridgeId?: string } = {},
+  options: { name?: string } = {},
 ) {
   const name = String(options.name || "").trim();
   const runtimeConfig: Record<string, unknown> = { workspaceRoot: workspaceDir };
-  if (options.acpBridgeId) runtimeConfig.acpBridgeId = options.acpBridgeId;
   return {
     isProject: true,
     definition: {
       ...(name ? { name } : {}),
       mode: "CODER",
       icon: { name: "coder" },
-      // Platform never infers the engine from acpBridgeId; it must be explicit.
-      ...(options.acpBridgeId ? { engine: "acp" } : {}),
       runtimeConfig,
     },
   };

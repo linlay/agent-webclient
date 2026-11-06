@@ -69,7 +69,7 @@ const MODE_LABEL: Record<string, string> = {
 
 function normalizeModeKey(value: string): string {
   const upper = value.trim().toUpperCase();
-  if (upper === "ACP-PROXY" || upper === "ACP_PROXY" || upper === "PROXY")
+  if (upper === "PROXY")
     return "PROXY";
   return upper;
 }

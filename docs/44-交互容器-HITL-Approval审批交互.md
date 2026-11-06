@@ -40,3 +40,7 @@ Approval awaiting 用于命令、规则或高风险动作审批。前端支持 a
 - `../src/features/tools/components/buildin/approval-dialog/state.ts`
 - `../src/features/tools/lib/protocol.ts`
 - `../src/features/events/lib/processors/eventProcessorAwaiting.ts`
+
+## ACP 外部权限审批
+
+ACP 与 Native 都使用现有 ApprovalDialog。WebClient 只读取标准 approvals/decision；原始 optionId、kind 与 RPC outcome 不进入前端。目标与授权范围由适配层填入已有 description/command；不创建外部专用卡片，不替外部引擎授予 Native 规则权限。历史仍只读，重复提交沿用原有保护。

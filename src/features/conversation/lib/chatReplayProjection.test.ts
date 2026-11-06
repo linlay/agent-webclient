@@ -232,3 +232,9 @@ it("projects a large multi-run chat within the history loading budget", () => {
   expect(result.state.timelineOrder).toHaveLength(events.length);
   expect(elapsedMs).toBeLessThan(4_000);
 }, 30_000);
+
+test('historical backend approval is never actionable without an authoritative waiting item',()=>{
+ const replay=buildChatReplayProjection('chat',{events:[{type:'awaiting.ask',chatId:'chat',runId:'r',awaitingId:'a',mode:'approval',approvals:[{id:'approval-1',description:'Tool',command:'write file',options:[{decision:'approve'}]}],timestamp:EPOCH}],awaiting:null});
+ expect(replay.state.activeAwaiting).toBeNull();
+ expect(replay.state.pendingAwaitings).toEqual([]);
+});

@@ -1,0 +1,53 @@
+.notice {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 32px;
+  min-width: 0;
+  max-width: 100%;
+  white-space: nowrap;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 0 4px;
+}
+
+.label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.status .icon,
+.status .spinner {
+  font-size: 14px;
+  width: 14px;
+  height: 14px;
+  flex: 0 0 14px;
+}
+
+.pending {
+  animation: reveal 0s 300ms both;
+}
+
+.spinner {
+  animation: rotate 1s linear infinite;
+}
+
+@keyframes reveal {
+  from { visibility: hidden; }
+  to { visibility: visible; }
+}
+
+@keyframes rotate {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spinner { animation: none; }
+}

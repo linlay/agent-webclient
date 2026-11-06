@@ -1450,14 +1450,14 @@ describe("registerAttachRunListener", () => {
 		cleanup();
 	});
 
-	it("schedules Chat recovery when Platform no longer retains the attach cursor", async () => {
+	it.each(["seq_expired", "run_control_identity_unavailable"])("schedules Chat recovery when Platform rejects the old attach: %s", async code => {
 		const cursorRecovery = { expired: jest.fn() };
 		const { streams, activeAttachRef, cleanup } = setupAttachTest(undefined, cursorRecovery);
 		mockWindow.dispatchEvent(new MockCustomEvent("agent:attach-run", {
     detail: { chatId: "chat_1", runId: "run_1", agentKey: "agent_alpha", lastSeq: 2 }
 		}));
 		await Promise.resolve();
-		streams[0].options.onError(Object.assign(new Error("SEQ_EXPIRED"), { code: "seq_expired" }));
+		streams[0].options.onError(Object.assign(new Error(code), { code }));
 		await Promise.resolve();
 		await Promise.resolve();
 		expect(activeAttachRef.current).toBeNull();

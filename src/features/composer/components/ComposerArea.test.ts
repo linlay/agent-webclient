@@ -1,3 +1,7 @@
+/**
+ * @jest-environment jsdom
+ * @jest-environment-options {"customExportConditions":["node","node-addons"]}
+ */
 jest.mock("@/features/composer/hooks/useDesktopAwaitingDigit", () => ({useDesktopAwaitingDigit: jest.fn()}));
 jest.mock("@/features/composer/hooks/useDesktopNativeShare", () => ({
   useDesktopNativeShare: () => ({ pending: false, busy: false, blocked: false, error: "", retry: jest.fn(), complete: async () => true }),
@@ -9,20 +13,33 @@ jest.mock("@/features/composer/hooks/useAgentAvailability", () => ({
 import { interactionDefaults } from "@/shared/contracts/interaction";
 import * as selectedTextHooks from "@/features/selection/hooks/useSelectedTextFragments";
 import { createSelectedTextFragment, selectedTextReferenceToAttachment } from "@/features/selection/lib/selectedTextReference";
-import React from "react";
+import React, { act } from "react";
+import { randomUUID } from "node:crypto";
+beforeAll(() => { Object.defineProperty(crypto, "randomUUID", {value: randomUUID, configurable: true}); });
+afterAll(() => { Reflect.deleteProperty(crypto, "randomUUID"); });
+import { createRoot } from "react-dom/client";
+import { appReducer } from "@/app/state/reducer";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createInitialState } from "@/app/state/state";
 import { ComposerArea } from "@/features/composer/components/ComposerArea";
+import * as engineSessionHooks from "@/features/composer/hooks/useEngineSession";
+
+jest.mock("@/shared/data", () => ({ ...jest.requireActual("@/shared/data"), uploadFile: jest.fn() }));
+jest.mock("@/shared/data/api/requests/agentEngine", () => ({ previewEngineConfig: jest.fn().mockResolvedValue({data: {engineId: "plugin/kimi", configOptions: []}}), prepareEngineSession: jest.fn(), configureEngineSession: jest.fn(), getEngineAuthStatus: jest.fn(), startEngineAuth: jest.fn(), cancelEngineAuth: jest.fn() }));
 
 const mockAntdMessage = {
   warning: jest.fn(),
   error: jest.fn(),
 };
 
+jest.mock("@/features/terminal/components/TerminalPane", () => ({ TerminalPane: () => null }));
+
 jest.mock("@/shared/icons/agent", () => ({ AgentIcon: () => React.createElement("span") }));
 
 jest.mock("antd", () => ({
   Input: () => React.createElement("input"),
+  Button: ({children, disabled}: React.PropsWithChildren<{disabled?: boolean}>) => React.createElement("button", {disabled}, children),
+  Modal: ({open, children}: React.PropsWithChildren<{open?: boolean}>) => open ? React.createElement("div", {role: "dialog"}, children) : null,
   App: {
     useApp: () => ({ message: mockAntdMessage }),
   },
@@ -121,6 +138,9 @@ const mockHostRequiredSkills = {
   skills: [] as string[],
 };
 const mockHandleFileDrop = jest.fn();
+let mockUseRealAttachments = false;
+const mockCloseMention = jest.fn();
+const mockSetSlashDismissed = jest.fn();
 const mockComposerAttachmentsState = {
   sendAttachmentMeta: [] as unknown[],
   sendReferences: [] as unknown[],
@@ -183,7 +203,9 @@ jest.mock("@/features/composer/hooks/useSpeechInput", () => ({
 }));
 
 jest.mock("@/features/composer/hooks/useComposerAttachments", () => ({
-  useComposerAttachments: () => ({
+  useComposerAttachments: (input: unknown) => mockUseRealAttachments
+    ? jest.requireActual("@/features/composer/hooks/useComposerAttachments").useComposerAttachments(input)
+    : ({
     attachmentChatId: "",
     attachments: [],
     canCaptureDesktopScreenshot: false,
@@ -237,7 +259,7 @@ jest.mock("@/features/composer/hooks/useComposerLifecycle", () => ({
 
 jest.mock("@/features/composer/hooks/useComposerMention", () => ({
   useComposerMention: () => ({
-    closeMention: jest.fn(),
+    closeMention: mockCloseMention,
     selectMentionByIndex: jest.fn(),
     updateMentionSuggestions: jest.fn(),
   }),
@@ -260,6 +282,7 @@ jest.mock("@/features/composer/hooks/useComposerSend", () => ({
 jest.mock("@/features/composer/hooks/useDesktopSelectionActions", () => ({
   useDesktopSelectionActions: () => ({ handleAction: jest.fn() }),
 }));
+jest.mock("@/features/selection/components/SelectionAnnotations", () => ({ SelectionAnnotations: () => null }));
 jest.mock("@/features/selection/components/BrowserSelectionToolbar", () => ({ BrowserSelectionToolbar: () => null }));
 jest.mock("@/features/composer/components/BrowserSelectionPanels", () => ({ BrowserSelectionPanels: () => null }));
 
@@ -269,7 +292,7 @@ const mockUseComposerSlash = jest.fn(
     refetchSlashSkills: jest.fn(),
     selectSlashItem: jest.fn(),
     setActiveSlashIndex: jest.fn(),
-    setSlashDismissed: jest.fn(),
+    setSlashDismissed: mockSetSlashDismissed,
     showSlashPalette: false,
     slashCommands: [],
     slashItems: [],
@@ -329,6 +352,7 @@ describe("ComposerArea", () => {
   const originalLocalStorage = globalWithStorage.localStorage;
 
   beforeEach(() => {
+    mockUseRealAttachments = false;
     mockAgentAvailability.status = "available";
     mockHandleFileDrop.mockClear();
     globalWithStorage.localStorage = {
@@ -494,6 +518,30 @@ describe("ComposerArea", () => {
     expect(mockComposerInputProps[0].disabled).toBe(true);
     expect(mockComposerActionsProps[0].interactionDisabled).toBe(true);
     expect(mockComposerActionsProps[0].sendDisabled).toBe(true);
+  });
+
+  it("activates engine configuration when the selected Chat is ready without composer interaction", () => {
+    const probe = jest.spyOn(engineSessionHooks, "useEngineSession");
+    mockResolveCurrentWorkerSummary.mockReturnValue({
+      type: "agent", sourceId: "project", name: "Project", raw: {engine: "acp", meta: {engineId: "plugin/agent"}},
+    });
+    const state = createInitialState();
+    state.chatId = "chat_new";
+    state.chatTransition = {
+      seq: 1, sourceChatId: "chat_old", targetChatId: "chat_new", phase: "loading",
+      kind: "history-switch", displayMode: "blocking", focusComposerOnReady: false, error: "",
+    };
+    try {
+      useAppState.mockReturnValue(state);
+      useAppContext.mockReturnValue({stateRef: {current: state}});
+      renderToStaticMarkup(React.createElement(ComposerArea));
+      expect(probe).toHaveBeenLastCalledWith(expect.objectContaining({enabled: false, active: false, chatId: "chat_new"}));
+      const ready = {...createInitialState(), chatId: "chat_new"};
+      useAppState.mockReturnValue(ready);
+      useAppContext.mockReturnValue({stateRef: {current: ready}});
+      renderToStaticMarkup(React.createElement(ComposerArea));
+      expect(probe).toHaveBeenLastCalledWith(expect.objectContaining({enabled: true, active: true, chatId: "chat_new"}));
+    } finally { probe.mockRestore(); }
   });
 
   it("keeps runtime permission controls visible while awaiting approval", () => {
@@ -681,19 +729,11 @@ describe("ComposerArea", () => {
   });
 
   it("mounts slash palette popover outside clipped composer containers", () => {
-    const originalDocument = globalWithStorage.document;
-    const body = {};
-    globalWithStorage.document = { body };
+    const body = document.body;
 
     renderToStaticMarkup(React.createElement(ComposerArea));
 
     expect(mockComposerPopoverProps[0].getPopupContainer()).toBe(body);
-
-    if (originalDocument) {
-      globalWithStorage.document = originalDocument;
-      return;
-    }
-    delete globalWithStorage.document;
   });
   it("executes the component effects without losing choices while details are pending", () => {
     const state = {...createInitialState(), chatId: "chat", planningMode: true, editingMode: true};
@@ -742,6 +782,81 @@ describe("ComposerArea", () => {
     } finally {
       spy.mockRestore();
     }
+  });
+
+  it.each(["", "previous-upload-chat"])("uses one Chat for image upload, engine preparation and send (restored=%s)", async (uploadChatId) => {
+    (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
+    const descriptor = Object.getOwnPropertyDescriptor(crypto, "randomUUID");
+    Object.defineProperty(crypto, "randomUUID", {configurable:true,value:()=>"reserved-engine-chat"});
+    mockUseRealAttachments = true;
+    const worker = {type:"agent", sourceId:"kimi", relatedChats:[], raw:{engine:"acp", meta:{engineId:"plugin/kimi"}, interactionConfig:interactionDefaults("CODER")}};
+    mockResolveCurrentWorkerSummary.mockReturnValue(worker);
+    let state = {...createInitialState(), workerSelectionKey:"agent:kimi", pendingNewChatAgentKey:"kimi", composerUploadChatId:uploadChatId};
+    const upload = jest.requireMock("@/shared/data").uploadFile as jest.Mock;
+    upload.mockReset();
+    upload.mockImplementation(async ({chatId,filename}: any) => ({data:{chatId:chatId || "server-upload-chat", upload:{type:"file",name:filename,url:"@chat/"+filename,mimeType:"image/png",sizeBytes:843408}}}));
+    const prepare = jest.requireMock("@/shared/data/api/requests/agentEngine").prepareEngineSession as jest.Mock;
+    prepare.mockReset();
+    prepare.mockImplementation(async ({chatId}: any) => ({data:{chatId,engineId:"plugin/kimi",preparationId:"prepared",configRevision:1,configOptions:[]}}));
+    function Harness() {
+      const [current, dispatch] = React.useReducer(appReducer, state);
+      state=current;
+      useAppState.mockReturnValue(current); useAppDispatch.mockReturnValue(dispatch);
+      useAppContext.mockReturnValue({stateRef:{current}});
+      return React.createElement(ComposerArea);
+    }
+    const root = createRoot(document.createElement("div"));
+    try {
+      await act(async () => root.render(React.createElement(Harness)));
+      const stack = mockComposerPopoverProps.at(-1)!.children;
+      const dropZone = React.Children.toArray(stack.props.children)
+        .find((child: any) => child.props?.onDrop) as React.ReactElement<React.HTMLAttributes<HTMLDivElement>>;
+      await act(async () => dropZone.props.onDrop!({
+        preventDefault: jest.fn(), stopPropagation: jest.fn(),
+        dataTransfer: { types: ["Files"], files: [new File([new Uint8Array(843408)], "图片.png", {type: "image/png"})] },
+      } as any));
+      const send = mockComposerSendInputs.at(-1)!;
+      await act(async () => { expect(await (send.prepareSend as () => Promise<boolean>)()).toBe(true); });
+      const sentChatId = mockComposerSendInputs.at(-1)!.attachmentChatId;
+      expect(upload).toHaveBeenCalledWith(expect.objectContaining({chatId:sentChatId}));
+      expect(state.composerUploadChatId).toBe(sentChatId);
+      expect(prepare).toHaveBeenLastCalledWith({chatId:sentChatId,agentKey:"kimi"}, expect.any(AbortSignal));
+      if(uploadChatId) expect(sentChatId).toBe(uploadChatId);
+    } finally {
+      act(() => root.unmount());
+      if (descriptor) Object.defineProperty(crypto,"randomUUID",descriptor); else Reflect.deleteProperty(crypto,"randomUUID");
+    }
+  });
+
+  it("reselects skills without losing the restored image or resurrecting the previous skill", () => {
+    (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
+    mockUseRealAttachments = true;
+    const worker = {type:"agent", sourceId:"kimi", relatedChats:[], raw:{mode:"CODER", interactionConfig:interactionDefaults("CODER")}};
+    mockResolveCurrentWorkerSummary.mockReturnValue(worker);
+    const image = {type:"file",id:"picture",name:"picture.png",url:"resource://picture",mimeType:"image/png"};
+    let state = {...createInitialState(), workerSelectionKey:"agent:kimi", pendingNewChatAgentKey:"kimi"};
+    let dispatch!: React.Dispatch<any>;
+    const Harness = () => {
+      const [current, send] = React.useReducer(appReducer, state);
+      state = current; dispatch = send;
+      useAppState.mockReturnValue(current);
+      useAppDispatch.mockReturnValue(send);
+      useAppContext.mockReturnValue({stateRef:{current}});
+      return React.createElement(ComposerArea);
+    };
+    const root = createRoot(document.createElement("div"));
+    const references = () => mockComposerSendInputs.at(-1)!.sendReferences as any[];
+    try {
+      act(() => root.render(React.createElement(Harness)));
+      act(() => dispatch({type:"SET_RESTORED_STEER_REFERENCES",chatId:"",references:[image,{type:"skill",id:"design-a",name:"Design A"}]}));
+      expect(references()).toHaveLength(2);
+      act(() => mockComposerActionsProps.at(-1)!.onSelectSkill({id:"design-b",name:"Design B"}));
+      expect(references()).toEqual(expect.arrayContaining([image,expect.objectContaining({type:"skill",id:"design-b"})]));
+      expect(references()).toHaveLength(2);
+      act(() => mockComposerActionsProps.at(-1)!.onSelectSkills([{id:"design-c",name:"Design C"}],true,"design-package"));
+      expect(references()).toEqual(expect.arrayContaining([image,expect.objectContaining({type:"skill",id:"design-c"})]));
+      expect(references().filter(ref=>ref.type==="skill").map(ref=>ref.id)).not.toContain("design-a");
+    } finally { act(() => root.unmount()); }
   });
 
 });

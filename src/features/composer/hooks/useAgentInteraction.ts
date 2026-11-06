@@ -22,6 +22,7 @@ export function useAgentInteraction(worker: CurrentWorkerSummary | null): Intera
           agent.key === key ? {
             ...agent,
             interactionConfig: config,
+            engine: data.engine,
             modelKey: data.modelKey,
             reasoningEffort: data.reasoningEffort,
             serviceTier: data.serviceTier,

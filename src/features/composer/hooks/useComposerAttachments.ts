@@ -13,6 +13,8 @@ import {
   type ComposerAttachment,
   type ComposerContextReferenceInput,
   createComposerContextAttachment,
+  composerReferenceIdentity,
+  mergeComposerReferences,
   createPendingComposerAttachments,
   getComposerAttachmentNameKey,
   keepLatestFilesByName,
@@ -88,7 +90,16 @@ export function useComposerAttachments(input: UseComposerAttachmentsInput) {
     [restoredReferences],
   );
   const attachments = useMemo(
-    () => [...(sameAttachmentScope ? localAttachments : []), ...restoredAttachments],
+    () => {
+      const seen = new Set<string>();
+      return [...(sameAttachmentScope ? localAttachments : []), ...restoredAttachments].filter(attachment => {
+        if (!attachment.references.length) return true;
+        const key = JSON.stringify(attachment.references.map(composerReferenceIdentity));
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+    },
     [localAttachments, restoredAttachments, sameAttachmentScope],
   );
   const hasFailedAttachments = attachments.some(attachment => attachment.status === "error");
@@ -168,6 +179,8 @@ export function useComposerAttachments(input: UseComposerAttachmentsInput) {
   );
 
   const clearComposerAttachments = useCallback(() => {
+    // Clear the draft projection before BEGIN_COMPOSER_SUBMISSION captures its edit version.
+    dispatch({ type: "SET_COMPOSER_REFERENCES", references: [] });
     if (restoredReferences?.length) {
       dispatch({ type: "SET_RESTORED_STEER_REFERENCES", chatId: state.chatId, references: [] });
     }
@@ -215,7 +228,7 @@ export function useComposerAttachments(input: UseComposerAttachmentsInput) {
     dispatch({type: "TOUCH_COMPOSER"});
     dispatch({type:"SET_RESTORED_STEER_REFERENCES",chatId:state.chatId,references:(restoredReferences || []).filter(ref => (ref as {type?:string}).type !== type)});
     setAttachments(current => {
-      const selected = [...current.filter(item => item.type === type).map(item => item.references[0] as ComposerContextReferenceInput), ...(restoredReferences || []).filter(ref => (ref as {type?:string}).type === type) as ComposerContextReferenceInput[]];
+      const selected = mergeComposerReferences(current.filter(item => item.type === type).flatMap(item => item.references), (restoredReferences || []).filter(ref => (ref as {type?:string}).type === type)) as ComposerContextReferenceInput[];
       const next = typeof references === "function" ? references(selected) : references;
       return [...current.filter(item => item.type !== type), ...next.map(createComposerContextAttachment)];
     });
@@ -223,11 +236,13 @@ export function useComposerAttachments(input: UseComposerAttachmentsInput) {
 
   const handleRemoveAttachment = useCallback(
     (attachmentId: string) => {
+      const removed = attachmentsRef.current.find(item => item.id === attachmentId);
+      if (!removed) return;
       dispatch({ type: "TOUCH_COMPOSER" });
-      if (attachmentId.startsWith("restored-steer:")) {
-        const index = Number(attachmentId.slice("restored-steer:".length));
-        dispatch({ type: "SET_RESTORED_STEER_REFERENCES", chatId: state.chatId, references: (restoredReferences || []).filter((_, i) => i !== index) });
-        return;
+      const removedKeys = new Set(removed.references.map(composerReferenceIdentity));
+      const remainingRestored = (restoredReferences || []).filter(ref => !removedKeys.has(composerReferenceIdentity(ref)));
+      if (remainingRestored.length !== (restoredReferences?.length || 0)) {
+        dispatch({ type: "SET_RESTORED_STEER_REFERENCES", chatId: state.chatId, references: remainingRestored });
       }
       setAttachments((current) => {
         const removedAttachment = current.find(
@@ -247,7 +262,7 @@ export function useComposerAttachments(input: UseComposerAttachmentsInput) {
         const next = current.filter(
           (attachment) => attachment.id !== attachmentId,
         );
-        if (next.length === 0 && !String(state.chatId || "").trim()) {
+        if (next.length === 0 && remainingRestored.length === 0 && !String(state.chatId || "").trim()) {
           setAttachmentChatId("");
         }
         return next;

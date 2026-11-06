@@ -3,6 +3,7 @@ import { Alert, Button, Checkbox, Flex, Input, Modal, Radio, Select, Spin } from
 import type { AgentProjectCreateRuntime } from "@/features/agents/hooks/useAgentProjectCreate";
 import {
   findProjectCreationType,
+  projectEngineStatus,
   resolveProjectCreationModel,
 } from "@/features/agents/lib/projectCreation";
 import type { AgentCreationGroupOption, AgentCreationTypeKey } from "@/shared/data";
@@ -52,7 +53,7 @@ export const AgentProjectCreateDialog: React.FC<{
   const { creationOptions: options, selection } = runtime;
   const type = options && selection ? findProjectCreationType(options, selection.typeKey) : undefined;
   const effectiveModelKey = options && selection ? resolveProjectCreationModel(options, selection) : "";
-  const bridges = type?.acpBridges ?? [];
+  const engines = type?.engineDirectory?.engines ?? [];
 
   return (
     <Modal
@@ -69,7 +70,7 @@ export const AgentProjectCreateDialog: React.FC<{
           key="create"
           type="primary"
           loading={runtime.submitting}
-          disabled={!options || !selection || Boolean(runtime.problem)}
+          disabled={!options || !selection || Boolean(runtime.problem) || runtime.optionsLoading || Boolean(runtime.optionsError)}
           onClick={runtime.submit}
         >
           {runtime.submitting
@@ -172,12 +173,16 @@ export const AgentProjectCreateDialog: React.FC<{
               <div>
                 <label style={labelStyle}>{t("leftSidebar.createProject.acpEngine")}</label>
                 <Select
-                  value={selection.acpBridgeId || undefined}
-                  disabled={runtime.submitting || bridges.length === 0}
+                  value={selection.engineId || undefined}
+                  disabled={runtime.submitting || runtime.optionsLoading}
                   style={{ width: "100%" }}
-                  options={bridges.map((bridge) => ({ value: bridge.id, label: bridge.id }))}
+                  options={[
+                    ...(selection.engineId && !engines.some(engine => engine.engineId === selection.engineId)
+                      ? [{value: selection.engineId, label: `${selection.engineId} — ${t("leftSidebar.createProject.engineUnavailable")}`, disabled: true}] : []),
+                    ...engines.map(engine => ({value: engine.engineId, label: `${engine.engineId} — ${t(`leftSidebar.createProject.engineState.${projectEngineStatus(engine)}`)}`, disabled: !engine.enabled || engine.syncState !== "applied" || engine.dependencyState !== "ready"})),
+                  ]}
                   placeholder={t("leftSidebar.createProject.noAcpProxy")}
-                  onChange={runtime.setAcpBridgeId}
+                  onChange={runtime.setEngineId}
                 />
               </div>
             ) : null}
@@ -259,6 +264,8 @@ export const AgentProjectCreateDialog: React.FC<{
             </div>
           </>
         )}
+        {options && runtime.optionsError ? <Alert type="error" message={runtime.optionsError} action={<Button onClick={runtime.reloadOptions}>{t("leftSidebar.createProject.optionsRetry")}</Button>} /> : null}
+        {type && !type.available ? <Alert type="warning" message={type.unavailableReason} /> : null}
         {runtime.error ? <Alert type="error" showIcon message={runtime.error} /> : null}
       </Flex>
     </Modal>

@@ -15,7 +15,7 @@ export interface AgentEditorModelOption extends ModelMenuOption {
 }
 
 // Native menu entries only carry presentation fields and optional service tiers.
-// ACP entries retain their discovery metadata.
+// The native editor shares this type and may include richer model metadata.
 export interface CoderModelOption extends ModelMenuOption {
   modelId?: string;
   protocol?: string;

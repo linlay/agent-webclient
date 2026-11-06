@@ -93,7 +93,7 @@ describe("resolveTerminalAvailability", () => {
   it("supports ACP agents with the same terminal logic", () => {
     const availability = resolveTerminalAvailability({
       type: "agent",
-      raw: { mode: "CODER", meta: { acpBridgeId: "codex" } },
+      raw: { mode: "CODER", meta: { engineId: "codex/agent" } },
       row: { workspaceDir: "/Users/demo/project" },
     } as never, "/Users/demo/project");
 

@@ -889,3 +889,15 @@ test('ask_user_form retains declarative HTML and prefill inside form data', () =
  const asked = reduceActiveAwaiting(null, {type:'awaiting.ask',runId:'run',awaitingId:'form',mode:'form',view:{source:'builtin',key:'ask_user_form',renderer:ViewRendererEnum.HTML},form});
  expect(asked).toMatchObject({mode:'form',viewKey:'ask_user_form',forms:[{id:'form',title:'Profile',form:form.data}]});
 });
+
+test('backend approvals use the existing approval state and answer contract', () => {
+ const asked=reduceActiveAwaiting(null,{type:'awaiting.ask',runId:'run',awaitingId:'await',agentKey:'project',mode:'approval',approvals:[{id:'approval-1',description:'Edit file',command:'write file',options:[{decision:'approve'}]}]});
+ expect(asked?.mode).toBe('approval');
+ expect(asked).toMatchObject({approvals:[{id:'approval-1',options:[{decision:'approve'}]}]});
+ expect(reduceActiveAwaiting(asked,{type:'awaiting.answer',runId:'run',awaitingId:'await',mode:'approval',status:'answered',approvals:[{id:'approval-1',decision:'approve'}]})?.resolutionReason).toBe('remote_answered');
+});
+
+test('external questions keep enum IDs distinct from translated labels',()=>{
+ const asked=reduceActiveAwaiting(null,{type:'awaiting.ask',runId:'run',awaitingId:'q',mode:'question',questions:[{id:'choice',type:'select',question:'Choose',options:[{value:'Exact-ID',label:'显示名称'}]}]});
+ expect(asked?.mode==='question' && asked.questions[0].options?.[0].value).toBe('Exact-ID');
+});

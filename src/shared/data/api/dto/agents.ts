@@ -1,3 +1,5 @@
+import type { EngineDirectory } from "@/shared/data/api/dto/agentEngine";
+
 import type {
   CoderModelOptionsResponse,
   QueryReasoningEffort,
@@ -37,6 +39,7 @@ export interface AgentToolBinding {
 }
 
 export interface AgentDetailResponse {
+  engine?: "native" | "acp";
   teamConfig?: { members: string[]; maxParallel?: number };
   modelKey?: string;
   reasoningEffort?: QueryReasoningEffort;
@@ -187,7 +190,8 @@ export interface AgentCreationTypeOption {
   groupsUnsupportedReason?: string;
   baseTools: string[];
   defaultGroups: string[];
-  acpBridges?: Array<{ id: string }>;
+  engineDirectory?: EngineDirectory;
+  unavailableCode?: string;
 }
 
 export interface AgentCreationMember {

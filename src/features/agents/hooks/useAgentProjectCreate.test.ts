@@ -1,7 +1,8 @@
 /** @jest-environment jsdom */
+import { useOptionalRealtimeTransport } from "@/features/transport/hooks/useRealtimeTransport";
 import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
-import { loadAgentCreationOptions, listHostDirectories } from "@/shared/data";
+import { createAgent, loadAgentCreationOptions, listHostDirectories } from "@/shared/data";
 import { listKBases } from "@/shared/data/api/requests/kbases";
 import { canUseDesktopFileSystemBridge, selectWorkspaceDirectory } from "@/shared/data/desktop/desktopFileSystem";
 import {
@@ -20,6 +21,7 @@ jest.mock("@/shared/data/desktop/desktopFileSystem", () => ({
   canUseDesktopFileSystemBridge: jest.fn(),
   selectWorkspaceDirectory: jest.fn(),
 }));
+jest.mock("@/features/transport/hooks/useRealtimeTransport", () => ({useOptionalRealtimeTransport: jest.fn(() => null)}));
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
 
 type Deferred = { resolve: (path: string) => void; reject: (error: Error) => void };
@@ -58,6 +60,37 @@ describe("useAgentProjectCreate host directory browser", () => {
   afterEach(() => {
     act(() => root.unmount());
     jest.resetAllMocks();
+  });
+
+  it("refreshes on directory push and reconnect, retaining a revoked selection and ignoring late responses", async () => {
+    let push!: () => void;
+    let status!: (value: string) => void;
+    jest.mocked(useOptionalRealtimeTransport).mockReturnValue({
+      getStatus: () => "connected",
+      subscribeStatus: (listener: typeof status) => { status=listener; return () => {}; },
+      push: {subscribe: (_: unknown, listener: typeof push) => {push=listener; return () => {}; }},
+    } as any);
+    await act(async () => root.render(React.createElement(Probe)));
+    const entry = {engineId:"codex/agent", enabled:true, syncState:"applied",dependencyState:"ready"};
+    const initial:any={types:[{key:"acp",available:true,defaultGroups:[],engineDirectory:{ready:true,revision:1,engines:[entry]}}],groups:[],models:[]};
+    jest.mocked(loadAgentCreationOptions).mockResolvedValue(initial);
+    await act(async () => runtime.reloadOptions());
+    await act(async () => {runtime.setType("acp");runtime.setWorkspaceDir("/project");});
+    expect(runtime.selection?.engineId).toBe("codex/agent");
+    const pending: Array<(value:any)=>void>=[];
+    jest.mocked(loadAgentCreationOptions).mockImplementation(()=>new Promise(resolve=>pending.push(resolve)));
+    await act(async () => push());
+    await act(async () => runtime.submit());
+    expect(createAgent).not.toHaveBeenCalled();
+    await act(async () => {status("reconnecting");status("connected");});
+    const fresh={...initial,types:[{...initial.types[0],engineDirectory:{ready:true,revision:3,engines:[]}}]};
+    await act(async () => pending[1](fresh));
+    await act(async () => pending[0](initial));
+    expect(runtime.creationOptions).toEqual(fresh);
+    expect(runtime.selection?.engineId).toBe("codex/agent");
+    expect(runtime.problem).toBe("engineUnavailable");
+    await act(async () => runtime.submit());
+    expect(createAgent).not.toHaveBeenCalled();
   });
 
   async function settle(index: number, outcome: "ok" | "fail", path = requests[index].path) {

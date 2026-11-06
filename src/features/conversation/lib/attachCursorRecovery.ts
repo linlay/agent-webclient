@@ -9,7 +9,9 @@ export const ATTACH_CURSOR_RECOVERY_DELAYS_MS = [2_000, 4_000, 8_000, 16_000, 30
 
 export function isAttachCursorExpired(cause: unknown): boolean {
 	const code = chatSurfaceReplayErrorCode(cause);
-	return code === "seq_expired" || code === "replay_required";
+	// A restarted Platform also loses the old in-memory control identity.
+	// Reload Chat through its normal authorization instead of retrying that Run.
+	return code === "seq_expired" || code === "replay_required" || code === "run_control_identity_unavailable";
 }
 
 export interface AttachCursorRecovery {

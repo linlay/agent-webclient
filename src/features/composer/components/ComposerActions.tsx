@@ -88,6 +88,7 @@ interface ComposerActionsProps extends Omit<
   interactionDisabled?: boolean;
   interruptDisabled?: boolean;
   statusNotice?: React.ReactNode;
+  renderSettings?: (compact: boolean, disabled: boolean) => React.ReactNode;
   canCaptureDesktopScreenshot: boolean;
   isCapturingDesktopScreenshot: boolean;
   modelOverride: QueryModelOverride;
@@ -137,6 +138,7 @@ const ComposerActionsPure: React.FC<
   interactionDisabled = false,
   interruptDisabled = interactionDisabled || isFrontendActive,
   statusNotice,
+  renderSettings,
   canCaptureDesktopScreenshot,
   isCapturingDesktopScreenshot,
   modelOverride,
@@ -412,7 +414,7 @@ const ComposerActionsPure: React.FC<
         </div>
         {isStreaming ? (
           <>
-            <QuerySettingsControls
+            {renderSettings ? renderSettings(compact, true) : <QuerySettingsControls
               interactionConfig={interactionConfig}
               accessLevel={accessLevel}
               defaultAccessLevel={defaultAccessLevel}
@@ -421,7 +423,7 @@ const ComposerActionsPure: React.FC<
               modelOverride={modelOverride}
               onAccessLevelChange={onAccessLevelChange}
               onModelOverrideChange={onModelOverrideChange}
-            />
+            />}
             <UiButton
               className={INTERRUPT_BUTTON_CLASS}
               id="interrupt-btn"
@@ -439,7 +441,7 @@ const ComposerActionsPure: React.FC<
           </>
         ) : !isVoiceMode ? (
           <>
-            <QuerySettingsControls
+            {renderSettings ? renderSettings(compact, interactionDisabled || isFrontendActive) : <QuerySettingsControls
               interactionConfig={interactionConfig}
               accessLevel={accessLevel}
               defaultAccessLevel={defaultAccessLevel}
@@ -448,7 +450,7 @@ const ComposerActionsPure: React.FC<
               modelOverride={modelOverride}
               onAccessLevelChange={onAccessLevelChange}
               onModelOverrideChange={onModelOverrideChange}
-            />
+            />}
             {voiceEnabled ? (
               <UiButton
                 className={`${VOICE_BUTTON_BASE_CLASS} ${voiceButtonStateClass}`}

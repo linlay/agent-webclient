@@ -63,6 +63,7 @@ type ComposerSendAttachmentMeta = {
 };
 
 interface UseComposerSendInput {
+  prepareSend?: () => Promise<boolean>;
   attachmentChatId: string;
   accessLevel?: QueryAccessLevel;
   clearComposerAttachments: () => void;
@@ -141,6 +142,9 @@ interface UseComposerSendInput {
 }
 
 export function useComposerSend(input: UseComposerSendInput) {
+  const latestDraft = useRef(input.inputValue);
+  latestDraft.current = input.inputValue;
+  const prepareSend = input.prepareSend;
   const {
     attachmentChatId,
     accessLevel,
@@ -478,7 +482,7 @@ export function useComposerSend(input: UseComposerSendInput) {
     }
   }, [dispatch, resolveCurrentOwner, runs, messageApi, stateRef, t]);
 
-  const handleSend = useCallback((directSteer = false) => {
+  const handleSend = useCallback(async (directSteer = false) => {
     directSteer = directSteer || Array.from(stateRef.current.timelineNodes.values()).some(node => node.runId === stateRef.current.runId && node.toolWait && node.status === "running" && !node.result);
     if (isAgentExecutionBlocked(stateRef.current)) return;
     if (isAwaitingActive || isVoiceMode) return;
@@ -504,6 +508,15 @@ export function useComposerSend(input: UseComposerSendInput) {
     }
     const currentState = stateRef.current || state;
     const activeChatId = String(currentState.chatId || "").trim();
+    if (prepareSend) {
+      const sourceAgent=resolveCurrentWorkerSummary(currentState)?.sourceId;
+      if (!(await prepareSend()) ||
+        latestDraft.current.trim() !== message ||
+        stateRef.current.chatId !== activeChatId ||
+        resolveCurrentWorkerSummary(stateRef.current)?.sourceId !== sourceAgent
+      ) return;
+    }
+
     const compactAction = parseCompactSlashInput(message);
     if (compactAction !== null) {
       if (!activeChatId) {
@@ -672,6 +685,7 @@ export function useComposerSend(input: UseComposerSendInput) {
       }),
     );
   }, [
+    prepareSend,
     attachmentChatId,
     accessLevel,
     clearComposerAttachments,

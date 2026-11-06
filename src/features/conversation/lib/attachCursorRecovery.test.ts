@@ -33,6 +33,8 @@ test("recognizes expired attach cursors from transport and platform errors", () 
   expect(isAttachCursorExpired({ code: "replay_required" })).toBe(true);
   expect(isAttachCursorExpired({ platformError: { code: "seq_expired" } })).toBe(true);
   expect(isAttachCursorExpired(new RealtimeTransportError("WS_DISCONNECTED", "disconnected"))).toBe(false);
+  expect(isAttachCursorExpired({ code: "run_control_identity_unavailable" })).toBe(true);
+  expect(isAttachCursorExpired({ code: "run_control_identity_mismatch" })).toBe(false);
   expect(isAttachCursorExpired(undefined)).toBe(false);
 });
 

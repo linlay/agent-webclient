@@ -1,6 +1,10 @@
 # API端点注册与DTO
 
 ## 当前状态
+
+ACP 引擎域已接入公共目录、配置预览、会话准备/配置与认证。消费类型归 `src/shared/data/api/dto/agentEngine.ts`，请求归 `src/shared/data/api/requests/agentEngine.ts`，Composer 状态归 `useEngineSession`；不建立专属 Schema、类型生成或跨仓同步流程。当前行为与验收见 [运行参数与外部会话](23-对话输入-运行参数模型与访问级别.md)，不依赖工作区计划。
+
+WebClient 只消费公共目录、配置、认证状态与业务 HITL，不持有管理秘密、可信交付根、RPC ID 或连接代次。模型和选项 ID/value 保持原样，外部权限沿用标准 approval 的 approve/reject 提交，上游 optionId 仅在 Platform 适配层映射；提问沿用 Question 容器。类型和正常/错误样例通过只读测试核对。
 接口端点集中注册在 `src/shared/data/api/endpoints.ts`，DTO 位于 `src/shared/data/api/dto/`，HTTP helper 位于 `src/shared/data/api/http.ts`，具体请求位于 `api/requests/`；`shared/data/index.ts` 提供公共入口，`routedClient.ts` 负责 HTTP/WS 路由。端点声明包含 key、path、method、transport、wsBackends、cache 和 payload 构造函数；所有 `auto` 端点必须显式声明支持 WS 的 backend。
 
 ## 核心职责
@@ -108,3 +112,7 @@ Node 应用启动受理后显示 starting，通过管理轮询更新健康和错
 `ExecuteRequest` 位于 `dto/execute.ts`，新增可选 `chatId?: string` 与 `references?: unknown[]`，与 Query 的引用表示一致。没有 chatId 时新建 Chat；传入时按 Query 规则复用或创建。引用解析、交互限制与交卷 Schema 由 Platform 校验。
 
 executeAgent 只走同步 HTTP、不走 WS、不自动重试。有 multipart 文件时发送 request JSON 文本字段及文件字段，由浏览器生成 boundary；没有 multipart 文件时发送 JSON，包括已经上传的 references。Platform 拒绝 chatId 与 multipart 文件同时出现；执行测试页将两种附件输入互斥，并省略空 chatId/空 references。
+
+## ACP 项目创建与能力投影
+
+外部项目由现有 agents 创建入口消费 Platform 动态 engineDirectory，保存 engine: acp 和 runtimeConfig.engineId/workspaceRoot；不再提交 Bridge ID、CODER mode 或 Native 模型预算。目录通过现有 transport push/reconnect 信号重读，保留草稿与用户选择；撤销、加载中和加载失败阻止提交，序号守卫丢弃旧响应。Native 模型/规划/权限入口关闭；附件与连接器按配置及实际 ACP 会话能力校验，detail 默认 simple；不在创建表单启动会话。真实 Chat prepare/config 及认证/HITL 界面由 ACP-010 接入。

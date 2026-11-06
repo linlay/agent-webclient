@@ -75,6 +75,18 @@ describe("ComposerActions", () => {
     expect(html).toContain("interrupt-btn");
   });
 
+  it.each([false, true])("uses session settings in the bottom action row, including while running=%s", (running) => {
+    const html = renderToStaticMarkup(React.createElement(ComposerActions, {
+      ...baseProps, isStreaming: running,
+      renderSettings: (_compact: boolean, disabled: boolean) => React.createElement("button", { disabled }, "Plugin model"),
+    } as any));
+    expect(html).toContain("Plugin model");
+    expect(html).not.toContain("query-settings-controls");
+    expect(html.indexOf("Plugin model")).toBeGreaterThan(html.indexOf("composer-control-row"));
+    expect(html.indexOf("Plugin model")).toBeLessThan(html.indexOf(running ? 'id="interrupt-btn"' : 'id="send-btn"'));
+    expect(html.includes('<button disabled="">Plugin model')).toBe(running);
+  });
+
   it("shows an inline status while keeping Stop available for an existing run", () => {
     const html = renderToStaticMarkup(React.createElement(ComposerActions, {
       ...baseProps, isStreaming: true, interactionDisabled: true, interruptDisabled: false,

@@ -1120,7 +1120,7 @@ export const AgentEditor: React.FC<AgentEditorProps> = (props) => {
           {form.mode === "PROXY" && (
             <div className={AGENT_FORM_FULL_WIDTH_CLASS_NAME}>
               <label htmlFor="agent-proxy-input">
-                {t("agentConsole.field.acpProxyConfig")}
+                {t("agentConsole.field.proxyConfig")}
               </label>
               <Input.TextArea
                 id="agent-proxy-input"

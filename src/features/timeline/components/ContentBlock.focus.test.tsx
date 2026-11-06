@@ -51,6 +51,7 @@ beforeEach(() => {
 afterEach(() => { act(() => root.unmount()); container.remove(); });
 
 it.each([
+  ["@workspace/cutej-poster.html", { kind: "file", agentKey: "demo", path: "cutej-poster.html" }],
   ["https://example.com/report", { kind: "web", url: "https://example.com/report" }],
   ["/Users/demo/project/report.md", { kind: "file", agentKey: "demo", path: "/Users/demo/project/report.md" }],
   ["@chat/artifacts/run_01/report.html", { kind: "resource", chatId: "chat_01", file: "@chat/artifacts/run_01/report.html" }],

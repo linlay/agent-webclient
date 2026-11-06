@@ -98,6 +98,45 @@ const sectionNav: NavEntry[] = [
   "kbases",
   "chat",
 ];
+function availableMenuEntries(props: AddMenuTriggerProps): NavEntry[] {
+  const navEntries = sectionNav.filter((entry) => {
+    if (
+      entry === "files" &&
+      props.interactionConfig?.attachment.localFiles === false
+    )
+      return false;
+    if (
+      entry === "chat" &&
+      props.interactionConfig?.attachment.chatRecords === false
+    )
+      return false;
+    if (
+      entry === "skills" &&
+      (!props.currentAgentKey ||
+        props.interactionConfig?.attachment.skills === false)
+    )
+      return false;
+    if (
+      entry === "connectors" &&
+      (!props.currentAgentKey || props.interactionConfig?.connectors === false)
+    )
+      return false;
+    if (entry === "kbases") return props.interactionConfig?.attachment.kbases !== false
+      && !!props.kbaseCatalog && !!props.onSelectKbases;
+    if (entry === "screenshot")
+      return props.canCaptureDesktopScreenshot &&
+        props.interactionConfig?.attachment.localFiles !== false;
+    if (entry === "divider") return true;
+    if (entry === "planning") return props.canUsePlanningMode;
+    if (entry === "editing") return props.canUseEditingMode;
+    return true;
+  });
+  return navEntries.filter(
+    (entry, index) =>
+      entry !== "divider" || (index > 0 && index < navEntries.length - 1),
+  );
+}
+
 const DEFAULT_DETAIL_WIDTH = 200;
 const text = (value: unknown) =>
   typeof value === "string" ? value.trim() : "";
@@ -484,7 +523,7 @@ const AddMenuSectionDetail: React.FC<
   );
 };
 
-const AddMenuPanel: React.FC<AddMenuTriggerProps & { onClose: () => void }> = (
+const AddMenuPanel: React.FC<AddMenuTriggerProps & { entries: NavEntry[]; onClose: () => void }> = (
   props,
 ) => {
   const { t } = useI18n();
@@ -504,45 +543,9 @@ const AddMenuPanel: React.FC<AddMenuTriggerProps & { onClose: () => void }> = (
     setSearch("");
     skillPickerInteracting.current = false;
   }, [section]);
-  // mode 在不可用时跳过，分割线条目保持原位
-  const navEntries = sectionNav.filter((entry) => {
-    if (
-      entry === "files" &&
-      props.interactionConfig?.attachment.localFiles === false
-    )
-      return false;
-    if (
-      entry === "chat" &&
-      props.interactionConfig?.attachment.chatRecords === false
-    )
-      return false;
-    if (
-      entry === "skills" &&
-      (!props.currentAgentKey ||
-        props.interactionConfig?.attachment.skills === false)
-    )
-      return false;
-    if (
-      entry === "connectors" &&
-      (!props.currentAgentKey || props.interactionConfig?.connectors === false)
-    )
-      return false;
-    if (entry === "kbases") return !!props.kbaseCatalog && !!props.onSelectKbases;
-    if (entry === "screenshot")
-      return props.canCaptureDesktopScreenshot &&
-        props.interactionConfig?.attachment.localFiles !== false;
-    if (entry === "divider") return true;
-    if (entry === "planning") return props.canUsePlanningMode;
-    if (entry === "editing") return props.canUseEditingMode;
-    return true;
-  });
-  const visibleEntries = navEntries.filter(
-    (entry, index) =>
-      entry !== "divider" || (index > 0 && index < navEntries.length - 1),
-  );
   useEffect(() => {
-    if (section && !navEntries.includes(section)) setSection(null);
-  }, [section, navEntries.join(",")]);
+    if (section && !props.entries.includes(section)) setSection(null);
+  }, [section, props.entries.join(",")]);
   // A side-by-side submenu cannot fit narrow chat windows. Reuse the parent
   // popover for this picker so the search and switches stay within the viewport.
   if (compact && (section === "connectors" || section === "kbases")) {
@@ -569,7 +572,7 @@ const AddMenuPanel: React.FC<AddMenuTriggerProps & { onClose: () => void }> = (
   }
   return (
     <div className={presentationClasses("composer-add-menu-nav")} role="menu" onKeyDown={event => {if (event.key === "Escape") props.onClose();}}>
-      {visibleEntries.map((entry, index) =>
+      {props.entries.map((entry, index) =>
         entry === "divider" ? (
           <div
             key={`divider-${index}`}
@@ -680,12 +683,15 @@ const AddMenuPanel: React.FC<AddMenuTriggerProps & { onClose: () => void }> = (
 export const AddMenuTrigger: React.FC<AddMenuTriggerProps> = (props) => {
   const { t } = useI18n();
   const [open, setOpen] = useState(false);
+  const entries = availableMenuEntries(props);
+  const hasEntries = entries.length > 0;
   // 切换 chat/agent 会改变整壳布局（空会话与会话的 grid 行结构不同），
   // 挂在 body 的 Popover 不会跟随 trigger 按钮重新对齐；且旧菜单数据
   // （chat 列表、技能、连接器）按原 chat/agent 请求，切换后直接关闭。
   useEffect(() => {
     setOpen(false);
-  }, [props.currentChatId, props.currentAgentKey]);
+  }, [props.currentChatId, props.currentAgentKey, hasEntries]);
+  if (!hasEntries) return null;
   return (
     <Popover
       open={open}
@@ -696,7 +702,7 @@ export const AddMenuTrigger: React.FC<AddMenuTriggerProps> = (props) => {
       arrow={false}
       destroyOnHidden
       classNames={{ root: presentationClasses("composer-add-menu-overlay") }}
-      content={<AddMenuPanel {...props} onClose={() => setOpen(false)} />}
+      content={<AddMenuPanel {...props} entries={entries} onClose={() => setOpen(false)} />}
     >
       <UiButton
         className={presentationClasses(`composer-plus-btn tw:!grid tw:!h-8 tw:!min-h-8 tw:!w-8 tw:!min-w-8 tw:!place-items-center tw:!rounded-lg tw:!border-0 tw:!p-0 tw:!text-ink-2 tw:hover:!bg-bg-hover ${open ? "is-open" : ""}`)}

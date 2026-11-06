@@ -429,13 +429,18 @@ describe('replayEvent tool migration', () => {
     });
   });
 
-  it('captures before beginning a same-chat reload transaction', async () => {
+  it('captures before same-chat reload and preserves an unsent draft through authoritative replay', async () => {
     const state = createInitialState();
     state.chatId = 'chat_same';
+    state.composerDraft = 'unsent follow-up';
+    state.composerDraftByChatId = { chat_same: 'unsent follow-up' };
     const { actions, dispatch, captureCurrent } = renderChatActions(state);
+    const context = useAppContext.mock.results.at(-1)!.value;
+    dispatch.mockImplementation(action => { context.stateRef.current = appReducer(context.stateRef.current, action); });
     getChat.mockResolvedValue({ data: { events: [], runs: [] } });
 
     await actions?.loadChat('chat_same', { forceReload: true });
+    expect(context.stateRef.current.composerDraft).toBe('unsent follow-up');
 
     const beginCall = dispatch.mock.calls.find(
       ([action]) => action.type === 'BEGIN_CHAT_TRANSITION',

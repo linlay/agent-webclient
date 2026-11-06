@@ -1,4 +1,6 @@
 import { locateSelectedTextReference } from "@/shared/data/desktop/selectedTextLocate";
+import {useEngineSession} from "@/features/composer/hooks/useEngineSession";
+import {EngineSessionControls} from "@/features/composer/components/EngineSessionControls";
 import { bindCssModuleClasses } from "@/shared/utils/cssModuleClasses";
 import composerPresentation from "@/features/composer/components/ComposerPresentation.module.css";
 import { FailedSubmissions } from "./FailedSubmissions";
@@ -198,15 +200,28 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     querySessionsRef,
   );
   const isMainChatRunning = mainChatRuntime.running;
-  const referenceSelectionDisabled = isMainChatRunning && (
-    String(currentWorker?.raw?.engine || (currentWorker?.raw?.definition as {engine?:string} | undefined)?.engine || "").toLowerCase() === "acp" ||
-    ["PROXY", "CHANNEL"].includes(String(currentWorker?.raw?.mode || "").toUpperCase())
-  );
+  const engineDefinition = currentWorker?.raw?.definition as { engine?: string } | undefined;
+  const isExternalEngine = currentWorker?.raw?.engine === "acp" || engineDefinition?.engine === "acp";
+  const engineMeta = currentWorker?.raw?.meta as Record<string, unknown> | undefined;
+  const externalEngineId = String(engineMeta?.engineId || "");
   const presentation = useConversationSurface();
   const conversationBlocking = presentation?.blocked ?? areConversationInteractionsBlocked(state);
   const chatTransitionBlocking = agentExecutionBlocked || conversationBlocking;
   const inputDisabled = conversationBlocking || (agentExecutionBlocked && agentAvailability.status !== "checking");
   const fileDropAllowed = !inputDisabled && !isFrontendActive && !isVoiceMode && interactionConfig.attachment.localFiles;
+  const engineSession = useEngineSession({
+    enabled: isExternalEngine && !chatTransitionBlocking,
+    active: !chatTransitionBlocking,
+    engineId: externalEngineId,
+    agentKey: currentAgentKey,
+    chatId: state.chatId,
+    draftChatId: state.composerUploadChatId,
+    running: isMainChatRunning,
+  });
+  const referenceSelectionDisabled = isMainChatRunning && (
+    isExternalEngine ||
+    ["PROXY", "CHANNEL"].includes(String(currentWorker?.raw?.mode || "").toUpperCase())
+  );
   useDesktopAwaitingDigit({ state, stateRef, blocked: chatTransitionBlocking || isAnyOverlayOpen });
   const {
     addContextReference,
@@ -241,7 +256,11 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     onError: (text) => {
       void message.error(text || t("composer.actions.screenshotFailed"));
     },
-    state,
+    // Upload and prepare must reserve the same Chat before the first Query.
+    state: isExternalEngine ? {
+      ...state,
+      composerUploadChatId: state.composerUploadChatId || engineSession.pendingChatId,
+    } : state,
   });
   const fileDropReceiver = { enabled: fileDropAllowed, resetKey: `${state.chatId}:${state.workerSelectionKey}`, onDrop: handleFileDrop };
   const stageFileDragActive = useConversationFileDropReceiver(fileDropReceiver);
@@ -592,7 +611,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
         textareaRef.current?.resizableTextArea?.textArea?.focus();
       });
     },
-    [closeMention, forcedSkills, isMainChatRunning, chatTransitionBlocking, interactionConfig.attachment.skills, setSlashDismissed, filterStartIndex],
+    [closeMention, forcedSkills, chatTransitionBlocking, interactionConfig.attachment.skills, setSlashDismissed, filterStartIndex, setInputValue, updateSkillReferences],
   );
 
   // 「+」添加菜单选择技能时没有斜杠前缀，不能截断输入框内容。
@@ -606,7 +625,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
   const handleSelectPackageSkills = useCallback((members: AgentSkill[], selected: boolean, packageId?: string) => {
     if (!interactionConfig.attachment.skills || chatTransitionBlocking) return;
     updateSkillReferences(current => setPackageSelection(current, members, selected, forcedSkills.map(skill => skill.id), packageId));
-  }, [interactionConfig.attachment.skills, isMainChatRunning, chatTransitionBlocking, forcedSkills]);
+  }, [interactionConfig.attachment.skills, chatTransitionBlocking, forcedSkills, updateSkillReferences]);
 
   const removeSelectedSkill = useCallback((skillId: string) => {
     const identity = String(skillId || "")
@@ -615,7 +634,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     updateSkillReferences((current) =>
       current.filter((item) => item.id.trim().toLowerCase() !== identity),
     );
-  }, []);
+  }, [updateSkillReferences]);
 
   const openSkillViewer = useCallback(
     (skill: ComposerRequiredSkill) => {
@@ -794,7 +813,8 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     handleSubmitQueuedSteer,
     interruptCurrentRun,
   } = useComposerSend({
-    attachmentChatId,
+    prepareSend:isExternalEngine ? engineSession.verifyBeforeSend : undefined,
+    attachmentChatId: isExternalEngine ? engineSession.pendingChatId : attachmentChatId,
     accessLevel: interactionConfig.accessLevel ? accessOverride ?? "default" : "default",
     backgroundCommandText: {
       rememberPending: t("composer.background.remember.pending"),
@@ -942,6 +962,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
       speechState === "error" ||
       speechState === "unsupported");
   const sendDisabled =
+    (isExternalEngine && !engineSession.canSend) ||
     nativeShare.busy || nativeShare.blocked ||
     hasInvalidSelectedSkills ||
     chatTransitionBlocking ||
@@ -1253,6 +1274,9 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
                   textareaRef={textareaRef}
                 />
                 <ComposerActions
+                  renderSettings={isExternalEngine ? (compact, disabled) => <EngineSessionControls
+                    session={engineSession} engineId={externalEngineId} running={isMainChatRunning}
+                    themeMode={state.themeMode} compact={compact} disabled={disabled} /> : undefined}
                   interactionConfig={interactionConfig}
                   accessLevel={accessLevel}
                   defaultAccessLevel={defaultAccessLevel}

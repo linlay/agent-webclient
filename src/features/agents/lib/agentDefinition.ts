@@ -440,8 +440,6 @@ export function parseJsonField(
 export function normalizeModeForForm(value: unknown): string {
   switch (toText(value).toUpperCase()) {
     case "PROXY":
-    case "ACP-PROXY":
-    case "ACP_PROXY":
       return "PROXY";
     case "ONESHOT":
     // REACT is the spelling used before the general type was renamed; Agent

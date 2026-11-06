@@ -178,6 +178,7 @@ export async function submitComposerAwaiting(
     t,
   } = input;
   if (!activeAwaiting || state.chatSurfaceBlocked || isAgentExecutionBlocked(state) || input.isCurrent?.() === false) return;
+  if (activeAwaiting.resolutionReason || activeAwaiting.runId!==payload.runId || activeAwaiting.awaitingId!==payload.awaitingId) return;
   let trackedRunId = "";
   let trackedAwaitingId = "";
   try {
@@ -336,6 +337,8 @@ export function useComposerAwaiting(input: UseComposerAwaitingInput) {
       state.chats,
       state.currentRunAgentKey,
       state.chatSurfaceBlocked,
+      state.agentAvailability,
+      state.workerSelectionKey,
       input.stateRef,
       state.runAgentById,
       t,

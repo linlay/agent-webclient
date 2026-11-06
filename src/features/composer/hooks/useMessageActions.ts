@@ -11,6 +11,7 @@ import { resolveComposerAccessScope } from "@/features/composer/lib/composerAcce
 import { isAgentExecutionBlocked } from "@/features/agents/lib/agentAvailability";
 import { canContinueChat, hasQueryHistory, hasSendableQuery } from "@/features/composer/lib/sendEligibility";
 import { useCallback, useEffect } from "react";
+import { useAppMessage } from "@/shared/ui/useAppMessage";
 import { useAppContext } from "@/app/state/AppContext";
 import type { AppAction } from "@/app/state/AppContext";
 import type { TimelineAttachment } from "@/features/timeline/lib/timelineState";
@@ -269,6 +270,7 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
     activeQuerySessionRequestIdRef,
   } = useAppContext();
   const runs = useRunTransport();
+  const messageApi = useAppMessage();
   const handleEvent = options.onAgentEvent;
 
   /* Apply access token on mount and change */
@@ -814,6 +816,13 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
         const err = error as Error;
         if (err.name !== "AbortError") {
           const display = formatPlatformErrorForDisplay(err);
+          if (queryAccepted && isSessionActive() && display.code === "run_control_identity_unavailable") {
+            // Platform restart ends the old Run; read its saved terminal state, never resend it.
+            window.dispatchEvent(new CustomEvent("agent:load-chat", {
+              detail: { chatId: session.chatId, forceReload: true, focusComposerOnComplete: false },
+            }));
+            return;
+          }
           if (!queryAccepted && submissionSession === getDataSessionRevision()) {
             const status = display.code === "agent_not_found" || display.code === "agent_configuration_invalid" ? "unavailable"
               : display.status === 403 ? "forbidden"
@@ -833,6 +842,9 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
           }
           if (!queryAccepted && submissionRequestId) dispatch({ type: "SETTLE_COMPOSER_SUBMISSION", requestId, accepted: false });
           if (isSessionActive()) {
+            // New Chat has no visible timeline until accepted; restored input
+            // alone must not hide the reason it could not be submitted.
+            if (!queryAccepted) void messageApi.error(display.message);
             if (!queryAccepted && !submissionRequestId) {
               dispatch({ type: "SET_COMPOSER_DRAFT", draft: cleanMessage });
             }
@@ -849,6 +861,7 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
                 kind: "message",
                 role: "system",
                 text: display.message,
+                systemMessageLevel: "error",
                 errorDetail: display.error,
                 ts: Date.now(),
               },
@@ -878,6 +891,7 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
       chatQuerySessionIndexRef,
       dispatch,
       handleEvent,
+      messageApi,
       querySessionsRef,
       runs,
       stateRef,

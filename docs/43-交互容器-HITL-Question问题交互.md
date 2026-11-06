@@ -7,6 +7,7 @@ Question awaiting 用于后端向用户提出一个或多个问题，支持文�
 - 归一化 `questions` 数组，过滤无 id 或无 question 的项。
 - 支持 select、multi-select、free text 等问题类型。
 - 根据问题元数据生成 placeholder、heading、prompt 和选项展示。
+- 透传问题的 `required`：仅显式 `false` 允许留空；未声明或 `true` 仍必填。填写后继续按类型校验，可选文本也可按 Enter 提交。空可选项不进入答案列表，取消整个批次仍使用 `params: []`。
 - 提交时构造 question answer 参数，并记录 submitId 避免重复提交。
 
 ## 核心流程
@@ -19,7 +20,7 @@ Question awaiting 用于后端向用户提出一个或多个问题，支持文�
 
 ## 相关文件
 - `../src/features/tools/lib/awaitingRuntime.ts`
-- `../src/features/tools/lib/awaitingQuestionMeta.ts`
+- `../src/features/events/lib/awaitingQuestionMeta.ts`
 - `../src/features/tools/lib/protocol.ts`
 - `../src/features/tools/components/buildin/confirm-dialog/state.ts`
 - `../src/features/composer/components/AwaitingShell.tsx`

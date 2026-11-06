@@ -1,8 +1,6 @@
-import { bindCssModuleClasses } from "@/shared/utils/cssModuleClasses";
-import modelPresentation from "@/features/model-config/components/ModelMenu.module.css";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { MenuProps } from "antd";
-import { Dropdown, Tooltip } from "antd";
+import { Tooltip } from "antd";
 import { useAppContext } from "@/app/state/AppContext";
 import type { Agent } from "@/features/agents/lib/agentState";
 import {
@@ -27,7 +25,7 @@ import type {
 import { useI18n } from "@/shared/i18n";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import type { MaterialIconName } from "@/shared/ui/MaterialIcon";
-import { UiButton } from "@/shared/ui/UiButton";
+import { ComposerSettingsMenu } from "./ComposerSettingsMenu";
 import { useAppMessage } from "@/shared/ui/useAppMessage";
 import { buildModelMenuItems } from "@/features/model-config/components/ModelMenuPresenter";
 import {
@@ -39,7 +37,6 @@ import {
   normalizeOptionalModelServiceTier,
   serviceTierSupportedByModel,
 } from "@/features/model-config/lib/modelOptions";
-const presentationClasses = bindCssModuleClasses({ ...modelPresentation });
 
 
 interface QuerySettingsControlsProps {
@@ -84,11 +81,6 @@ const ACCESS_LEVEL_MENU_OPTION_CLASS =
   "query-settings-access-menu-option ui-icon-hover-24";
 const QUERY_SETTINGS_CONTROLS_CLASS =
   "query-settings-controls tw:inline-flex tw:items-center";
-const QUERY_SETTINGS_BUTTON_CLASS =
-  "query-settings-btn tw:!min-h-8 tw:!rounded-lg tw:!px-2 tw:!text-[13px] tw:text-text-muted tw:[&_.material-icon]:flex-none tw:[&_.material-icon]:text-sm tw:[&_.ui-btn-label]:inline-flex tw:[&_.ui-btn-label]:min-w-0 tw:[&_.ui-btn-label]:items-center tw:[&_.ui-btn-label]:gap-1 tw:[&_.ui-btn-label>span:not(.material-icon)]:min-w-0 tw:[&_.ui-btn-label>span:not(.material-icon)]:overflow-hidden tw:[&_.ui-btn-label>span:not(.material-icon)]:text-ellipsis tw:[&_.ui-btn-label>span:not(.material-icon)]:whitespace-nowrap";
-const QUERY_MODEL_BUTTON_CLASS = "query-model-btn tw:overflow-hidden";
-const QUERY_SETTINGS_ICON_BUTTON_CLASS =
-  "query-settings-btn tw:!h-8 tw:!min-h-8 tw:!w-8 tw:!min-w-8 tw:flex-none tw:!rounded-lg tw:!p-0 tw:text-text-muted tw:[&_.material-icon]:text-xl";
 const QUERY_MODEL_BUTTON_STATE_CLASS = {
   idle: "",
   loading: "is-loading tw:pointer-events-auto",
@@ -947,36 +939,12 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
 
   return (
     <div className={QUERY_SETTINGS_CONTROLS_CLASS}>
-      {(interactionConfig?.accessLevel ?? true) && <Dropdown
-        menu={{
-          className: presentationClasses("query-settings-menu"),
-          items: accessItems,
-          onClick: ({ key }) => onAccessLevelChange(key as QueryAccessLevel),
-          selectedKeys: [accessLevel],
-        }}
-        placement="topRight"
-        trigger={["click"]}
-      >
-        <UiButton
-          className={`${compact ? QUERY_SETTINGS_ICON_BUTTON_CLASS : `${QUERY_SETTINGS_BUTTON_CLASS} ui-icon-hover-24`} ${ACCESS_LEVEL_BUTTON_CLASS[accessLevel]}`.trim()}
-          variant="ghost"
-          size="sm"
-          iconOnly={compact}
-          color="var(--accent)"
-          title={accessButtonTitle}
-          aria-label={compact ? accessButtonTitle : undefined}
-          onClick={(event) => event.preventDefault()}
-        >
-          <MaterialIcon
-            name={ACCESS_LEVEL_ICON[accessLevel]}
-            className={compact ? undefined : "ui-icon-hover-24-target"}
-          />
-          {!compact && <>
-            <span>{accessLabel}</span>
-            <MaterialIcon name="expand_more" />
-          </>}
-        </UiButton>
-      </Dropdown>}
+      {(interactionConfig?.accessLevel ?? true) && <ComposerSettingsMenu
+        menu={{ items: accessItems, onClick: ({ key }) => onAccessLevelChange(key as QueryAccessLevel), selectedKeys: [accessLevel] }}
+        compact={compact} icon={ACCESS_LEVEL_ICON[accessLevel]} showIcon
+        label={<span>{accessLabel}</span>} title={accessButtonTitle}
+        buttonProps={{ color: "var(--accent)", className: ACCESS_LEVEL_BUTTON_CLASS[accessLevel] }}
+      />}
       {shouldShowModelControls ? (
         <Tooltip title={modelTooltip} placement="top" trigger={["hover", "focus"]}>
           <span
@@ -984,46 +952,22 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
             tabIndex={compact && modelButtonDisabled ? 0 : undefined}
             aria-label={compact && modelButtonDisabled ? modelButtonTitle : undefined}
           >
-            <Dropdown
+            <ComposerSettingsMenu
               disabled={modelButtonDisabled}
-              menu={{
-                className: presentationClasses("query-settings-menu"),
-                items: modelItems,
-                onClick: onModelMenuClick,
-              }}
+              menu={{ items: modelItems, onClick: onModelMenuClick }}
               onOpenChange={onModelMenuOpenChange}
-              placement="topRight"
-              trigger={["click"]}
-            >
-              <UiButton
-                className={`${compact ? QUERY_SETTINGS_ICON_BUTTON_CLASS : QUERY_SETTINGS_BUTTON_CLASS} ${QUERY_MODEL_BUTTON_CLASS} ${queryModelButtonStateClass}`.trim()}
-                variant="ghost"
-                size="sm"
-                iconOnly={compact}
-                disabled={modelButtonDisabled}
-                style={compact && modelButtonDisabled ? { pointerEvents: "none" } : undefined}
-                title={compact ? undefined : modelButtonTitle}
-                aria-label={modelButtonTitle}
-                onClick={(event) => event.preventDefault()}
-              >
-                {compact ? (
-                  <MaterialIcon name="brain" />
-                ) : (
-                  <>
-                    {showFastBadge ? <MaterialIcon name="bolt" /> : null}
-                    <span className={QUERY_MODEL_LABEL_CLASS}>
-                      {selectedModelLabel}
-                    </span>
-                    <span>
-                      {modelConfigSaving
-                        ? t("composer.query.model.saving")
-                        : selectedReasoningLabel}
-                    </span>
-                    <MaterialIcon name="expand_more" />
-                  </>
-                )}
-              </UiButton>
-            </Dropdown>
+              compact={compact} icon="brain" title={modelButtonTitle}
+              buttonProps={{
+                className: `query-model-btn tw:overflow-hidden ${queryModelButtonStateClass}`,
+                style: compact && modelButtonDisabled ? { pointerEvents: "none" } : undefined,
+                title: compact ? undefined : modelButtonTitle,
+              }}
+              label={<>
+                {showFastBadge ? <MaterialIcon name="bolt" /> : null}
+                <span className={QUERY_MODEL_LABEL_CLASS}>{selectedModelLabel}</span>
+                <span>{modelConfigSaving ? t("composer.query.model.saving") : selectedReasoningLabel}</span>
+              </>}
+            />
           </span>
         </Tooltip>
       ) : null}

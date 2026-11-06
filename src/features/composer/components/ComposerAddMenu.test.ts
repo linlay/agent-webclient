@@ -4,6 +4,7 @@ import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { Simulate } from "react-dom/test-utils";
 import { getChats, searchGlobal } from "@/shared/data";
+import { pendingInteraction } from "@/shared/contracts/interaction";
 import {
   AddMenuTrigger,
   type AddMenuTriggerProps,
@@ -141,6 +142,47 @@ describe("AddMenuTrigger", () => {
     const trigger = container.querySelector('[aria-label="composer.addMenu.open"]')!;
     expect(trigger).not.toBeNull();
     expect(trigger.querySelector('[data-material-icon="add"]')).not.toBeNull();
+  });
+
+  it("hides the trigger when no actions are available, then restores the existing file action", () => {
+    props.interactionConfig = pendingInteraction;
+    render();
+    expect(container.querySelector('[aria-label="composer.addMenu.open"]')).toBeNull();
+
+    props.interactionConfig = { ...pendingInteraction, attachment: { ...pendingInteraction.attachment, localFiles: true } };
+    render();
+    openFiles();
+    expect(container.textContent).toContain("composer.addMenu.section.files");
+    expect(container.textContent).not.toContain("composer.addMenu.section.skills");
+    act(() => fileItems().find(button => !button.disabled)!.click());
+    expect(props.onOpenFilePicker).toHaveBeenCalledTimes(1);
+  });
+
+  it("removes an open menu when capabilities disappear without reopening it when they return", () => {
+    render();
+    openMenu();
+    expect(container.querySelector('[role="menu"]')).not.toBeNull();
+    props.interactionConfig = { ...pendingInteraction };
+    render();
+    expect(container.querySelector('[aria-label="composer.addMenu.open"]')).toBeNull();
+    expect(container.querySelector('[role="menu"]')).toBeNull();
+    props.interactionConfig = undefined;
+    render();
+    expect(container.querySelector('[aria-label="composer.addMenu.open"]')).not.toBeNull();
+    expect(container.querySelector('[role="menu"]')).toBeNull();
+  });
+
+  it("does not expose a disabled knowledge entry just because its catalog is still present", () => {
+    props.interactionConfig = { ...pendingInteraction };
+    props.kbaseCatalog = { status: "idle", refresh: jest.fn() };
+    props.onSelectKbases = jest.fn();
+    render();
+    expect(container.querySelector('[aria-label="composer.addMenu.open"]')).toBeNull();
+    props.canUsePlanningMode = true;
+    render();
+    openMenu();
+    expect(container.querySelectorAll('[role="menuitemcheckbox"]')).toHaveLength(1);
+    expect(container.querySelectorAll('[role="menuitem"]')).toHaveLength(0);
   });
 
   it("switches from bounded preview to server search and adds a body-matched Chat reference", async () => {

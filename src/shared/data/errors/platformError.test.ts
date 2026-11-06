@@ -17,6 +17,13 @@ describe("platformError", () => {
 		);
 	});
 
+ it("explains engine capacity without blaming the connection", () => {
+  const display = formatPlatformErrorForDisplay({code: "engine_busy", category: "runtime", scope: "run", message: "engine_busy", executionState: "not_started"});
+  expect(display.message).toContain("引擎正忙");
+  expect(display.message).toContain("重试");
+  expect(display.code).toBe("engine_busy");
+ });
+
  it("shows normalized rate limits and exhausted attempts without interpreting upstream text", () => {
   const payload = {code: "provider_rate_limited", category: "model", retryable: true,
    diagnostics: {attempt: 6, maxAttempts: 6, upstreamMessage: "insufficient_quota"}};

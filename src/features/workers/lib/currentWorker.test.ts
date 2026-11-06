@@ -158,7 +158,7 @@ describe('currentWorker helpers', () => {
       ...native,
       raw: {
         ...(native.raw || {}),
-        definition: { runtimeConfig: { acpBridgeId: 'bridge-1' } },
+        engine: 'acp', engineId: 'codex/agent',
       },
     };
 

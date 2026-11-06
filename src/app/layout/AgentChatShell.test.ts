@@ -481,7 +481,7 @@ describe("AgentChatShell", () => {
         name: "Demo Agent",
         role: "Worker",
         mode: "CODER",
-        meta: { acpBridgeId: "codex" },
+        meta: { engineId: "codex/agent" },
         modelKey: "gpt-5.5",
         reasoningEffort: "HIGH",
       },
@@ -494,7 +494,7 @@ describe("AgentChatShell", () => {
           name: "Demo Agent",
           role: "Worker",
           mode: "CODER",
-          meta: { acpBridgeId: "codex" },
+          meta: { engineId: "codex/agent" },
         },
       ],
     });
@@ -516,7 +516,7 @@ describe("AgentChatShell", () => {
         expect.objectContaining({
           key: "demo-agent",
           mode: "CODER",
-          meta: { acpBridgeId: "codex" },
+          meta: { engineId: "codex/agent" },
           modelKey: "gpt-5.5",
           reasoningEffort: "HIGH",
         }),
