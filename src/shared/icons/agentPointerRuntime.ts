@@ -12,7 +12,7 @@ interface Actor {
   root: SVGSVGElement; name: PointerAgentName; motion: SVGGElement; shadow: SVGEllipseElement | null;
   group: Element; surface: Element | null; eyes: Eye[]; sizeTargets: Element[];
   visible: boolean; width: number; cx: number; cy: number; angle: number; lift: number;
-  idleAt: number; idleSince: number; lastIdle?: AgentIdleMotion; idlePlayback?: AgentMotionPlayback; following: boolean;
+  idleAt: number; lastIdle?: AgentIdleMotion; idlePlayback?: AgentMotionPlayback; following: boolean;
   settled: boolean; near: boolean; pulseUntil: number; blinkAt: number; blinkStart: number;
 }
 const runtimes = new WeakMap<Document, AgentPointerRuntime>();
@@ -44,7 +44,7 @@ class AgentPointerRuntime {
         if (actor.root === entry.target) {
           actor.visible = entry.isIntersecting;
           if (!actor.visible) { actor.idleAt = Infinity; this.restore(actor); }
-          else actor.idleAt = this.now() + this.idleGap();
+          else actor.idleAt = this.now() + this.idleGap(actor.root);
         }
       }
       this.dirty = true; this.start(); this.scheduleIdle();
@@ -80,7 +80,7 @@ class AgentPointerRuntime {
       group: root.closest("[data-agent-identity]") || root,
       surface: root.closest("[data-agent-pointer-surface]"),
       visible: !this.observer, width: 0, cx: 0, cy: 0, angle: 0, lift: 0,
-      idleAt: this.now() + this.idleGap(), idleSince: this.now(), following: false,
+      idleAt: this.now() + this.idleGap(root), following: false,
       settled: true, near: false, pulseUntil: 0, blinkAt: this.now() + 1800 + Math.random() * 2500, blinkStart: -1,
     };
     root.dataset.pointerTracking = "true";
@@ -106,7 +106,12 @@ class AgentPointerRuntime {
     };
   }
 
-  private idleGap = () => 8000 + Math.random() * 8000;
+  private idleGap = (root: SVGSVGElement) => {
+    // Only the New Chat experience declares a pointer surface.
+    return root.closest("[data-agent-pointer-surface]")
+      ? 8000 + Math.random() * 8000
+      : 30_000 + Math.random() * 30_000;
+  };
   private scheduleIdle = () => {
     this.win.clearTimeout(this.idleTimer); this.idleTimer = undefined;
     if (this.doc.hidden || this.preference?.matches) return;
@@ -117,11 +122,11 @@ class AgentPointerRuntime {
       for (const actor of this.actors) {
         if (!actor.visible || actor.following || actor.idleAt > now) continue;
         this.restore(actor);
-        const motion = chooseAgentIdleMotion(actor.lastIdle, now - Math.max(actor.idleSince, this.pointer.movedAt));
+        const motion = chooseAgentIdleMotion(actor.lastIdle);
         const variants = { general: "general", coder: "code", kbase: "knowledge", team: "team", proxy: "agent", executor: "executor" } as const;
         actor.lastIdle = motion;
         actor.idlePlayback = playAgentMotion(actor.root, motion, variants[actor.name]);
-        actor.idleAt = now + actor.idlePlayback.duration + this.idleGap();
+        actor.idleAt = now + actor.idlePlayback.duration + this.idleGap(actor.root);
       }
       this.scheduleIdle();
     }, Math.max(0, deadline - this.now()));
@@ -163,7 +168,7 @@ class AgentPointerRuntime {
     this.pointer.inside = false; this.pointer.target = null; this.focus = null;
     this.win.clearTimeout(this.idleTimer); this.idleTimer = undefined;
     this.dirty = true;
-    for (const actor of this.actors) { actor.following = false; actor.idleAt = this.now() + this.idleGap(); actor.near = false; actor.pulseUntil = 0; this.restore(actor); }
+    for (const actor of this.actors) { actor.following = false; actor.idleAt = this.now() + this.idleGap(actor.root); actor.near = false; actor.pulseUntil = 0; this.restore(actor); }
     this.scheduleIdle();
   };
   private restore(actor: Actor) {
@@ -216,7 +221,7 @@ class AgentPointerRuntime {
         this.restore(actor); actor.following = true; actor.idleAt = Infinity;
         this.scheduleIdle();
       } else if (!active && actor.following) {
-        actor.following = false; actor.idleSince = now; actor.idleAt = now + this.idleGap();
+        actor.following = false; actor.idleAt = now + this.idleGap(actor.root);
         this.scheduleIdle();
       }
       if (!active && actor.settled) continue;

@@ -6,15 +6,14 @@ export type AgentIdleMotion = typeof AGENT_IDLE_MOTIONS[number];
 export type AgentWorkMotion = typeof AGENT_WORK_MOTIONS[number];
 export type AgentMotion = AgentIdleMotion | AgentWorkMotion;
 export const AGENT_POINTER_REST_MS = 1500;
-export const AGENT_DOZE_AFTER_MS = 60_000;
 
 export function chooseAgentMotion<T extends AgentMotion>(choices: readonly T[], previous?: T, random = Math.random): T {
   const available = choices.filter(item => item !== previous);
   const pool = available.length ? available : choices;
   return pool[Math.min(pool.length - 1, Math.floor(random() * pool.length))];
 }
-export function chooseAgentIdleMotion(previous: AgentIdleMotion | undefined, idleMs: number, random = Math.random): AgentIdleMotion {
-  return chooseAgentMotion(AGENT_IDLE_MOTIONS.filter(item => item !== "doze" || idleMs >= AGENT_DOZE_AFTER_MS), previous, random);
+export function chooseAgentIdleMotion(previous: AgentIdleMotion | undefined, random = Math.random): AgentIdleMotion {
+  return chooseAgentMotion(AGENT_IDLE_MOTIONS, previous, random);
 }
 
 type TransformPose = readonly [number, number?, number?, number?, number?, number?];

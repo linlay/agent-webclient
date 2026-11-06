@@ -209,3 +209,24 @@ it("returns a focused navigation button to idle after the brief focus response",
   expect(icon().dataset.pointerMood).toBe("rest");
   expect(icon().dataset.pointerResting).toBe("true"); expect(queue.size).toBe(0);
 });
+
+
+it.each([
+  { surface: false, random: 0, gap: 30_000 },
+  { surface: false, random: .999, gap: 59_970 },
+  { surface: true, random: 0, gap: 8000 },
+  { surface: true, random: .999, gap: 15_992 },
+])("waits $gap ms before an idle action (New Chat: $surface)", ({ surface, random, gap }) => {
+  jest.spyOn(Math, "random").mockReturnValue(random);
+  render(["general"], { surface });
+  act(() => { now = gap - 1; jest.advanceTimersByTime(gap - 1); });
+  expect(icon().dataset.agentAction).toBeUndefined();
+  act(() => { now = gap; jest.advanceTimersByTime(1); });
+  expect(icon().dataset.agentAction).toBeDefined();
+  // After the finite action, the next quiet interval uses the same context.
+  const duration = icon().dataset.agentAction === "turn" ? 2600 : 2800;
+  act(() => { now += duration + gap - 1; jest.advanceTimersByTime(duration + gap - 1); });
+  const previous = icon().dataset.agentAction;
+  act(() => { now += 1; jest.advanceTimersByTime(1); });
+  expect(icon().dataset.agentAction).not.toBe(previous);
+});
