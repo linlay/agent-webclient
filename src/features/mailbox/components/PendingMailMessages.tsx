@@ -106,9 +106,11 @@ export function PendingMailMessages() {
 
   const worker = state.workerIndexByKey.get(state.workerSelectionKey);
   const selectedAgentKey = state.pendingNewChatAgentKey || (worker?.type === "agent" ? worker.sourceId : "");
-  const visible = entries.filter(entry => chatId
+  // Normal delivery is internal bookkeeping. The confirmed request event owns
+  // the chat message; showing an outbox copy here makes it flash before query.
+  const visible = entries.filter(entry => (entry.undelivered || entry.uncertain) && (chatId
     ? entry.request.chatId === chatId
-    : (!entry.request.chatId || entry.newChat) && entry.request.agentKey === selectedAgentKey);
+    : (!entry.request.chatId || entry.newChat) && entry.request.agentKey === selectedAgentKey));
   if (gateway || !visible.length) return null;
   const resend = (entry: UserOutboxEntry) => {
     const request = entry.request;
@@ -125,10 +127,7 @@ export function PendingMailMessages() {
   return (
     <div className={styles.messages} aria-live="polite">
       {visible.map(entry => {
-        const status = entry.undelivered ? "undelivered"
-          : entry.uncertain ? "uncertain"
-          : entry.delivery === "inserted" ? "inserted"
-          : entry.delivery ? "queued" : "sending";
+        const status = entry.undelivered ? "undelivered" : "uncertain";
         return (
           <article key={entry.request.requestId} className={styles.message}>
             <div className={styles.body}>{entry.request.message || t("mailbox.outbox.referencesOnly", { count: entry.request.references?.length ?? 0 })}</div>

@@ -303,6 +303,20 @@ describe('processStreamEvent', () => {
     expect(state.timelineNodes.get("user_multi")?.references).toEqual([{type:"kbase",id:"lib-a"},{type:"kbase",id:"lib-b"}]);
   });
 
+  it.each(['live', 'replay'] as const)('renders a repeated mailbox query only once in %s', (mode) => {
+    const state = createState();
+    const event = {
+      type: 'request.query', requestId: 'req_mail', mailId: 'mail_1',
+      mailOrigin: 'user', message: '现在几点了', timestamp: 100,
+    } as AgentEvent;
+    processAndApply(state, event, mode);
+    for (let index = 0; index < 6; index += 1) processAndApply(state, event, mode);
+    expect(state.timelineOrder).toEqual(['user_req_mail']);
+    // Identical text with a different request identity is a separate message.
+    processAndApply(state, { ...event, requestId: 'req_other', mailId: 'mail_2' }, mode);
+    expect(state.timelineOrder).toEqual(['user_req_mail', 'user_req_other']);
+  });
+
   it('creates request.query user nodes only during replay', () => {
     const replayState = createState();
     const liveState = createState();

@@ -36,6 +36,7 @@ import type { WorkerActionHandlers } from "./WorkerActionsMenu";
 import { WorkerConversationPreviewList } from "@/features/workers/components/WorkerConversationPreviewList";
 import { SidebarHistorySection } from "@/features/chats/components/SidebarHistorySection";
 import { markChatRead } from "@/shared/data";
+import { useChatOperations } from "@/features/chats/hooks/useChatOperations";
 import {
   isChatActiveRun,
   isWorkerAttentionChat,
@@ -60,6 +61,7 @@ import {
 import { WorkerQuickActions } from "./WorkerQuickActions";
 import { PinnedChatSection } from "./PinnedChatSection";
 import { PrimaryChatNavigation } from "./PrimaryChatNavigation";
+import { selectPrimaryNavigation } from "../lib/primaryNavigation";
 import primaryStyles from "./PrimaryChatNavigation.module.css";
 import { SidebarAgentNavigation } from "./SidebarAgentNavigation";
 import { splitSidebarWorkers } from "../lib/sidebarNavigation";
@@ -185,6 +187,7 @@ export const WorkerNavigator: React.FC<WorkerNavigatorProps> = ({
   const { state, stateRef, dispatch, querySessionsRef } = useAppContext();
   const { t } = useI18n();
   const message = useAppMessage();
+  const primaryChatOperations = useChatOperations("", dispatch, t);
   const terminalAgentStatuses = useTerminalAgentStatuses();
   const settingsMenuEnabled = isSettingsMenuEnabled();
   const quickActionsEnabled = isQuickActionsEnabled();
@@ -577,6 +580,27 @@ export const WorkerNavigator: React.FC<WorkerNavigatorProps> = ({
     });
   };
 
+  const handleClearPrimary = (agentKey: string, chatId: string) => {
+    const current = selectPrimaryNavigation(stateRef.current.agents, stateRef.current.chats).find(row => row.agent.key === agentKey)?.chat;
+    if (primaryChatOperations.pending || current?.chatId !== chatId || isChatActiveRun(current) || current.hasPendingAwaiting) return;
+    modal.confirm({
+      title: t("leftSidebar.navigation.clearPrimary"),
+      content: t("leftSidebar.navigation.clearPrimaryDescription"),
+      okText: t("leftSidebar.navigation.clearPrimary"),
+      cancelText: t("chatActions.cancel"),
+      onOk: async () => {
+        const latest = selectPrimaryNavigation(stateRef.current.agents, stateRef.current.chats).find(row => row.agent.key === agentKey)?.chat;
+        if (latest?.chatId !== chatId || isChatActiveRun(latest) || latest.hasPendingAwaiting) return;
+        const wasActive = stateRef.current.chatId === chatId;
+        await primaryChatOperations.archive(chatId);
+        window.dispatchEvent(new CustomEvent("agent:refresh-worker-data"));
+        if (wasActive && (!stateRef.current.chatId || stateRef.current.chatId === chatId)) {
+          startNewConversationForWorker(`agent:${agentKey}`, { focusComposerOnComplete: true });
+        }
+      },
+    });
+  };
+
   const workerActions: WorkerActionHandlers = {
     onOpenProject,
     onOpenWorkspace: handleOpenWorkspace,
@@ -696,6 +720,8 @@ export const WorkerNavigator: React.FC<WorkerNavigatorProps> = ({
                 onSelectChat={handleSelectChat}
                 onStartPrimary={(key) => startNewConversationForWorker(key, { focusComposerOnComplete: true })}
                 onOpenHistory={openHistory}
+                onClearPrimary={handleClearPrimary}
+                onEditAgent={handleEditAgent}
                 getChatLoading={getWorkerChatLoading}
               /> : <>
                 <PinnedChatSection
@@ -738,6 +764,8 @@ export const WorkerNavigator: React.FC<WorkerNavigatorProps> = ({
                     onSelectChat={handleSelectChat}
                     onStartPrimary={(key) => startNewConversationForWorker(key, { focusComposerOnComplete: true })}
                     onOpenHistory={openHistory}
+                    onClearPrimary={handleClearPrimary}
+                    onEditAgent={handleEditAgent}
                     getChatLoading={getWorkerChatLoading}
                   /> : <>
                   <PinnedChatSection

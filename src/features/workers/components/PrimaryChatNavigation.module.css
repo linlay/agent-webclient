@@ -17,7 +17,7 @@
 .loading { animation: primary-spin 1s linear infinite; }
 .history.history { position: absolute; top: 3px; right: 6px; width: 22px; height: 22px; opacity: 0; pointer-events: none; color: var(--text-muted); }
 .history :global(.material-icon) { width: 15px; height: 15px; }
-.row:hover .history, .row:focus-within .history { opacity: 1; pointer-events: auto; }
+.row:hover .history, .row:focus-within .history, .row[data-menu-open] .history { opacity: 1; pointer-events: auto; }
 .row:hover .name, .row:focus-within .name { padding-right: 24px; }
 .empty { padding: 12px; color: var(--text-muted); font-size: 12px; }
 .collapsed { padding: 0; width: 100%; }
@@ -30,3 +30,5 @@
 .modeActive.modeActive { color: var(--text-main); background: var(--bg-selected); }
 
 .item:disabled { cursor: default; opacity: 0.6; }
+
+.collapsed .history.history { top: -2px; right: 0; width: 18px; height: 18px; }

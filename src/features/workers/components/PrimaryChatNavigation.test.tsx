@@ -18,10 +18,12 @@ it.each([false, true])("clicking an Agent directly opens its Platform primary ch
   const onSelectChat = jest.fn();
   const onOpenHistory = jest.fn();
   const onStartPrimary = jest.fn();
+  const onClearPrimary = jest.fn();
   const host = document.createElement("div");
+  document.body.append(host);
   const root = createRoot(host);
   await act(async () => root.render(<I18nProvider locale="zh-CN" persistLocale={false}>
-    <PrimaryChatNavigation collapsed={collapsed} onSelectChat={onSelectChat} onStartPrimary={onStartPrimary} onOpenHistory={onOpenHistory} getChatLoading={() => false} />
+    <PrimaryChatNavigation collapsed={collapsed} onSelectChat={onSelectChat} onStartPrimary={onStartPrimary} onOpenHistory={onOpenHistory} onClearPrimary={onClearPrimary} getChatLoading={() => false} />
   </I18nProvider>));
   try {
     const entry = host.querySelector<HTMLButtonElement>('button[aria-label^="Platform,"]')!;
@@ -36,8 +38,15 @@ it.each([false, true])("clicking an Agent directly opens its Platform primary ch
     expect(host.textContent).not.toContain("新建对话");
     if (!collapsed) {
       expect(host.textContent).toContain("primary reply");
-      await act(async () => host.querySelector<HTMLButtonElement>('button[aria-label="Platform: 显示历史"]')!.click());
+      await act(async () => host.querySelector<HTMLButtonElement>('button[aria-label="Platform: 更多操作"]')!.click());
+      const history = [...document.querySelectorAll<HTMLElement>('[role="menuitem"]')].find(item => item.textContent?.includes("显示历史"))!;
+      await act(async () => history.click());
       expect(onOpenHistory).toHaveBeenCalledWith("platform");
+      await act(async () => host.querySelector<HTMLButtonElement>('button[aria-label="Platform: 更多操作"]')!.click());
+      const clear = [...document.querySelectorAll<HTMLElement>('[role="menuitem"]')].find(item => item.textContent?.includes("清空主聊天"))!;
+      await act(async () => clear.click());
+      expect(onClearPrimary).toHaveBeenCalledWith("platform", "primary-chat");
+      expect(onSelectChat).toHaveBeenCalledTimes(1);
     }
-  } finally { await act(async () => root.unmount()); }
+  } finally { await act(async () => root.unmount()); host.remove(); }
 });

@@ -66,3 +66,6 @@ Desktop 内嵌 Agent/Copilot 页面继续由宿主提供外层侧栏；WebClient
 ## 当前 Agent 可用性同步
 
 Composer 可用性以全局 agentAvailability 为唯一来源，按 Agent 隔离检查版本，历史 Chat owner 保持不变。query 准入拒绝会同时失效该 Agent 的详情缓存并阻止迟到检查覆盖。当前 Agent 的 catalog.updated、重连、认证恢复和显式重试负责重新校准状态，正常 Platform 窗口切换不产生详情请求。
+
+
+主要对话导航仅显示智能体的 Primary 摘要，不挂载 openedBy 子 Chat 列表。悬停或键盘聚焦智能体时显示“…”菜单，菜单包含历史聊天、智能体配置与清空主聊天；历史聊天合并该 Agent 自身会话和 `/api/chats?openedBy=<agentKey>` 返回的工作会话，跨 Agent 的子 Chat 也保留入口。清空只允许无活动 Run、无待处理交互的 Primary，确认后复用归档接口并清除 Primary 指针，历史保留在归档；清空当前可见主 Chat 时进入该智能体的新会话，其他 Chat 不受影响。

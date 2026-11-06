@@ -1,5 +1,5 @@
-import {OpenedChats} from "./OpenedChats";
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
+import { Dropdown } from "antd";
 import { useAppContext } from "@/app/state/AppContext";
 import { AgentIcon } from "@/shared/icons/agent";
 import { effectiveAgentIcon } from "@/shared/icons/agentAppearance";
@@ -16,15 +16,17 @@ export function PrimaryChatNavigation(props: {
   onSelectChat: (chatId: string) => void;
   onStartPrimary: (workerKey: string) => void;
   onOpenHistory: (agentKey?: string) => void;
+  onClearPrimary?: (agentKey: string, chatId: string) => void;
+  onEditAgent?: (agentKey: string) => void;
   getChatLoading: (chatId: string) => boolean;
 }) {
   const { state } = useAppContext();
   const { t } = useI18n();
+  const [menuAgent, setMenuAgent] = useState("");
   const rows = useMemo(() => selectPrimaryNavigation(state.agents, state.chats), [state.agents, state.chats]);
   return <nav className={`${styles.navigation} ${props.collapsed ? styles.collapsed : ""}`} aria-label={t("leftSidebar.navigation.primaryChats")}>
     {!props.collapsed && <div className={styles.heading}>
       <span>{t("leftSidebar.navigation.primaryChats")}</span>
-      <UiButton size="mini" variant="ghost" onClick={() => props.onOpenHistory()}>{t("leftSidebar.navigation.showHistory")}</UiButton>
     </div>}
     {rows.map(({ agent, chat }) => {
       const active = Boolean(chat && state.chatId === chat.chatId);
@@ -33,7 +35,7 @@ export function PrimaryChatNavigation(props: {
       const loading = Boolean(chat && props.getChatLoading(chat.chatId));
       const preview = chat ? String(chat.lastRunContent || chat.chatName || t("leftSidebar.navigation.primaryNoReply")).replace(/\s+/g, " ") : t("leftSidebar.navigation.primaryNoChat");
       const status = awaiting ? t("leftSidebar.navigation.primaryAwaiting") : running ? t("leftSidebar.navigation.primaryRunning") : "";
-      return <div className={styles.row} key={agent.key}>
+      return <div className={styles.row} key={agent.key} data-menu-open={menuAgent === agent.key || undefined}>
         <button data-agent-pointer-idle="" data-agent-identity="" type="button"
           className={`${styles.item} ${active ? styles.active : ""}`}
           aria-current={active ? "page" : undefined}
@@ -50,10 +52,25 @@ export function PrimaryChatNavigation(props: {
             {awaiting ? <MaterialIcon name="front_hand" /> : (running || loading) ? <MaterialIcon name="progress_activity" className={styles.loading} /> : chat && isChatUnread(chat) ? <span className={styles.unread} /> : null}
           </span>
         </button>
-        {!props.collapsed && <UiButton size="mini" variant="ghost" iconOnly className={styles.history}
-          title={t("leftSidebar.navigation.showHistory")} aria-label={`${agent.name}: ${t("leftSidebar.navigation.showHistory")}`}
-          onClick={() => props.onOpenHistory(agent.key)}><MaterialIcon name="history" /></UiButton>}
-        {!props.collapsed && <OpenedChats agentKey={agent.key} onSelectChat={props.onSelectChat} />}
+        <Dropdown trigger={["click"]} onOpenChange={open => setMenuAgent(open ? agent.key : "")} menu={{
+          items: [
+            { key: "history", icon: <MaterialIcon name="history" />, label: t("leftSidebar.navigation.showHistory") },
+            ...(props.onEditAgent ? [{ key: "settings", icon: <MaterialIcon name="settings" />, label: t("leftSidebar.editAgent") }] : []),
+            { type: "divider" },
+            { key: "clearPrimary", icon: <MaterialIcon name="archive" />, label: t("leftSidebar.navigation.clearPrimary"), disabled: !chat || running || awaiting || !props.onClearPrimary },
+          ],
+          onClick: ({ key, domEvent }) => {
+            domEvent.stopPropagation();
+            if (key === "history") props.onOpenHistory(agent.key);
+            if (key === "settings") props.onEditAgent?.(agent.key);
+            if (key === "clearPrimary" && chat && !running && !awaiting) props.onClearPrimary?.(agent.key, chat.chatId);
+          },
+        }}>
+          <UiButton size="mini" variant="ghost" iconOnly className={styles.history}
+            title={t("leftSidebar.moreActions")} aria-label={`${agent.name}: ${t("leftSidebar.moreActions")}`}>
+            <MaterialIcon name="more_horiz" />
+          </UiButton>
+        </Dropdown>
       </div>;
     })}
     {!rows.length && !props.collapsed && <div className={styles.empty}>{t("leftSidebar.navigation.primaryEmpty")}</div>}

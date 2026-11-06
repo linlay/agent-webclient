@@ -110,6 +110,7 @@ export function reduceNavigationState(
 			return {
 				...state,
 				chats: state.chats.filter((chat) => String(chat.chatId || "") !== chatId),
+				agents: state.agents.map(agent => agent.primaryChat?.chatId === chatId ? { ...agent, primaryChat: undefined } : agent),
 				chatPinnedOrder: state.chatPinnedOrder?.filter((id) => id !== chatId) ?? null,
 				workerRelatedChats: state.workerRelatedChats.filter(
 					(chat) => String(chat.chatId || "") !== chatId,

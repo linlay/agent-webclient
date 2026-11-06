@@ -1,3 +1,6 @@
+/** @jest-environment jsdom */
+import { appReducer } from "@/app/state/reducer";
+import { createInitialState } from "@/app/state/state";
 import { selectPrimaryNavigation } from "./primaryNavigation";
 import { extractChatsFromAgents } from "./workerDataCoordinator";
 
@@ -30,4 +33,16 @@ it("does not duplicate a primary summary also present in recent previews", () =>
 it("leaves regular preview ordering intact when adding an older primary summary", () => {
   const chats = extractChatsFromAgents([{ key: "a", name: "A", chats: [{ chatId: "latest", updatedAt: 200 }], primaryChat: { chatId: "older-primary", updatedAt: 100 } }]);
   expect(chats.map(chat => chat.chatId)).toEqual(["latest", "older-primary"]);
+});
+
+
+it.each(["CHAT_ARCHIVED", "CHAT_DELETED"] as const)("clears only the matching primary pointer after %s", type => {
+  const state = createInitialState();
+  state.agents = [
+    { key: "a", name: "A", primaryChat: { chatId: "main" } },
+    { key: "b", name: "B", primaryChat: { chatId: "other" } },
+  ];
+  const next = appReducer(state, { type, chatId: "main" });
+  expect(selectPrimaryNavigation(next.agents, next.chats)[0].chat).toBeUndefined();
+  expect(next.agents[1].primaryChat?.chatId).toBe("other");
 });

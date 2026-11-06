@@ -23,6 +23,11 @@ const mockError = jest.fn();
 const mockButtons: Array<Record<string, any>> = [];
 const mockGetChats = jest.fn();
 const mockSearchGlobal = jest.fn();
+const mockGetOpenedChats = jest.fn();
+jest.mock("@/shared/data/api/requests/chats", () => ({
+  ...jest.requireActual("@/shared/data/api/requests/chats"),
+  getOpenedChats: (...args: unknown[]) => mockGetOpenedChats(...args),
+}));
 let mockFilterProps: React.ComponentProps<typeof HistoryFilter>;
 let mockActiveChatId = "";
 
@@ -147,6 +152,21 @@ function renderHistoryModal(
 }
 
 describe("HistoryModal", () => {
+  it("includes Chats opened by the selected Agent even when another Agent owns them", async () => {
+    mockGetChats.mockResolvedValue({ data: [] });
+    const child = createHistoryChat({ chatId: "child", agentKey: "beta", chatName: "Child opened by Alpha" });
+    stateChats.splice(0, stateChats.length, child);
+    mockGetOpenedChats.mockResolvedValue({ data: [child] });
+    const host = document.createElement("div");
+    const root = createRoot(host);
+    await act(async () => root.render(React.createElement(I18nProvider, { locale: "zh-CN", persistLocale: false },
+      React.createElement(HistoryModal, { initialAgentKey: "alpha", includeOpenedChats: true, onSelectChat: () => {} }))));
+    try {
+      expect(mockGetOpenedChats).toHaveBeenCalledWith("alpha");
+      expect(host.textContent).toContain("Child opened by Alpha");
+    } finally { await act(async () => root.unmount()); }
+  });
+
   it("opens all history explicitly even when a project is selected", () => {
     const html = renderHistoryModal([createHistoryChat(), createHistoryChat({ chatId: "beta-chat", agentKey: "beta", chatName: "Beta history" })], { initialAgentKey: "" });
     expect(html).toContain("Beta history");

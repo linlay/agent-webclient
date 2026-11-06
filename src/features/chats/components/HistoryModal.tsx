@@ -9,7 +9,7 @@ import styles from "./HistoryModal.module.css";
 import { Flex, Input, InputRef, Tag, Tooltip } from "antd";
 import type { AppState } from "@/app/state/AppContext";
 import type { Chat } from "@/features/chats/lib/chatState";
-import { isChatUnread } from "@/features/chats/lib/chatReadState";
+import { isChatUnread, normalizeChatReadState } from "@/features/chats/lib/chatReadState";
 import { isChatActiveRun } from "@/features/chats/lib/chatRunState";
 import {
   formatChatTimeLabel,
@@ -25,6 +25,7 @@ import {
   markChatRead,
   searchGlobal,
 } from "@/shared/data";
+import { getOpenedChats } from "@/shared/data/api/requests/chats";
 import { mergeFetchedChats } from "@/features/chats/lib/chatSummary";
 import { useAppContext } from "@/app/state/provider";
 import {
@@ -115,7 +116,8 @@ export const HistoryModal: React.FC<{
   onClose?: () => void;
   titleBarVariant?: "default" | "drawer";
   initialAgentKey?: string;
-}> = ({ onSelectChat, onClose, titleBarVariant = "default", initialAgentKey }) => {
+  includeOpenedChats?: boolean;
+}> = ({ onSelectChat, onClose, titleBarVariant = "default", initialAgentKey, includeOpenedChats = false }) => {
   const { modal, message } = useApp();
   const inputRef = useRef<InputRef>(null);
   const historyListRef = useRef<HTMLDivElement>(null);
@@ -128,6 +130,7 @@ export const HistoryModal: React.FC<{
   const [remoteHistoryRows, setRemoteHistoryRows] = useState<Chat[] | null>(
     null,
   );
+  const [openedHistory, setOpenedHistory] = useState<{ agentKey: string; ids: Set<string> }>({ agentKey: "", ids: new Set() });
   const [historySearch, setHistorySearch] = useState("");
   const [historyIndex, setHistoryIndex] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
@@ -165,13 +168,13 @@ export const HistoryModal: React.FC<{
     return chats
       .filter(
         (chat) =>
-          isChatForAgent(chat, selectedAgentKey) &&
+          (isChatForAgent(chat, selectedAgentKey) || (openedHistory.agentKey === selectedAgentKey && openedHistory.ids.has(chat.chatId))) &&
           isChatInDateRange(chat, dateRange) &&
           String(chat?.chatId || ""),
       )
       .slice()
       .sort(compareChatFreshness);
-  }, [state.chats, selectedAgentKey, dateRange]);
+  }, [state.chats, selectedAgentKey, dateRange, openedHistory]);
 
   const totalChatCount = useMemo(() => {
     const chats = Array.isArray(state.chats) ? state.chats : [];
@@ -228,8 +231,12 @@ export const HistoryModal: React.FC<{
   }, [dispatch, historySearch, selectedAgentKey]);
 
   const historyRows = useMemo(() => {
-    if (remoteHistoryRows) return remoteHistoryRows;
     const search = historySearch.trim().toLowerCase();
+    if (remoteHistoryRows) {
+      const openedMatches = localHistoryRows.filter(chat => openedHistory.agentKey === selectedAgentKey && openedHistory.ids.has(chat.chatId) &&
+        [chat.chatName, chat.chatId, chat.lastRunContent].join(" ").toLowerCase().includes(search));
+      return mergeFetchedChats(openedMatches, remoteHistoryRows).sort(compareChatFreshness);
+    }
     if (!search) return localHistoryRows;
     return localHistoryRows.filter((chat) =>
       [chat.chatName, chat.chatId, chat.lastRunContent]
@@ -237,7 +244,7 @@ export const HistoryModal: React.FC<{
         .toLowerCase()
         .includes(search),
     );
-  }, [localHistoryRows, historySearch, remoteHistoryRows]);
+  }, [localHistoryRows, historySearch, remoteHistoryRows, openedHistory, selectedAgentKey]);
 
   const activeIndex = clampIndex(historyIndex, historyRows.length);
   const unreadCount = historyRows.reduce(
@@ -254,13 +261,22 @@ export const HistoryModal: React.FC<{
     async (agentKey: string, options?: { replace?: boolean }) => {
       setRefreshing(true);
       try {
-        const response = await getChats(agentKey ? { agentKey } : {});
+        const [response, opened] = await Promise.all([
+          getChats(agentKey ? { agentKey } : {}),
+          includeOpenedChats && agentKey ? getOpenedChats(agentKey) : Promise.resolve(null),
+        ]);
+        const openedChats: Chat[] = (Array.isArray(opened?.data) ? opened.data : []).map(chat => ({
+          ...chat, read: normalizeChatReadState(chat.read),
+          hasActiveRun: chat.hasActiveRun ?? Boolean(chat.activeRun),
+          hasPendingAwaiting: chat.hasPendingAwaiting ?? Boolean(chat.awaiting),
+        }));
+        setOpenedHistory({ agentKey, ids: new Set(openedChats.map(chat => chat.chatId)) });
         const fetchedChats = Array.isArray(response.data)
           ? (response.data as Chat[])
           : [];
         let chats = mergeFetchedChats(
           options?.replace ? [] : chatsRef.current,
-          fetchedChats,
+          [...fetchedChats, ...openedChats],
         );
         if (options?.replace && agentKey) {
           // 单 Agent 刷新只替换自身目录，保留其他 Agent 的本地摘要。
@@ -285,7 +301,7 @@ export const HistoryModal: React.FC<{
         setRefreshing(false);
       }
     },
-    [dispatch],
+    [dispatch, includeOpenedChats],
   );
 
   useEffect(() => {

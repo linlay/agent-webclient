@@ -21,6 +21,7 @@ export const SidebarHistorySection: React.FC<{
       <HistoryModal
         key={initialAgentKey ?? "current"}
         initialAgentKey={initialAgentKey}
+        includeOpenedChats
         onClose={onClose}
         onSelectChat={(chatId) => {
           onClose();

@@ -72,6 +72,9 @@ export function processRunEvent(
     if (!text && attachments.length === 0) return commands;
     const counter = state.nextCounter();
     const suffix = toText(event.requestId) || String(counter);
+    // Attach snapshots and live delivery can echo the same request again.
+    // Match request.steer: the request identity owns a single timeline node.
+    if (state.getTimelineNode(`user_${suffix}`)) return commands;
     const taskBinding = applyTaskBindingToNode(event, state, undefined);
     commands.push({
       cmd: "USER_MESSAGE",
