@@ -1,5 +1,5 @@
 import type { EventDetailLevel } from "@/shared/data/eventDetailLevel";
-import { MODEL_RETRY_NODE_ID, RUN_ACTIVITY_NODE_ID } from "@/shared/ui/modelRetry";
+import { MODEL_RETRY_NODE_ID } from "@/shared/ui/modelRetry";
 import { isImageGenerationTool } from "./imageGenerationDisplay";
 import type { AgentEvent } from "@/shared/contracts/agentEvents";
 import type { TaskItemMeta } from "@/features/tasks/lib/tasksState";
@@ -80,17 +80,14 @@ function normalizeToolGroupValue(value: unknown): string {
 }
 
 /**
- * The nodes a viewer sees at its detail level. simple hides reasoning, tool
- * calls and the retry notice and shows the announcement line; detailed shows
- * the details and the activity message already selected by the server. Desktop follows the effective event detail level, so
- * this also applies the level there.
+ * The nodes a viewer sees at its detail level. Platform already selects the
+ * events of each level (simple keeps whole calls of simpleVisible tools such
+ * as image_generate, plus wait), so every delivered node is shown; simple
+ * only keeps the retry notice out of the timeline.
  */
 export function nodesForDetailLevel(nodes: TimelineNode[], level: EventDetailLevel): TimelineNode[] {
-  return nodes.filter((node) => {
-    if (node.id === RUN_ACTIVITY_NODE_ID) return true;
-    if (level === "detailed") return true;
-    return node.kind !== "thinking" && node.kind !== "tool" && node.id !== MODEL_RETRY_NODE_ID;
-  });
+  if (level === "detailed") return nodes;
+  return nodes.filter((node) => node.id !== MODEL_RETRY_NODE_ID);
 }
 
 export function buildRunRenderEntries(

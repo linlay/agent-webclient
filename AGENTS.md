@@ -235,7 +235,7 @@ Agent 管理表单支持 `interactionConfig.showPlanningMode/showEditingMode/sho
 
 实时语音已切换 Platform v1，浏览器不发 Query/TTS 编排。默认部署开关关闭；隔离测试和 Chrome 合成音频验证通过，真人/供应商/设备验收未完成，不宣称整阶段交付。旧协议、调试面板及 tts-voice 专属消费已同批删除，历史块按普通代码显示。
 
-过程展示只使用 simple/detailed（不兼容旧 none）；simple 保留后端一次启动提示、模型公示、必要状态及清除，隐藏每轮自动思考、工具等一句话进度；detailed 展示真实过程，不生成占位。Agent 编辑页提供继承模式配置、详细、精简，详细与精简各带内容说明。默认值由 Platform 解析的 interactionConfig.defaultDetail 决定（agent.yml 覆盖 agent-settings.yml mode 配置，兜底 simple）；WebClient 普通 query/attach/chat 不发送 detail，不读取旧全局 detail 偏好。历史 /api/chat.display 与下发 run.start.display 区分 defaultDetail/effectiveDetail，页面按 effectiveDetail 展示；Agent 管理表单只保存显式覆盖，删除 defaultDetail 恢复继承。详见界面基础专题。
+过程展示只使用 simple/detailed（不兼容旧 none）；simple 保留后端一次启动提示、模型公示、必要状态及清除，隐藏每轮自动思考、工具等一句话进度；detailed 展示真实过程，不生成占位。Agent 编辑页提供继承模式配置、详细、精简，详细与精简各带内容说明。默认值由 Platform 解析的 interactionConfig.defaultDetail 决定（agent.yml 覆盖 agent-settings.yml mode 配置，兜底 simple）；send/query/attach 不得发送 detail（Platform 拒绝），只有 `/detail` 重读空闲历史的 /api/chat 可带 detail，不读取旧全局 detail 偏好。历史 /api/chat.display 与下发 run.start.display 区分 defaultDetail/effectiveDetail；时间线显示后端下发的全部节点，不按档位隐藏思考或工具节点（simple 下工具节点只有 wait 与 simpleVisible 工具如 image_generate），simple 仅隐藏重试提示节点；Agent 管理表单只保存显式覆盖，删除 defaultDetail 恢复继承。详见界面基础专题。
 
 Mailbox 位于 `features/mailbox`，侧栏菜单打开按收件 Agent、类型与状态过滤的收件箱，使用 `/api/mails` 与 `/api/mails/action`。仅 suspended 的 letter/reply 提供人工重投或丢弃，确认界面显示消费证据与冻结权限。`mail.updated` 刷新收件箱；实时与历史 request.query/request.steer 通过结构化 mailId/mailKind 显示类型、发件会话与结果，普通 wait 支持 reason=mail。
 

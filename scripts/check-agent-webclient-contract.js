@@ -19,7 +19,7 @@ const desktopMirrorPath = configuredDesktopMirror
 
 const normalizeContractText = (value) => value.replace(/\r\n/gu, "\n");
 const vendored = normalizeContractText(fs.readFileSync(vendoredPath, "utf8"));
-const expectedMirrorHash = "b07b27b7f94ab6e9b0c6dc682eeb475b29e9388e5ea04e6a22fec290f2a880e5";
+const expectedMirrorHash = "c604f3c10403497c82e93d66c6cdab817a00884f178d1f861c7d7e739ed64721";
 const actualHash = crypto.createHash("sha256").update(vendored).digest("hex");
 
 if (actualHash !== expectedMirrorHash) {

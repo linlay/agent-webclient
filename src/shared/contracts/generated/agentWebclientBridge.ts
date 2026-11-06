@@ -1,6 +1,6 @@
 // Generated from src/shared/contracts/agent-webclient-bridge.ts.
 // Do not edit this mirror directly.
-// sha256:a0e8d1d663741133e569560dc6c789ee78b5cfe377bd982a59c74c450f70460a
+// sha256:deaf4ca916b5061c6a6095bb5c178fbc80bf63ab80fe987a292888bd9155aa45
 
 /**
  * Canonical Desktop <-> Agent WebClient bridge contract.
@@ -320,9 +320,9 @@ export type AgentPlatformRequestFrame = {
   frame: "request";
   type: string;
   id: string;
-  /** Platform event detail level of /api/query, /api/attach and /api/chat.
-   * Omitted follows the Agent's default; Desktop sets it only for its own
-   * main-process Runs that read tool events (the image studio asks for detailed). */
+  /** History-read level of /api/chat; omitted reads at the Agent's default.
+   * A Run is delivered at its Agent's configured level, so Platform rejects
+   * detail on every other frame. */
   detail?: "simple" | "detailed";
   payload?: unknown;
 };

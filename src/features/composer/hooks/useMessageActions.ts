@@ -1,6 +1,5 @@
 import { ApiError } from "@/shared/data/api/http";
 import { getBackendMode } from "@/shared/config/backendMode";
-import { chatDetailLevel } from "@/features/chats/lib/chatDetailLevel";
 import { sendUserMessage } from "@/shared/data/api/routedClient";
 import { acceptUserOutbox, isUndeliveredMailStatus, putUserOutbox, updateUserOutbox } from "@/features/mailbox/lib/userOutbox";
 import type { SendUserMessageRequest } from "@/shared/data/api/dto/mailbox";
@@ -515,7 +514,7 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
         putUserOutbox({ scope: accessScope, request, createdAt: Date.now(), newChat: isNewChatQuery });
         dispatch({ type: "REQUEST_CONVERSATION_SCROLL", chatId, reason: "local-send" });
         try {
-          const { data: receipt } = await sendUserMessage(request, chatDetailLevel(stateRef.current));
+          const { data: receipt } = await sendUserMessage(request);
           if (getDataSessionRevision() !== submissionSession) return;
           acceptUserOutbox(accessScope, requestId, receipt);
           if (isUndeliveredMailStatus(receipt.status)) {

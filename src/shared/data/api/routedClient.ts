@@ -683,6 +683,7 @@ export function invokeView(params: import("@/shared/contracts/view").ViewActionR
   return routeEndpoint(dataEndpoints.viewInvoke, params, () => invokeViewHttp(params));
 }
 
-export function sendUserMessage(input: SendUserMessageRequest, detail?: EventDetailLevel): Promise<ApiResponse<SendUserMessageReceipt>> {
-  return routeEndpoint(dataEndpoints.send, input, () => sendUserMessageHttp(input, detail), undefined, detail);
+/** Platform starts the Run at its Agent's detail level; a send never names one. */
+export function sendUserMessage(input: SendUserMessageRequest): Promise<ApiResponse<SendUserMessageReceipt>> {
+  return routeEndpoint(dataEndpoints.send, input, () => sendUserMessageHttp(input));
 }

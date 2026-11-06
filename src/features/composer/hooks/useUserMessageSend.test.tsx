@@ -36,7 +36,8 @@ it("sends ordinary text to an active Chat without starting a Query stream", asyn
   mockSend.mockResolvedValue({data: {mailId: "m-one", chatId: "chat-a", delivery: "inserted", runId: "run-a", ignoredOptions: ["model"]}});
   const h = setup();
   await h.actions.sendMessage("next input", [], [], {}, "full_access", {key: "new-model"}, "chat-a", "agent-a", true, "", "req-one");
-  expect(mockSend).toHaveBeenCalledWith(expect.objectContaining({requestId: "req-one", message: "next input", model: {key: "new-model"}, editingMode: true}), "simple");
+  // Platform decides the Run's detail level; the send carries none.
+  expect(mockSend).toHaveBeenCalledWith(expect.objectContaining({requestId: "req-one", message: "next input", model: {key: "new-model"}, editingMode: true}));
   expect(mockQuery).not.toHaveBeenCalled();
   expect(readUserOutbox(h.scope)).toContainEqual(expect.objectContaining({mailId: "m-one", delivery: "inserted"}));
   expect(h.stateRef.current.timelineNodes.has("user_req-one")).toBe(false);
@@ -60,7 +61,7 @@ it("sends references without text through the mailbox", async () => {
   const h = setup();
   const file = {type: "file", name: "notes.txt", url: "@chat/notes.txt"};
   await h.actions.sendMessage("", [file], [], {}, undefined, undefined, "chat-a", "agent-a", false, "", "req-refs");
-  expect(mockSend).toHaveBeenCalledWith(expect.objectContaining({requestId: "req-refs", message: "", references: [expect.objectContaining({url: "@chat/notes.txt"})]}), "simple");
+  expect(mockSend).toHaveBeenCalledWith(expect.objectContaining({requestId: "req-refs", message: "", references: [expect.objectContaining({url: "@chat/notes.txt"})]}));
   expect(mockQuery).not.toHaveBeenCalled();
   consumeUserOutbox(h.scope, "req-refs");
 });

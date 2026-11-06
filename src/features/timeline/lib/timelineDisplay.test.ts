@@ -598,8 +598,9 @@ describe('nodesForDetailLevel', () => {
     { id: 'model_retry_current', kind: 'message', role: 'system', ts: 4 },
     { id: 'run_activity_current', kind: 'message', role: 'system', systemMessageLevel: 'activity', ts: 5 },
   ];
-  it('simple shows content and the activity line only', () => {
-    expect(nodesForDetailLevel(nodes, 'simple').map((node) => node.id)).toEqual(['c', 'run_activity_current']);
+  // Platform already filtered the events by level; simple only hides the retry notice.
+  it('simple shows every delivered node except the retry notice', () => {
+    expect(nodesForDetailLevel(nodes, 'simple').map((node) => node.id)).toEqual(['c', 'r', 't', 'run_activity_current']);
   });
   it('detailed shows details and the server activity line', () => {
     expect(nodesForDetailLevel(nodes, 'detailed').map((node) => node.id)).toEqual(['c', 'r', 't', 'model_retry_current', 'run_activity_current']);

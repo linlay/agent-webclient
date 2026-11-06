@@ -659,7 +659,7 @@ it('hands legacy queued messages to the mailbox once the completed run leaves th
  h.setState({chatTransition: readyTransition});
  await act(async () => h.render(false));
  expect(mockSendUserMessage).toHaveBeenCalledTimes(1);
- expect(mockSendUserMessage).toHaveBeenCalledWith(expect.objectContaining({message: 'message from A', chatId: 'chat-a'}), 'simple');
+ expect(mockSendUserMessage).toHaveBeenCalledWith(expect.objectContaining({message: 'message from A', chatId: 'chat-a'}));
  expect(mockStartQuery).not.toHaveBeenCalled();
  expect(h.stateRef.current.pendingSteers['chat-a']).toBeUndefined();
 });
