@@ -40,3 +40,28 @@ it("renders the chat card in the tool row beside its existing timeline marker", 
   expect(html.indexOf('data-tool-icon="run"')).toBeLessThan(html.indexOf('<a '));
   expect(html.match(/<svg/g)).toHaveLength(1);
 });
+
+
+jest.mock("./MailAskCard", () => ({ MailAskCard: () => <section data-mail-card="ask" /> }));
+
+it.each([undefined, "steer"] as const)("keeps interactive mail cards outside the metadata label (%s)", messageVariant => {
+  const html = renderToStaticMarkup(<TimelineRow node={{
+    id: "ask", kind: "message", role: "user", messageVariant, ts: 100,
+    text: "internal forwarding prompt",
+    mail: { id: "mail", kind: "ask", fromAgentKey: "worker", fromChatId: "child" },
+  }} />);
+  expect(html).toContain('data-mail-card="ask"');
+  expect(html).not.toContain("internal forwarding prompt");
+  if (messageVariant === "steer") {
+    expect(html).toMatch(/timeline-command-label[^]*?<\/div><section data-mail-card="ask"/);
+  }
+});
+
+
+it.each(["letter", "reply", "notify"] as const)("does not render an old cached %s as a user message", kind => {
+  const html = renderToStaticMarkup(<TimelineRow node={{
+    id: "background", kind: "message", role: "user", ts: 100, text: "internal mail body",
+    mail: { id: "mail", kind, fromAgentKey: "child", fromChatId: "child-chat" },
+  }} />);
+  expect(html).toBe("");
+});

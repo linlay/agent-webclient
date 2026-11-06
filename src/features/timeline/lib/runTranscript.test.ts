@@ -42,3 +42,12 @@ describe('serializeRunTranscript', () => {
     expect(text).toBe('Query\nhi\n\nAnswer\nhello');
   });
 });
+
+
+it("does not export an old reply node as a user query", () => {
+  const text = serializeRunTranscript(createNode({ id: "reply", kind: "message", role: "user", ts: 100, text: "internal reply",
+    mail: { id: "mail", kind: "reply", fromAgentKey: "child", fromChatId: "child-chat" },
+  }), [createNode({ id: "answer", kind: "content", ts: 110, text: "visible model answer" })]);
+  expect(text).toContain("visible model answer");
+  expect(text).not.toContain("internal reply"); expect(text).not.toContain("Query");
+});

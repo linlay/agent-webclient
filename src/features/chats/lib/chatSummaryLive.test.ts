@@ -248,3 +248,15 @@ it("does not carry a previous Run's choices into a new Run", () => {
   });
   expect(result?.chat.activeRun).not.toHaveProperty("editingMode");
 });
+
+
+it("does not use a background reply as the Chat preview while retaining Run identity", () => {
+  const next = upsertLiveChatSummary({
+    event: { type: "request.query", chatId: "main", runId: "run", mailId: "mail", mailKind: "reply", mailOrigin: "agent", timestamp: EPOCH_MS } as AgentEvent,
+    cache: { chatId: "main", runId: "run", agentKey: "parent" },
+    state: { chatId: "main", chats: [], chatAgentById: new Map(), runId: "run" },
+    selectedContext: { agentKey: "parent" }, lastRunContent: "internal reply body",
+  });
+  expect(next?.chat).toMatchObject({ chatId: "main", lastRunId: "run" });
+  expect(next?.chat.lastRunContent).toBeUndefined();
+});

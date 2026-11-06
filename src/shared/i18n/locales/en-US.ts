@@ -63,6 +63,10 @@ export const enUSMessages = {
   "agents.access.hint": "Used unless a specific permission level is selected. Unspecified means Ask for approval. Changing a running level does not save this setting.",
   "planDialog.executionAccess": "Agent current default execution permission: {level}",
 
+  "mailbox.ask.decision": "Approval decision",
+  "mailbox.ask.required": "Choose or enter a value before confirming",
+  "mailbox.ask.field": "Item {number}",
+  "mailbox.ask.submitted": "Submitted",
   "mailbox.attachment": "Attachment: {name} · @chat/{path}",
   "mailbox.idle": "Idle",
   "mailbox.unavailable": "Mail record is unavailable",

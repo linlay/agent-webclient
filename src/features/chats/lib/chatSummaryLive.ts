@@ -2,10 +2,12 @@ import { isAwaitingAnswerLike, isAwaitingAskLike } from "@/shared/contracts/agen
 import type { AgentEvent } from "@/shared/contracts/agentEvents";
 import type { AppState } from "@/app/state/AppContext";
 import type { Chat } from "@/features/chats/lib/chatState";
+import { isBackgroundAgentMail } from "@/features/mailbox/lib/mailVisibility";
 import { resolveChatSummaryActiveRun } from '@/features/chats/lib/chatRunState';
 import {
   readEventChatName,
   readEventFirstAgentName,
+  readMailMetadata,
 } from '@/features/events/lib/eventFields';
 import { toText } from '@/shared/utils/eventUtils';
 import { isEpochMillis } from '@/shared/utils/platformTime';
@@ -126,7 +128,7 @@ export function upsertLiveChatSummary(input: {
       owner: owner || undefined,
       source: source || undefined,
       lastRunId: runId || undefined,
-      lastRunContent,
+      lastRunContent: isBackgroundAgentMail(readMailMetadata(event)) ? undefined : lastRunContent,
       canContinue: resolveChatCanContinue(event),
       updatedAt,
       hasPendingAwaiting,

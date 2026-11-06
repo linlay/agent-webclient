@@ -1979,3 +1979,35 @@ for (const mode of ["live", "replay"] as const) {
  expect(state.timelineOrder.filter(id=>id==="awaiting_answer_child_ask")).toHaveLength(1);
  });
 }
+
+
+describe("background agent mail inputs", () => {
+  const cases = (["live", "replay"] as const).flatMap(mode =>
+    (["request.query", "request.steer"] as const).flatMap(type =>
+      (["letter", "reply", "notify"] as const).map(mailKind => ({ mode, type, mailKind }))));
+  it.each(cases)("does not project $mailKind from $type into a user bubble in $mode", ({ mode, type, mailKind }) => {
+    const state = createState();
+    const commands = processAndApply(state, { type, mailId: "mail", mailKind, mailOrigin: "agent", requestId: "request", steerId: "steer",
+      chatId: "receiver", runId: "receiving-run", message: "internal background reply", timestamp: 100,
+    } as AgentEvent, mode);
+    expect(commands.some(command => command.cmd === "USER_MESSAGE")).toBe(false);
+    expect(state.timelineOrder).toEqual([]);
+    if (type === "request.steer") {
+      expect(state.chatId).toBe("receiver"); expect(state.runId).toBe("receiving-run");
+    }
+  });
+  it.each(["live", "replay"] as const)("keeps user mail and interactive asks visible in %s", mode => {
+    for (const type of ["request.query", "request.steer"] as const) {
+      const state = createState();
+      processAndApply(state, { type, mailId: "user-mail", mailKind: "letter", mailOrigin: "user", requestId: "user", steerId: "user-steer", message: "real user text", timestamp: 100 } as AgentEvent, mode);
+      processAndApply(state, { type, mailId: "ask-mail", mailKind: "ask", mailOrigin: "agent", requestId: "ask", steerId: "ask-steer", message: "approval required", timestamp: 110 } as AgentEvent, mode);
+      expect(state.timelineOrder).toHaveLength(2);
+      expect([...state.timelineNodes.values()].map(node => node.text)).toEqual(["real user text", "approval required"]);
+    }
+  });
+  it("never treats a user's reply-like body as mail metadata", () => {
+    const state = createState();
+    processAndApply(state, { type: "request.query", requestId: "plain", message: "[Reply] my ordinary text" } as AgentEvent, "replay");
+    expect(state.timelineOrder).toEqual(["user_plain"]);
+  });
+});

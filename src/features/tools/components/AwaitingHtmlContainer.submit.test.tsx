@@ -26,10 +26,10 @@ jest.mock("antd", () => {
 const data = {key:"run:wait", mode:"form", runId:"run", awaitingId:"wait", viewKey:"embedded-review", timeout:60,
  forms:[{id:"call",title:"Review operation",form:{content:"original"}}]} as FormActiveAwaiting;
 
-async function mount() {
+async function mount(keyboardShortcuts = true) {
  const host=document.createElement("div");document.body.append(host);
  const root=createRoot(host), submit=jest.fn().mockResolvedValue(undefined), patch=jest.fn();
- await act(async()=>root.render(<AwaitingHtmlContainer data={data} onSubmit={submit} onPatch={patch}/>));
+ await act(async()=>root.render(<AwaitingHtmlContainer data={data} onSubmit={submit} onPatch={patch} keyboardShortcuts={keyboardShortcuts}/>));
  const frame=host.querySelector("iframe")!;
  const reply=async(decision="approve",data:unknown={content:"edited"})=>act(async()=>{window.dispatchEvent(new MessageEvent("message",{source:frame.contentWindow,data:{type:"frontend_awaiting_submit",param:{decision,data}}}));});
  return {host,frame,submit,patch,reply,render: async (next: FormActiveAwaiting) => act(async () => root.render(<AwaitingHtmlContainer data={next} onSubmit={submit} onPatch={patch}/>)),click:async(decision:string)=>act(async()=>(host.querySelector(`[data-decision="${decision}"]`) as HTMLButtonElement).click()),cleanup:()=>{act(()=>root.unmount());host.remove();}};
@@ -250,4 +250,17 @@ const sizingBridgePath = path.resolve(process.env.PLATFORM_SOURCE || "../agent-p
   }
   expect(view.submit).not.toHaveBeenCalled();
  } finally {view.cleanup();}
+});
+
+
+test("inline mail forms do not react to global keyboard shortcuts", async () => {
+ const view = await mount(false);
+ try {
+  const post = jest.spyOn(view.frame.contentWindow!, "postMessage"); post.mockClear();
+  const event = await pressDigit("1");
+  expect(event.defaultPrevented).toBe(false);
+  expect(post).not.toHaveBeenCalled(); expect(view.submit).not.toHaveBeenCalled();
+  await view.click("submit");
+  expect(post).toHaveBeenCalledWith(expect.objectContaining({type:"awaiting_collect"}), "*");
+ } finally { view.cleanup(); }
 });

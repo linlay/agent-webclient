@@ -33,6 +33,7 @@ const presentationClasses = bindCssModuleClasses({ ...toolsPresentation, ...shar
 
 
 interface AwaitingHtmlContainerProps {
+  keyboardShortcuts?: boolean;
   data: FormActiveAwaiting;
   onPatch?: (patch: Partial<FormActiveAwaiting>) => void;
   onSubmit?: (payload: AIAwaitSubmitPayloadData) => Promise<unknown>;
@@ -382,6 +383,7 @@ export function buildRejectAwaitingSubmitPayload(
 }
 
 export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
+  keyboardShortcuts = true,
   data,
   onPatch,
   onSubmit,
@@ -860,6 +862,7 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
   const hostRef = useRef<HTMLDivElement>(null);
   const radioItemsRef = useRef<RadioRef[]>([]);
   useKeyboard({
+    enabled: keyboardShortcuts,
     getAllHost: () => hostRef.current?.querySelectorAll('[tabIndex="0"]'),
     onEnter: (element) => {
       const index = Number(element.dataset.index);
@@ -998,7 +1001,7 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
               data-index={0}
               className="tw:outline-none"
             >
-              <span className={AWAITING_PANEL_OPTION_INDEX_CLASS_NAME}>1</span>
+              {keyboardShortcuts && <span className={AWAITING_PANEL_OPTION_INDEX_CLASS_NAME}>1</span>}
               <span className={AWAITING_PANEL_OPTION_LABEL_CLASS_NAME}>
                 {submitStatusText
                   ? submitStatusText
@@ -1023,7 +1026,7 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
             }}
           >
             <Flex gap={10} align="center">
-              <span className={AWAITING_PANEL_OPTION_INDEX_CLASS_NAME}>2</span>
+              {keyboardShortcuts && <span className={AWAITING_PANEL_OPTION_INDEX_CLASS_NAME}>2</span>}
               <span className={AWAITING_PANEL_OPTION_LABEL_CLASS_NAME}>
                 {t(isUserForm ? "awaiting.form.decline" : "awaiting.action.reject")}
               </span>

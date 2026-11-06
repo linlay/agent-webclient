@@ -1,4 +1,5 @@
 import { readReferences, readRequestQueryText, readMailMetadata } from "@/features/events/lib/eventFields";
+import { isBackgroundAgentMail } from "@/features/mailbox/lib/mailVisibility";
 import { MODEL_RETRY_NODE_ID, RUN_ACTIVITY_NODE_ID } from "@/shared/ui/modelRetry";
 import type { AgentEvent, AIContextCompactEvent } from "@/shared/contracts/agentEvents";
 import type {
@@ -65,6 +66,8 @@ export function processRunEvent(
     const hidden = event.hidden === true ||
       (event.hidden === undefined && toText(event.role) === "automation");
     if (hidden) return commands;
+    const mail = readMailMetadata(event);
+    if (isBackgroundAgentMail(mail)) return commands;
     const text = readRequestQueryText(event);
     const attachments = normalizeTimelineAttachments(
       readReferences(event),
@@ -78,7 +81,7 @@ export function processRunEvent(
     const taskBinding = applyTaskBindingToNode(event, state, undefined);
     commands.push({
       cmd: "USER_MESSAGE",
-      mail: readMailMetadata(event),
+      mail,
       references: readReferences(event),
       nodeId: `user_${suffix}`,
       text,
@@ -94,6 +97,13 @@ export function processRunEvent(
     const text = safeText(event.message);
     const attachments = normalizeTimelineAttachments(event.references);
     if (!text.trim() && !hasTimelineAttachmentContent(attachments)) return commands;
+    const mail = readMailMetadata(event);
+    if (isBackgroundAgentMail(mail)) {
+      // Delivery still binds the receiving Run; only the user-message projection is hidden.
+      if (event.chatId) commands.push({ cmd: "SET_CHAT_ID", chatId: event.chatId });
+      if (event.runId) commands.push({ cmd: "SET_RUN_ID", runId: String(event.runId) });
+      return commands;
+    }
     const counter = config.mode === "replay" ? state.nextCounter() : null;
     const userMail = event.mailOrigin === "user";
     const variant = userMail ? "default" : "steer";
@@ -105,7 +115,7 @@ export function processRunEvent(
     if (event.runId) commands.push({ cmd: "SET_RUN_ID", runId: String(event.runId) });
     commands.push({
       cmd: "USER_MESSAGE",
-      mail: readMailMetadata(event),
+      mail,
       references: readReferences(event),
       nodeId: `${prefix}_${suffix}`,
       text,

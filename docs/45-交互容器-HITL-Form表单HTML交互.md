@@ -45,3 +45,10 @@ Platform 的 `ask_user_form` 复用 `mode:form`，VIEW 为 `{source:"builtin",ke
 收集结果仅包含按控件 name 命名的字符串或字符串数组；单 checkbox 为字符串 true/false，同名 checkbox 与多选 select 为数组，未选 radio 省略。模板的 `{html,values}` 不被回答覆盖，提交失败后保留当前输入。不能收集时的拒绝省略 data，不能把 HTML 模板当成用户答案。
 
 验证：自动测试覆盖按钮文案、来源与身份校验、无请求反馈忽略和校验失败后重试；目标 Desktop 的深色主题、原生校验气泡和 Team 排队仍需手工联调。
+
+
+## Mailbox 转交请示
+
+主 Chat 收到 `kind: ask` 邮件时，时间线的 MailBadge 只展示来源，交互卡片独立放在正文区域，不继承标签区的等宽字体、uppercase 和紧凑行高，也不重复展示面向模型的转交正文。带 `view` 与 `form` 的请示保留原始 View 引用和 `form.data`，复用 AwaitingHtmlContainer；View 读取使用发件子 Chat 的 chatId、runId，提交也固定使用发件 Agent、Run 与 awaitingId，通过既有转换器发送单个 param。内嵌卡片关闭全局数字键导航和快捷提交，保留 sandbox、主动 collect、来源校验和重复回执保护。
+
+仅包含声明字段的快照按纵向表单展示；工具审批选项直接可见，内部字段名仅作为提交键，不出现在验证提示中。长命令换行并限制高度，窄布局不横向撑开。提交成功立即收起操作区，刷新失败也不重新开放已受理的操作；失败保留选择和输入。终态只显示申请者、状态和来源链接；只读预览不挂载交互卡片。

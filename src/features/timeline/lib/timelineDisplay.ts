@@ -1,4 +1,5 @@
 import type { EventDetailLevel } from "@/shared/data/eventDetailLevel";
+import { isBackgroundAgentMail } from "@/features/mailbox/lib/mailVisibility";
 import { MODEL_RETRY_NODE_ID } from "@/shared/ui/modelRetry";
 import { isImageGenerationTool } from "./imageGenerationDisplay";
 import type { AgentEvent } from "@/shared/contracts/agentEvents";
@@ -82,12 +83,15 @@ function normalizeToolGroupValue(value: unknown): string {
 /**
  * The nodes a viewer sees at its detail level. Platform already selects the
  * events of each level (simple keeps whole calls of simpleVisible tools such
- * as image_generate, plus wait), so every delivered node is shown; simple
- * only keeps the retry notice out of the timeline.
+ * as image_generate, plus wait). Agent mail inputs are internal at every level;
+ * simple additionally keeps the retry notice out of the timeline.
  */
 export function nodesForDetailLevel(nodes: TimelineNode[], level: EventDetailLevel): TimelineNode[] {
-  if (level === "detailed") return nodes;
-  return nodes.filter((node) => node.id !== MODEL_RETRY_NODE_ID);
+  return nodes.filter((node) => !isBackgroundMailMessage(node) && (level === "detailed" || node.id !== MODEL_RETRY_NODE_ID));
+}
+
+function isBackgroundMailMessage(node: TimelineNode): boolean {
+  return node.kind === "message" && node.role === "user" && isBackgroundAgentMail(node.mail);
 }
 
 export function buildRunRenderEntries(
@@ -436,6 +440,7 @@ export function buildTimelineDisplayItemsFromTerminals(
   };
 
   for (const node of nodes) {
+    if (isBackgroundMailMessage(node)) continue;
     const isUserQuery =
       node.kind === "message" &&
       node.role === "user" &&

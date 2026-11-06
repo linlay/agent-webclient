@@ -1,6 +1,8 @@
 import { bindCssModuleClasses } from "@/shared/utils/cssModuleClasses";
 import timelinePresentation from "@/features/timeline/components/TimelinePresentation.module.css";
 import { MailBadge } from "./MailBadge";
+import { isBackgroundAgentMail } from "@/features/mailbox/lib/mailVisibility";
+import { MailAskCard } from "./MailAskCard";
 import { RelatedChatCards } from "./RelatedChatCards";
 import type { Agent } from "@/features/agents/lib/agentState";
 import { TimelineToolIcon } from "./TimelineToolIcon";
@@ -61,7 +63,7 @@ const TIMELINE_ROW_BASE_CLASS_NAME = presentationClasses("timeline-row tw:relati
 const TIMELINE_ROW_USER_CLASS_NAME = `${TIMELINE_ROW_BASE_CLASS_NAME} timeline-row-user tw:ml-auto tw:max-w-[87%] tw:pl-5`;
 const TIMELINE_ROW_FLOW_CLASS_NAME = `${TIMELINE_ROW_BASE_CLASS_NAME} timeline-row-flow tw:grid tw:grid-cols-[18px_minmax(0,1fr)] tw:items-start tw:gap-2.5 tw:mb-[2px]`;
 const TIMELINE_USER_STACK_CLASS_NAME =
-  "timeline-user-stack tw:flex tw:flex-col tw:items-end tw:gap-2";
+  "timeline-user-stack tw:flex tw:min-w-0 tw:flex-col tw:items-end tw:gap-2";
 const TIMELINE_USER_ATTACHMENTS_BASE_CLASS_NAME =
   "timeline-user-attachments tw:w-full tw:justify-end";
 const TIMELINE_USER_ATTACHMENTS_SINGLE_CLASS_NAME = "tw:flex tw:gap-2.5 tw:flex-wrap";
@@ -315,6 +317,7 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
   const interaction = useTimelineInteraction();
   const timeTarget = node || toolGroup?.nodes[toolGroup.nodes.length - 1];
   if (!timeTarget) return null;
+  if (node?.kind === "message" && node.role === "user" && isBackgroundAgentMail(node.mail)) return null;
   const taskID =
     node?.taskId || toolGroup?.nodes.find((item) => item.taskId)?.taskId;
   const anchorNodeId = node?.id || toolGroup?.nodes[0]?.id || undefined;
@@ -363,6 +366,7 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
       >
         <div className={TIMELINE_USER_STACK_CLASS_NAME}>
           {node.mail && <MailBadge mail={node.mail} />}
+          {node.mail?.kind === "ask" && !interaction?.readOnly && <MailAskCard mailId={node.mail.id} />}
           {/* 消息发出后引用只是记录：可以回看文本与批注，但不再提供"跳回原文"的定位，避免把已读的这一行再滚走。 */}
           <SelectedTextFragmentsPill
             fragments={selectedTextFragments}
@@ -390,7 +394,7 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
             </div>
           )}
 
-          {hasText && <UserBubble text={node.text || ""} targetId={node.id} />}
+          {hasText && node.mail?.kind !== "ask" && <UserBubble text={node.text || ""} targetId={node.id} />}
           {timeNode}
         </div>
       </div>
@@ -423,6 +427,7 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
           <div className={TIMELINE_COMMAND_LABEL_CLASS_NAME}>
             {node.mail ? <MailBadge mail={node.mail} /> : getCommandMessageLabel(node.messageVariant)}
           </div>
+          {node.mail?.kind === "ask" && !interaction?.readOnly && <MailAskCard mailId={node.mail.id} />}
           <div className="tw:flex tw:flex-wrap tw:gap-1">
             {(node.attachments || []).map((attachment, index) => (
               <React.Fragment key={attachment.id || index}>
@@ -430,11 +435,11 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
               </React.Fragment>
             ))}
           </div>
-          <UserBubble
+          {node.mail?.kind !== "ask" && <UserBubble
             text={node.text || ""}
             targetId={node.id}
             variant={node.messageVariant}
-          />
+          />}
           {timeNode}
         </div>
       </div>

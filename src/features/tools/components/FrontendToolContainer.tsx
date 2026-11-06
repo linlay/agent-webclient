@@ -3,7 +3,7 @@ import sharedPresentation from "@/shared/ui/Presentation.module.css";
 import React, { useEffect, useRef, useState } from "react";
 import { useAppState, useAppDispatch } from "@/app/state/AppContext";
 import { getBuiltinView } from "@/shared/data";
-import { resolveToolLabel } from "@/features/timeline/lib/toolDisplay";
+import { resolveToolLabel } from "@/shared/utils/toolLabel";
 import { resolveRunOwner } from "@/features/runs/lib/runOwner";
 import { toRunOwner } from "@/shared/data/runOwner";
 import { useI18n } from "@/shared/i18n";

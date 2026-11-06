@@ -1,25 +1,5 @@
-export interface ToolDisplaySource {
-  toolLabel?: string | null;
-  toolName?: string | null;
-  toolId?: string | null;
-  viewKey?: string | null;
-}
-
-export function resolveToolLabel(source: ToolDisplaySource, fallback = 'tool'): string {
-  const candidates = [
-    source.toolLabel,
-    source.toolName,
-    source.viewKey,
-    source.toolId,
-  ];
-
-  for (const candidate of candidates) {
-    const text = String(candidate || '').trim();
-    if (text) return text;
-  }
-
-  return fallback;
-}
+import type { ToolDisplaySource } from "@/shared/utils/toolLabel";
+export { resolveToolLabel, type ToolDisplaySource } from "@/shared/utils/toolLabel";
 
 export function isBashTool(source: ToolDisplaySource): boolean {
   return ['bash', 'bash_sandbox', '_sandbox_bash_'].includes(source.toolName?.trim().toLowerCase() || '');

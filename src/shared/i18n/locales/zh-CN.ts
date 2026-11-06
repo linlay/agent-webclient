@@ -63,6 +63,10 @@ export const zhCNMessages = {
   "agents.access.hint": "用户未明确选择权限时使用此值；未配置则请求审批。运行中切档不修改此配置。",
   "planDialog.executionAccess": "Agent 当前默认执行权限：{level}",
 
+  "mailbox.ask.decision": "审批决定",
+  "mailbox.ask.required": "请选择或填写后再确认",
+  "mailbox.ask.field": "第 {number} 项",
+  "mailbox.ask.submitted": "已提交",
   "mailbox.attachment": "附件：{name} · @chat/{path}",
   "mailbox.idle": "空闲",
   "mailbox.unavailable": "邮件记录已不可用",
