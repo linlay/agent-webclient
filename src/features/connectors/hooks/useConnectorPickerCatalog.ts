@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { getConnectors, type ConnectorOption } from "@/shared/data";
 import { usePushTransport } from "@/features/transport/hooks/useRealtimeTransport";
+import { useReconnectSignal } from "@/features/transport/hooks/useRefreshSignals";
 import { isConnectorCatalogUpdate } from "../lib/connectorCatalog";
 
 // The composer only needs the package catalog, not the management console's tool inventory.
@@ -26,6 +27,10 @@ export function useConnectorPickerCatalog(agentKey: string, revision = 0) {
       if (request === generation.current) setLoading(false);
     }
   }, [agentKey]);
+
+  // Desktop may retire the initial Frame Port while registering the surface.
+  // Recover the visible composer catalog without waiting for a menu to mount.
+  useReconnectSignal(() => { void refresh(); });
 
   useEffect(() => {
     setItems([]);

@@ -11,7 +11,13 @@ import { requestDataThroughExecutor } from "@/shared/data/api/dataRequestExecuto
 
 jest.mock("@/shared/data", () => ({ getAgent: jest.fn(), getConnectorConnection: jest.fn(), getConnectorConnections: jest.fn(), setAgentConnector: jest.fn() }));
 const push = { subscribe: jest.fn(() => jest.fn()) };
-jest.mock("@/features/transport/hooks/useRealtimeTransport", () => ({ usePushTransport: () => push, useOptionalRealtimeTransport: () => null }));
+const mockStatusListeners = new Set<(status: string) => void>();
+const mockTransport = {
+  push,
+  getStatus: () => "connecting",
+  subscribeStatus: (listener: (status: string) => void) => { mockStatusListeners.add(listener); return () => mockStatusListeners.delete(listener); },
+};
+jest.mock("@/features/transport/hooks/useRealtimeTransport", () => ({ usePushTransport: () => push, useOptionalRealtimeTransport: () => mockTransport }));
 jest.mock("@/shared/data/api/routedClient", () => ({ ...jest.requireActual("@/shared/data/api/routedClient"), invalidateAgentDetail: jest.fn() }));
 jest.mock("@/shared/data/api/dataRequestExecutor", () => ({ requestDataThroughExecutor: jest.fn() }));
 const mockStateRef = { current: createInitialState() };
@@ -314,4 +320,23 @@ it("ignores snapshots started before saving and processes a refresh requested du
   expect(getConnectorConnections).toHaveBeenCalledTimes(3);
   expect(runtime.data?.connectorIds).toEqual(["meeting"]);
   expect(runtime.availableIds).toContain("meeting");
+});
+
+
+it("restores initial Desktop connector reads after the Frame Port recovers without mounting a picker", async () => {
+  mockStateRef.current.agents = [];
+  jest.mocked(getAgent).mockRejectedValueOnce(new Error("Desktop Session retired"));
+  jest.mocked(getConnectorConnections).mockRejectedValueOnce(new Error("bridge not ready"));
+  await mount();
+  expect(runtime.data).toBeNull();
+  expect(runtime.loadError).toBeTruthy();
+  jest.mocked(getAgent).mockResolvedValue(response("zenmi", ["docs", "meeting", "mail"]));
+  await act(async () => {
+    mockStatusListeners.forEach(listener => listener("disconnected"));
+    mockStatusListeners.forEach(listener => listener("connected"));
+  });
+  expect(runtime.data?.connectorIds).toEqual(["docs", "meeting", "mail"]);
+  expect(runtime.availableIds).toEqual(["docs", "meeting", "mail"]);
+  expect(runtime.loadError).toBeNull();
+  expect(setAgentConnector).not.toHaveBeenCalled();
 });

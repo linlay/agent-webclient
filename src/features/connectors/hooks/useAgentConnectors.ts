@@ -3,6 +3,7 @@ import { useAppContext } from "@/app/state/AppContext";
 import { getAgent, getConnectorConnection, getConnectorConnections, setAgentConnector, type ConnectorConnection } from "@/shared/data";
 import { invalidateAgentDetail } from "@/shared/data/api/routedClient";
 import { usePushTransport } from "@/features/transport/hooks/useRealtimeTransport";
+import { useReconnectSignal } from "@/features/transport/hooks/useRefreshSignals";
 import { ConnectorChatError, readConnectorConnection } from "../lib/connectorChat";
 
 const asError = (cause: unknown) => cause instanceof Error ? cause : new Error(String(cause));
@@ -85,6 +86,11 @@ export function useAgentConnectors(agentKey: string) {
       if (current === request.current) setLoading(false);
     }
   }, [agentKey, dispatch, stateRef, refreshConfiguration]);
+
+  useReconnectSignal(() => {
+    void refreshConfiguration();
+    if (!Array.isArray(ids) || loadError) void refresh(false);
+  }, !!agentKey);
 
   useEffect(() => {
     scope.current += 1;
