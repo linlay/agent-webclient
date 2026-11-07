@@ -95,6 +95,7 @@ describe("App routing", () => {
         "/terminal/:agentKey",
         "/project/:agentKey",
         "/memory",
+        "/mailbox",
         "/agents",
         "/archives",
         "/archives/:chatId",

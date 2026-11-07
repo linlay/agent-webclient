@@ -139,6 +139,7 @@ export interface RelatedChat {
 }
 
 export interface TimelineNode {
+  showAgentInput?: boolean;
   delegatedBy?: string;
   delegatedLevel?: string;
   mail?: import("@/shared/data/api/dto/mailbox").MailMetadata;

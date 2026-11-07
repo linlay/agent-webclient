@@ -1,4 +1,3 @@
-import { MailboxEntry } from "@/features/mailbox/components/MailboxEntry";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
 import { useI18n } from "@/shared/i18n";
@@ -7,18 +6,16 @@ import styles from "./WorkerQuickActions.module.css";
 export interface WorkerQuickActionsProps {
   onOpenCommand: (type: "automation" | "agents" | "kbases") => void;
   onOpenMemory: () => void;
-  onOpenMailbox?: () => void;
   onNewChat: () => void;
   newChatDisabled?: boolean;
   hideNewChat?: boolean;
 }
 
-export function WorkerQuickActions({ onOpenCommand, onOpenMemory, onOpenMailbox, onNewChat, newChatDisabled, hideNewChat }: WorkerQuickActionsProps) {
+export function WorkerQuickActions({ onOpenCommand, onOpenMemory, onNewChat, newChatDisabled, hideNewChat }: WorkerQuickActionsProps) {
   const { t } = useI18n();
   return (
     <div className={`${styles.actions} left-sidebar-buttons`}>
       <div className={styles.utilityRow}>
-        {onOpenMailbox && <MailboxEntry onOpen={onOpenMailbox} />}
         <UiButton size="sm" variant="ghost" onClick={() => onOpenCommand("automation")}>
           <MaterialIcon name="schedule" className="tw:text-[16px]" />
           <span>{t("leftSidebar.quickActions.automation")}</span>

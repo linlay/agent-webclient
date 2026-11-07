@@ -27,6 +27,7 @@ export interface EventProcessorState {
 
 export interface EventProcessorConfig {
 	mode: "live" | "replay";
+  primaryChat?: boolean;
 	reasoningExpandedDefault: boolean;
 }
 
@@ -55,6 +56,7 @@ export type EventCommand =
 	| {
 			cmd: "USER_MESSAGE";
       mail?: TimelineNode["mail"];
+      showAgentInput?: boolean;
 			nodeId: string;
 			text: string;
 			ts: number;

@@ -30,6 +30,7 @@ export function buildChatReplayProjection(
   const events = normalizeLoadedChatEvents(rawEvents);
   const state = createReplayState();
   state.chatId = normalizedChatId;
+  state.primaryChat = typeof chatData.primary === "boolean" ? chatData.primary : undefined;
 
   for (const event of events) {
     if (event.chatId && String(event.chatId) !== normalizedChatId) continue;

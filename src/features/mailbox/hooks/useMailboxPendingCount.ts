@@ -1,13 +1,9 @@
 import { useAppState } from "@/app/state/AppContext";
 import { resolveStorageIdentity } from "@/shared/data/auth/storageIdentity";
-import React, { useEffect, useState } from "react";
-import { Badge } from "antd";
+import { useEffect, useState } from "react";
 import { getMails } from "@/shared/data/api/requests/mailbox";
-import { UiButton } from "@/shared/ui/UiButton";
-import { useI18n } from "@/shared/i18n";
 
-export function MailboxEntry({onOpen}: {onOpen: () => void}) {
-  const { t } = useI18n();
+export function useMailboxPendingCount(): number {
   const { accessToken } = useAppState();
   const scope = resolveStorageIdentity(accessToken);
   const [count, setCount] = useState(0);
@@ -36,7 +32,5 @@ export function MailboxEntry({onOpen}: {onOpen: () => void}) {
       window.removeEventListener("agent:mail-updated", update);
     };
   }, [scope]);
-  return <Badge count={count}>
-    <UiButton size="sm" variant="ghost" onClick={onOpen}>{t("mailbox.title")}</UiButton>
-  </Badge>;
+  return count;
 }

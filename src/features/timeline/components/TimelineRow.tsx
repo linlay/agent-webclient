@@ -317,7 +317,7 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
   const interaction = useTimelineInteraction();
   const timeTarget = node || toolGroup?.nodes[toolGroup.nodes.length - 1];
   if (!timeTarget) return null;
-  if (node?.kind === "message" && node.role === "user" && isBackgroundAgentMail(node.mail)) return null;
+  if (node?.kind === "message" && node.role === "user" && !node.showAgentInput && isBackgroundAgentMail(node.mail)) return null;
   const taskID =
     node?.taskId || toolGroup?.nodes.find((item) => item.taskId)?.taskId;
   const anchorNodeId = node?.id || toolGroup?.nodes[0]?.id || undefined;

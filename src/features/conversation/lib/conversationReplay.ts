@@ -19,6 +19,7 @@ import { appendVisibleDebugEvent } from '@/features/events/lib/debugEventDisplay
 import { readEpochMillis } from '@/shared/utils/platformTime';
 
 export interface ReplayState {
+  primaryChat?: boolean;
   timelineNodes: Map<string, TimelineNode>;
   timelineOrder: string[];
   contentNodeById: Map<string, string>;
@@ -338,6 +339,7 @@ function applyReplayEventCommand(rs: ReplayState, command: EventCommand): void {
         role: 'user',
         messageVariant: command.variant,
         mail: command.mail,
+        showAgentInput: command.showAgentInput,
         steerId: command.steerId,
         text: command.text,
         attachments: command.attachments,
@@ -422,6 +424,7 @@ function projectReadOnlyEvent(rs: ReplayState, event: AgentEvent, mode: 'live' |
     // Observers have no optimistic Composer message; render request.query from the stream.
     mode: event.type === 'request.query' ? 'replay' : mode,
     reasoningExpandedDefault: false,
+    primaryChat: rs.primaryChat,
   });
   for (const command of commands) {
     applyReplayEventCommand(rs, command);

@@ -46,6 +46,7 @@ describe("buildSidebarSettingsMenuSections", () => {
       "技能中心",
       "连接器中心",
       "注册配置",
+      "收件箱",
       "已归档对话",
       "设置",
     ]);

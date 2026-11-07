@@ -27,7 +27,7 @@ export function serializeRunTranscript(
     .map((node) => String(node.text || '').trim())
     .filter(Boolean);
 
-  if (!isBackgroundAgentMail(queryNode?.mail)) pushSection(lines, 'Query', String(queryNode?.text || ''));
+  if (queryNode?.showAgentInput || !isBackgroundAgentMail(queryNode?.mail)) pushSection(lines, 'Query', String(queryNode?.text || ''));
   pushSection(lines, 'Thinking', thinkingTexts.join('\n\n'));
 
   if (toolNodes.length > 0) {

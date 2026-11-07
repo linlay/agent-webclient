@@ -776,6 +776,7 @@ describe("LeftSidebar", () => {
     expect(html).toContain("新建对话");
     expect(html).toContain("记忆");
     expect(html).not.toContain('data-badge-count="6"');
+    expect(html).not.toContain("收件箱");
     expect(html).toContain('data-material-icon="edit_square"');
     expect(html).not.toContain('data-material-icon="robot_2"');
     for (const name of ["schedule", "database", "psychology"]) {

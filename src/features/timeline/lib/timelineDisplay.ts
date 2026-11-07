@@ -83,7 +83,7 @@ function normalizeToolGroupValue(value: unknown): string {
 /**
  * The nodes a viewer sees at its detail level. Platform already selects the
  * events of each level (simple keeps whole calls of simpleVisible tools such
- * as image_generate, plus wait). Agent mail inputs are internal at every level;
+ * as image_generate, plus wait). Agent mail inputs remain hidden unless explicitly enabled for Work debugging;
  * simple additionally keeps the retry notice out of the timeline.
  */
 export function nodesForDetailLevel(nodes: TimelineNode[], level: EventDetailLevel): TimelineNode[] {
@@ -91,7 +91,7 @@ export function nodesForDetailLevel(nodes: TimelineNode[], level: EventDetailLev
 }
 
 function isBackgroundMailMessage(node: TimelineNode): boolean {
-  return node.kind === "message" && node.role === "user" && isBackgroundAgentMail(node.mail);
+  return node.kind === "message" && node.role === "user" && !node.showAgentInput && isBackgroundAgentMail(node.mail);
 }
 
 export function buildRunRenderEntries(

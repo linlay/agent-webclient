@@ -189,6 +189,7 @@ export function buildLoadedChatSummary(
   const read = normalizeChatReadState(data.read);
   return {
     chatId: normalizedChatId || String(chatId || "").trim(),
+    ...(typeof data.primary === "boolean" ? { primary: data.primary } : {}),
     chatName: String(data.chatName || "").trim() || undefined,
     ...(isObjectRecord(data.display) ? { display: {
       defaultDetail: normalizeEventDetailLevel(data.display.defaultDetail),

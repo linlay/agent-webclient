@@ -62,12 +62,15 @@ export function processRunEvent(
   }
 
   if (type === "request.query") {
-    if (config.mode !== "replay" && !event.mailId) return commands;
+    if (config.mode !== "replay" && !event.mailId && config.primaryChat !== false) return commands;
     const hidden = event.hidden === true ||
       (event.hidden === undefined && toText(event.role) === "automation");
     if (hidden) return commands;
     const mail = readMailMetadata(event);
-    if (isBackgroundAgentMail(mail)) return commands;
+    const origin = event.origin as Record<string, unknown> | undefined;
+    const agentInput = event.mailOrigin === "agent" || Boolean(mail) || Boolean(origin?.agentKey || origin?.chatId);
+    if (config.primaryChat === true && event.mailOrigin !== "user" && agentInput) return commands;
+    if (config.primaryChat !== false && isBackgroundAgentMail(mail)) return commands;
     const text = readRequestQueryText(event);
     const attachments = normalizeTimelineAttachments(
       readReferences(event),
@@ -81,7 +84,8 @@ export function processRunEvent(
     const taskBinding = applyTaskBindingToNode(event, state, undefined);
     commands.push({
       cmd: "USER_MESSAGE",
-      mail,
+      ...(mail ? { mail } : {}),
+      ...(config.primaryChat === false ? { showAgentInput: true } : {}),
       references: readReferences(event),
       nodeId: `user_${suffix}`,
       text,

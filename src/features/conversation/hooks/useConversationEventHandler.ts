@@ -546,6 +546,8 @@ export function useConversationEventHandler(): {
         createLiveProcessorState(cache, state),
         {
           mode: "live",
+          primaryChat: state.chats.find(chat => chat.chatId === (event.chatId || state.chatId))?.primary ??
+            (state.agents.some(agent => agent.primaryChat?.chatId === (event.chatId || state.chatId)) ? true : undefined),
           reasoningExpandedDefault: false,
         },
       );

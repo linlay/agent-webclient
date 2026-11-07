@@ -2011,3 +2011,10 @@ describe("background agent mail inputs", () => {
     expect(state.timelineOrder).toEqual(["user_plain"]);
   });
 });
+
+it("projects live Work queries without a mail envelope and filters agent inputs in Primary", () => {
+  const event = { type: "request.query", chatId: "work", runId: "r", requestId: "task", message: "work instruction", timestamp: 100 } as AgentEvent;
+  expect(processStreamEvent(event, buildProcessorState(createState()), { mode: "live", reasoningExpandedDefault: false, primaryChat: false }))
+    .toEqual([expect.objectContaining({ cmd: "USER_MESSAGE", showAgentInput: true, text: "work instruction" })]);
+  expect(processStreamEvent({ ...event, mailId: "m", mailOrigin: "agent" }, buildProcessorState(createState()), { mode: "live", reasoningExpandedDefault: false, primaryChat: true })).toEqual([]);
+});

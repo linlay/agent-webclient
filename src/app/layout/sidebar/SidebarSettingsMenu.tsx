@@ -44,6 +44,7 @@ export interface SidebarSettingsMenuSection {
 }
 
 export interface SidebarSettingsMenuProps {
+  pendingMailCount?: number;
   onAction: (action: SidebarSettingsMenuAction) => void;
 }
 
@@ -62,7 +63,7 @@ export function resolveSettingsSummaryBadges(input: {
   ];
 }
 
-export function buildSidebarSettingsMenuSections(): SidebarSettingsMenuSection[] {
+export function buildSidebarSettingsMenuSections(pendingMailCount = 0): SidebarSettingsMenuSection[] {
   return [
     {
       key: "entry",
@@ -94,6 +95,13 @@ export function buildSidebarSettingsMenuSections(): SidebarSettingsMenuSection[]
           action: { type: "open-registries" },
         },
         {
+          key: "open-mailbox",
+          label: t("mailbox.title"),
+          icon: "draft",
+          badge: pendingMailCount > 0 ? pendingMailCount > 99 ? "99+" : String(pendingMailCount) : undefined,
+          action: { type: "open-mailbox" },
+        },
+        {
           key: "open-archive",
           label: t("settingsMenu.archive"),
           icon: "inventory_2",
@@ -111,11 +119,11 @@ export function buildSidebarSettingsMenuSections(): SidebarSettingsMenuSection[]
 }
 
 export const SidebarSettingsMenu: React.FC<SidebarSettingsMenuProps> = ({
-  onAction,
+  onAction, pendingMailCount = 0,
 }) => {
   const sections = React.useMemo(
-    () => buildSidebarSettingsMenuSections(),
-    [],
+    () => buildSidebarSettingsMenuSections(pendingMailCount),
+    [pendingMailCount],
   );
 
   return (
