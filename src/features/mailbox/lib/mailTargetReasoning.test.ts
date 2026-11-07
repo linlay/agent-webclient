@@ -1,4 +1,4 @@
-import { mailTargetReasoning } from "./mailTargetReasoning";
+import { mailTargetModel, mailTargetReasoning } from "./mailTargetReasoning";
 import type { ChatDetailResponse } from "@/shared/data/api/dto/chats";
 const chat: ChatDetailResponse = { chatId: "target", events: [
   { type: "request.query", runId: "old", model: { reasoningEffort: "LOW" } },
@@ -20,4 +20,17 @@ it("uses current/latest run only when delivery run is absent", () => {
 });
 it("does not infer reasoning from Agent defaults or previous runs", () => {
   expect(mailTargetReasoning({ chatId: "target", reasoningEffort: "HIGH", events: [] })).toBeUndefined();
+});
+
+it("shows the actual model of the delivery Run before the requested model", () => {
+  const target: ChatDetailResponse = { chatId: "target", events: [
+    { type: "request.query", runId: "old", model: { modelId: "old-model" } },
+    { type: "request.query", runId: "current", model: { key: "requested" } },
+    { type: "usage.snapshot", runId: "current", contextWindow: { modelKey: "actual" } },
+    { type: "usage.snapshot", runId: "current", taskId: "child", model: { key: "child-model" } },
+  ] };
+  expect(mailTargetModel(target)).toEqual({ model: "actual", source: "actual" });
+  expect(mailTargetModel(target, "old")).toEqual({ model: "old-model", source: "requested" });
+  expect(mailTargetModel(target, "missing")).toBeUndefined();
+  expect(mailTargetModel({ chatId: "target", events: [] })).toBeUndefined();
 });

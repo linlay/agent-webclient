@@ -58,3 +58,29 @@ it.each<{ name: string; lastNode: TimelineNode; visible: boolean }>([
     container.remove();
   }
 });
+
+it("keeps delegated approvals and parent steers visible outside a completed Run's collapsed process", () => {
+  const container = document.createElement("div");
+  document.body.appendChild(container);
+  const root = createRoot(container);
+  const nodes: TimelineNode[] = [
+    { id: "thinking", kind: "thinking", text: "Process", status: "done" },
+    { id: "parent-steer", kind: "message", role: "user", messageVariant: "steer", text: "Parent instruction" },
+    { id: "ask", kind: "message", role: "user", messageVariant: "steer", text: "Approval card",
+      mail: { id: "mail", kind: "ask", fromAgentKey: "bot", fromChatId: "child" } },
+    { id: "answer", kind: "content", text: "Please approve", status: "done" },
+  ];
+  const items = [{ kind: "run", key: "run", item: {
+    kind: "run", key: "run", completedAt: 2000, nodes, renderEntries: [],
+  } }] as unknown as ConversationListItem[];
+  try {
+    act(() => root.render(<ConversationStage items={items} agents={[]} expandedRuns={{}}
+      onToggleRun={() => undefined} expandedTasks={{}} onToggleTask={() => undefined} />));
+    expect(container.querySelector('[data-node-id="thinking"]')).toBeNull();
+    for (const id of ["parent-steer", "ask", "answer"]) {
+      const node = container.querySelector(`[data-node-id="${id}"]`);
+      expect(node).not.toBeNull();
+      expect(node!.closest(".timeline-run-collapse")).toBeNull();
+    }
+  } finally { act(() => root.unmount()); container.remove(); }
+});

@@ -10,7 +10,7 @@ import { loadMailboxPage, type MailboxFolder } from "../lib/loadMailboxPage";
 import { useMailChatLabels } from "../hooks/useMailChatLabels";
 import { useMailTargetChats } from "../hooks/useMailTargetChats";
 import { mailChatStatus } from "../lib/mailChatStatus";
-import { mailTargetReasoning } from "../lib/mailTargetReasoning";
+import { mailTargetModel, mailTargetReasoning } from "../lib/mailTargetReasoning";
 import styles from "./MailboxPanel.module.css";
 
 const kinds: MailKind[] = ["letter", "reply", "notify", "ask"];
@@ -80,6 +80,7 @@ export function MailboxPanel() {
   const address = (mail: MailRecord) => {
     const endpoint = (chatId: string, ownerKey: string, name: string, runId?: string) => {
       const chat = targetChats[chatId];
+      const model = chat ? mailTargetModel(chat, runId) : undefined;
       const reasoning = chat ? mailTargetReasoning(chat, runId) : undefined;
       const primary = agents.find(agent => agent.key === ownerKey)?.primaryChat?.chatId === chatId;
       const label = primary || chat?.primary === true ? "Primary" : chatLabels[chatId] || (chat?.primary === false ? "Work" : t("mailbox.unknown"));
@@ -87,8 +88,9 @@ export function MailboxPanel() {
         <Tooltip title={name}><span className={styles.agentName}>{name}</span></Tooltip>
         {chatId && <div className={styles.chatIdentity}>
           <Tooltip title={[chat?.chatName, t("mailbox.chatId", { id: chatId })].filter(Boolean).join(" · ")}><Tag>{label}</Tag></Tooltip>
-          <Tooltip title={`${t(runId ? "mailbox.chatRunReasoning" : "mailbox.chatLatestReasoning")} · ${t(reasoning ? `mailbox.reasoning.${reasoning.source}` : "mailbox.reasoning.unknown")}`}>
-            <Tag>{reasoning?.effort || t(chat === undefined ? "mailbox.reasoning.loading" : "mailbox.unknown")}</Tag>
+          <Tooltip title={t(model ? `mailbox.reasoning.${model.source}` : "mailbox.model.inherited")}><Tag>{model?.model || t("mailbox.model.inherited")}</Tag></Tooltip>
+          <Tooltip title={`${t(runId ? "mailbox.chatRunReasoning" : "mailbox.chatLatestReasoning")} · ${t(reasoning ? `mailbox.reasoning.${reasoning.source}` : "mailbox.reasoning.inherited")}`}>
+            <Tag>{reasoning?.effort || t("mailbox.reasoning.inherited")}</Tag>
           </Tooltip>
         </div>}
       </div>;

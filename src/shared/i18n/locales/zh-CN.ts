@@ -104,6 +104,8 @@ export const zhCNMessages = {
   "mailbox.unknown": "未知",
   "mailbox.targetRunReasoning": "目标 Chat 本次运行思考强度",
   "mailbox.targetLatestReasoning": "目标 Chat 当前／最近运行思考强度",
+  "mailbox.model.inherited": "模型继承",
+  "mailbox.reasoning.inherited": "思考强度继承",
   "mailbox.reasoning.actual": "实际运行值",
   "mailbox.reasoning.requested": "请求值（实际值未返回）",
   "mailbox.reasoning.loading": "加载中",

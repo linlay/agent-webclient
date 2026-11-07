@@ -104,6 +104,8 @@ export const enUSMessages = {
   "mailbox.unknown": "Unknown",
   "mailbox.targetRunReasoning": "Target Chat reasoning for this run",
   "mailbox.targetLatestReasoning": "Target Chat current/latest run reasoning",
+  "mailbox.model.inherited": "Inherited model",
+  "mailbox.reasoning.inherited": "Inherited reasoning effort",
   "mailbox.reasoning.actual": "Actual runtime value",
   "mailbox.reasoning.requested": "Requested value (actual unavailable)",
   "mailbox.reasoning.loading": "Loading",

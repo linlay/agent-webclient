@@ -110,8 +110,14 @@ export function ConversationStage({
           || (lastNode?.kind === "message" && lastNode.role === "system"
             && lastNode.systemMessageLevel === "error" && !lastNode.taskId)
           ? lastNode : null;
+        // Inputs remain readable and asks remain actionable after the receiving
+        // Run ends. Only execution details belong in the collapsed process.
+        const persistent = item.nodes.filter(node => node === final ||
+          (node.kind === "message" && node.role === "user" && !node.taskId));
+        const persistentIds = new Set(persistent.map(node => node.id));
+        const process = item.nodes.filter(node => !persistentIds.has(node.id));
         const collapse = Boolean(item.completedAt)
-          && item.nodes.length > 1
+          && item.nodes.length > 1 && process.length > 0
           && !item.nodes.some(isImageGenerationTool);
         return <Flex vertical gap={8} data-run-id={item.runId || undefined}>
           {runHeader?.(item)}
@@ -120,10 +126,10 @@ export function ConversationStage({
             onChange={() => onToggleRun(item.key)}
             items={[{ key: "run-entries", label: t("timeline.run.processed", { duration }), children:
               <div className="timeline-run-items tw:flex tw:flex-col tw:gap-[12px]">
-                {buildRunRenderEntries(final ? item.nodes.slice(0, -1) : item.nodes, tasks).map(renderEntry)}
+                {buildRunRenderEntries(process, tasks).map(renderEntry)}
               </div> }]} />}
           <section className="timeline-run-group tw:relative tw:flex tw:flex-col tw:gap-2 tw:mt-[4px]">
-            {collapse ? buildRunRenderEntries(final ? [final] : []).map(renderEntry)
+            {collapse ? buildRunRenderEntries(persistent, tasks).map(renderEntry)
               : <div className="timeline-run-items tw:flex tw:flex-col tw:gap-[12px]">{item.renderEntries.map(renderEntry)}</div>}
           </section>
           {!collapse && <RunTerminalNotice terminalType={item.terminalType} duration={duration} />}
