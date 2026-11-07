@@ -181,6 +181,8 @@ function applyCommands(state: TestState, commands: EventCommand[]): void {
           kind: 'message',
           role: 'user',
           messageVariant: command.variant,
+          mail: command.mail,
+          inbound: command.inbound,
           steerId: command.steerId,
           text: command.text,
           attachments: command.attachments,
@@ -226,7 +228,7 @@ function applyCommands(state: TestState, commands: EventCommand[]): void {
 }
 
 function processAndApply(state: TestState, event: AgentEvent, mode: 'live' | 'replay', reasoningExpandedDefault: boolean): EventCommand[] {
-  const commands = processStreamEvent({ origin: { type: event.mailOrigin === "agent" ? "agent" : "user" }, ...event }, buildProcessorState(state), { mode, reasoningExpandedDefault, primaryChat: true });
+  const commands = processStreamEvent(event, buildProcessorState(state), { mode, reasoningExpandedDefault });
   applyCommands(state, commands);
   return commands;
 }
@@ -319,7 +321,7 @@ describe('processStreamEvent', () => {
     expect(state.timelineOrder).toEqual(['user_req_mail', 'user_req_other']);
   });
 
-  it('requires resolved Chat identity before projecting request.query', () => {
+  it('projects user request.query in replay and live without Chat identity', () => {
     const replayState = createState();
     const liveState = createState();
 
@@ -337,7 +339,6 @@ describe('processStreamEvent', () => {
       ],
     }, buildProcessorState(replayState), {
       mode: 'replay',
-      primaryChat: true,
       reasoningExpandedDefault: false,
     });
     const liveCommands = processStreamEvent({ type: 'request.query', requestId: 'req_1', message: 'hello' }, buildProcessorState(liveState), {
@@ -362,7 +363,7 @@ describe('processStreamEvent', () => {
         ],
       },
     ]);
-    expect(liveCommands).toEqual([]);
+    expect(liveCommands).toEqual([expect.objectContaining({ cmd: 'USER_MESSAGE', nodeId: 'user_req_1', text: 'hello' })]);
   });
 
   it('hides automation request.query nodes by default while honoring hidden=false', () => {
@@ -374,7 +375,6 @@ describe('processStreamEvent', () => {
       message: 'scheduled task',
     }, buildProcessorState(createState()), {
       mode: 'replay',
-      primaryChat: true,
       reasoningExpandedDefault: false,
     });
     const explicitlyVisible = processStreamEvent({
@@ -386,7 +386,6 @@ describe('processStreamEvent', () => {
       message: 'visible scheduled task',
     }, buildProcessorState(createState()), {
       mode: 'replay',
-      primaryChat: true,
       reasoningExpandedDefault: false,
     });
 
@@ -450,7 +449,6 @@ describe('processStreamEvent', () => {
       ],
     }, buildProcessorState(createState()), {
       mode: 'replay',
-      primaryChat: true,
       reasoningExpandedDefault: false,
     });
 
@@ -481,7 +479,6 @@ describe('processStreamEvent', () => {
       query: 'hello from query',
     }, buildProcessorState(createState()), {
       mode: 'replay',
-      primaryChat: true,
       reasoningExpandedDefault: false,
     });
 
@@ -1994,40 +1991,76 @@ for (const mode of ["live", "replay"] as const) {
 }
 
 
-describe("background agent mail inputs", () => {
-  const cases = (["live", "replay"] as const).flatMap(mode =>
-    (["request.query", "request.steer"] as const).flatMap(type =>
-      (["letter", "reply", "notify"] as const).map(mailKind => ({ mode, type, mailKind }))));
-  it.each(cases)("does not project $mailKind from $type into a user bubble in $mode", ({ mode, type, mailKind }) => {
-    const state = createState();
-    const commands = processAndApply(state, { type, mailId: "mail", mailKind, mailOrigin: "agent", requestId: "request", steerId: "steer",
-      chatId: "receiver", runId: "receiving-run", message: "internal background reply", timestamp: 100,
-    } as AgentEvent, mode);
-    expect(commands.some(command => command.cmd === "USER_MESSAGE")).toBe(false);
-    expect(state.timelineOrder).toEqual([]);
+describe("agent-delivered inputs", () => {
+  const modes = ["live", "replay"] as const;
+  const types = ["request.query", "request.steer"] as const;
+  const cases = modes.flatMap(mode => types.map(type => ({ mode, type })));
+  const mail = (type: string, extra: Record<string, unknown>) => ({
+    type, chatId: "main", runId: "run", requestId: "request", steerId: "steer", agentKey: type === "request.query" ? "bot" : undefined,
+    mailId: "mail", mailOrigin: "agent", message: "internal body", references: [{ name: "result.md", sizeBytes: 3 }], timestamp: 100, ...extra,
+  } as AgentEvent);
+  const onlyNode = (state: ReturnType<typeof createState>) => [...state.timelineNodes.values()][0];
+  const receiving = (mode: "live" | "replay") => ({ state: createState(), mode });
+  const run = ({ state, mode }: ReturnType<typeof receiving>, event: AgentEvent) =>
+    processStreamEvent(event, { ...buildProcessorState(state), agentKey: "bot" }, { mode, reasoningExpandedDefault: false });
+
+  it.each(cases)("marks a child Chat reply from $type in $mode without its body", ({ mode, type }) => {
+    const target = receiving(mode);
+    applyCommands(target.state, run(target, mail(type, { mailKind: "reply", outcome: "completed", origin: { type: "agent", agentKey: "bot", chatId: "worker" } })));
+    expect(target.state.timelineOrder).toHaveLength(1);
+    expect(onlyNode(target.state)).toMatchObject({ role: "user", text: "", inbound: { kind: "reply", fromAgentKey: "bot", fromChatId: "worker", outcome: "completed", child: true } });
+    expect(onlyNode(target.state).attachments).toBeUndefined();
     if (type === "request.steer") {
-      expect(state.chatId).toBe("receiver"); expect(state.runId).toBe("receiving-run");
+      expect(target.state.chatId).toBe("main"); expect(target.state.runId).toBe("run");
     }
   });
-  it.each(["live", "replay"] as const)("keeps user input and retains steer ask behavior in %s", mode => {
-    for (const type of ["request.query", "request.steer"] as const) {
-      const state = createState();
-      processAndApply(state, { type, mailId: "user-mail", mailKind: "letter", mailOrigin: "user", requestId: "user", steerId: "user-steer", message: "real user text", timestamp: 100 } as AgentEvent, mode);
-      processAndApply(state, { type, mailId: "ask-mail", mailKind: "ask", mailOrigin: "agent", requestId: "ask", steerId: "ask-steer", message: "approval required", timestamp: 110 } as AgentEvent, mode);
-      expect(state.timelineOrder).toHaveLength(type === "request.query" ? 1 : 2);
-      expect([...state.timelineNodes.values()].map(node => node.text)).toEqual(type === "request.query" ? ["real user text"] : ["real user text", "approval required"]);
+  it.each(cases)("keeps another Agent's mail body from $type in $mode for expansion", ({ mode, type }) => {
+    for (const mailKind of ["letter", "reply", "notify"] as const) {
+      const target = receiving(mode);
+      applyCommands(target.state, run(target, mail(type, { mailKind, origin: { type: "agent", agentKey: "peer", chatId: "peer-main" } })));
+      expect(onlyNode(target.state)).toMatchObject({ text: "internal body", inbound: { kind: mailKind, fromAgentKey: "peer", child: false } });
+      expect(onlyNode(target.state).attachments).toEqual([expect.objectContaining({ name: "result.md" })]);
     }
+  });
+  it.each(cases)("shows the parent's task in full in a child Chat from $type in $mode", ({ mode, type }) => {
+    const target = receiving(mode);
+    applyCommands(target.state, run(target, mail(type, { mailKind: "letter", origin: { type: "agent", agentKey: "bot", chatId: "main" } })));
+    expect(onlyNode(target.state)).toMatchObject({ text: "internal body" });
+    expect(onlyNode(target.state).inbound).toBeUndefined();
+  });
+  it.each(cases)("never reveals a reply body when the receiving Agent is unknown in $type $mode", ({ mode, type }) => {
+    const state = createState();
+    applyCommands(state, processStreamEvent(mail(type, { agentKey: undefined, mailKind: "reply", origin: { type: "agent", agentKey: "peer" } }),
+      buildProcessorState(state), { mode, reasoningExpandedDefault: false }));
+    expect(onlyNode(state)).toMatchObject({ text: "", inbound: { child: true } });
+  });
+  it.each(cases)("treats a Chat tool input without mail as a letter from $type in $mode", ({ mode, type }) => {
+    const target = receiving(mode);
+    applyCommands(target.state, run(target, mail(type, { mailId: undefined, mailOrigin: undefined, origin: { type: "agent", agentKey: "peer", chatId: "peer-main" } })));
+    expect(onlyNode(target.state)).toMatchObject({ text: "internal body", inbound: { kind: "letter", child: false } });
+  });
+  it.each(modes)("keeps user input as a plain message and ask as an interactive card in %s", mode => {
+    for (const type of types) {
+      const state = createState();
+      processAndApply(state, { type, origin: { type: "user" }, mailId: "user-mail", mailKind: "letter", mailOrigin: "user", requestId: "user", steerId: "user-steer", message: "real user text", timestamp: 100 } as AgentEvent, mode);
+      processAndApply(state, { type, origin: { type: "agent", agentKey: "peer" }, mailId: "ask-mail", mailKind: "ask", mailOrigin: "agent", requestId: "ask", steerId: "ask-steer", message: "approval required", timestamp: 110 } as AgentEvent, mode);
+      const nodes = [...state.timelineNodes.values()];
+      expect(nodes.map(node => node.text)).toEqual(["real user text", "approval required"]);
+      expect(nodes[0].inbound).toBeUndefined();
+      expect(nodes[0].mail).toBeUndefined();
+      expect(nodes[1].mail).toMatchObject({ id: "ask-mail", kind: "ask" });
+    }
+  });
+  it("treats a steer without origin as the user's own input", () => {
+    const state = createState();
+    processAndApply(state, { type: "request.steer", runId: "run", steerId: "s", message: "go on", timestamp: 100 } as AgentEvent, "live");
+    expect(state.timelineNodes.get("steer_s")).toMatchObject({ text: "go on", messageVariant: "steer" });
+    expect(state.timelineNodes.get("steer_s")?.inbound).toBeUndefined();
   });
   it("never treats a user's reply-like body as mail metadata", () => {
     const state = createState();
     processAndApply(state, { type: "request.query", requestId: "plain", message: "[Reply] my ordinary text" } as AgentEvent, "replay");
     expect(state.timelineOrder).toEqual(["user_plain"]);
+    expect(state.timelineNodes.get("user_plain")?.inbound).toBeUndefined();
   });
-});
-
-it("projects live Work queries without a mail envelope and filters agent inputs in Primary", () => {
-  const event = { type: "request.query", chatId: "work", runId: "r", requestId: "task", message: "work instruction", timestamp: 100 } as AgentEvent;
-  expect(processStreamEvent(event, buildProcessorState(createState()), { mode: "live", reasoningExpandedDefault: false, primaryChat: false }))
-    .toEqual([expect.objectContaining({ cmd: "USER_MESSAGE", showAgentInput: true, text: "work instruction" })]);
-  expect(processStreamEvent({ ...event, mailId: "m", mailOrigin: "agent" }, buildProcessorState(createState()), { mode: "live", reasoningExpandedDefault: false, primaryChat: true })).toEqual([]);
 });

@@ -399,6 +399,13 @@ export const enUSMessages = {
   "memoryFiles.rules": "Record only information useful later. Separate facts from guesses and durable agreements from temporary events. Include scope and date; never store passwords or tokens. When forgetting information, check both memory and daily notes. Memory does not grant tool permissions.",
   "memoryFiles.searchLimit": "Each page searches up to 200 daily notes and returns 40 matches. Refine your query or continue to older notes.",
 
+  "timeline.inbound.child.letter": "Letter received",
+  "timeline.inbound.child.reply": "Reply received",
+  "timeline.inbound.child.notify": "Message received",
+  "timeline.inbound.letter": "Letter from {agent}",
+  "timeline.inbound.reply": "Reply from {agent}",
+  "timeline.inbound.notify": "Message from {agent}",
+  "timeline.inbound.openSender": "Open {agent}",
   "timeline.relatedChat.untitled": "New conversation",
   "timeline.relatedChat.open": "Open chat",
   "timeline.wait.waiting": "Waiting",

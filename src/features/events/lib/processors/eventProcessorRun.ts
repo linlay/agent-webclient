@@ -1,5 +1,5 @@
-import { readReferences, readRequestQueryText, readMailMetadata } from "@/features/events/lib/eventFields";
-import { isBackgroundAgentMail } from "@/features/mailbox/lib/mailVisibility";
+import { readReferences, readRequestQueryText } from "@/features/events/lib/eventFields";
+import { classifyInput } from "@/features/events/lib/inputSource";
 import { MODEL_RETRY_NODE_ID, RUN_ACTIVITY_NODE_ID } from "@/shared/ui/modelRetry";
 import type { AgentEvent, AIContextCompactEvent } from "@/shared/contracts/agentEvents";
 import type {
@@ -62,11 +62,6 @@ export function processRunEvent(
   }
 
   if (type === "request.query") {
-    // Chat identity and input provenance come from the current protocol only.
-    // An unresolved identity must not briefly expose an Agent input as user text.
-    if (typeof config.primaryChat !== "boolean") return commands;
-    const origin = event.origin as Record<string, unknown> | undefined;
-    if (config.primaryChat && origin?.type !== "user") return commands;
     const hidden = event.hidden === true ||
       (event.hidden === undefined && toText(event.role) === "automation");
     if (hidden) return commands;
@@ -81,15 +76,19 @@ export function processRunEvent(
     // Match request.steer: the request identity owns a single timeline node.
     if (state.getTimelineNode(`user_${suffix}`)) return commands;
     const taskBinding = applyTaskBindingToNode(event, state, undefined);
+    const display = classifyInput(event, state.agentKey);
+    // A child Chat's reply is only marked; its body never enters the timeline.
+    const childInbound = display.kind === "inbound" && display.inbound.child;
     commands.push({
       cmd: "USER_MESSAGE",
-      ...(config.primaryChat === false ? { showAgentInput: true } : {}),
-      references: readReferences(event),
+      ...(display.kind === "ask" ? { mail: display.mail } : {}),
+      ...(display.kind === "inbound" ? { inbound: display.inbound } : {}),
+      references: childInbound ? undefined : readReferences(event),
       nodeId: `user_${suffix}`,
-      text,
+      text: childInbound ? "" : text,
       ts: timestamp,
       variant: "default",
-      attachments: attachments.length > 0 ? attachments : undefined,
+      attachments: !childInbound && attachments.length > 0 ? attachments : undefined,
       ...(taskBinding.taskId ? taskBinding : {}),
     });
     return commands;
@@ -99,13 +98,6 @@ export function processRunEvent(
     const text = safeText(event.message);
     const attachments = normalizeTimelineAttachments(event.references);
     if (!text.trim() && !hasTimelineAttachmentContent(attachments)) return commands;
-    const mail = readMailMetadata(event);
-    if (isBackgroundAgentMail(mail)) {
-      // Delivery still binds the receiving Run; only the user-message projection is hidden.
-      if (event.chatId) commands.push({ cmd: "SET_CHAT_ID", chatId: event.chatId });
-      if (event.runId) commands.push({ cmd: "SET_RUN_ID", runId: String(event.runId) });
-      return commands;
-    }
     const counter = config.mode === "replay" ? state.nextCounter() : null;
     const userMail = event.mailOrigin === "user";
     const variant = userMail ? "default" : "steer";
@@ -115,16 +107,19 @@ export function processRunEvent(
     if (state.getTimelineNode(`${prefix}_${suffix}`)) return commands;
     if (event.chatId) commands.push({ cmd: "SET_CHAT_ID", chatId: event.chatId });
     if (event.runId) commands.push({ cmd: "SET_RUN_ID", runId: String(event.runId) });
+    const display = classifyInput(event, state.agentKey);
+    const childInbound = display.kind === "inbound" && display.inbound.child;
     commands.push({
       cmd: "USER_MESSAGE",
-      mail,
-      references: readReferences(event),
+      ...(display.kind === "ask" ? { mail: display.mail } : {}),
+      ...(display.kind === "inbound" ? { inbound: display.inbound } : {}),
+      references: childInbound ? undefined : readReferences(event),
       nodeId: `${prefix}_${suffix}`,
-      text,
+      text: childInbound ? "" : text,
       ts: timestamp,
       variant,
       steerId: variant === "steer" ? toText(event.steerId) || suffix : undefined,
-      attachments,
+      attachments: childInbound ? undefined : attachments,
     });
     return commands;
   }

@@ -252,11 +252,21 @@ it("does not carry a previous Run's choices into a new Run", () => {
 
 it("does not use a background reply as the Chat preview while retaining Run identity", () => {
   const next = upsertLiveChatSummary({
-    event: { type: "request.query", chatId: "main", runId: "run", mailId: "mail", mailKind: "reply", mailOrigin: "agent", timestamp: EPOCH_MS } as AgentEvent,
+    event: { type: "request.query", chatId: "main", runId: "run", origin: { type: "agent", agentKey: "parent", chatId: "worker" }, mailId: "mail", mailKind: "reply", mailOrigin: "agent", timestamp: EPOCH_MS } as AgentEvent,
     cache: { chatId: "main", runId: "run", agentKey: "parent" },
     state: { chatId: "main", chats: [], chatAgentById: new Map(), runId: "run" },
     selectedContext: { agentKey: "parent" }, lastRunContent: "internal reply body",
   });
   expect(next?.chat).toMatchObject({ chatId: "main", lastRunId: "run" });
   expect(next?.chat.lastRunContent).toBeUndefined();
+});
+
+it("previews the user's own text even when it arrived through the mailbox", () => {
+  const next = upsertLiveChatSummary({
+    event: { type: "request.query", chatId: "main", runId: "run", origin: { type: "user" }, mailId: "mail", mailKind: "letter", mailOrigin: "user", timestamp: EPOCH_MS } as AgentEvent,
+    cache: { chatId: "main", runId: "run", agentKey: "parent" },
+    state: { chatId: "main", chats: [], chatAgentById: new Map(), runId: "run" },
+    selectedContext: { agentKey: "parent" }, lastRunContent: "user text",
+  });
+  expect(next?.chat.lastRunContent).toBe("user text");
 });

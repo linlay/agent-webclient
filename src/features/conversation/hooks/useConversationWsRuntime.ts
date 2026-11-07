@@ -1,4 +1,3 @@
-import { readReferences } from "@/features/events/lib/eventFields";
 import { invalidateChatNavigationCache } from "@/shared/data";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import type { Dispatch } from "react";
@@ -27,7 +26,6 @@ import {
 } from "@/features/chats/lib/chatReadState";
 import {
 	hasValidDesktopPushTimeContract,
-	readEpochMillis,
 } from "@/shared/utils/platformTime";
 import type { AgentEventSink } from "@/features/events/lib/eventSink";
 import {
@@ -58,10 +56,6 @@ import { dispatchRunStartedPushEvent } from "@/features/runs/lib/mainChatRunActi
 import { resolveRunOwner } from "@/features/runs/lib/runOwner";
 import { resolveRunAgentKey } from "@/features/runs/lib/runAgentIdentity";
 import type { RunSession } from "@/features/runs/lib/runSession";
-import { normalizeTimelineAttachments } from "@/features/events/lib/timelineAttachments";
-import {
-	readRequestQueryText,
-} from "@/features/events/lib/eventFields";
 import { toText } from "@/shared/utils/eventUtils";
 import {
 	dispatchRunAttachDebugEvent,
@@ -557,49 +551,6 @@ function bindAttachSessionIdentity(session: LiveQuerySession, event: AgentEvent)
 
 }
 
-function renderAttachedRequestQuery(
-	options: RegisterAttachRunListenerOptions,
-	event: AgentEvent,
-): void {
-	if (toText(event.type) !== "request.query") {
-		return;
-	}
-
-	const text = readRequestQueryText(event);
-	const attachments = normalizeTimelineAttachments(
-		readReferences(event),
-	);
-	if (!text && attachments.length === 0) {
-		return;
-	}
-	const timestamp = readEpochMillis(event.timestamp);
-	if (timestamp === undefined) {
-		return;
-	}
-
-	const requestId = toText(event.requestId);
-	const nodeId = `user_${requestId || toText(event.seq) || Date.now()}`;
-	if (options.stateRef.current.timelineNodes.has(nodeId)) {
-		return;
-	}
-
-	options.dispatch({
-		type: "SET_TIMELINE_NODE",
-		id: nodeId,
-		node: {
-			id: nodeId,
-			kind: "message",
-			role: "user",
-			messageVariant: "default",
-			text,
-			attachments: attachments.length > 0 ? attachments : undefined,
-      references: readReferences(event),
-			ts: timestamp,
-		},
-	});
-	options.dispatch({ type: "APPEND_TIMELINE_ORDER", id: nodeId });
-}
-
 export function registerAttachRunListener(
 	options: RegisterAttachRunListenerOptions,
 ): () => void {
@@ -709,7 +660,6 @@ export function registerAttachRunListener(
 		const controller = new AbortController();
 		let session: LiveQuerySession | null = null;
 		const attachHandleEvent = (attachedEvent: AgentEvent) => {
-			renderAttachedRequestQuery(options, attachedEvent);
 			if (session) {
 				session.bufferedEvents.push(attachedEvent);
 				bindAttachSessionIdentity(session, attachedEvent);

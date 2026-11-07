@@ -1,5 +1,4 @@
 import type { TimelineNode } from "@/features/timeline/lib/timelineState";
-import { isBackgroundAgentMail } from "@/features/mailbox/lib/mailVisibility";
 import { resolveToolLabel } from '@/features/timeline/lib/toolDisplay';
 
 function pushSection(lines: string[], title: string, body: string): void {
@@ -27,7 +26,8 @@ export function serializeRunTranscript(
     .map((node) => String(node.text || '').trim())
     .filter(Boolean);
 
-  if (queryNode?.showAgentInput || !isBackgroundAgentMail(queryNode?.mail)) pushSection(lines, 'Query', String(queryNode?.text || ''));
+  // Agent-delivered input is internal; the transcript carries the user's own text only.
+  if (!queryNode?.inbound) pushSection(lines, 'Query', String(queryNode?.text || ''));
   pushSection(lines, 'Thinking', thinkingTexts.join('\n\n'));
 
   if (toolNodes.length > 0) {

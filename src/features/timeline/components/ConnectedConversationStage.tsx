@@ -768,7 +768,8 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
     }> = [];
     for (let index = 0; index < displayItems.length; index += 1) {
       const item = displayItems[index];
-      if (item.kind !== "query") continue;
+      // Anchors list the user's questions; Agent-delivered input is not one.
+      if (item.kind !== "query" || item.node.inbound) continue;
 
       const nextItem = displayItems[index + 1];
       anchors.push({
@@ -1802,6 +1803,10 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
 
   const renderQueryMeta = (item: Extract<TimelineDisplayItem, { kind: "query" }>) => {
     const time = formatTimelineTime(item.node.ts);
+    // Agent-delivered input is not the user's to copy or resend; it keeps its time only.
+    if (item.node.inbound) {
+      return time.short ? <div className={TIMELINE_ROW_TIME_CLASS_NAME} title={time.full}>{time.short}</div> : null;
+    }
     const copyKey = `${item.key}:copy`;
     const copyStatus = actionStatus[copyKey] || t("timeline.toolPill.copy.action");
     return <div className={TIMELINE_META_ROW_CLASS_NAME}>

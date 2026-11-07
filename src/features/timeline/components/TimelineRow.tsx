@@ -1,8 +1,8 @@
 import { bindCssModuleClasses } from "@/shared/utils/cssModuleClasses";
 import timelinePresentation from "@/features/timeline/components/TimelinePresentation.module.css";
 import { MailBadge } from "./MailBadge";
-import { isBackgroundAgentMail } from "@/features/mailbox/lib/mailVisibility";
 import { MailAskCard } from "./MailAskCard";
+import { InboundMessage } from "./InboundMessage";
 import { RelatedChatCards } from "./RelatedChatCards";
 import type { Agent } from "@/features/agents/lib/agentState";
 import { TimelineToolIcon } from "./TimelineToolIcon";
@@ -317,7 +317,6 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
   const interaction = useTimelineInteraction();
   const timeTarget = node || toolGroup?.nodes[toolGroup.nodes.length - 1];
   if (!timeTarget) return null;
-  if (node?.kind === "message" && node.role === "user" && !node.showAgentInput && isBackgroundAgentMail(node.mail)) return null;
   const taskID =
     node?.taskId || toolGroup?.nodes.find((item) => item.taskId)?.taskId;
   const anchorNodeId = node?.id || toolGroup?.nodes[0]?.id || undefined;
@@ -333,6 +332,11 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
         {time.short}
       </div>
     ) : null);
+
+  /* Input another Agent delivered: a muted line, never a user bubble */
+  if (node && node.kind === "message" && node.role === "user" && node.inbound) {
+    return <InboundMessage node={{ ...node, inbound: node.inbound }} agents={agents} timeNode={timeNode} />;
+  }
 
   /* User messages */
   if (

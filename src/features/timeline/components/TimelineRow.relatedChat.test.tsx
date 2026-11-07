@@ -58,10 +58,35 @@ it.each([undefined, "steer"] as const)("keeps interactive mail cards outside the
 });
 
 
-it.each(["letter", "reply", "notify"] as const)("does not render an old cached %s as a user message", kind => {
-  const html = renderToStaticMarkup(<TimelineRow node={{
-    id: "background", kind: "message", role: "user", ts: 100, text: "internal mail body",
-    mail: { id: "mail", kind, fromAgentKey: "child", fromChatId: "child-chat" },
-  }} />);
-  expect(html).toBe("");
+it.each(["reply", "notify"] as const)("marks a child Chat %s without body, toggle or link", kind => {
+  const html = renderToStaticMarkup(
+    <TimelineInteractionProvider value={{ openChat: jest.fn(), getChatHref: chat => `/?chatId=${chat.chatId}` }}>
+      <TimelineRow agents={[{ key: "bot", name: "Bot" } as never]} node={{
+        id: "child", kind: "message", role: "user", ts: 100, text: "",
+        inbound: { kind, fromAgentKey: "bot", fromChatId: "worker", child: true },
+      }} />
+    </TimelineInteractionProvider>,
+  );
+  expect(html).toContain(`data-inbound="${kind}"`);
+  expect(html).not.toContain("timeline-user-bubble");
+  expect(html).not.toContain("<button");
+  expect(html).not.toContain("<a ");
+  expect(html).not.toContain("Bot");
+});
+
+it.each(["letter", "reply", "notify"] as const)("collapses another Agent's %s behind a toggle and links the BOT", kind => {
+  const html = renderToStaticMarkup(
+    <TimelineInteractionProvider value={{ openChat: jest.fn(), getChatHref: chat => `/?chatId=${chat.chatId}` }}>
+      <TimelineRow agents={[{ key: "peer", name: "Peer Bot", mode: "BOT", primaryChat: { chatId: "peer-main" } } as never]} node={{
+        id: "other", kind: "message", role: "user", ts: 100, text: "internal mail body",
+        inbound: { kind, fromAgentKey: "peer", fromChatId: "peer-worker", child: false },
+      }} />
+    </TimelineInteractionProvider>,
+  );
+  expect(html).toContain(`data-inbound="${kind}"`);
+  expect(html).toContain("Peer Bot");
+  expect(html).toContain('href="/?chatId=peer-main"');
+  expect(html).toContain('aria-expanded="false"');
+  expect(html).not.toContain("internal mail body");
+  expect(html).not.toContain("timeline-user-bubble");
 });

@@ -305,6 +305,22 @@ describe("useMessageActions temporary pin", () => {
     expect(chatQuerySessionIndexRef.current.get("chat_1")).toBeTruthy();
   });
 
+  it("keys the optimistic query bubble by requestId so the stream echo reuses it", async () => {
+    const state = createInitialState();
+    state.agents = [{ key: "agent-coder", name: "agent-coder", mode: "CODER" }];
+    const dispatch = jest.fn();
+    useAppContext.mockReturnValue({ state, dispatch, stateRef: { current: state },
+      querySessionsRef: { current: new Map() }, chatQuerySessionIndexRef: { current: new Map() },
+      activeQuerySessionRequestIdRef: { current: "" } });
+    let actions: ReturnType<typeof useMessageActions> | null = null;
+    const Harness = () => { actions = useMessageActions({ onAgentEvent: jest.fn() }); return null; };
+    renderToStaticMarkup(React.createElement(Harness));
+    await legacyQuery(actions!, "hello", [], [], {}, undefined, undefined, "", "agent-coder");
+    const requestId = startQuery.mock.calls[0][0].requestId;
+    expect(requestId).toBeTruthy();
+    expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({ type: "SET_TIMELINE_NODE", id: `user_${requestId}` }));
+  });
+
   it.each([
     { label: "plain new Chat", prebound: false, search: "?newChat=1789895808848", nextSearch: "", expected: 1 },
     { label: "upload-prebound new Chat", prebound: true, search: "?newChat=1789895808848", nextSearch: "", expected: 1 },

@@ -19,7 +19,6 @@ import { appendVisibleDebugEvent } from '@/features/events/lib/debugEventDisplay
 import { readEpochMillis } from '@/shared/utils/platformTime';
 
 export interface ReplayState {
-  primaryChat?: boolean;
   timelineNodes: Map<string, TimelineNode>;
   timelineOrder: string[];
   contentNodeById: Map<string, string>;
@@ -253,6 +252,7 @@ function createReplayProcessorState(rs: ReplayState): EventProcessorState {
     activeReasoningKey: rs.activeReasoningKey,
     chatId: rs.chatId,
     runId: rs.runId,
+    agentKey: rs.runAgentById.get(rs.runId) || rs.currentRunAgentKey || rs.chatAgentById.get(rs.chatId) || undefined,
     currentRunningPlanTaskId: rs.planCurrentRunningTaskId,
     getTaskItem: (taskId) => rs.taskItemsById.get(taskId),
     getActiveTaskIds: () => Array.from(rs.activeTaskIds),
@@ -339,7 +339,7 @@ function applyReplayEventCommand(rs: ReplayState, command: EventCommand): void {
         role: 'user',
         messageVariant: command.variant,
         mail: command.mail,
-        showAgentInput: command.showAgentInput,
+        inbound: command.inbound,
         steerId: command.steerId,
         text: command.text,
         attachments: command.attachments,
@@ -424,7 +424,6 @@ function projectReadOnlyEvent(rs: ReplayState, event: AgentEvent, mode: 'live' |
     // Observers have no optimistic Composer message; render request.query from the stream.
     mode: event.type === 'request.query' ? 'replay' : mode,
     reasoningExpandedDefault: false,
-    primaryChat: rs.primaryChat,
   });
   for (const command of commands) {
     applyReplayEventCommand(rs, command);

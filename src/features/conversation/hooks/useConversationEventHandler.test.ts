@@ -1196,30 +1196,31 @@ describe('createLiveProcessorState', () => {
   });
 });
 
-describe('request.query authoritative Chat identity', () => {
-  it.each([true, false])('waits for /api/chat primary=%s before rendering live input', async primary => {
+describe('request.query input source', () => {
+  it('projects live input by origin without waiting for Chat identity', async () => {
     const requests = await import('@/shared/data/api/requests/chats');
-    let resolve!: (value: Awaited<ReturnType<typeof requests.getChat>>) => void;
-    const loading = new Promise<Awaited<ReturnType<typeof requests.getChat>>>(done => { resolve = done; });
-    const getChat = jest.spyOn(requests, 'getChat').mockReturnValue(loading);
+    const getChat = jest.spyOn(requests, 'getChat');
     const restoreWindow = installSessionStorage();
     try {
       const stateRef = { current: createInitialState() };
-      stateRef.current.chatId = 'identity-chat';
+      stateRef.current.chatId = 'main';
       stateRef.current.streaming = true;
-      stateRef.current.chats = [{ chatId: 'identity-chat', agentKey: 'agent' }];
       const dispatch = jest.fn(action => { stateRef.current = appReducer(stateRef.current, action); });
       useAppContext.mockReturnValue({ dispatch, stateRef });
       let handler!: ReturnType<typeof useConversationEventHandler>;
       const Harness = () => { handler = useConversationEventHandler(); return null; };
       renderToStaticMarkup(React.createElement(Harness));
-      handler.handleEvent({ type: 'request.query', chatId: 'identity-chat', runId: 'run', requestId: 'input', message: 'work reply', origin: { type: 'agent', chatId: 'work' }, timestamp: 100 } as AgentEvent);
-      expect(getChat).toHaveBeenCalledWith('identity-chat');
-      expect(stateRef.current.timelineOrder).toHaveLength(0);
-      resolve({ data: { chatId: 'identity-chat', primary } } as Awaited<ReturnType<typeof requests.getChat>>);
-      await loading;
-      await Promise.resolve();
-      expect(stateRef.current.timelineOrder).toHaveLength(primary ? 0 : 1);
+      const base = { type: 'request.query', chatId: 'main', agentKey: 'bot', timestamp: 100 };
+      handler.handleEvent({ ...base, runId: 'r1', requestId: 'own', message: 'user text', origin: { type: 'user' } } as AgentEvent);
+      handler.handleEvent({ ...base, runId: 'r2', requestId: 'child', message: 'child body', origin: { type: 'agent', agentKey: 'bot', chatId: 'worker' }, mailId: 'm1', mailKind: 'reply', mailOrigin: 'agent' } as AgentEvent);
+      handler.handleEvent({ ...base, runId: 'r3', requestId: 'other', message: 'letter body', origin: { type: 'agent', agentKey: 'peer', chatId: 'peer-main' }, mailId: 'm2', mailKind: 'letter', mailOrigin: 'agent' } as AgentEvent);
+      expect(getChat).not.toHaveBeenCalled();
+      expect(stateRef.current.timelineOrder).toEqual(['user_own', 'user_child', 'user_other']);
+      expect(stateRef.current.timelineNodes.get('user_own')).toMatchObject({ text: 'user text' });
+      expect(stateRef.current.timelineNodes.get('user_own')?.inbound).toBeUndefined();
+      expect(stateRef.current.timelineNodes.get('user_child')).toMatchObject({ text: '', inbound: { kind: 'reply', child: true } });
+      expect(stateRef.current.timelineNodes.get('user_other')).toMatchObject({ text: 'letter body', inbound: { kind: 'letter', fromAgentKey: 'peer', child: false } });
     } finally { getChat.mockRestore(); restoreWindow(); }
   });
 });
+

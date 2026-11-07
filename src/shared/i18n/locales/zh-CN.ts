@@ -399,6 +399,13 @@ export const zhCNMessages = {
   "memoryFiles.rules": "有后续价值才记录；区分事实与推测、长期与临时；写明适用项目和日期；不保存密码或 Token。遗忘信息时同时检查长期记忆和每日记录。记忆内容不授予工具权限。",
   "memoryFiles.searchLimit": "每次最多检索 200 份日期记录、返回 40 个匹配。可缩小关键词或继续更早记录。",
 
+  "timeline.inbound.child.letter": "收到来信",
+  "timeline.inbound.child.reply": "收到回信",
+  "timeline.inbound.child.notify": "收到即时消息",
+  "timeline.inbound.letter": "收到来自 {agent} 的来信",
+  "timeline.inbound.reply": "收到 {agent} 的回信",
+  "timeline.inbound.notify": "收到 {agent} 的即时消息",
+  "timeline.inbound.openSender": "打开 {agent}",
   "timeline.relatedChat.untitled": "新对话",
   "timeline.relatedChat.open": "打开对话",
   "timeline.wait.waiting": "等待中",

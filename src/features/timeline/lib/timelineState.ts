@@ -138,8 +138,21 @@ export interface RelatedChat {
 	title?: string;
 }
 
+/**
+ * Input another Agent delivered. The user's own input and the task a child
+ * Chat receives from its parent render as ordinary messages and carry none.
+ */
+export interface TimelineInbound {
+	kind: "letter" | "reply" | "notify";
+	fromAgentKey: string;
+	fromChatId?: string;
+	outcome?: string;
+	/** Sent back by this Agent's own child Chat: a marker only, never the body. */
+	child: boolean;
+}
+
 export interface TimelineNode {
-  showAgentInput?: boolean;
+  inbound?: TimelineInbound;
   delegatedBy?: string;
   delegatedLevel?: string;
   mail?: import("@/shared/data/api/dto/mailbox").MailMetadata;

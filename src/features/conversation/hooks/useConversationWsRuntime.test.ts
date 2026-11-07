@@ -1256,7 +1256,7 @@ describe("registerAttachRunListener", () => {
 		cleanup();
 	});
 
-	it("renders request.query from attached streams", async () => {
+	it("routes attached request.query through the event handler only", async () => {
 		let attachedOnEvent: ((event: AgentEvent) => void) | null = null;
 		const streamMock = jest.fn((options: Record<string, any>) => {
 			attachedOnEvent = options.onEvent;
@@ -1294,21 +1294,10 @@ describe("registerAttachRunListener", () => {
     timestamp: EPOCH_MS
 		} as any);
 
-		expect(dispatch).toHaveBeenCalledWith({
-			type: "SET_TIMELINE_NODE",
-			id: "user_req_1",
-			node: expect.objectContaining({
-				id: "user_req_1",
-				kind: "message",
-				role: "user",
-				text: "attached query",
-        attachments: [{ name: "demo.txt", size: 12 }]
-    })
-		});
-		expect(dispatch).toHaveBeenCalledWith({
-			type: "APPEND_TIMELINE_ORDER",
-    id: "user_req_1"
-		});
+		// Source classification lives in the shared processor; attach must not
+		// project a user bubble of its own.
+		expect(dispatch).not.toHaveBeenCalledWith(expect.objectContaining({ type: "SET_TIMELINE_NODE" }));
+		expect(dispatch).not.toHaveBeenCalledWith(expect.objectContaining({ type: "APPEND_TIMELINE_ORDER" }));
 		expect(handleEvent).toHaveBeenCalledWith(expect.objectContaining({
 			type: "request.query",
     message: "attached query"
@@ -1345,7 +1334,6 @@ describe("registerAttachRunListener", () => {
 		];
 		for (const event of replay) streams[0].options.onEvent(event);
 		expect(handleEvent.mock.calls.map(([event]) => event)).toEqual(replay);
-		expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({ type: "SET_TIMELINE_NODE", node: expect.objectContaining({ text: "original question" }) }));
 		streams[0].options.onDone("done", 3);
 		await Promise.resolve();
 		expect(activeAttachRef.current).toBeNull();

@@ -614,16 +614,17 @@ it("both levels keep a server activity message without classification", () => {
 });
 
 
-it.each(["simple", "detailed"] as const)("hides already cached background mail nodes in %s without hiding model answers", level => {
-  const mail = { id: "mail", kind: "reply" as const, fromAgentKey: "child", fromChatId: "child-chat" };
+it.each(["simple", "detailed"] as const)("keeps an Agent-delivered input as the anchor of the Run it starts in %s", level => {
+  const inbound = { kind: "reply" as const, fromAgentKey: "bot", fromChatId: "worker", child: true };
   const nodes = [
     createNode({ id: "user", kind: "message", role: "user", text: "user query", ts: 100 }),
-    createNode({ id: "reply", kind: "message", role: "user", mail, text: "background reply", ts: 110 }),
+    createNode({ id: "reply", kind: "message", role: "user", inbound, text: "", ts: 110 }),
     createNode({ id: "answer", kind: "content", text: "model answer", ts: 120 }),
   ];
-  expect(nodesForDetailLevel(nodes, level).map(node => node.id)).toEqual(["user", "answer"]);
+  expect(nodesForDetailLevel(nodes, level).map(node => node.id)).toEqual(["user", "reply", "answer"]);
   const items = buildTimelineDisplayItems(nodes, []);
-  expect(items).toHaveLength(2);
+  expect(items).toHaveLength(3);
   expect(items[0]).toMatchObject({ kind: "query", node: { id: "user" } });
-  expect(items[1]).toMatchObject({ kind: "run", nodes: [{ id: "answer" }] });
+  expect(items[1]).toMatchObject({ kind: "query", node: { id: "reply" } });
+  expect(items[2]).toMatchObject({ kind: "run", queryNode: { id: "reply" }, nodes: [{ id: "answer" }] });
 });

@@ -21,7 +21,8 @@ export interface TextSearchResult {
 
 export function isSearchableTextNode(node: TimelineNode): boolean {
   if (node.kind === "content") return true;
-  return node.kind === "message" && node.role === "user";
+  // Agent-delivered bodies stay collapsed or hidden, so search skips them.
+  return node.kind === "message" && node.role === "user" && !node.inbound;
 }
 
 function decodeHtmlEntities(text: string): string {

@@ -100,7 +100,7 @@ export function ConversationStage({
       if (listItem.kind === "query") return <div id={listItem.anchorId}
         className="timeline-query-anchor-row tw:relative"
         data-query-anchor-id={listItem.anchorId}>
-        <TimelineRow node={listItem.item.node} skills={skills} metaNode={queryMeta?.(listItem.item)} />
+        <TimelineRow node={listItem.item.node} agents={agents} skills={skills} metaNode={queryMeta?.(listItem.item)} />
       </div>;
       if (listItem.kind === "run") {
         const { item } = listItem;

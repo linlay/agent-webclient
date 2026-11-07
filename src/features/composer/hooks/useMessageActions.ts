@@ -558,7 +558,9 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
       }
 
       /* Add user message to timeline (mention prefix is routing metadata, not message body) */
-      const userNodeId = `user_${Date.now()}`;
+      const requestId = submissionRequestId || createRequestId("req");
+      // The stream echoes request.query as user_<requestId>; share that node.
+      const userNodeId = `user_${requestId}`;
       if (cleanMessage || timelineAttachments.length > 0) {
         dispatch({
           type: "SET_TIMELINE_NODE",
@@ -583,7 +585,6 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
 
 
       /* Start streaming */
-      const requestId = submissionRequestId || createRequestId("req");
       const abortController = new AbortController();
       if (chatId && selectedOwner?.kind === "agent") {
         dispatch({
