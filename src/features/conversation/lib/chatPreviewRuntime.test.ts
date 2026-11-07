@@ -16,7 +16,7 @@ function deferred<T>() {
 const flush = async () => { for (let i = 0; i < 12; ++i) await Promise.resolve(); };
 const event = (type: string, seq: number, extra = {}): AgentEvent => ({ type, seq, timestamp: EPOCH + seq, chatId: "chat-1", runId: "run-1", ...extra } as AgentEvent);
 function chat(active = true): ChatDetailResponse {
-  return { chatId: "chat-1", agentKey: "owner", activeRun: active ? { runId: "run-1", agentKey: "owner", lastSeq: 3 } : null,
+  return { chatId: "chat-1", primary: false, agentKey: "owner", activeRun: active ? { runId: "run-1", agentKey: "owner", lastSeq: 3 } : null,
     events: [event("request.query", 1, { requestId: "request-1", message: "Question" }),
       event("content.start", 2, { contentId: "answer" }), event("content.delta", 3, { contentId: "answer", delta: "Hello" })] };
 }

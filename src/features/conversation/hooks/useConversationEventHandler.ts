@@ -1,3 +1,4 @@
+import { getChat } from "@/shared/data/api/requests/chats";
 import { consumeUserOutbox } from "@/features/mailbox/lib/userOutbox";
 import { resolveStorageIdentity } from "@/shared/data/auth/storageIdentity";
 import { normalizeEventDetailLevel } from "@/shared/data/eventDetailLevel";
@@ -179,6 +180,7 @@ export function useConversationEventHandler(): {
     activeQuerySessionRequestIdRef,
   } = useAppContext();
   const cacheRef = useRef<LocalCache>(createLocalCache());
+  const identityLoads = useRef(new Map<string, ReturnType<typeof getChat>>());
 
   /** Reset the local cache (called when conversation resets) */
   const resetCache = useCallback(() => {
@@ -525,7 +527,6 @@ export function useConversationEventHandler(): {
               ? text || undefined
               : undefined,
         });
-        if (!event.mailId) return;
       }
 
       if (type === "request.steer") {
@@ -539,6 +540,33 @@ export function useConversationEventHandler(): {
         }
       }
 
+      const primaryChat = state.chats.find(chat => chat.chatId === eventChatId)?.primary;
+      if (type === "request.query" && typeof primaryChat !== "boolean") {
+        // Keep the event in debug/history, but wait for /api/chat before
+        // projecting its input. Share the lookup across concurrent queries.
+        if (!eventChatId) return;
+        let loading = identityLoads.current.get(eventChatId);
+        if (!loading) {
+          loading = getChat(eventChatId);
+          identityLoads.current.set(eventChatId, loading);
+          void loading.finally(() => identityLoads.current.delete(eventChatId)).catch(() => {});
+        }
+        void loading.then(response => {
+          const current = stateRef.current;
+          if (current.chatTransition || current.chatId !== eventChatId) return;
+          const activeCache = cacheRef.current;
+          if (typeof response.data.primary !== "boolean") return;
+          dispatch({ type: "UPSERT_CHAT", chat: { chatId: eventChatId, primary: response.data.primary } });
+          const commands = processStreamEvent(event, createLiveProcessorState(activeCache, current), {
+            mode: "live", primaryChat: response.data.primary, reasoningExpandedDefault: false,
+          });
+          for (const command of commands) applyLiveEventCommand({ command, cache: activeCache, state: current, dispatch });
+        }).catch(() => {
+          // No identity means no input projection. A refresh replays the event.
+        });
+        return;
+      }
+
       const previousActiveReasoningKey =
         cache.activeReasoningKey || state.activeReasoningKey;
       const commands = processStreamEvent(
@@ -546,8 +574,7 @@ export function useConversationEventHandler(): {
         createLiveProcessorState(cache, state),
         {
           mode: "live",
-          primaryChat: state.chats.find(chat => chat.chatId === (event.chatId || state.chatId))?.primary ??
-            (state.agents.some(agent => agent.primaryChat?.chatId === (event.chatId || state.chatId)) ? true : undefined),
+          primaryChat,
           reasoningExpandedDefault: false,
         },
       );

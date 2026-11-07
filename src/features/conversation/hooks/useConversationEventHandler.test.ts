@@ -1195,3 +1195,31 @@ describe('createLiveProcessorState', () => {
     });
   });
 });
+
+describe('request.query authoritative Chat identity', () => {
+  it.each([true, false])('waits for /api/chat primary=%s before rendering live input', async primary => {
+    const requests = await import('@/shared/data/api/requests/chats');
+    let resolve!: (value: Awaited<ReturnType<typeof requests.getChat>>) => void;
+    const loading = new Promise<Awaited<ReturnType<typeof requests.getChat>>>(done => { resolve = done; });
+    const getChat = jest.spyOn(requests, 'getChat').mockReturnValue(loading);
+    const restoreWindow = installSessionStorage();
+    try {
+      const stateRef = { current: createInitialState() };
+      stateRef.current.chatId = 'identity-chat';
+      stateRef.current.streaming = true;
+      stateRef.current.chats = [{ chatId: 'identity-chat', agentKey: 'agent' }];
+      const dispatch = jest.fn(action => { stateRef.current = appReducer(stateRef.current, action); });
+      useAppContext.mockReturnValue({ dispatch, stateRef });
+      let handler!: ReturnType<typeof useConversationEventHandler>;
+      const Harness = () => { handler = useConversationEventHandler(); return null; };
+      renderToStaticMarkup(React.createElement(Harness));
+      handler.handleEvent({ type: 'request.query', chatId: 'identity-chat', runId: 'run', requestId: 'input', message: 'work reply', origin: { type: 'agent', chatId: 'work' }, timestamp: 100 } as AgentEvent);
+      expect(getChat).toHaveBeenCalledWith('identity-chat');
+      expect(stateRef.current.timelineOrder).toHaveLength(0);
+      resolve({ data: { chatId: 'identity-chat', primary } } as Awaited<ReturnType<typeof requests.getChat>>);
+      await loading;
+      await Promise.resolve();
+      expect(stateRef.current.timelineOrder).toHaveLength(primary ? 0 : 1);
+    } finally { getChat.mockRestore(); restoreWindow(); }
+  });
+});

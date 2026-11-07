@@ -3,7 +3,7 @@ import { replayEvent } from "./conversationReplay";
 import { nodesForDetailLevel } from "@/features/timeline/lib/timelineDisplay";
 import { serializeRunTranscript } from "@/features/timeline/lib/runTranscript";
 import type { AgentEvent } from "@/shared/contracts/agentEvents";
-const input = (extra = {}): AgentEvent => ({ type: "request.query", chatId: "chat", runId: "run", requestId: "request", message: "delegated task", timestamp: 1794000000000, mailId: "mail", mailOrigin: "agent", mailKind: "letter", ...extra } as AgentEvent);
+const input = (extra = {}): AgentEvent => ({ type: "request.query", chatId: "chat", runId: "run", requestId: "request", message: "delegated task", timestamp: 1794000000000, origin: { type: "agent", chatId: "sender" }, ...extra } as AgentEvent);
 function project(primary?: boolean, event = input()) {
   return buildChatReplayProjection("chat", { primary, events: [event] }).state;
 }
@@ -19,7 +19,7 @@ it.each(["letter", "reply", "notify", "ask"])("hides %s inputs in Primary", mail
   expect(project(true, input({ mailKind })).timelineOrder).toHaveLength(0);
 });
 it("keeps real user input in Primary", () => {
-  expect(project(true, input({ mailOrigin: "user" })).timelineOrder).toHaveLength(1);
+  expect(project(true, input({ origin: { type: "user", userId: "app" } })).timelineOrder).toHaveLength(1);
 });
 it("recognizes agent origin even when mail envelope fields were removed", () => {
   expect(project(true, input({ mailId: undefined, mailKind: undefined, mailOrigin: undefined, origin: { chatId: "sender", agentKey: "agent" } })).timelineOrder).toHaveLength(0);
@@ -29,6 +29,12 @@ it("keeps Work input through subsequent observer events", () => {
   replayEvent(state, input({ requestId: "second" }));
   expect(state.timelineOrder).toHaveLength(2);
 });
-it("preserves existing behavior when Chat identity is unavailable", () => {
+it("waits for authoritative Chat identity", () => {
   expect(project(undefined).timelineOrder).toHaveLength(0);
+});
+
+it("trusts origin.type rather than conflicting mail envelope fields", () => {
+  expect(project(true, input({ origin: { type: "agent" }, mailOrigin: "user" })).timelineOrder).toHaveLength(0);
+  expect(project(true, input({ origin: { type: "user" }, mailOrigin: "agent", mailId: "m", mailKind: "reply" })).timelineOrder).toHaveLength(1);
+  expect(project(true, input({ origin: undefined })).timelineOrder).toHaveLength(0);
 });

@@ -210,7 +210,7 @@ describe("ConversationPreview", () => {
   });
 
   const renderTimeline = (chat: ChatDetailResponse, viewportMode: "container" | "document" = "container") => {
-    const projection = buildChatReplayProjection(chat.chatId, chat);
+    const projection = buildChatReplayProjection(chat.chatId, { primary: false, ...chat });
     act(() => {
       root.render(
         React.createElement(ConversationPreview, {

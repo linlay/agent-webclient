@@ -226,7 +226,7 @@ function applyCommands(state: TestState, commands: EventCommand[]): void {
 }
 
 function processAndApply(state: TestState, event: AgentEvent, mode: 'live' | 'replay', reasoningExpandedDefault: boolean): EventCommand[] {
-  const commands = processStreamEvent(event, buildProcessorState(state), { mode, reasoningExpandedDefault });
+  const commands = processStreamEvent({ origin: { type: event.mailOrigin === "agent" ? "agent" : "user" }, ...event }, buildProcessorState(state), { mode, reasoningExpandedDefault, primaryChat: true });
   applyCommands(state, commands);
   return commands;
 }
@@ -306,7 +306,9 @@ describe('processStreamEvent', () => {
   it.each(['live', 'replay'] as const)('renders a repeated mailbox query only once in %s', (mode) => {
     const state = createState();
     const event = {
-      type: 'request.query', requestId: 'req_mail', mailId: 'mail_1',
+      type: 'request.query',
+      origin: { type: 'user' },
+      requestId: 'req_mail', mailId: 'mail_1',
       mailOrigin: 'user', message: '现在几点了', timestamp: 100,
     } as AgentEvent;
     processAndApply(state, event, mode);
@@ -317,12 +319,13 @@ describe('processStreamEvent', () => {
     expect(state.timelineOrder).toEqual(['user_req_mail', 'user_req_other']);
   });
 
-  it('creates request.query user nodes only during replay', () => {
+  it('requires resolved Chat identity before projecting request.query', () => {
     const replayState = createState();
     const liveState = createState();
 
     const replayCommands = processStreamEvent({
       type: 'request.query',
+      origin: { type: 'user' },
       requestId: 'req_1',
       message: 'hello',
       references: [
@@ -334,6 +337,7 @@ describe('processStreamEvent', () => {
       ],
     }, buildProcessorState(replayState), {
       mode: 'replay',
+      primaryChat: true,
       reasoningExpandedDefault: false,
     });
     const liveCommands = processStreamEvent({ type: 'request.query', requestId: 'req_1', message: 'hello' }, buildProcessorState(liveState), {
@@ -364,21 +368,25 @@ describe('processStreamEvent', () => {
   it('hides automation request.query nodes by default while honoring hidden=false', () => {
     const hiddenByRole = processStreamEvent({
       type: 'request.query',
+      origin: { type: 'user' },
       requestId: 'req_hidden_default',
       role: 'automation',
       message: 'scheduled task',
     }, buildProcessorState(createState()), {
       mode: 'replay',
+      primaryChat: true,
       reasoningExpandedDefault: false,
     });
     const explicitlyVisible = processStreamEvent({
       type: 'request.query',
+      origin: { type: 'user' },
       requestId: 'req_visible',
       role: 'automation',
       hidden: false,
       message: 'visible scheduled task',
     }, buildProcessorState(createState()), {
       mode: 'replay',
+      primaryChat: true,
       reasoningExpandedDefault: false,
     });
 
@@ -430,6 +438,7 @@ describe('processStreamEvent', () => {
   it('creates replay user nodes for attachment-only request.query events', () => {
     const replayCommands = processStreamEvent({
       type: 'request.query',
+      origin: { type: 'user' },
       requestId: 'req_attachments_only',
       message: '',
       references: [
@@ -441,6 +450,7 @@ describe('processStreamEvent', () => {
       ],
     }, buildProcessorState(createState()), {
       mode: 'replay',
+      primaryChat: true,
       reasoningExpandedDefault: false,
     });
 
@@ -466,10 +476,12 @@ describe('processStreamEvent', () => {
   it('does not read request.query text from a query field', () => {
     const replayCommands = processStreamEvent({
       type: 'request.query',
+      origin: { type: 'user' },
       requestId: 'req_query_field',
       query: 'hello from query',
     }, buildProcessorState(createState()), {
       mode: 'replay',
+      primaryChat: true,
       reasoningExpandedDefault: false,
     });
 
@@ -492,6 +504,7 @@ describe('processStreamEvent', () => {
 
     processAndApply(state, {
       type: 'request.query',
+      origin: { type: 'user' },
       requestId: 'req_task',
       taskId: 'task_1',
       message: 'hello task',
@@ -1996,13 +2009,13 @@ describe("background agent mail inputs", () => {
       expect(state.chatId).toBe("receiver"); expect(state.runId).toBe("receiving-run");
     }
   });
-  it.each(["live", "replay"] as const)("keeps user mail and interactive asks visible in %s", mode => {
+  it.each(["live", "replay"] as const)("keeps user input and retains steer ask behavior in %s", mode => {
     for (const type of ["request.query", "request.steer"] as const) {
       const state = createState();
       processAndApply(state, { type, mailId: "user-mail", mailKind: "letter", mailOrigin: "user", requestId: "user", steerId: "user-steer", message: "real user text", timestamp: 100 } as AgentEvent, mode);
       processAndApply(state, { type, mailId: "ask-mail", mailKind: "ask", mailOrigin: "agent", requestId: "ask", steerId: "ask-steer", message: "approval required", timestamp: 110 } as AgentEvent, mode);
-      expect(state.timelineOrder).toHaveLength(2);
-      expect([...state.timelineNodes.values()].map(node => node.text)).toEqual(["real user text", "approval required"]);
+      expect(state.timelineOrder).toHaveLength(type === "request.query" ? 1 : 2);
+      expect([...state.timelineNodes.values()].map(node => node.text)).toEqual(type === "request.query" ? ["real user text"] : ["real user text", "approval required"]);
     }
   });
   it("never treats a user's reply-like body as mail metadata", () => {

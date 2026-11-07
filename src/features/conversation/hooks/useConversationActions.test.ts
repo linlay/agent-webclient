@@ -2730,6 +2730,7 @@ describe('replayEvent tool migration', () => {
 
   it('replays completed parallel sub-agent tasks into completed task groups', () => {
     const state = createReplayState();
+    state.primaryChat = false;
     const events: AgentEvent[] = [
       {
         type: 'request.query',
@@ -3156,6 +3157,7 @@ describe('replayEvent tool migration', () => {
 
   it('replays request.query references into user attachments for history chats', () => {
     const state = createReplayState();
+    state.primaryChat = false;
 
     replayEvent(state, {
       type: 'request.query',
