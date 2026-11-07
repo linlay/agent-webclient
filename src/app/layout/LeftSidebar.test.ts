@@ -1845,15 +1845,23 @@ describe("LeftSidebar", () => {
     expect(dispatchedEvents("agent:start-new-conversation")).toHaveLength(0);
   });
 
-  it("shows only each Agent's primary conversation and keeps utilities without new conversation", () => {
+  it("uses primary navigation only for GENERAL while preserving other Agents and utilities", () => {
     const state = createWorkerState(); state.leftDrawerOpen = true; state.primaryNavigation = true;
-    state.agents[0].primaryChat = { chatId: "primary-old", lastRunContent: "主要对话摘要" };
+    state.agents[0].mode = "GENERAL";
+    state.agents[0].primaryChat = { chatId: "primary-old", lastRunContent: "GENERAL primary summary" };
+    state.agents.push({ key: "coder", name: "Coder project", mode: "CODER", workspaceDir: "/work/coder", primaryChat: { chatId: "unused-primary", lastRunContent: "must not replace coder history" } });
+    const coder = { ...state.workerRows[0], key: "agent:coder", sourceId: "coder", displayName: "Coder project", workspaceDir: "/work/coder" };
+    state.workerRows.push(coder); state.workerIndexByKey.set(coder.key, coder); state.workerSelectionKey = coder.key;
+    state.chats.push({ chatId: "coder-chat", agentKey: "coder", chatName: "Coder history", lastRunContent: "normal coder reply" });
     globalWithStorage.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = { QUICK_ACTIONS_ENABLED: true };
     mockState(state);
     const html = renderSidebar();
-    expect(html).toContain("主要对话摘要");
+    expect(html).toContain("GENERAL primary summary");
+    expect(html).not.toContain(">主要对话<");
     expect(html).not.toContain("Latest reply 6");
-    expect(html).not.toContain('data-material-icon="edit_square"');
+    expect(html).toContain("Coder history");
+    expect(html).not.toContain("must not replace coder history");
+    expect(html).toContain('data-material-icon="edit_square"');
     expect(html).toContain('aria-pressed="true"');
     expect(html).toContain("自动化");
     expect(html).toContain("知识库");

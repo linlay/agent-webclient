@@ -17,18 +17,20 @@ export function PinnedChatSection({
   collapsed,
   onSelectChat,
   getChatLoading,
+  excludeAgentKeys,
 }: {
   collapsed: boolean;
   onSelectChat: (chatId: string) => void;
   getChatLoading: (chatId: string) => boolean;
+  excludeAgentKeys?: ReadonlySet<string>;
 }) {
   const { state } = useAppContext();
   const { t } = useI18n();
   const [expanded, setExpanded] = useState(true);
   const [popoverOpen, setPopoverOpen] = useState(false);
   const pinned = useMemo(
-    () => selectPinnedChats(state.chats, state.chatPinnedOrder),
-    [state.chats, state.chatPinnedOrder],
+    () => selectPinnedChats(state.chats, state.chatPinnedOrder).filter(chat => !excludeAgentKeys?.has(chat.agentKey || chat.firstAgentKey || "")),
+    [state.chats, state.chatPinnedOrder, excludeAgentKeys],
   );
   const rows = pinned.map((chat) => {
     const agentKey = chat.agentKey || chat.firstAgentKey;

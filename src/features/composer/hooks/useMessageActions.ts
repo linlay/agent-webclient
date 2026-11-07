@@ -412,6 +412,7 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
         pathname: typeof window === "undefined" ? "" : window.location.pathname,
         search: typeof window === "undefined" ? "" : window.location.search,
         agentKey: selectedAgentKey,
+        agentMode: stateRef.current.agents.find(agent => agent.key === selectedAgentKey)?.mode,
         isNewChatQuery,
         primaryNavigation: stateRef.current.primaryNavigation === true,
         hasPrimary: !stateRef.current.agents.some(agent => agent.key === selectedAgentKey && !agent.primaryChat?.chatId),

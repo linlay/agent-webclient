@@ -11,7 +11,7 @@ jest.mock("@/app/state/AppContext", () => ({ useAppContext: () => ({ stateRef: m
 jest.mock("@/shared/data", () => ({ getChats: jest.fn() }));
 const request = jest.mocked(getChats);
 let latest: ReturnType<typeof useSidebarChatPreviews>;
-function Harness({ catalog = "one" }: { catalog?: string }) { latest = useSidebarChatPreviews(true, catalog); return null; }
+function Harness({ catalog = "one", generalAgentKeys }: { catalog?: string; generalAgentKeys?: string[] }) { latest = useSidebarChatPreviews(true, catalog, true, generalAgentKeys); return null; }
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
 
 describe("sidebar preview pagination", () => {
@@ -23,6 +23,18 @@ describe("sidebar preview pagination", () => {
     request.mockImplementation(async options => ({ code: 0, msg: "", data: Array.from({ length: options?.limit || 0 }, (_, i) => ({ chatId: `chat-${i}`, agentKey: options?.agentKey || "general", updatedAt: 100 + i })) }));
   });
   afterEach(async () => { await act(async () => root.unmount()); });
+
+  it("loads only the remaining ordinary Agents when GENERAL uses primary navigation", async () => {
+    await act(async () => root.render(<Harness generalAgentKeys={["copilot", "kbase"]} />));
+    expect(request.mock.calls.map(call => call[0])).toEqual([
+      { agentKey: "copilot", pinned: false, limit: 9 },
+      { agentKey: "kbase", pinned: false, limit: 9 },
+    ]);
+    request.mockClear();
+    await act(async () => latest.showMore("general"));
+    expect(request.mock.calls.every(call => call[0]?.limit === 17 && call[0]?.agentKey)).toBe(true);
+    expect(latest.limits.general).toBe(16);
+  });
 
   it("expands general previews by eight and project previews by five with bounded limits", async () => {
     await act(async () => root.render(<Harness />));

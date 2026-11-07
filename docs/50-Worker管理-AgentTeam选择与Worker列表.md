@@ -69,3 +69,6 @@ Composer 可用性以全局 agentAvailability 为唯一来源，按 Agent 隔离
 
 
 主要对话导航仅显示智能体的 Primary 摘要，不挂载 openedBy 子 Chat 列表。悬停或键盘聚焦智能体时显示“…”菜单，菜单包含历史聊天、智能体配置与清空主聊天；历史聊天合并该 Agent 自身会话和 `/api/chats?openedBy=<agentKey>` 返回的工作会话，跨 Agent 的子 Chat 也保留入口。清空只允许无活动 Run、无待处理交互的 Primary，确认后复用归档接口并清除 Primary 指针，历史保留在归档；清空当前可见主 Chat 时进入该智能体的新会话，其他 Chat 不受影响。
+
+
+主要对话模式只作用于显式 `mode: GENERAL` 的智能体，导航不显示“主要对话”标题。其他模式继续展示原有会话／项目分组、置顶、预览和新建入口，展开与折叠导航使用同一范围；普通预览只读取保留在普通导航的 Agent，避免 GENERAL 的最近会话挤占列表。文字和语音的 `primary:true` 创建意图也仅允许 GENERAL，模式缺失时不推断。收件箱入口位于 Settings 菜单，待收取计数复用原有刷新规则；Quick Actions 保持自动化、知识库、记忆三项布局。

@@ -1,5 +1,5 @@
 import { shouldCreatePrimaryChat } from "./primaryChatIntent";
-const base = { desktop: true, pathname: "/agent/a", search: "?newChat=1793000000000&primaryNewChat=true", agentKey: "a", isNewChatQuery: true, primaryNavigation: false, hasPrimary: false };
+const base = { desktop: true, pathname: "/agent/a", search: "?newChat=1793000000000&primaryNewChat=true", agentKey: "a", agentMode: "GENERAL", isNewChatQuery: true, primaryNavigation: false, hasPrimary: false };
 it("carries the explicit intent on an initial query, including upload placeholder Chats", () => {
   expect(shouldCreatePrimaryChat(base)).toBe(true);
 });
@@ -20,4 +20,10 @@ it("keeps standalone mode behavior and ignores Desktop route flags there", () =>
   expect(shouldCreatePrimaryChat({ ...base, desktop: false })).toBe(false);
   expect(shouldCreatePrimaryChat({ ...base, desktop: false, primaryNavigation: true })).toBe(true);
   expect(shouldCreatePrimaryChat({ ...base, desktop: false, primaryNavigation: true, hasPrimary: true })).toBe(false);
+});
+
+
+it.each(["CODER", "KBASE", "COPILOT", "TEAM", undefined])("never creates a primary chat for mode %s", agentMode => {
+  expect(shouldCreatePrimaryChat({ ...base, agentMode })).toBe(false);
+  expect(shouldCreatePrimaryChat({ ...base, desktop: false, primaryNavigation: true, agentMode })).toBe(false);
 });

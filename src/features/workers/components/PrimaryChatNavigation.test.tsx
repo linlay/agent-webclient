@@ -11,8 +11,8 @@ jest.mock("@/app/state/AppContext", () => ({ useAppContext: () => ({ state: mock
 
 it.each([false, true])("clicking an Agent directly opens its Platform primary chat (collapsed: %s)", async collapsed => {
   mockState.agents = [
-    { key: "platform", name: "Platform", primaryChat: { chatId: "primary-chat", lastRunContent: "primary reply" } },
-    { key: "empty", name: "Empty" },
+    { key: "platform", name: "Platform", mode: "GENERAL", primaryChat: { chatId: "primary-chat", lastRunContent: "primary reply" } },
+    { key: "empty", name: "Empty", mode: "GENERAL" },
   ];
   mockState.chats = [{ chatId: "newer-secondary", agentKey: "platform", updatedAt: Date.now(), lastRunContent: "secondary reply" }];
   const onSelectChat = jest.fn();
@@ -36,6 +36,7 @@ it.each([false, true])("clicking an Agent directly opens its Platform primary ch
     expect(onSelectChat).toHaveBeenCalledTimes(1);
     expect(host.textContent).not.toContain("secondary reply");
     expect(host.textContent).not.toContain("新建对话");
+    expect(host.textContent).not.toContain("主要对话");
     if (!collapsed) {
       expect(host.textContent).toContain("primary reply");
       await act(async () => host.querySelector<HTMLButtonElement>('button[aria-label="Platform: 更多操作"]')!.click());

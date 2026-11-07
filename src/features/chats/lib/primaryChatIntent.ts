@@ -1,9 +1,13 @@
+export function supportsPrimaryChat(mode: string | undefined): boolean {
+  return String(mode || "").trim().toUpperCase() === "GENERAL";
+}
+
 /** Desktop scopes creation to an explicit new-Chat route, never a global navigation preference. */
 export function shouldCreatePrimaryChat(input: {
-  desktop: boolean; pathname: string; search: string; agentKey: string;
+  desktop: boolean; pathname: string; search: string; agentKey: string; agentMode?: string;
   isNewChatQuery: boolean; primaryNavigation: boolean; hasPrimary: boolean;
 }): boolean {
-  if (!input.isNewChatQuery) return false;
+  if (!input.isNewChatQuery || !supportsPrimaryChat(input.agentMode)) return false;
   if (!input.desktop) return input.primaryNavigation && !input.hasPrimary;
   const params = new URLSearchParams(input.search);
   const nonces = params.getAll("newChat");

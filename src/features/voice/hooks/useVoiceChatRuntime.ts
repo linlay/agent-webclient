@@ -65,6 +65,7 @@ export function useVoiceChatRuntime(): void {
       const primary = shouldCreatePrimaryChat({
         desktop: isDesktopAppMode(), pathname: window.location.pathname, search: window.location.search,
         agentKey: binding.agentKey, isNewChatQuery: newChat,
+        agentMode: current.agents.find(agent => agent.key === binding.agentKey)?.mode,
         primaryNavigation: current.primaryNavigation === true,
         hasPrimary: !current.agents.some(agent => agent.key === binding.agentKey && !agent.primaryChat?.chatId),
       });

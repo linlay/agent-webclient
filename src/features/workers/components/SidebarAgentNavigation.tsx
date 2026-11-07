@@ -26,6 +26,7 @@ export function SidebarAgentNavigation(props: {
   chatsByWorker: Map<string, WorkerConversationRow[]>;
   workerActions: WorkerActionHandlers;
   terminalStatuses: ReadonlyMap<string, TerminalAgentTerminalStatus>;
+  excludeAgentKeys?: ReadonlySet<string>;
 }) {
   const { state } = useAppContext();
   const { t } = useI18n();
@@ -33,10 +34,12 @@ export function SidebarAgentNavigation(props: {
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set(state.workerSelectionKey ? [state.workerSelectionKey] : []));
   const [generalOpen, setGeneralOpen] = useState(true);
   const [projectsOpen, setProjectsOpen] = useState(true);
-  const groups = useMemo(() => splitSidebarWorkers(state.workerRows, state.agents), [state.workerRows, state.agents]);
-  const catalogKey = state.agents.map(agent => `${agent.key}:${String(agent.workspaceDir || "").trim()}`).join("|");
-  const preview = useSidebarChatPreviews(true, catalogKey);
-  const generalChats = selectGeneralSidebarChats({ chats: state.chats, agents: state.agents, fetchedIds: preview.fetchedIds, pinnedOrder: state.chatPinnedOrder, sort });
+  const visibleAgents = useMemo(() => state.agents.filter(agent => !props.excludeAgentKeys?.has(agent.key)), [state.agents, props.excludeAgentKeys]);
+  const groups = useMemo(() => splitSidebarWorkers(state.workerRows.filter(row => !props.excludeAgentKeys?.has(row.sourceId)), visibleAgents), [state.workerRows, visibleAgents, props.excludeAgentKeys]);
+  const catalogKey = visibleAgents.map(agent => `${agent.key}:${String(agent.workspaceDir || "").trim()}`).join("|");
+  const preview = useSidebarChatPreviews(true, catalogKey, groups.general.length > 0,
+    props.excludeAgentKeys?.size ? groups.general.map(row => row.sourceId) : undefined);
+  const generalChats = selectGeneralSidebarChats({ chats: state.chats.filter(chat => !props.excludeAgentKeys?.has(chat.agentKey || chat.firstAgentKey || "")), agents: visibleAgents, fetchedIds: preview.fetchedIds, pinnedOrder: state.chatPinnedOrder, sort });
   const generalLimit = preview.limits.general || GENERAL_CHAT_LIMIT;
   const selectedGeneral = groups.general.find(row => row.key === props.generalAgentKey);
   const icons = new Map(state.agents.map(agent => [agent.key, effectiveAgentIcon(agent.icon, agent.mode)]));
@@ -77,7 +80,7 @@ export function SidebarAgentNavigation(props: {
   });
 
   return <div className={styles.navigation}>
-    <section aria-label={t("leftSidebar.navigation.chats")}>
+    {(groups.general.length > 0 || !props.excludeAgentKeys?.size) && <section aria-label={t("leftSidebar.navigation.chats")}>
       <div className={styles.heading}>
         <button className={styles.sectionTitle} type="button" aria-expanded={generalOpen} onClick={() => setGeneralOpen(!generalOpen)}>
           <span>{t("leftSidebar.navigation.chats")}</span><MaterialIcon name={generalOpen ? "expand_more" : "chevron_right"} />
@@ -108,8 +111,8 @@ export function SidebarAgentNavigation(props: {
         {generalChats.length === 0 && !preview.pending.general && <div className={styles.empty}>{t("leftSidebar.navigation.noChats")}</div>}
         {footer("general", generalLimit < GENERAL_CHAT_MAX && (generalChats.length > generalLimit || preview.moreAvailable.general === true))}
       </>}
-    </section>
-    <section className={styles.projects} aria-label={t("leftSidebar.navigation.projects")}>
+    </section>}
+    {(groups.projects.length > 0 || !props.excludeAgentKeys?.size) && <section className={styles.projects} aria-label={t("leftSidebar.navigation.projects")}>
       <div className={styles.heading}>
         <button className={styles.sectionTitle} type="button" aria-expanded={projectsOpen} onClick={() => setProjectsOpen(!projectsOpen)}>
           <span>{t("leftSidebar.navigation.projects")}</span><MaterialIcon name={projectsOpen ? "expand_more" : "chevron_right"} />
@@ -164,6 +167,6 @@ export function SidebarAgentNavigation(props: {
         </div>;
       })}
       {projectsOpen && groups.projects.length === 0 && <div className={styles.empty}>{t("leftSidebar.navigation.noProjects")}</div>}
-    </section>
+    </section>}
   </div>;
 }

@@ -21,7 +21,7 @@ jest.mock("@/shared/utils/routing", () => ({ ...jest.requireActual("@/shared/uti
 function Harness() {
   const [state, dispatch] = useReducer(appReducer, undefined, () => {
     const state = createInitialState(); state.workerSelectionKey = "agent:agent";
-    state.agents = [{ key: "agent", name: "Agent" } as Agent]; return state;
+    state.agents = [{ key: "agent", name: "Agent", mode: "GENERAL" } as Agent]; return state;
   });
   const stateRef = useRef(state); stateRef.current = state;
   context = { state, dispatch, stateRef };
@@ -164,4 +164,16 @@ it("deduplicates recovery events and ignores a late response from the previous i
   await act(async () => context.dispatch({ type: "SET_ACCESS_TOKEN", token: "replacement-token" }));
   await act(async () => resolve({ ...previous, enabled: false }));
   expect(context.state.voiceChat.capabilities?.enabled).toBe(true);
+});
+
+
+it("keeps a non-GENERAL voice Chat ordinary even with explicit primary intent", async () => {
+  jest.mocked(isDesktopAppMode).mockReturnValue(true);
+  window.history.replaceState({}, "", "/agent/agent?newChat=1793000000000&primaryNewChat=true");
+  act(() => {
+    context.dispatch({ type: "SET_PRIMARY_NAVIGATION", enabled: true });
+    context.dispatch({ type: "SET_AGENTS", agents: [{ ...context.state.agents[0], mode: "CODER" }] });
+  });
+  await start();
+  expect(construct).toHaveBeenLastCalledWith(expect.objectContaining({ newChat: true, primary: false }));
 });

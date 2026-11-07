@@ -25,9 +25,6 @@ export function PrimaryChatNavigation(props: {
   const [menuAgent, setMenuAgent] = useState("");
   const rows = useMemo(() => selectPrimaryNavigation(state.agents, state.chats), [state.agents, state.chats]);
   return <nav className={`${styles.navigation} ${props.collapsed ? styles.collapsed : ""}`} aria-label={t("leftSidebar.navigation.primaryChats")}>
-    {!props.collapsed && <div className={styles.heading}>
-      <span>{t("leftSidebar.navigation.primaryChats")}</span>
-    </div>}
     {rows.map(({ agent, chat }) => {
       const active = Boolean(chat && state.chatId === chat.chatId);
       const awaiting = chat?.hasPendingAwaiting === true;
@@ -73,6 +70,5 @@ export function PrimaryChatNavigation(props: {
         </Dropdown>
       </div>;
     })}
-    {!rows.length && !props.collapsed && <div className={styles.empty}>{t("leftSidebar.navigation.primaryEmpty")}</div>}
   </nav>;
 }

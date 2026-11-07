@@ -62,6 +62,7 @@ import { WorkerQuickActions } from "./WorkerQuickActions";
 import { PinnedChatSection } from "./PinnedChatSection";
 import { PrimaryChatNavigation } from "./PrimaryChatNavigation";
 import { selectPrimaryNavigation } from "../lib/primaryNavigation";
+import { supportsPrimaryChat } from "@/features/chats/lib/primaryChatIntent";
 import primaryStyles from "./PrimaryChatNavigation.module.css";
 import { SidebarAgentNavigation } from "./SidebarAgentNavigation";
 import { splitSidebarWorkers } from "../lib/sidebarNavigation";
@@ -297,7 +298,9 @@ export const WorkerNavigator: React.FC<WorkerNavigatorProps> = ({
     workerSortMode: "byTime",
   });
 
-  const generalWorkers = splitSidebarWorkers(state.workerRows, state.agents).general;
+  const primaryAgentKeys = useMemo(() => new Set(state.primaryNavigation
+    ? state.agents.filter(agent => supportsPrimaryChat(agent.mode)).map(agent => agent.key) : []), [state.primaryNavigation, state.agents]);
+  const generalWorkers = splitSidebarWorkers(state.workerRows, state.agents).general.filter(row => !primaryAgentKeys.has(row.sourceId));
   const currentGeneralKey = generalWorkers.some(row => row.key === generalAgentKey)
     ? generalAgentKey : generalWorkers[0]?.key || "";
   useEffect(() => {
@@ -708,26 +711,29 @@ export const WorkerNavigator: React.FC<WorkerNavigatorProps> = ({
         <div className={CHAT_LIST_CLASS} id="chat-list">
           {state.leftDrawerOpen && quickActionsEnabled && (
             <WorkerQuickActions onOpenCommand={onOpenCommand} onOpenMemory={onOpenMemory}
-              hideNewChat={state.primaryNavigation}
+              hideNewChat={state.primaryNavigation && generalWorkers.length === 0}
               newChatDisabled={!currentGeneralKey}
               onNewChat={() => startNewConversationForWorker(currentGeneralKey, { focusComposerOnComplete: true })} />
           )}
           <Spin spinning={isSidebarLoading} tip={t("leftSidebar.loading")}>
             {state.leftDrawerOpen ? (
-              state.primaryNavigation ? <PrimaryChatNavigation
+              <>
+              {state.primaryNavigation && <PrimaryChatNavigation
                 onSelectChat={handleSelectChat}
                 onStartPrimary={(key) => startNewConversationForWorker(key, { focusComposerOnComplete: true })}
                 onOpenHistory={openHistory}
                 onClearPrimary={handleClearPrimary}
                 onEditAgent={handleEditAgent}
                 getChatLoading={getWorkerChatLoading}
-              /> : <>
+              />}
                 <PinnedChatSection
                   collapsed={false}
+                  excludeAgentKeys={primaryAgentKeys}
                   onSelectChat={handleSelectChat}
                   getChatLoading={getWorkerChatLoading}
                 />
                 <SidebarAgentNavigation
+                  excludeAgentKeys={primaryAgentKeys}
                   generalAgentKey={currentGeneralKey}
                   onSelectGeneralAgent={(key) => { setGeneralAgentKey(key); persistGeneralAgentKey(key); handleSelectWorker(key); }}
                   onNewConversation={(key) => startNewConversationForWorker(key, { focusComposerOnComplete: true })}
@@ -758,20 +764,22 @@ export const WorkerNavigator: React.FC<WorkerNavigatorProps> = ({
                   >
                     <MaterialIcon name="dock_to_right" />
                   </UiButton>
-                  {state.primaryNavigation ? <PrimaryChatNavigation collapsed
+                  {state.primaryNavigation && <PrimaryChatNavigation collapsed
                     onSelectChat={handleSelectChat}
                     onStartPrimary={(key) => startNewConversationForWorker(key, { focusComposerOnComplete: true })}
                     onOpenHistory={openHistory}
                     onClearPrimary={handleClearPrimary}
                     onEditAgent={handleEditAgent}
                     getChatLoading={getWorkerChatLoading}
-                  /> : <>
+                  />}
+                  <>
                   <PinnedChatSection
                     collapsed
+                    excludeAgentKeys={primaryAgentKeys}
                     onSelectChat={handleSelectChat}
                     getChatLoading={getWorkerChatLoading}
                   />
-                  {filteredWorkerRows.filter(row => row.type === "agent").map((item) => {
+                  {filteredWorkerRows.filter(row => row.type === "agent" && !primaryAgentKeys.has(row.sourceId)).map((item) => {
                     const unreadCount =
                       workerUnreadCountByKey.get(item.key) || 0;
                     return (
@@ -848,7 +856,7 @@ export const WorkerNavigator: React.FC<WorkerNavigatorProps> = ({
                       </Popover>
                     );
                   })}
-                  </>}
+                  </>
                 </Flex>
                 {filteredWorkerRows.length === 0 && (
                   <div className={presentationClasses("status-line")}>{t("leftSidebar.noWorkers")}</div>

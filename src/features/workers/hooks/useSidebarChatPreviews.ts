@@ -5,8 +5,9 @@ import type { Chat } from "@/features/chats/lib/chatState";
 import { mergeFetchedChats } from "@/features/chats/lib/chatSummary";
 import { GENERAL_CHAT_LIMIT, GENERAL_CHAT_MAX, PROJECT_CHAT_LIMIT, PROJECT_CHAT_MAX } from "../lib/sidebarNavigation";
 
-export function useSidebarChatPreviews(enabled: boolean, catalogKey: string, initialGeneral = true) {
+export function useSidebarChatPreviews(enabled: boolean, catalogKey: string, initialGeneral = true, generalAgentKeys?: readonly string[]) {
   const { stateRef, dispatch } = useAppContext();
+  const generalScope = generalAgentKeys === undefined ? undefined : JSON.stringify([...generalAgentKeys].sort());
   const [limits, setLimits] = useState<Record<string, number>>({ general: GENERAL_CHAT_LIMIT });
   const [fetchedIds, setFetchedIds] = useState<string[]>([]);
   const [pending, setPending] = useState<Record<string, boolean>>({});
@@ -23,10 +24,12 @@ export function useSidebarChatPreviews(enabled: boolean, catalogKey: string, ini
     setPending(value => ({ ...value, [key]: true }));
     setErrors(value => ({ ...value, [key]: "" }));
     try {
-      const options: GetChatsOptions = key === "general" ? { hasWorkspace: false } : { agentKey: key.slice("agent:".length) };
-      const response = await getChats({ ...options, pinned: false, limit: visible + 1 });
+      const scopes: GetChatsOptions[] = key !== "general" ? [{ agentKey: key.slice("agent:".length) }]
+        : generalScope === undefined ? [{ hasWorkspace: false }]
+        : (JSON.parse(generalScope) as string[]).map(agentKey => ({ agentKey }));
+      const responses = await Promise.all(scopes.map(options => getChats({ ...options, pinned: false, limit: visible + 1 })));
       if (epoch !== generation.current || requests.current.get(key) !== request) return;
-      const fetched = Array.isArray(response.data) ? response.data as Chat[] : [];
+      const fetched = responses.flatMap(response => Array.isArray(response.data) ? response.data as Chat[] : []);
       // Pin projection remains authoritative while a preview request is in flight.
       const pinnedOrder = stateRef.current.chatPinnedOrder;
       const pins = new Set(pinnedOrder);
@@ -41,7 +44,7 @@ export function useSidebarChatPreviews(enabled: boolean, catalogKey: string, ini
     } finally {
       if (epoch === generation.current && requests.current.get(key) === request) setPending(value => ({ ...value, [key]: false }));
     }
-  }, [dispatch, stateRef]);
+  }, [dispatch, stateRef, generalScope]);
   useEffect(() => {
     generation.current += 1;
     requests.current.clear();
