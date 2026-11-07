@@ -1,5 +1,5 @@
 export function supportsPrimaryChat(mode: string | undefined): boolean {
-  return String(mode || "").trim().toUpperCase() === "GENERAL";
+  return String(mode || "").trim().toUpperCase() === "BOT";
 }
 
 /** Desktop scopes creation to an explicit new-Chat route, never a global navigation preference. */
@@ -7,12 +7,7 @@ export function shouldCreatePrimaryChat(input: {
   desktop: boolean; pathname: string; search: string; agentKey: string; agentMode?: string;
   isNewChatQuery: boolean; primaryNavigation: boolean; hasPrimary: boolean;
 }): boolean {
-  if (!input.isNewChatQuery || !supportsPrimaryChat(input.agentMode)) return false;
-  if (!input.desktop) return input.primaryNavigation && !input.hasPrimary;
-  const params = new URLSearchParams(input.search);
-  const nonces = params.getAll("newChat");
-  const intents = params.getAll("primaryNewChat");
-  return input.pathname === `/agent/${encodeURIComponent(input.agentKey)}` &&
-    !params.has("chatId") && nonces.length === 1 && /^[1-9]\d{12}$/.test(nonces[0]) &&
-    intents.length === 1 && intents[0] === "true";
+  // /api/send resolves or creates the BOT main Chat atomically. Clients never
+  // publish or replace the pointer through a query creation flag.
+  return false;
 }

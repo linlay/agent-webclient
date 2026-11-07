@@ -1,5 +1,5 @@
-import { ApiError } from "@/shared/data/api/http";
 import { getBackendMode } from "@/shared/config/backendMode";
+import { ApiError } from "@/shared/data/api/http";
 import { sendUserMessage } from "@/shared/data/api/routedClient";
 import { acceptUserOutbox, isUndeliveredMailStatus, putUserOutbox, updateUserOutbox } from "@/features/mailbox/lib/userOutbox";
 import type { SendUserMessageRequest } from "@/shared/data/api/dto/mailbox";
@@ -421,7 +421,7 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
       const kbaseReferenceIds = referenceIds(normalizedReferences,"kbase");
       const validationChatId = stateRef.current.chatId;
       const validationTransitionSeq = stateRef.current.chatTransition?.seq;
-      const planningMode = planningModeOverride ?? Boolean(stateRef.current.planningMode);
+      let planningMode = planningModeOverride ?? Boolean(stateRef.current.planningMode);
       if (kbaseReferenceIds.length > 0) {
         try {
           if (kbaseReferenceIds.length > MAX_KBASE_REFERENCES) throw new Error(t("kbase.selectionLimit", {count: MAX_KBASE_REFERENCES}));
@@ -451,6 +451,10 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
         (agent) => toText(agent?.key) === selectedAgentKey,
       );
       const interaction = selectedAgent?.interactionConfig as import("@/shared/contracts/interaction").InteractionConfig | undefined;
+      const bot = String(selectedAgent?.mode || "").toUpperCase() === "BOT";
+      const botMain = bot && (isNewChatQuery || selectedAgent?.primaryChat?.chatId === chatId || stateRef.current.chats.some(item => item.chatId === chatId && item.primary));
+      if (bot) planningMode = false;
+      if (botMain) model = undefined;
       if (interaction?.model === false) model = undefined;
       if (interaction?.accessLevel === false) accessLevel = undefined;
 
@@ -505,7 +509,7 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
       if (mailboxSend) {
         const requestId = submissionRequestId || createRequestId("req");
         const request: SendUserMessageRequest = {
-          requestId, message: cleanMessage, chatId: chatId || undefined, agentKey: selectedAgentKey,
+          requestId, message: cleanMessage, chatId: bot && isNewChatQuery && !normalizedReferences.some(ref => ref && typeof ref === "object" && (ref as { type?: unknown }).type === "file") ? undefined : chatId || undefined, agentKey: selectedAgentKey,
           references: normalizedReferences.length ? normalizedReferences : undefined,
           ...(primary ? { primary: true } : {}),
           ...(planningMode ? { planningMode: true } : {}), editingMode, accessLevel,

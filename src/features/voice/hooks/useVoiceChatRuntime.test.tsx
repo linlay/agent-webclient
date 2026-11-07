@@ -78,10 +78,10 @@ it("starts a new Chat even when the Agent already has a primary Chat", async () 
 });
 it.each([
   { desktop: false, primaryNavigation: false, hasPrimary: false, search: "", primary: false },
-  { desktop: false, primaryNavigation: true, hasPrimary: false, search: "", primary: true },
+  { desktop: false, primaryNavigation: true, hasPrimary: false, search: "", primary: false },
   { desktop: false, primaryNavigation: true, hasPrimary: true, search: "", primary: false },
   { desktop: true, primaryNavigation: true, hasPrimary: true, search: "?newChat=1793000000000", primary: false },
-  { desktop: true, primaryNavigation: false, hasPrimary: true, search: "?newChat=1793000000000&primaryNewChat=true", primary: true },
+  { desktop: true, primaryNavigation: false, hasPrimary: true, search: "?newChat=1793000000000&primaryNewChat=true", primary: false },
 ])("uses the ordinary new-Chat primary intent: %j", async ({ desktop, primaryNavigation, hasPrimary, search, primary }) => {
   jest.mocked(isDesktopAppMode).mockReturnValue(desktop);
   window.history.replaceState({}, "", `/agent/agent${search}`);

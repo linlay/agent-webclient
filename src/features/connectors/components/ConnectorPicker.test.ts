@@ -15,7 +15,7 @@ jest.mock("@/shared/data", () => ({
   fetchConnectorIcon: jest.fn(),
 }));
 const push = { subscribe: jest.fn(() => jest.fn()) };
-jest.mock("@/features/transport/hooks/useRealtimeTransport", () => ({ usePushTransport: () => push }));
+jest.mock("@/features/transport/hooks/useRealtimeTransport", () => ({ usePushTransport: () => push, useOptionalRealtimeTransport: () => undefined }));
 jest.mock("../hooks/useAgentConnectors", () => ({ useAgentConnectors: jest.fn() }));
 jest.mock("@/shared/i18n", () => ({ t: (key: string) => key, useI18n: () => ({ t: (key: string, params?: Record<string, string>) => params && key === "composer.addMenu.connectors.selectionConflict" ? `${key}: ${params.name}: ${params.conflicts}` : key }) }));
 jest.mock("@/shared/ui/MaterialIcon", () => ({ MaterialIcon: () => null }));

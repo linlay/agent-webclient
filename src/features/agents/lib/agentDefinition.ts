@@ -462,6 +462,8 @@ export function modePresentation(
   switch (normalizeModeForForm(mode)) {
     case "GENERAL":
       return { icon: "refresh", label: t("agentConsole.mode.react.label"), description: t("agentConsole.mode.react.description") };
+    case "BOT":
+      return { icon: "smart_toy", label: t("agentConsole.mode.bot.label"), description: t("agentConsole.mode.bot.description") };
     case "CODER":
       return { icon: "code", label: t("agentConsole.mode.coder.label"), description: t("agentConsole.mode.coder.description") };
     case "TEAM":

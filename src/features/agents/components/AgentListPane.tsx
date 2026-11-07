@@ -60,6 +60,7 @@ export interface AgentListPaneProps {
 
 const MODE_LABEL: Record<string, string> = {
   GENERAL: "GENERAL",
+ BOT: "BOT",
   REACT: "GENERAL",
   CODER: "CODER",
   KBASE: "KBASE",

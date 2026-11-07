@@ -40,7 +40,9 @@ export function PrimaryChatNavigation(props: {
           aria-label={`${agent.name}, ${preview}${status ? `, ${status}` : ""}`}
           onClick={() => chat ? props.onSelectChat(chat.chatId) : props.onStartPrimary(`agent:${agent.key}`)}>
           <span className={styles.icon}><AgentIcon type="agent" icon={effectiveAgentIcon(agent.icon, agent.mode)}
-            props={{ icon: { width: 30, height: 30 }, avatar: { size: 30 } }} /></span>
+            props={{ icon: { width: 30, height: 30 }, avatar: { size: 30 } }} />
+            {agent.workspaceDir && <span className={styles.workspace} title={agent.workspaceDir}><MaterialIcon name="folder" /></span>}
+          </span>
           {!props.collapsed && <span className={styles.body}>
             <span className={styles.name}>{agent.name}</span>
             <span className={styles.preview}>{preview}</span>

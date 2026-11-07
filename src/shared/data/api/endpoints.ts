@@ -870,6 +870,8 @@ export const dataEndpoints = createEndpointRegistry({
       compactPayload({
         agentKey: options.agentKey,
         openedBy: options.openedBy,
+ primary: options.primary,
+ lastRunId: options.lastRunId,
         mode: options.mode,
         hasWorkspace: options.hasWorkspace,
         pinned: options.pinned,

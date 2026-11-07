@@ -194,7 +194,7 @@ export const WorkerNavigator: React.FC<WorkerNavigatorProps> = ({
   const isSidebarLoading = navigation.sidebarPendingRequestCount > 0;
   useEffect(() => {
     try {
-      if (window.localStorage.getItem("agent:primary-navigation") === "true") {
+      if (window.localStorage.getItem("agent:show-bots") !== "false") {
         dispatch({ type: "SET_PRIMARY_NAVIGATION", enabled: true });
       }
     } catch { /* Navigation remains available without storage. */ }
@@ -202,7 +202,7 @@ export const WorkerNavigator: React.FC<WorkerNavigatorProps> = ({
   const togglePrimaryNavigation = () => {
     const enabled = !state.primaryNavigation;
     dispatch({ type: "SET_PRIMARY_NAVIGATION", enabled });
-    try { window.localStorage.setItem("agent:primary-navigation", String(enabled)); } catch { /* Optional preference. */ }
+    try { window.localStorage.setItem("agent:show-bots", String(enabled)); } catch { /* Optional preference. */ }
   };
   const [generalAgentKey, setGeneralAgentKey] = useState(readStoredGeneralAgentKey);
   const [historyAgentKey, setHistoryAgentKey] = useState("");
@@ -298,8 +298,7 @@ export const WorkerNavigator: React.FC<WorkerNavigatorProps> = ({
     workerSortMode: "byTime",
   });
 
-  const primaryAgentKeys = useMemo(() => new Set(state.primaryNavigation
-    ? state.agents.filter(agent => supportsPrimaryChat(agent.mode)).map(agent => agent.key) : []), [state.primaryNavigation, state.agents]);
+  const primaryAgentKeys = useMemo(() => new Set(state.agents.filter(agent => supportsPrimaryChat(agent.mode)).map(agent => agent.key)), [state.agents]);
   const generalWorkers = splitSidebarWorkers(state.workerRows, state.agents).general.filter(row => !primaryAgentKeys.has(row.sourceId));
   const currentGeneralKey = generalWorkers.some(row => row.key === generalAgentKey)
     ? generalAgentKey : generalWorkers[0]?.key || "";

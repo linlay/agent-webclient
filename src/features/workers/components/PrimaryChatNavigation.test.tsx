@@ -11,8 +11,8 @@ jest.mock("@/app/state/AppContext", () => ({ useAppContext: () => ({ state: mock
 
 it.each([false, true])("clicking an Agent directly opens its Platform primary chat (collapsed: %s)", async collapsed => {
   mockState.agents = [
-    { key: "platform", name: "Platform", mode: "GENERAL", primaryChat: { chatId: "primary-chat", lastRunContent: "primary reply" } },
-    { key: "empty", name: "Empty", mode: "GENERAL" },
+    { key: "platform", name: "Platform", mode: "BOT", workspaceDir: "/work/project", primaryChat: { chatId: "primary-chat", lastRunContent: "primary reply" } },
+    { key: "empty", name: "Empty", mode: "BOT" },
   ];
   mockState.chats = [{ chatId: "newer-secondary", agentKey: "platform", updatedAt: Date.now(), lastRunContent: "secondary reply" }];
   const onSelectChat = jest.fn();
@@ -34,6 +34,7 @@ it.each([false, true])("clicking an Agent directly opens its Platform primary ch
     await act(async () => host.querySelector<HTMLButtonElement>('button[aria-label^="Empty,"]')!.click());
     expect(onStartPrimary).toHaveBeenCalledWith("agent:empty");
     expect(onSelectChat).toHaveBeenCalledTimes(1);
+    expect(host.querySelector('[title="/work/project"]')).not.toBeNull();
     expect(host.textContent).not.toContain("secondary reply");
     expect(host.textContent).not.toContain("新建对话");
     expect(host.textContent).not.toContain("主要对话");
@@ -44,7 +45,7 @@ it.each([false, true])("clicking an Agent directly opens its Platform primary ch
       await act(async () => history.click());
       expect(onOpenHistory).toHaveBeenCalledWith("platform");
       await act(async () => host.querySelector<HTMLButtonElement>('button[aria-label="Platform: 更多操作"]')!.click());
-      const clear = [...document.querySelectorAll<HTMLElement>('[role="menuitem"]')].find(item => item.textContent?.includes("清空主聊天"))!;
+      const clear = [...document.querySelectorAll<HTMLElement>('[role="menuitem"]')].find(item => item.textContent?.includes("重新开始"))!;
       await act(async () => clear.click());
       expect(onClearPrimary).toHaveBeenCalledWith("platform", "primary-chat");
       expect(onSelectChat).toHaveBeenCalledTimes(1);

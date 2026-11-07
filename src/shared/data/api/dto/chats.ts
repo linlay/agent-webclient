@@ -1,4 +1,6 @@
 export interface GetChatsOptions {
+ primary?: boolean;
+ lastRunId?: string;
   openedBy?: string;
   agentKey?: string;
   mode?: string;

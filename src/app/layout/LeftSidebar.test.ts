@@ -1838,16 +1838,16 @@ describe("LeftSidebar", () => {
     const state = createWorkerState(); state.leftDrawerOpen = true;
     mockState(state);
     const html = renderSidebar();
-    expect(html).toContain('aria-label="主要对话模式"');
-    const toggle = uiButtonProps.find(props => props["aria-label"] === "主要对话模式");
+    expect(html).toContain('aria-label="显示机器人"');
+    const toggle = uiButtonProps.find(props => props["aria-label"] === "显示机器人");
     (toggle?.onClick as () => void)();
     expect(useAppContext().dispatch).toHaveBeenCalledWith({ type: "SET_PRIMARY_NAVIGATION", enabled: true });
     expect(dispatchedEvents("agent:start-new-conversation")).toHaveLength(0);
   });
 
-  it("uses primary navigation only for GENERAL while preserving other Agents and utilities", () => {
+  it("uses primary navigation only for BOT while preserving other Agents and utilities", () => {
     const state = createWorkerState(); state.leftDrawerOpen = true; state.primaryNavigation = true;
-    state.agents[0].mode = "GENERAL";
+    state.agents[0].mode = "BOT";
     state.agents[0].primaryChat = { chatId: "primary-old", lastRunContent: "GENERAL primary summary" };
     state.agents.push({ key: "coder", name: "Coder project", mode: "CODER", workspaceDir: "/work/coder", primaryChat: { chatId: "unused-primary", lastRunContent: "must not replace coder history" } });
     const coder = { ...state.workerRows[0], key: "agent:coder", sourceId: "coder", displayName: "Coder project", workspaceDir: "/work/coder" };

@@ -288,7 +288,7 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
       ]),
     );
     // EXECUTOR is created here only; the New Project dialog never offers it.
-    return ["GENERAL", "CODER", "KBASE", "TEAM", "EXECUTOR"].map((value) => ({
+    return ["GENERAL", "BOT", "CODER", "KBASE", "TEAM", "EXECUTOR"].map((value) => ({
       value,
       label: availableModes.get(value) || value,
     }));

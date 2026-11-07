@@ -2,6 +2,13 @@
 
 Chat 置顶由 Platform `/api/chats/order` 与 `chat-pinned.json` 管理，WebClient 的 `chatPinnedOrder` 仅为内存投影。`features/chats` 维护协议响应解释、mutation 和状态 reducer，`features/workers` 装配统一 Pinned 列表。导航用 `chatsPinned:false` 请求每个 Worker 的 5 条预览，Pinned 全量独立加载；History 保留全部会话。
 
+
+BOT 是独立的 Native mode。Agent 管理支持创建与编辑 BOT；机器人、对话、项目三区并存，机器人显示偏好仅存 localStorage（agent:show-bots），BOT 的聊天不进入普通对话、项目和置顶列表。点击机器人只使用 Platform 的 primaryChat 指针；首次消息不传 chatId，由 /api/send 原子创建主聊天，文件上传可保留暂存 ChatID。客户端不为 BOT 设置 primary:true，也不把已有分身提升为主聊天。
+
+BOT 页头标明主聊天或分身，分身可返回主聊天；分身历史通过 /api/chats?agentKey=&primary=false 分页读取，不依赖 mail.db，不显示未经约定的“进行中”数量。BOT 所有聊天隐藏规划和终端入口，主聊天另隐藏模型及编辑开关；其余 mode 仍使用后端 interactionConfig。重新开始会先显示严重影响提示：旧分身结果仍在旧聊天，不会转投新主聊天，排队工作可能取消；确认后归档旧主聊天，再以 /api/send 开新主聊天。主聊天运行或待确认时不允许重新开始。
+
+普通主 lane 输入走 /api/send；带专用参数的 Query 保留协议，但 Platform 在 Runtime 门面同样投 mailbox。BTW/explain、等待项作答、空白继续、规划批准与语音协议本轮不改，Gateway 独立部署保留原兼容路径。BOT 的语音/WebApp 支持、进行中筛选与跨 Run 最终结果关联仍待讨论，不标记为已交付。
+
 ## 0. 回复与交付规范
 - 请用中文回复用户。
 - 给用户看的内容不要生成 `.md` 文件；需要生成面向人阅读的交付物时，优先生成 HTML 来替代 Markdown，让人类看效果更好。

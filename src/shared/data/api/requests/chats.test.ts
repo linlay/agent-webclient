@@ -130,6 +130,12 @@ describe("requests/chats request contracts", () => {
     );
   });
 
+  it("pages BOT workers with an explicit false primary filter", async () => {
+    await getChats({agentKey:"bot",primary:false,limit:50,lastRunId:"run-cursor"});
+    const url = new URL(fetchMock.mock.calls[0][0], "http://localhost");
+    expect(Object.fromEntries(url.searchParams)).toEqual({agentKey:"bot",primary:"false",limit:"50",lastRunId:"run-cursor"});
+  });
+
   it("preserves false workspace and pin filters for bounded sidebar previews", async () => {
     await getChats({ hasWorkspace: false, pinned: false, limit: 9 });
     expect(fetchMock.mock.calls[0][0]).toBe("/api/chats?hasWorkspace=false&pinned=false&limit=9");

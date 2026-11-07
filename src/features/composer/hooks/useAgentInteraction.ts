@@ -34,5 +34,13 @@ export function useAgentInteraction(worker: CurrentWorkerSummary | null): Intera
     return () => { canceled = true; };
   }, [key, embedded, dispatch, stateRef]);
 
-  return embedded || (loaded?.key === key ? loaded.config : pendingInteraction);
+  const config = embedded || (loaded?.key === key ? loaded.config : pendingInteraction);
+  const state = stateRef.current;
+  const agent = state.agents.find(item => item.key === key);
+  if (String(agent?.mode || worker?.raw?.mode || "").toUpperCase() !== "BOT") return config;
+  const chat = state.chats.find(item => item.chatId === state.chatId);
+  const main = !state.chatId || agent?.primaryChat?.chatId === state.chatId || chat?.primary === true;
+  return { ...config, showPlanningMode: false, showTerminal: false,
+    ...(main ? { model: false, showEditingMode: false } : {}) };
+
 }

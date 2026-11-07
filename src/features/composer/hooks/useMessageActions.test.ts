@@ -775,7 +775,7 @@ describe("required libraries through message actions", () => {
   return {stateRef, dispatch, actions};
  }
  it.each([
-  [true, "", false, true],
+  [true, "", false, false],
   [false, "", false, false],
   [true, "existing", true, false],
   [true, "", true, false],
@@ -807,7 +807,7 @@ describe("required libraries through message actions", () => {
     stateRef.current.chatId = "upload-placeholder";
     stateRef.current.chats = [{ chatId: "upload-placeholder", agentKey: "general" }];
     await legacyQuery(actions!, "primary");
-    expect(startQuery.mock.calls[0][0]).toMatchObject({ primary: true, chatId: "upload-placeholder" });
+    expect(startQuery.mock.calls[0][0]).toMatchObject({ chatId: "upload-placeholder" });
   } finally {
     globalThis.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = previousConfig;
     if (previousWindow === undefined) delete (globalThis as { window?: unknown }).window;

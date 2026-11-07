@@ -89,3 +89,16 @@ it("preserves the legacy Query path for Gateway deployments without send support
     expect(mockQuery).toHaveBeenCalledWith(expect.objectContaining({message: "gateway input"}));
   } finally { mode.mockRestore(); }
 });
+
+it.each([false, true])("routes a first BOT message through Platform with staged files=%s", async files => {
+  mockSend.mockResolvedValue({data: {mailId: "bot-letter", chatId: "bot-main", delivery: "queued"}});
+  const h = setup();
+  h.stateRef.current = {...h.stateRef.current, streaming: false, currentChatActiveRun: null, chatId: "", chats: [],
+    agents: [{key:"bot", name:"Bot", mode:"BOT"}], workerSelectionKey:"agent:bot", planningMode:true};
+  const refs = files ? [{type:"file",url:"@chat/note.txt",name:"note.txt"}] : [];
+  await h.actions.sendMessage("hello bot", refs, [], {}, undefined, {key:"ignored"}, files ? "staged-chat" : "", "bot", false, "", "req-bot");
+  expect(mockSend).toHaveBeenCalledWith(expect.objectContaining({agentKey:"bot",chatId:files ? "staged-chat" : undefined,model:undefined}));
+  expect(mockSend.mock.calls[0][0].planningMode).toBeUndefined();
+  expect(mockSend.mock.calls[0][0].primary).toBeUndefined();
+  expect(mockQuery).not.toHaveBeenCalled();
+});
