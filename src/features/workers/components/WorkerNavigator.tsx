@@ -72,7 +72,7 @@ const presentationClasses = bindCssModuleClasses({ ...sharedPresentation });
 
 
 const LEFT_SIDEBAR_BASE_CLASS =
-  "sidebar left-sidebar is-open tw:!relative tw:gap-1.5 tw:px-0 tw:py-[10px]";
+  "sidebar left-sidebar is-open tw:!relative tw:gap-1.5 tw:px-0 tw:pt-0 tw:pb-[10px]";
 
 const LEFT_SIDEBAR_WIDTH_CLASS = {
   open: "tw:w-[var(--left-sidebar-width)]",
@@ -80,7 +80,7 @@ const LEFT_SIDEBAR_WIDTH_CLASS = {
 } as const;
 
 const LEFT_SIDEBAR_TOP_ROW_CLASS =
-  "tw:flex tw:items-center tw:justify-between tw:gap-3 tw:px-3 tw:pb-0 tw:pt-1";
+  "tw:flex tw:h-9 tw:min-h-9 tw:shrink-0 tw:items-center tw:justify-between tw:gap-3 tw:px-3 tw:py-0";
 
 const CHAT_LIST_CLASS =
   "chat-list tw:min-h-0 tw:flex-1 tw:overflow-y-auto tw:[-ms-overflow-style:none] tw:[scrollbar-width:none] tw:[&::-webkit-scrollbar]:hidden";
@@ -700,7 +700,7 @@ export const WorkerNavigator: React.FC<WorkerNavigatorProps> = ({
                     })
                   }
                 >
-                  <MaterialIcon name="dock_to_right" />
+                  <MaterialIcon name="dock_to_right" className="tw:text-[16px]" />
                 </UiButton>
               </Flex>
             </Flex>
@@ -761,7 +761,7 @@ export const WorkerNavigator: React.FC<WorkerNavigatorProps> = ({
                       })
                     }
                   >
-                    <MaterialIcon name="dock_to_right" />
+                    <MaterialIcon name="dock_to_right" className="tw:text-[16px]" />
                   </UiButton>
                   {state.primaryNavigation && <PrimaryChatNavigation collapsed
                     onSelectChat={handleSelectChat}

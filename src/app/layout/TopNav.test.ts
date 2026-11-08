@@ -1030,6 +1030,7 @@ describe("TopNav", () => {
 
 		globalWithStorage.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = { DESKTOP_APP: "true" };
 		const desktopRootHtml = renderToStaticMarkup(React.createElement(TopNav));
-		expect(desktopRootHtml).toContain("dock_to_left");
+		expect(desktopRootHtml).toContain("dock_to_right");
+		expect(desktopRootHtml).toContain("scaleX(-1)");
 	});
 });

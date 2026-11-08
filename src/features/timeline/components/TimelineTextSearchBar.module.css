@@ -23,7 +23,8 @@
 
 .expandable {
   position: absolute;
-  top: 0;
+  top: 3px;
+  height: 26px;
   left: 12px;
   z-index: 2;
   width: 100px;

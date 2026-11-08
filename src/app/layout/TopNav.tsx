@@ -81,7 +81,7 @@ export function resolveStatusPillClassName(
   ].join(" ");
 }
 
-const TOP_NAV_CLASS = presentationClasses("top-nav tw:col-[2/3] tw:row-start-1 tw:pr-1.5 tw:h-11 tw:pt-1");
+const TOP_NAV_CLASS = presentationClasses("top-nav tw:col-[2/3] tw:row-start-1 tw:pr-1.5 tw:h-9 tw:py-0");
 const TOP_NAV_INNER_CLASS =
   "top-nav-inner tw:flex tw:h-full tw:min-h-0 tw:w-full tw:items-center";
 const NAV_GROUP_CLASS = "nav-group tw:relative tw:flex tw:items-center tw:empty:flex-[0_1_180px]";
@@ -537,7 +537,9 @@ export const TopNav: React.FC<{ surface?: "root" | "agent" }> = ({
               onClick={() => toggleRightSidebar("overview")}
             >
               <MaterialIcon
-                name={surface === "root" ? "dock_to_left" : "open_in_new"}
+                name={surface === "root" ? "dock_to_right" : "open_in_new"}
+                className="tw:text-[16px]"
+                style={surface === "root" ? { transform: "scaleX(-1)" } : undefined}
               />
             </UiButton>
           </div>
