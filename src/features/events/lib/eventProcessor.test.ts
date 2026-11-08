@@ -2051,6 +2051,17 @@ describe("agent-delivered inputs", () => {
       expect(nodes[1].mail).toMatchObject({ id: "ask-mail", kind: "ask" });
     }
   });
+  it("shows a user's steer through the mailbox as the same steer live and in replay", () => {
+    const live = createState();
+    const replay = createState();
+    // JSONL keeps requestId and steerId but drops the live-only mail fields.
+    processAndApply(live, { type: "request.steer", runId: "run", origin: { type: "user" }, mailId: "mail", mailKind: "letter", mailOrigin: "user", requestId: "req", steerId: "client-steer", message: "go on", timestamp: 100 } as AgentEvent, "live");
+    processAndApply(replay, { type: "request.steer", runId: "run", origin: { type: "user" }, requestId: "req", steerId: "client-steer", message: "go on", timestamp: 100 } as AgentEvent, "replay");
+    for (const state of [live, replay]) {
+      expect(state.timelineOrder).toEqual(["steer_client-steer"]);
+      expect(state.timelineNodes.get("steer_client-steer")).toMatchObject({ text: "go on", messageVariant: "steer" });
+    }
+  });
   it("treats a steer without origin as the user's own input", () => {
     const state = createState();
     processAndApply(state, { type: "request.steer", runId: "run", steerId: "s", message: "go on", timestamp: 100 } as AgentEvent, "live");

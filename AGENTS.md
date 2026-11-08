@@ -7,7 +7,7 @@ BOT 是独立的 Native mode。Agent 管理支持创建与编辑 BOT；机器人
 
 BOT 页头标明主聊天或分身，分身可返回主聊天；分身历史通过 /api/chats?agentKey=&primary=false 分页读取，不依赖 mail.db，不显示未经约定的“进行中”数量。BOT 所有聊天隐藏规划和终端入口，主聊天另隐藏模型及编辑开关；其余 mode 仍使用后端 interactionConfig。重新开始会先显示严重影响提示：旧分身结果仍在旧聊天，不会转投新主聊天，排队工作可能取消；确认后归档旧主聊天，再以 /api/send 开新主聊天。主聊天运行或待确认时不允许重新开始。
 
-普通主 lane 输入走 /api/send；带专用参数的 Query 保留协议，但 Platform 在 Runtime 门面同样投 mailbox。BTW/explain、等待项作答、空白继续、规划批准与语音协议本轮不改，Gateway 独立部署保留原兼容路径。BOT 的语音/WebApp 支持、进行中筛选与跨 Run 最终结果关联仍待讨论，不标记为已交付。
+只有 BOT 聊天的主 lane 输入走 /api/send，由 Platform 为主聊天排队或交给分身；GENERAL、CODER、KBASE、TEAM、EXECUTOR 保持原 query/steer 体验：客户端按自己看到的 Run 状态，空闲时发 /api/query，运行中进入本地待发送区并经 /api/steer 提交，等待项期间不允许发送。Platform 内部同样经 mailbox 中转，但 query 遇到忙碌会话返回冲突，steer 只插入指定 Run 并沿用客户端 steerId。入口只按 Agent mode 判定（`features/composer/lib/messageEntry.ts`），不按后端模式另分规则。BTW/explain、等待项作答、空白继续、规划批准与语音协议本轮不改；Gateway 独立部署没有 /api/send，保留原 Query/steer 路径。BOT 的语音/WebApp 支持、进行中筛选与跨 Run 最终结果关联仍待讨论，不标记为已交付。
 
 ## 0. 回复与交付规范
 - 请用中文回复用户。
@@ -21,7 +21,7 @@ BOT 页头标明主聊天或分身，分身可返回主聊天；分身历史通�
 
 工具时间线支持临时 `tool.output`：按 `toolId` 投影 stdout/stderr segment 和单调 `chunkIndex`，单调用最多保留 1 MiB 头尾；运行期使用只读 xterm 按实际缓冲内容完整增高展示并解释换行、回车、退格和 ANSI 控制，`tool.result` 是唯一终态并销毁、替换过程终端。过程输出只属于 live/attach 状态，不进入冷回放、transcript 或导出。
 
-Native `wait` 使用 `tool.wait/tool.wait.update` 投影同 Run 等待，时间线使用独立小卡片按绝对期限本地倒计时，不显示参数表或折叠控件。说明只取本次调用的 description（实时事件优先，其次调用参数），不回退工具定义说明；结束后按结果 `reason` 显示结束原因并移除倒计时、进度条和按钮。“立即继续”仅在根 Run 等待的卡片 hover、键盘聚焦或提交中显示，不经过输入框，直接向 `/api/steer` 发送空白 steer；Platform 把它当作正文为空的普通 steer，回显的 `request.steer` 没有内容，沿用既有规则不渲染用户消息，结果带 `continued: true` 时卡片显示“已立即继续”。等待中的输入框文本走 `/api/send`，只进入待消费队列，不代替等待项作答；attach 的 `seq:0` 快照不修改续传 cursor，冷回放与导出不保留等待过程。
+Native `wait` 使用 `tool.wait/tool.wait.update` 投影同 Run 等待，时间线使用独立小卡片按绝对期限本地倒计时，不显示参数表或折叠控件。说明只取本次调用的 description（实时事件优先，其次调用参数），不回退工具定义说明；结束后按结果 `reason` 显示结束原因并移除倒计时、进度条和按钮。“立即继续”仅在根 Run 等待的卡片 hover、键盘聚焦或提交中显示，不经过输入框，直接向 `/api/steer` 发送空白 steer；Platform 把它当作正文为空的普通 steer，回显的 `request.steer` 没有内容，沿用既有规则不渲染用户消息，结果带 `continued: true` 时卡片显示“已立即继续”。等待中的输入框发送仍直接 steer（BOT 聊天走 `/api/send`），只进入待消费队列，不代替等待项作答；attach 的 `seq:0` 快照不修改续传 cursor，冷回放与导出不保留等待过程。
 
 ## 2. 技术栈
 - 框架：React 18
@@ -38,7 +38,7 @@ Native `wait` 使用 `tool.wait/tool.wait.update` 投影同 Run 等待，时间�
 
 核心调用链如下：
 - 用户在 Composer 区输入消息
-- `src/features/composer/hooks/useMessageActions.ts` 通过统一数据层 `/api/send` 受理普通用户文本；空消息续跑、专用 params 等保留 `RunTransport.startQuery` 的 `/api/query` 路径
+- `src/features/composer/hooks/useMessageActions.ts` 对 BOT 聊天经统一数据层 `/api/send` 受理普通用户文本；其他 mode、空消息续跑与专用 params 走 `RunTransport.startQuery` 的 `/api/query` 路径，入口判定在 `src/features/composer/lib/messageEntry.ts`
 - `src/features/transport/lib/platformRunTransport.ts` 与 `src/features/transport/lib/platformFrameClient.ts` 统一传输 Run stream 和控制请求，`src/features/events/lib/eventProcessor.ts` 将协议事件投影为命令
 - `src/features/conversation/hooks/useConversationEventHandler.ts` 统一消费 SSE、WebSocket、Composer 与 Voice 事件源，并将命令归并为当前对话运行态
 - `src/features/timeline/components/*`、`src/app/layout/*`、`src/features/plan/components/PlanPanel.tsx`、`src/features/tools/components/FrontendToolContainer.tsx` 根据状态树渲染
@@ -105,7 +105,7 @@ Native `wait` 使用 `tool.wait/tool.wait.update` 投影同 Run 等待，时间�
 - `GET /api/project/tree`
 - `GET /api/project/changes`
 - `GET /api/project/diff`
-- `POST /api/send`：直连 Platform/Desktop 的普通主聊天文本发送，返回 mailId/chatId/delivery/runId，支持活动会话插入或排队、按 requestId 幂等；收件箱三箱按 box 过滤，角标为待收取总数。
+- `POST /api/send`：直连 Platform/Desktop 时 BOT 聊天的主 lane 文本发送，返回 mailId/chatId/delivery/runId，支持活动会话插入或排队、按 requestId 幂等；收件箱三箱按 box 过滤，角标为待收取总数。
 - `POST /api/query`：保留的对话流及专用入口；`agentKey` 是唯一 Agent 路由字段（包含 TEAM），缺省时由后端按现有上下文推导
 - `GET /api/attach`：Run 事件续接；必须传 `runId` 和 `agentKey`，后端按 run metadata 校验 agentKey
 - `POST /api/submit`：Run 前端工具 / awaiting 提交；必须传 `runId` 和 `agentKey`，后端按 run metadata 校验 agentKey

@@ -1,4 +1,4 @@
-import { getBackendMode } from "@/shared/config/backendMode";
+import { usesMailboxSend } from "@/features/composer/lib/messageEntry";
 import { ApiError } from "@/shared/data/api/http";
 import { sendUserMessage } from "@/shared/data/api/routedClient";
 import { acceptUserOutbox, isUndeliveredMailStatus, putUserOutbox, updateUserOutbox } from "@/features/mailbox/lib/userOutbox";
@@ -311,7 +311,10 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
         return;
       }
 
-      const mailboxSend = getBackendMode() !== "gateway" && (Boolean(rawMessage) || normalizedReferences.length > 0) && Object.keys(params).length === 0;
+      // BOT Chats queue messages through /api/send; other Agents keep query/steer.
+      const mailboxMessage = (Boolean(rawMessage) || normalizedReferences.length > 0) && Object.keys(params).length === 0;
+      const guardOwner = resolvePreferredRunOwner(stateRef.current, { chatId: preferredChatId || stateRef.current.chatId, explicitAgentKey: preferredAgentKey });
+      let mailboxSend = mailboxMessage && usesMailboxSend(guardOwner?.kind === "agent" ? stateRef.current.agents.find(agent => agent.key === guardOwner.agentKey)?.mode : undefined);
       /* ── Parallel-query guard ── */
       const currentActiveReqId = String(
         activeQuerySessionRequestIdRef.current || "",
@@ -452,6 +455,8 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
       );
       const interaction = selectedAgent?.interactionConfig as import("@/shared/contracts/interaction").InteractionConfig | undefined;
       const bot = String(selectedAgent?.mode || "").toUpperCase() === "BOT";
+      // A leading @mention can change the target Agent, and with it the entry.
+      mailboxSend = mailboxMessage && usesMailboxSend(selectedAgent?.mode);
       const botMain = bot && (isNewChatQuery || selectedAgent?.primaryChat?.chatId === chatId || stateRef.current.chats.some(item => item.chatId === chatId && item.primary));
       if (bot) planningMode = false;
       if (botMain) model = undefined;

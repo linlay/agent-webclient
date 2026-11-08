@@ -15,11 +15,12 @@ let mockContext: Record<string, unknown>;
 jest.mock("@/shared/data/api/routedClient", () => ({...jest.requireActual("@/shared/data/api/routedClient"), sendUserMessage: (...args: unknown[]) => mockSend(...args)}));
 jest.mock("@/features/transport/hooks/useRealtimeTransport", () => ({useRunTransport: () => ({startQuery: mockQuery})}));
 jest.mock("@/app/state/AppContext", () => ({useAppContext: () => mockContext}));
-function setup() {
+// Only BOT Chats send through /api/send; other modes keep query/steer.
+function setup(mode = "BOT") {
   const state = createInitialState();
   state.chatId = "chat-a";
   state.chats = [{chatId: "chat-a", agentKey: "agent-a", lastRunId: "run-a"}];
-  state.agents = [{key: "agent-a", name: "Agent", mode: "GENERAL"}];
+  state.agents = [{key: "agent-a", name: "Agent", mode}];
   state.currentChatActiveRun = {chatId: "chat-a", runId: "run-a", agentKey: "agent-a"};
   state.streaming = true;
   const stateRef = {current: state};
@@ -32,7 +33,7 @@ function setup() {
   return {stateRef, dispatch, actions: actions!, scope: resolveStorageIdentity(state.accessToken)};
 }
 beforeEach(() => { jest.clearAllMocks(); localStorage.clear(); });
-it("sends ordinary text to an active Chat without starting a Query stream", async () => {
+it("sends text to an active BOT Chat without starting a Query stream", async () => {
   mockSend.mockResolvedValue({data: {mailId: "m-one", chatId: "chat-a", delivery: "inserted", runId: "run-a", ignoredOptions: ["model"]}});
   const h = setup();
   await h.actions.sendMessage("next input", [], [], {}, "full_access", {key: "new-model"}, "chat-a", "agent-a", true, "", "req-one");
@@ -71,6 +72,26 @@ it("keeps an acceptance failure as a recoverable local draft", async () => {
   await h.actions.sendMessage("keep this text", [], [], {}, undefined, undefined, "chat-a", "agent-a", false, "", "req-failure");
   expect(readUserOutbox(h.scope)).toContainEqual(expect.objectContaining({uncertain: true, undelivered: false, error: "connection lost", request: expect.objectContaining({message: "keep this text"})}));
   consumeUserOutbox(h.scope, "req-failure");
+});
+
+it.each(["GENERAL", "CODER", "KBASE", "TEAM", "EXECUTOR"])("keeps the Query path for a %s Agent", async agentMode => {
+  mockQuery.mockReturnValue({
+    identity: Promise.resolve({chatId: "chat-a", runId: "query-run", owner: {kind: "agent", agentKey: "agent-a"}}),
+    completion: Promise.resolve({reason: "done", lastSeq: 1}),
+    detach: jest.fn(),
+  });
+  const h = setup(agentMode);
+  h.stateRef.current = {...h.stateRef.current, streaming: false, currentChatActiveRun: null};
+  await h.actions.sendMessage("idle input", [], [], {}, undefined, undefined, "chat-a", "agent-a", false, "", "req-query");
+  expect(mockSend).not.toHaveBeenCalled();
+  expect(mockQuery).toHaveBeenCalledWith(expect.objectContaining({message: "idle input", requestId: "req-query"}));
+  expect(readUserOutbox(h.scope)).toEqual([]);
+  // A running Chat is steered by the composer; a stray send does not open another Run.
+  mockQuery.mockClear();
+  const busy = setup(agentMode);
+  await busy.actions.sendMessage("busy input", [], [], {}, undefined, undefined, "chat-a", "agent-a", false, "", "req-busy");
+  expect(mockSend).not.toHaveBeenCalled();
+  expect(mockQuery).not.toHaveBeenCalled();
 });
 
 it("preserves the legacy Query path for Gateway deployments without send support", async () => {

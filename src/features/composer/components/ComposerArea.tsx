@@ -1,4 +1,4 @@
-import { getBackendMode } from "@/shared/config/backendMode";
+import { usesMailboxSend } from "@/features/composer/lib/messageEntry";
 import { locateSelectedTextReference } from "@/shared/data/desktop/selectedTextLocate";
 import { bindCssModuleClasses } from "@/shared/utils/cssModuleClasses";
 import composerPresentation from "@/features/composer/components/ComposerPresentation.module.css";
@@ -946,7 +946,8 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     nativeShare.busy || nativeShare.blocked ||
     hasInvalidSelectedSkills ||
     chatTransitionBlocking ||
-    (getBackendMode() === "gateway" && (isFrontendActive || isAwaitingActive)) ||
+    // Only a BOT Chat accepts a new message while a question or tool waits.
+    (!usesMailboxSend(currentWorker?.type === "agent" ? currentWorker.raw?.mode : undefined) && (isFrontendActive || isAwaitingActive)) ||
     hasUploadingAttachments ||
     hasFailedAttachments ||
     !(isMainChatRunning ? hasSendableContent(inputValue, combinedSendReferences, true) : hasSendableQuery(inputValue, combinedSendReferences, hasQueryHistory(state), canContinueChat(state)));

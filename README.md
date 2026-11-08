@@ -37,7 +37,7 @@ BOT 是独立的 Native mode。Agent 管理支持创建与编辑 BOT；机器人
 
 BOT 页头标明主聊天或分身，分身可返回主聊天；分身历史通过 /api/chats?agentKey=&primary=false 分页读取，不依赖 mail.db，不显示未经约定的“进行中”数量。BOT 所有聊天隐藏规划和终端入口，主聊天另隐藏模型及编辑开关；其余 mode 仍使用后端 interactionConfig。重新开始会先显示严重影响提示：旧分身结果仍在旧聊天，不会转投新主聊天，排队工作可能取消；确认后归档旧主聊天，再以 /api/send 开新主聊天。主聊天运行或待确认时不允许重新开始。
 
-普通主 lane 输入走 /api/send；带专用参数的 Query 保留协议，但 Platform 在 Runtime 门面同样投 mailbox。BTW/explain、等待项作答、空白继续、规划批准与语音协议本轮不改，Gateway 独立部署保留原兼容路径。BOT 的语音/WebApp 支持、进行中筛选与跨 Run 最终结果关联仍待讨论，不标记为已交付。
+只有 BOT 聊天的主 lane 输入走 /api/send，由 Platform 为主聊天排队或交给分身；GENERAL、CODER、KBASE、TEAM、EXECUTOR 保持原 query/steer 体验：客户端按自己看到的 Run 状态，空闲时发 /api/query，运行中进入本地待发送区并经 /api/steer 提交，等待项期间不允许发送。Platform 内部同样经 mailbox 中转，但 query 遇到忙碌会话返回冲突，steer 只插入指定 Run 并沿用客户端 steerId。入口只按 Agent mode 判定（`features/composer/lib/messageEntry.ts`），不按后端模式另分规则。BTW/explain、等待项作答、空白继续、规划批准与语音协议本轮不改；Gateway 独立部署没有 /api/send，保留原 Query/steer 路径。BOT 的语音/WebApp 支持、进行中筛选与跨 Run 最终结果关联仍待讨论，不标记为已交付。
 
 ![智能体对话工作台](docs/images/screenshots/main-workspace.png)
 
@@ -210,7 +210,7 @@ AGW Web Client 需要一个可访问的上游智能体服务。常用入口包�
 - `GET /api/attach`
 - `POST /api/submit`
 - `POST /api/interrupt`
-- `POST /api/send`（主聊天文本统一受理，返回 mailbox 收据）
+- `POST /api/send`（BOT 聊天文本受理，返回 mailbox 收据）
 - `POST /api/steer`
 - `GET /api/view`：builtin/connector 统一视图；HTTP/WS 共享契约，source 必填
 - `GET /api/resource`
@@ -332,7 +332,7 @@ make dev
 - 依赖方向固定为 `app/pages、app/layout → features/<domain> → shared`；页面不发数据请求，`shared` 不反向依赖应用层或领域层。
 - `npm run check:boundaries` 同时检查目录边界、Transport/Event 纯度和 feature 循环；构建与测试都会先执行该检查。
 
-直连 Platform/Desktop 的普通主聊天消息（正文，或只带有效文件/选区引用）统一走 `/api/send`，待发气泡按身份本地保存，消费后按 requestId 转正式消息；刷新恢复待收取，启动清库后提示未送达，允许新 requestId 重发或本地删除。收件箱分待收取、已收件和只读垃圾箱，角标取待收取总数。收据 `status` 已为 failed 时直接标未送达，不挂接 runId。以下是网关模式与专用入口保留的路径：网关模式运行中附件 steer 复用 `/api/upload` 与 `references`，支持纯图片、HTML/MD 等普通文件及混合附件；待发送队列、取消/拒绝恢复、实时与历史时间线均保留附件。同一主 Chat 首次 query 要求非空正文，后续 query 可只带有效文件或选区引用。Run 结束后，已有主 query 历史的纯引用排队项可转为后续 query；缺少历史确认时恢复输入区等待正文。空正文且无引用的 query 仅在已有主 query 历史、服务端 Chat 明确 `canContinue:true` 且无活动 Run 或待处理 awaiting 时允许。详见 [消息发送路由与运行控制](docs/22-对话输入-消息发送路由与运行控制.md)。
+直连 Platform/Desktop 时，BOT 聊天的消息（正文，或只带有效文件/选区引用）走 `/api/send`，待发气泡按身份本地保存，消费后按 requestId 转正式消息；刷新恢复待收取，启动清库后提示未送达，允许新 requestId 重发或本地删除。收件箱分待收取、已收件和只读垃圾箱，角标取待收取总数。收据 `status` 已为 failed 时直接标未送达，不挂接 runId。其他 mode 及网关模式下，运行中附件 steer 复用 `/api/upload` 与 `references`，支持纯图片、HTML/MD 等普通文件及混合附件；待发送队列、取消/拒绝恢复、实时与历史时间线均保留附件。同一主 Chat 首次 query 要求非空正文，后续 query 可只带有效文件或选区引用。Run 结束后，已有主 query 历史的纯引用排队项可转为后续 query；缺少历史确认时恢复输入区等待正文。空正文且无引用的 query 仅在已有主 query 历史、服务端 Chat 明确 `canContinue:true` 且无活动 Run 或待处理 awaiting 时允许。详见 [消息发送路由与运行控制](docs/22-对话输入-消息发送路由与运行控制.md)。
 
 知识库中心 `/kbases` 由 `features/kbases` 管理，支持多 collection 建库、后台索引状态、集合与路径浏览，以及综合/全文/向量/图召回方式选择；可用性以 KBX 索引状态为准，图谱构建尚未接通，见 [知识库中心](docs/62-页面能力-知识库中心.md)。
 

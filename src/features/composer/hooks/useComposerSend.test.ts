@@ -732,7 +732,7 @@ describe('useComposerSend active run gate', () => {
     expect(operationOrder).toEqual(['clear-draft', 'clear-references', 'send-message']);
   });
 
-  it.each(['gateway', 'platform'] as const)('routes reference-only active input for the %s backend', (backend) => {
+  it.each([['gateway', 'BOT'], ['platform', 'GENERAL'], ['platform', 'BOT']] as const)('routes reference-only active input for the %s backend and a %s Agent', (backend, agentMode) => {
     const inputValue = '';
     const backendMode = require('@/shared/config/backendMode') as typeof import('@/shared/config/backendMode');
     const mode = jest.spyOn(backendMode, 'getBackendMode').mockReturnValue(backend);
@@ -773,6 +773,7 @@ describe('useComposerSend active run gate', () => {
     state.streaming = false;
     // An active Chat always has a previous Run.
     state.chats = [{ chatId: 'chat-1', agentKey: 'agent-a', lastRunId: 'run-active' } as (typeof state.chats)[number]];
+    state.agents = [{ key: 'agent-a', name: 'Agent A', mode: agentMode } as (typeof state.agents)[number]];
     const dispatch = jest.fn();
     const setInputValue = jest.fn();
     const setSlashDismissed = jest.fn();
@@ -859,8 +860,8 @@ describe('useComposerSend active run gate', () => {
       { id: 'selection-1', type: 'selection', text: 'selected text' },
       {type:'kbase',id:'library-a'},
     ];
-    if (backend === 'gateway') {
-      // Gateway has no /api/send yet, so active input stays a steer.
+    if (backend === 'gateway' || agentMode !== 'BOT') {
+      // Only a BOT Chat queues through /api/send; others steer the running Run.
       expect(dispatch).toHaveBeenCalledWith({
         type: 'ENQUEUE_PENDING_STEER',
         chatId: 'chat-1',

@@ -1,4 +1,4 @@
-import { getBackendMode } from "@/shared/config/backendMode";
+import { currentChatUsesMailboxSend } from "@/features/composer/lib/messageEntry";
 import type { PendingSteer } from "@/features/composer/lib/composerState";
 import { isAgentExecutionBlocked } from "@/features/agents/lib/agentAvailability";
 import { useCallback, useEffect, useRef } from "react";
@@ -482,7 +482,8 @@ export function useComposerSend(input: UseComposerSendInput) {
   const handleSend = useCallback((directSteer = false) => {
     directSteer = directSteer || Array.from(stateRef.current.timelineNodes.values()).some(node => node.runId === stateRef.current.runId && node.toolWait && node.status === "running" && !node.result);
     if (isAgentExecutionBlocked(stateRef.current)) return;
-    if (isVoiceMode || (getBackendMode() === "gateway" && isAwaitingActive)) return;
+    // A BOT Chat queues messages, so only it may send while a question waits.
+    if (isVoiceMode || (isAwaitingActive && !currentChatUsesMailboxSend(stateRef.current))) return;
     if (speechListening) {
       stopSpeechInput();
     }
@@ -566,7 +567,7 @@ export function useComposerSend(input: UseComposerSendInput) {
       activeQuerySessionRequestIdRef,
       querySessionsRef,
     );
-    if (mainRuntime.running && (getBackendMode() === "gateway" || (!message && sendReferences.length === 0))) {
+    if (mainRuntime.running && (!currentChatUsesMailboxSend(currentState) || (!message && sendReferences.length === 0))) {
       const activeRunId = mainRuntime.runId || resolveCurrentRunId();
       if (!activeChatId || !activeRunId) {
         dispatch({
@@ -721,7 +722,7 @@ export function useComposerSend(input: UseComposerSendInput) {
   ]);
 
   const handleSubmitQueuedSteer = useCallback(() => {
-    if (isVoiceMode) return;
+    if (isVoiceMode || (isAwaitingActive && !currentChatUsesMailboxSend(stateRef.current))) return;
     const currentState = stateRef.current;
     const runtime = resolveMainChatRuntime(currentState, activeQuerySessionRequestIdRef, querySessionsRef);
     if (!runtime.running) return;

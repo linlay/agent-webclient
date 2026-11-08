@@ -9,8 +9,6 @@ import { useMessageActions } from '@/features/composer/hooks/useMessageActions';
 import { useComposerSend } from '@/features/composer/hooks/useComposerSend';
 import { useConversationEventHandler } from '@/features/conversation/hooks/useConversationEventHandler';
 
-const mockSendUserMessage = jest.fn();
-jest.mock("@/shared/data/api/routedClient", () => ({ ...jest.requireActual("@/shared/data/api/routedClient"), sendUserMessage: (...args: unknown[]) => mockSendUserMessage(...args) }));
 const mockSteer = jest.fn();
 const mockStartQuery = jest.fn();
 const mockRuns = { steer: mockSteer, interrupt: jest.fn(), startQuery: mockStartQuery };
@@ -40,7 +38,6 @@ const roots: Root[] = [];
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true, structuredClone: (value: unknown) => deserialize(serialize(value)) });
 beforeEach(() => {
   jest.clearAllMocks();
-  mockSendUserMessage.mockResolvedValue({ data: {mailId: "m", chatId: "chat-a", delivery: "inserted", runId: "run-a"} });
   localStorage.clear();
   sessionStorage.clear();
 });
@@ -369,17 +366,16 @@ it('restores canceled selections once and projects accepted selections in the ti
   });
 });
 
-it.each(['image.png','page.html','notes.md'])('sends file-only active input to the mailbox: %s', url => {
+it.each(['image.png','page.html','notes.md'])('queues and confirms a file-only steer: %s', url => {
  const references = [{type:'file',name:url,url}];
  const h=mount({sendReferences:references});
  h.stateRef.current.pendingSteers={};
- h.stateRef.current.chats[0].lastRunId='run-a';
- const sendEvent=jest.spyOn(window,'dispatchEvent');
  h.send();
+ const queued=h.stateRef.current.pendingSteers['chat-a'][0];
+ expect(queued).toMatchObject({message:'',references,status:'queued'});
+ h.ack({steerId:queued.steerId,message:'',references});
  expect(h.stateRef.current.pendingSteers['chat-a']).toBeUndefined();
- const messages=sendEvent.mock.calls.filter(([event])=>event.type==='agent:send-message');
- expect(messages).toHaveLength(1);
- expect((messages[0][0] as CustomEvent).detail).toMatchObject({message:'',references});
+ expect(h.stateRef.current.timelineNodes.get('steer_'+queued.steerId)).toMatchObject({text:'',attachments:[expect.objectContaining({url})]});
 });
 it('restores file-only queued steers when the run ends without starting a query', () => {
  const h=mount();
@@ -418,16 +414,16 @@ it('restores file-only entries even behind a text steer when the run ends', () =
  expect((messages[0][0] as CustomEvent).detail.message).toBe('message from A');
 });
 
-it('sends selection-only active input to the mailbox with its reference intact', () => {
+it('queues a selection-only steer and confirms it with its reference intact', () => {
   const h = mount({ sendReferences: selectionReferences });
   h.stateRef.current.pendingSteers = {};
-  h.stateRef.current.chats[0].lastRunId = 'run-a';
-  const sendEvent = jest.spyOn(window, 'dispatchEvent');
   h.send();
-  expect(h.stateRef.current.pendingSteers['chat-a']).toBeUndefined();
-  const messages = sendEvent.mock.calls.filter(([event]) => event.type === 'agent:send-message');
-  expect(messages).toHaveLength(1);
-  expect((messages[0][0] as CustomEvent).detail).toMatchObject({ message: '', references: selectionReferences });
+  const queued = h.stateRef.current.pendingSteers['chat-a'][0];
+  expect(queued).toMatchObject({ message: '', references: selectionReferences, status: 'queued' });
+  h.ack({ steerId: queued.steerId, message: '', references: selectionReferences });
+  expect(h.stateRef.current.timelineNodes.get('steer_' + queued.steerId)).toMatchObject({
+    text: '', attachments: [expect.objectContaining({ type: 'selection', meta: selectionReferences[0].meta })],
+  });
 });
 
 it('restores selection-only input when the run ends instead of starting an empty query', () => {
@@ -527,40 +523,40 @@ it('does not submit queued steer after the run ends or when the queue is empty',
   expect(mockSteer).not.toHaveBeenCalled();
 });
 
-it('Cmd+Enter sends text through the mailbox and preserves legacy waiting items', async () => {
- const spy = jest.spyOn(window, 'dispatchEvent');
+it('Cmd+Enter sends the draft directly and preserves existing waiting items', async () => {
+ mockSteer.mockResolvedValue({ data: { accepted: true } });
  const h = mount({inputValue: 'direct instruction'});
  await act(async () => { h.submitQueued(); h.submitQueued(); });
- expect(mockSteer).not.toHaveBeenCalled();
- expect(spy.mock.calls.filter(([event]) => event.type === 'agent:send-message')).toHaveLength(1);
- expect(h.stateRef.current.pendingSteers['chat-a']).toHaveLength(1);
+ expect(mockSteer).toHaveBeenCalledTimes(1);
+ expect(mockSteer).toHaveBeenCalledWith(expect.objectContaining({message: 'direct instruction', runId: 'run-a'}));
  expect(h.stateRef.current.pendingSteers['chat-a'][0]).toMatchObject({steerId: 'steer-a', status: 'queued'});
+ expect(h.stateRef.current.pendingSteers['chat-a'][1].status).toBe('sending');
  expect(h.setInputValue).toHaveBeenCalledWith('');
 });
-it('Cmd+Enter sends attachment-only input to the mailbox without a waiting item', async () => {
+it('Cmd+Enter sends attachment-only input without a waiting item', async () => {
+ mockSteer.mockResolvedValue({ data: { accepted: true } });
  const references = [{type: 'selection', text: 'quote'}];
  const h = mount({sendReferences: references});
  h.stateRef.current.pendingSteers = {};
- h.stateRef.current.chats[0].lastRunId = 'run-a';
- const sendEvent = jest.spyOn(window, 'dispatchEvent');
  await act(async () => h.submitQueued());
- expect(mockSteer).not.toHaveBeenCalled();
- const messages = sendEvent.mock.calls.filter(([event]) => event.type === 'agent:send-message');
- expect(messages).toHaveLength(1);
- expect((messages[0][0] as CustomEvent).detail).toMatchObject({message: '', references});
+ expect(mockSteer).toHaveBeenCalledWith(expect.objectContaining({message: '', references}));
 });
 it.each([{hasUploadingAttachments:true}, {hasFailedAttachments:true}])('does not submit draft with unavailable attachments: %j', async flags => {
  const h = mount({inputValue:'draft', ...flags});
  await act(async () => h.submitQueued());
  expect(mockSteer).not.toHaveBeenCalled();
 });
-it('Enter sends text directly to the mailbox without staging a steer', async () => {
- const spy = jest.spyOn(window, 'dispatchEvent');
- const h = mount({inputValue: 'two steps'});
- await act(async () => h.send());
+it('Enter only stages the draft before Cmd+Enter submits it', async () => {
+ mockSteer.mockResolvedValue({ data: { accepted: true } });
+ const overrides = {inputValue:'two steps'};
+ const h = mount(overrides);
+ h.stateRef.current.pendingSteers = {};
+ h.send();
  expect(mockSteer).not.toHaveBeenCalled();
- expect(spy.mock.calls.filter(([event]) => event.type === 'agent:send-message')).toHaveLength(1);
- expect(h.stateRef.current.pendingSteers['chat-a']).toHaveLength(1);
+ overrides.inputValue = '';
+ h.render();
+ await act(async () => h.submitQueued());
+ expect(mockSteer).toHaveBeenCalledWith(expect.objectContaining({message:'two steps'}));
 });
 
 it('dispatches an empty follow-up query while keeping empty steer blocked', () => {
@@ -650,16 +646,48 @@ it('waits for the surface gate before removing the queued message', () => {
   expect(spy.mock.calls.filter(([event]) => event.type === 'agent:send-message')).toHaveLength(1);
 });
 
-it('hands legacy queued messages to the mailbox once the completed run leaves the transition gate', async () => {
- const h = mount({}, true);
- h.setState({chatTransition: {...readyTransition, phase: 'restoring'}});
- h.event({type: 'run.complete', chatId: 'chat-a', runId: 'run-a', timestamp: Date.now()});
- h.render(false);
- expect(mockSendUserMessage).not.toHaveBeenCalled();
- h.setState({chatTransition: readyTransition});
- await act(async () => h.render(false));
- expect(mockSendUserMessage).toHaveBeenCalledTimes(1);
- expect(mockSendUserMessage).toHaveBeenCalledWith(expect.objectContaining({message: 'message from A', chatId: 'chat-a'}));
- expect(mockStartQuery).not.toHaveBeenCalled();
- expect(h.stateRef.current.pendingSteers['chat-a']).toBeUndefined();
+it('starts one real query per completed run while draining multiple queued messages', async () => {
+  const completions: Array<() => void> = [];
+  mockStartQuery.mockImplementation(input => {
+    const runId = 'follow-up-' + mockStartQuery.mock.calls.length;
+    return {
+      identity: Promise.resolve({ chatId: 'chat-a', runId, owner: { kind: 'agent', agentKey: 'agent-a' } }),
+      completion: new Promise(resolve => completions.push(() => {
+        input.onEvent({ type: 'run.complete', chatId: 'chat-a', runId, timestamp: Date.now() });
+        resolve({ reason: 'done', lastSeq: 1 });
+      })),
+      detach: jest.fn(),
+    };
+  });
+  const h = mount({}, true);
+  h.dispatch({ type: 'ENQUEUE_PENDING_STEER', chatId: 'chat-a', steer: {
+    steerId: 'second', runId: 'run-a', requestId: 'second', message: 'second message', status: 'queued', createdAt: 2,
+  } });
+  h.setState({ chatTransition: { ...readyTransition, phase: 'restoring' } });
+  h.event({ type: 'run.complete', chatId: 'chat-a', runId: 'run-a', timestamp: Date.now() });
+  h.render(false);
+  expect(mockStartQuery).not.toHaveBeenCalled();
+  h.setState({ chatTransition: readyTransition });
+  await act(async () => { h.render(false); });
+  expect(mockStartQuery).toHaveBeenCalledTimes(1);
+  expect(mockStartQuery).toHaveBeenLastCalledWith(expect.objectContaining({ message: 'message from A', chatId: 'chat-a' }));
+  h.render(true);
+  expect(h.stateRef.current.pendingSteers['chat-a']).toHaveLength(1);
+  await act(async () => { completions[0](); });
+  await act(async () => { h.render(false); });
+  expect(mockStartQuery).toHaveBeenCalledTimes(2);
+  expect(mockStartQuery).toHaveBeenLastCalledWith(expect.objectContaining({ message: 'second message', chatId: 'chat-a' }));
+  expect(h.stateRef.current.pendingSteers['chat-a']).toBeUndefined();
+  await act(async () => { completions[1](); });
+});
+
+it('sends Enter input in a running BOT Chat through the mailbox without staging a steer', () => {
+  const spy = jest.spyOn(window, 'dispatchEvent');
+  const h = mount({inputValue: 'two steps'});
+  h.setState({agents: [{key: 'agent-a', name: 'Bot', mode: 'BOT'} as any], pendingSteers: {}});
+  h.render();
+  h.send();
+  expect(mockSteer).not.toHaveBeenCalled();
+  expect(spy.mock.calls.filter(([event]) => event.type === 'agent:send-message')).toHaveLength(1);
+  expect(h.stateRef.current.pendingSteers['chat-a']).toBeUndefined();
 });

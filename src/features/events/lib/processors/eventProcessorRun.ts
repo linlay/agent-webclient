@@ -99,11 +99,12 @@ export function processRunEvent(
     const attachments = normalizeTimelineAttachments(event.references);
     if (!text.trim() && !hasTimelineAttachmentContent(attachments)) return commands;
     const counter = config.mode === "replay" ? state.nextCounter() : null;
-    const userMail = event.mailOrigin === "user";
-    const variant = userMail ? "default" : "steer";
-    const prefix = userMail ? "user" : "steer";
+    // A steer joins the running Run whichever entry sent it; JSONL replay
+    // carries the same steerId, so live and history share one node.
+    const variant = "steer";
+    const prefix = "steer";
     const suffix =
-      (userMail ? toText(event.requestId) : toText(event.steerId)) || toText(event.requestId) || String(counter ?? Date.now());
+      toText(event.steerId) || toText(event.requestId) || String(counter ?? Date.now());
     if (state.getTimelineNode(`${prefix}_${suffix}`)) return commands;
     if (event.chatId) commands.push({ cmd: "SET_CHAT_ID", chatId: event.chatId });
     if (event.runId) commands.push({ cmd: "SET_RUN_ID", runId: String(event.runId) });
