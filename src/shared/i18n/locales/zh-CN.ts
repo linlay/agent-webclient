@@ -3131,6 +3131,8 @@ export const zhCNMessages = {
   "markdown.htmlPreview.unavailable": "当前环境无法显示 HTML，可展开源码查看",
   "markdown.htmlPreview.offscreen": "进入视口后加载预览",
   "markdown.copy": "复制",
+  "markdown.previewDesktopFailed": "无法打开 HTML 预览，请重试。",
+  "markdown.previewTooLarge": "HTML 预览不能超过 4 MiB。",
   "markdown.preview": "预览",
   "markdown.previewHtml": "预览 HTML",
   "markdown.link.scopeRequired": "文件地址需以 @chat/ 或 @workspace/ 开头",

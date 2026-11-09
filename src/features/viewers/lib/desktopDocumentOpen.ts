@@ -27,6 +27,7 @@ export function resolveDesktopDocumentSource(target: ViewerTarget): WorkPanelDoc
 }
 
 export function desktopDocumentSourceKey(source: WorkPanelDocumentSource): string {
+  if (source.kind === "html-draft") return JSON.stringify([source.kind, source.agentKey, source.chatId, source.sha256]);
   return source.kind === "workspace-file"
     ? JSON.stringify([source.kind, source.agentKey, source.path])
     : JSON.stringify([source.kind, source.agentKey, source.chatId, source.resourceId, source.relativePath]);

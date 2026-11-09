@@ -147,3 +147,11 @@ Desktop 侧栏保留 Chat 行焦点和上下方向键导航，只向当前已提
 ## Desktop 主要对话入口
 
 Desktop 完整导航仍为默认视图。宿主从主要对话列表中没有 Platform primaryChat 的 Agent 进入新 Chat 时，在同一 newChat nonce 路由携带一次性 primaryNewChat=true。WebClient 只在匹配路由 Agent 的首次 query（包含上传占位 Chat）发送 primary:true；普通新建、历史续聊、Copilot 与旁聊不继承 Standalone 的主要导航偏好。该标记随 canonical Chat 路由收敛移除，不写入全局偏好，不在 Main/Broker 自动注入 query。Platform 继续拥有指针和活动 Run 冲突校验，拒绝后不自动重发。
+
+## HTML 代码块临时预览
+
+v6 宿主通过 `workpanel.document.open-draft-html` 显式声明支持临时 HTML 草稿。Markdown 的实际 owner Chat 与 Agent 从渲染上下文传入，不用当前前台 Chat 兜底；代码块的 UTF-8 正文、SHA-256 与确定性建议名通过 openDocument 提交，Main 再次校验。Desktop 原生 WorkPanel 负责隔离显示与 DOM 批注，不创建 Platform 资源、文件地址或保存入口。
+
+同正文重复打开复用标签，正文变化打开新标签。来源 WebClient 顶层文档刷新或销毁后，Desktop 撤销相应预览、批注与 pending claim，不恢复、不跨代接管。批注交接只追加所属 Composer 的草稿，不自动发送，要求智能体在回复中给出修订代码块，用户再次点击预览。
+
+Standalone、缺少 canonical Chat/Agent 和旧宿主未声明能力时沿用 blob 侧栏预览；明确不支持原生类型也可回落。正文超 4 MiB、授权、摘要与其他宿主失败停止并提示，不回落绕过校验。请求进行中禁重复提交，组件卸载或来源上下文变化后的结果不改新页面。

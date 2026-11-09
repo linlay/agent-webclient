@@ -2960,6 +2960,8 @@ export const enUSMessages = {
   "markdown.htmlPreview.unavailable": "HTML cannot be displayed in this environment. Expand the source to inspect it.",
   "markdown.htmlPreview.offscreen": "Preview loads when it enters the viewport",
   "markdown.copy": "Copy",
+  "markdown.previewDesktopFailed": "Unable to open the HTML preview. Please try again.",
+  "markdown.previewTooLarge": "HTML previews cannot exceed 4 MiB.",
   "markdown.preview": "Preview",
   "markdown.previewHtml": "HTML preview",
   "markdown.link.scopeRequired": "File addresses must start with @chat/ or @workspace/",

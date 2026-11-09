@@ -86,3 +86,16 @@ test("View panels explicitly require the host View capability", async () => {
   (bridge.getCapabilities as jest.Mock).mockResolvedValue({ ok: true, capabilities: ["workpanel.open", "workpanel.view"] });
   await expect(transport.openDescriptor(descriptor)).resolves.toMatchObject({ ok: true });
 });
+
+
+test("HTML draft capability gates the new source and preserves host rejections", async () => {
+  const bridge = { getCapabilities: jest.fn(async () => ({ ok: true, capabilities: ["workpanel.open"] })),
+    openDocument: jest.fn(async () => ({ ok: false, error: { code: "capability_denied", message: "denied" } })) } as unknown as AgentWebclientWorkPanelBridge;
+  const transport = new DesktopWorkPanelTransport(bridge);
+  const input = { source: { kind: "html-draft" as const, agentKey: "agent", chatId: "chat", name: "preview.html", sha256: "a".repeat(64), html: "<h1>x</h1>" } };
+  await expect(transport.openHtmlDraft(input)).resolves.toBeNull();
+  expect(bridge.openDocument).not.toHaveBeenCalled();
+  (bridge.getCapabilities as jest.Mock).mockResolvedValue({ ok: true, capabilities: ["workpanel.open", "workpanel.document.open-draft-html"] });
+  await expect(transport.openHtmlDraft(input)).resolves.toMatchObject({ ok: false, error: { code: "capability_denied" } });
+  expect(bridge.openDocument).toHaveBeenCalledWith({ version: AGENT_WEBCLIENT_BRIDGE_VERSION, ...input });
+});

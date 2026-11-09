@@ -43,6 +43,8 @@ import { copyText } from "@/shared/utils/copy";
 import { useAppMessage } from "@/shared/ui/useAppMessage";
 import { Image } from "antd";
 
+import { HtmlDraftPreviewContext } from "./HtmlDraftPreviewContext";
+
 export type { WorkspaceFileLink } from "@/shared/ui/markdownWorkspaceLinks";
 export type { MarkdownWebLink } from "@/shared/ui/markdownWebLinks";
 
@@ -506,12 +508,15 @@ export const MarkdownContent: React.FC<MarkdownContentProps> = ({
     [agentKey, chatId, onResourceFileLinkClick, onWebLinkClick, onWorkspaceFileLinkClick, teamChat],
   );
 
+  const previewContext = useMemo(() => ({ agentKey: agentKey || "", chatId }), [agentKey, chatId]);
   return (
-    <ConversationMarkdown
-      content={content}
-      isStreaming={isStreaming}
-      components={markdownComponents}
-      codeComponent={htmlPreview ? InlineHtmlMarkdownCode : MarkdownCode}
-    />
+    <HtmlDraftPreviewContext.Provider value={previewContext}>
+      <ConversationMarkdown
+        content={content}
+        isStreaming={isStreaming}
+        components={markdownComponents}
+        codeComponent={htmlPreview ? InlineHtmlMarkdownCode : MarkdownCode}
+      />
+    </HtmlDraftPreviewContext.Provider>
   );
 };

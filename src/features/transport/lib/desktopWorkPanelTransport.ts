@@ -15,6 +15,7 @@ import { t } from "@/shared/i18n";
 export interface WorkPanelTransport {
   openDescriptor(descriptor: WorkPanelItemDescriptor): Promise<WorkPanelBridgeResult>;
   supportsNativeDocument(): boolean;
+  openHtmlDraft?(input: Omit<WorkPanelOpenDocumentInput, "version">): Promise<WorkPanelOpenDocumentResult | null>;
   openNativeDocument(
     input: Omit<WorkPanelOpenDocumentInput, "version">,
   ): Promise<WorkPanelOpenDocumentResult | null>;
@@ -35,6 +36,14 @@ export class DesktopWorkPanelTransport implements WorkPanelTransport {
 
   supportsNativeDocument(): boolean {
     return supportsDesktopNativeDocument(this.bridge);
+  }
+
+  async openHtmlDraft(input: Omit<WorkPanelOpenDocumentInput, "version">): Promise<WorkPanelOpenDocumentResult | null> {
+    if (!this.supportsNativeDocument()) return null;
+    const result = await this.bridge.getCapabilities();
+    if (!result.ok) return result;
+    if (!result.capabilities.includes("workpanel.document.open-draft-html")) return null;
+    return this.bridge.openDocument({ version: AGENT_WEBCLIENT_BRIDGE_VERSION, ...input });
   }
 
   async openNativeDocument(

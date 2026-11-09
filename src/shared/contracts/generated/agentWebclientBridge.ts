@@ -1,6 +1,6 @@
 // Generated from src/shared/contracts/agent-webclient-bridge.ts.
 // Do not edit this mirror directly.
-// sha256:564320a371e1ede410cec12f55ba7f883d97aa65ddd324c4de29e445902226ae
+// sha256:279ab00b4b959f50815b71a0b0f8df245a1af71fd7ce385058f4095648c18ad9
 
 /**
  * Canonical Desktop <-> Agent WebClient bridge contract.
@@ -330,9 +330,9 @@ export type AgentPlatformRequestFrame = {
   frame: "request";
   type: string;
   id: string;
-  /** Platform event detail level of /api/query, /api/attach and /api/chat.
-   * Omitted follows the Agent's default; Desktop sets it only for its own
-   * main-process Runs that read tool events (the image studio asks for detailed). */
+  /** History-read level of /api/chat; omitted reads at the Agent's default.
+   * A Run is delivered at its Agent's configured level, so Platform rejects
+   * detail on every other frame. */
   detail?: "simple" | "detailed";
   payload?: unknown;
 };
@@ -581,7 +581,16 @@ export type WorkPanelOpenResourceResult =
     }
   | AgentWebclientBridgeFailure;
 
+export const AGENT_WEBCLIENT_HTML_DRAFT_MAX_BYTES = 4 * 1024 * 1024;
+export const AGENT_WEBCLIENT_HTML_DRAFT_MAX_NAME_CHARS = 96;
+
+export type WorkPanelHtmlDraftSource = {
+  kind: "html-draft"; agentKey: string; chatId: string;
+  name: string; sha256: string; html: string;
+};
+
 export type WorkPanelDocumentSource =
+  | WorkPanelHtmlDraftSource
   | { kind: "workspace-file"; agentKey: string; path: string }
   | {
       kind: "artifact" | "reference";
@@ -643,6 +652,7 @@ export type WorkPanelBridgeResult =
 export type WorkPanelCapability =
   | "workpanel.view"
   | "workpanel.open"
+  | "workpanel.document.open-draft-html"
   | "workpanel.document.open-local"
   | "workpanel.document.open-local-direct"
   | "workpanel.activate"

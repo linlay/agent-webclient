@@ -53,3 +53,5 @@ File descriptor 标题固定使用“显式 title > path basename > `file`”。
 Desktop bridge v6 的 `openDocument` 只有在明确返回 `unsupported_native_type` 时才允许回退 WebClient。授权、缺失、路径、身份和 revision 错误全部 fail closed。`DESKTOP_APP=true` 且 canonical contract 不兼容时阻断业务 Surface，不降级 Standalone。
 
 上传 Reference 的语义相对路径允许 Chat 根目录的单个文件名，也兼容 `references/` 下的资源；来源身份不依赖必须存在某个目录前缀。非 Reference 不接受根目录路径，所有来源仍须经过 owner Chat、路径规范化和 realpath 边界校验。根目录 HTML Reference 只可读取自身，不因此获得其他 Chat 文件或相邻资源的读取权限。
+
+HTML 代码块的临时草稿是 Desktop 新增的独立来源，使用同一原生 HTML Surface 和单独能力探测；不进入本文正式文档的读取、外部打开与 document.commit 保存流程。没有能力时沿用 blob 侧栏，有能力后的身份、内容和授权失败仍 fail closed。临时预览刷新即清理，不恢复；交互与交付见宿主桥接专题。

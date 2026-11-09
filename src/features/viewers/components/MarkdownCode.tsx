@@ -1,5 +1,7 @@
 import React, {
   useCallback,
+  useContext,
+  useState,
   useEffect,
   useMemo,
   useRef,
@@ -21,6 +23,10 @@ import {
   buildResourceViewerTarget,
   getViewerTargetKey,
 } from "@/features/viewers/lib/viewerTarget";
+import { useOptionalWorkPanelTransport } from "@/features/transport/components/RealtimeTransportProvider";
+import { buildHtmlDraftPreview } from "../lib/htmlDraftPreview";
+import { HtmlDraftPreviewContext } from "./HtmlDraftPreviewContext";
+
 export const MarkdownCode: React.FC<ConversationMarkdownCodeProps> = ({
   lang,
   block,
@@ -37,6 +43,13 @@ export const MarkdownCode: React.FC<ConversationMarkdownCodeProps> = ({
     activeViewerKey,
   } = useAppState();
   const previewUrl = useRef("");
+  const transport = useOptionalWorkPanelTransport();
+  const previewContext = useContext(HtmlDraftPreviewContext);
+  const previewContextRef = useRef(previewContext);
+  previewContextRef.current = previewContext;
+  const previewBusyRef = useRef(false);
+  const mountedRef = useRef(true);
+  const [previewPending, setPreviewPending] = useState(false);
   const language = useMemo(() => getMarkdownCodeLanguage(lang), [lang]);
   const text = useMemo(() => textFromReactNode(children), [children]);
   const contextTargetId = React.useId();
@@ -59,8 +72,12 @@ export const MarkdownCode: React.FC<ConversationMarkdownCodeProps> = ({
   );
   const contextTargetRef = useDesktopContextMenuTarget<HTMLDivElement>(contextTarget);
 
-  useEffect(() => () => {
-    if (previewUrl.current) URL.revokeObjectURL(previewUrl.current);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      if (previewUrl.current) URL.revokeObjectURL(previewUrl.current);
+    };
   }, []);
 
   const previewAction = useMemo(() => {
@@ -71,31 +88,60 @@ export const MarkdownCode: React.FC<ConversationMarkdownCodeProps> = ({
           variant="ghost"
           className="ui-icon-hover-24"
           iconOnly
-          onClick={(event) => {
+          loading={previewPending}
+          onClick={async (event) => {
             event.stopPropagation();
-            const blob = new Blob([text], { type: "text/html;charset=utf-8" });
-            if (previewUrl.current) URL.revokeObjectURL(previewUrl.current);
-            previewUrl.current = URL.createObjectURL(blob);
-            const viewerTarget = buildResourceViewerTarget({
-              name: t("markdown.previewHtml"),
-              url: previewUrl.current,
-              sizeBytes: blob.size,
-              mimeType: "text/html;charset=utf-8",
-            });
-            if (!viewerTarget) return;
-            const viewerKey = getViewerTargetKey(viewerTarget);
-            const isActive =
-              rightSidebarOpen
-              && rightSidebarOpenTab === "viewer"
-              && activeViewerKey === viewerKey;
-            if (isActive) {
-              dispatch({ type: "CLOSE_RIGHT_SIDEBAR" });
-            } else {
-              dispatch({
-                type: "OPEN_RIGHT_SIDEBAR",
-                tab: "viewer",
-                viewerTarget,
+            if (previewBusyRef.current) return;
+            previewBusyRef.current = true;
+            setPreviewPending(true);
+            const context = previewContext;
+            try {
+              if (transport?.openHtmlDraft && context?.chatId && context.agentKey) {
+                const draft = await buildHtmlDraftPreview(text, context);
+                if (!mountedRef.current || context !== previewContextRef.current) return;
+                if (!draft.ok && draft.reason === "too-large") {
+                  message.error(t("markdown.previewTooLarge"));
+                  return;
+                }
+                if (draft.ok) {
+                  const result = await transport.openHtmlDraft({ source: draft.source, title: t("markdown.previewHtml") });
+                  if (!mountedRef.current || context !== previewContextRef.current) return;
+                  if (result?.ok) return;
+                  if (result && result.error.code !== "unsupported_native_type") {
+                    message.error(t("markdown.previewDesktopFailed")); return;
+                  }
+                }
+              }
+
+              const blob = new Blob([text], { type: "text/html;charset=utf-8" });
+              if (previewUrl.current) URL.revokeObjectURL(previewUrl.current);
+              previewUrl.current = URL.createObjectURL(blob);
+              const viewerTarget = buildResourceViewerTarget({
+                name: t("markdown.previewHtml"),
+                url: previewUrl.current,
+                sizeBytes: blob.size,
+                mimeType: "text/html;charset=utf-8",
               });
+              if (!viewerTarget) return;
+              const viewerKey = getViewerTargetKey(viewerTarget);
+              const isActive =
+                rightSidebarOpen
+                && rightSidebarOpenTab === "viewer"
+                && activeViewerKey === viewerKey;
+              if (isActive) {
+                dispatch({ type: "CLOSE_RIGHT_SIDEBAR" });
+              } else {
+                dispatch({
+                  type: "OPEN_RIGHT_SIDEBAR",
+                  tab: "viewer",
+                  viewerTarget,
+                });
+              }
+            } catch {
+              if (mountedRef.current) message.error(t("markdown.previewDesktopFailed"));
+            } finally {
+              previewBusyRef.current = false;
+              if (mountedRef.current) setPreviewPending(false);
             }
           }}
         >
@@ -112,6 +158,10 @@ export const MarkdownCode: React.FC<ConversationMarkdownCodeProps> = ({
     rightSidebarOpenTab,
     t,
     text,
+    transport,
+    previewContext,
+    previewPending,
+    message,
   ]);
 
   const code = (

@@ -89,3 +89,7 @@ Standalone 右侧栏独立预览标签不显示内容工具栏，iframe 直接�
 - `../src/features/viewers/hooks/useDesktopHtmlPreviewReview.ts`
 - `../src/features/viewers/components/MarkdownContent.tsx`
 - `../src/shared/ui/useAuthenticatedResourceUrl.ts`
+
+## HTML 代码块草稿预览
+
+聊天 HTML 代码块在支持草稿能力的 Desktop 中打开原生 WorkPanel HTML 标签，不上传为 Reference 或 Artifact。源 Chat、Agent 与正文摘要绑定临时内容；同内容复用标签，新内容创建新标签。草稿没有文件路径和保存能力，刷新来源聊天文档或关闭标签后清理，不恢复。批注交接产生可编辑 Composer 草稿，智能体回复修订版代码后由用户重新预览，旧预览不会自动变化。Standalone 和旧宿主继续现有 blob 侧栏预览。
