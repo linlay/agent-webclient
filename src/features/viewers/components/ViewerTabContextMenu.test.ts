@@ -21,7 +21,7 @@ const target: ViewerTarget = {
   downloadUrl: "artifacts/run-1/manual.docx", contentKind: "office",
 };
 const capabilities = { token: "token", platform: "darwin" as const, maxBytes: 1024 };
-const callbacks = { onDownload: jest.fn(), onRefresh: jest.fn(), onFullscreen: jest.fn(), onClose: jest.fn(), onOpenChange: jest.fn() };
+const callbacks = { onDownload: jest.fn(), onRefresh: jest.fn(), onFullscreen: jest.fn(), onClose: jest.fn(), onOpenChange: jest.fn(), onToggleEditMode: jest.fn() };
 function dropdown() { return jest.mocked(Dropdown).mock.calls.at(-1)![0]; }
 function items() {
   return dropdown().menu!.items as Array<{
@@ -89,6 +89,26 @@ describe("standalone viewer tab menu", () => {
     ["refresh", "fullscreen", "close"].forEach((key) => item(key).onClick());
     [callbacks.onRefresh, callbacks.onFullscreen, callbacks.onClose].forEach((callback) => expect(callback).toHaveBeenCalledTimes(1));
     expect(callbacks.onDownload).not.toHaveBeenCalled();
+  });
+
+  it("offers a per-tab text edit mode toggle", async () => {
+    const markdown: ViewerTarget = {
+      type: "resource", name: "novel.md", url: "artifacts/run-1/novel.md",
+      downloadUrl: "artifacts/run-1/novel.md", contentKind: "text",
+      documentKind: "document-markdown",
+    };
+    await act(async () => root.render(React.createElement(
+      I18nProvider, { locale: "zh-CN", persistLocale: false },
+      React.createElement(ViewerTabContextMenu, {
+        ...callbacks, target: markdown, chatId: "chat-1", teamChat: true,
+        editModeAvailable: true, editModeActive: false,
+        children: React.createElement("span", null, markdown.name),
+      }),
+    )));
+    await openMenu();
+    expect(item("toggle-edit-mode").label).toBe("进入编辑模式");
+    await act(async () => item("toggle-edit-mode").onClick());
+    expect(callbacks.onToggleEditMode).toHaveBeenCalledTimes(1);
   });
 
   it.each(["win32", "linux"] as const)("uses the service platform %s for the label", async (platform) => {

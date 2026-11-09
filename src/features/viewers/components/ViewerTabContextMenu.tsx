@@ -15,8 +15,11 @@ export const ViewerTabContextMenu: React.FC<{
   onRefresh: () => void;
   onFullscreen: () => void;
   onClose: () => void;
+  editModeAvailable?: boolean;
+  editModeActive?: boolean;
+  onToggleEditMode?: () => void;
   onOpenChange?: (open: boolean) => void;
-}> = ({ target, chatId, teamChat, children, onDownload, onRefresh, onFullscreen, onClose, onOpenChange }) => {
+}> = ({ target, chatId, teamChat, children, onDownload, onRefresh, onFullscreen, onClose, editModeAvailable = false, editModeActive = false, onToggleEditMode, onOpenChange }) => {
   const { t } = useI18n();
   const [open, setOpen] = React.useState(false);
   const standalone = !isAppMode();
@@ -26,6 +29,12 @@ export const ViewerTabContextMenu: React.FC<{
     onOpenChange?.(nextOpen);
   };
   const items: MenuProps["items"] = [
+    ...(editModeAvailable ? [{
+      key: "toggle-edit-mode",
+      label: t(editModeActive ? "contentViewer.editMode.exit" : "contentViewer.editMode.enter"),
+      icon: <MaterialIcon name={editModeActive ? "lock" : "edit"} className="tw:opacity-[0.5]" />,
+      onClick: onToggleEditMode,
+    }] : []),
     standalone ? {
       key: "refresh",
       label: t("rightSidebar.web.contextMenu.refresh"),

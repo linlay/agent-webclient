@@ -45,9 +45,19 @@ import { downloadViewerTarget } from "@/features/viewers/lib/viewerRuntime";
 import { formatAttachmentSize } from "@/features/artifacts/lib/attachmentUtils";
 import {
   getViewerTargetKey,
+  isKnownTextDocumentName,
   type ViewerTarget,
 } from "@/features/viewers/lib/viewerTarget";
 const presentationClasses = bindCssModuleClasses({ ...sharedPresentation });
+
+function isTextEditableViewerTarget(target: ViewerTarget): boolean {
+  if (target.documentKind) {
+    return target.documentKind === "document-markdown" ||
+      target.documentKind === "document-text" ||
+      target.documentKind === "document-code";
+  }
+  return isKnownTextDocumentName(target.name);
+}
 
 
 type RightSidebarTabsKey = string;
@@ -220,7 +230,36 @@ export const RightSidebar: React.FC = () => {
     Record<string, number>
   >({});
   const [tabRefreshRequests, setTabRefreshRequests] = React.useState<Record<string, number>>({});
+  const [tabTextEditModes, setTabTextEditModes] = React.useState<Record<string, boolean>>({});
+  const [tabDocumentStates, setTabDocumentStates] = React.useState<
+    Record<string, { dirty: boolean; annotationCount: number }>
+  >({});
   const [viewerContextMenuKey, setViewerContextMenuKey] = React.useState<string | null>(null);
+  React.useEffect(() => {
+    const openKeys = new Set(viewerTabs.map((target) => getViewerTargetKey(target)));
+    setTabTextEditModes((current) => {
+      let changed = false;
+      const next = { ...current };
+      for (const key of Object.keys(next)) {
+        if (!openKeys.has(key)) {
+          delete next[key];
+          changed = true;
+        }
+      }
+      return changed ? next : current;
+    });
+    setTabDocumentStates((current) => {
+      let changed = false;
+      const next = { ...current };
+      for (const key of Object.keys(next)) {
+        if (!openKeys.has(key)) {
+          delete next[key];
+          changed = true;
+        }
+      }
+      return changed ? next : current;
+    });
+  }, [viewerTabs]);
   const documentPreviewRefs = React.useRef(new Map<string, React.RefObject<OnlineDocumentPreviewTabActions>>());
   const getDocumentPreviewRef = React.useCallback((key: string) => {
     let ref = documentPreviewRefs.current.get(key);
@@ -406,6 +445,25 @@ export const RightSidebar: React.FC = () => {
     [sidebarMaxWidth, sidebarWidth, updateSidebarWidth],
   );
 
+  const tabTextEditModesRef = React.useRef(tabTextEditModes);
+  tabTextEditModesRef.current = tabTextEditModes;
+  const tabDocumentStatesRef = React.useRef(tabDocumentStates);
+  tabDocumentStatesRef.current = tabDocumentStates;
+  const toggleViewerEditMode = React.useCallback((viewerKey: string) => {
+    const active = tabTextEditModesRef.current[viewerKey] === true;
+    if (!active) {
+      setTabTextEditModes((current) => ({ ...current, [viewerKey]: true }));
+      return;
+    }
+    const documentState = tabDocumentStatesRef.current[viewerKey];
+    const hasDraft = documentState?.dirty ||
+      (documentState?.annotationCount ?? 0) > 0;
+    if (hasDraft && !window.confirm(t("contentViewer.editMode.discardConfirm"))) {
+      return;
+    }
+    setTabTextEditModes((current) => ({ ...current, [viewerKey]: false }));
+  }, [t]);
+
   const tabItems = React.useMemo<TabsProps["items"]>(() => {
     const items: NonNullable<TabsProps["items"]> = [
       {
@@ -481,6 +539,7 @@ export const RightSidebar: React.FC = () => {
 
     for (const target of viewerTabs) {
       const viewerKey = getViewerTargetKey(target);
+      const textEditable = isTextEditableViewerTarget(target);
       items.push({
         key: `viewer:${viewerKey}`,
         label: (
@@ -505,6 +564,23 @@ export const RightSidebar: React.FC = () => {
             onOpenOnlinePreview={(preview) => dispatch({ type: "OPEN_DOCUMENT_PREVIEW", preview })}
             onOpenTarget={openTarget}
             enableDesktopLocalResourceActions
+            textEditMode={textEditable ? tabTextEditModes[viewerKey] ?? false : undefined}
+            onDocumentStateChange={textEditable ? (documentState) => {
+              setTabDocumentStates((current) => {
+                const previous = current[viewerKey];
+                if (
+                  previous?.dirty === documentState.dirty &&
+                  previous.annotationCount === documentState.annotationCount
+                ) return current;
+                return {
+                  ...current,
+                  [viewerKey]: {
+                    dirty: documentState.dirty,
+                    annotationCount: documentState.annotationCount,
+                  },
+                };
+              });
+            } : undefined}
             refreshRequest={tabRefreshRequests[`viewer:${viewerKey}`] ?? 0}
             fullscreenRequest={
               tabFullscreenRequests[`viewer:${viewerKey}`] ?? 0
@@ -591,6 +667,9 @@ export const RightSidebar: React.FC = () => {
     state.webPreviewRefreshRevisionByUrl,
     tabFullscreenRequests,
     tabRefreshRequests,
+    tabTextEditModes,
+    tabDocumentStates,
+    toggleViewerEditMode,
     viewerContextMenuKey,
   ]);
 
@@ -711,6 +790,9 @@ export const RightSidebar: React.FC = () => {
                         }));
                       }}
                       onClose={() => handleCloseTab(tabKey)}
+                      editModeAvailable={isTextEditableViewerTarget(target)}
+                      editModeActive={tabTextEditModes[viewerKey] === true}
+                      onToggleEditMode={() => toggleViewerEditMode(viewerKey)}
                     >
                       {node}
                     </ViewerTabContextMenu>

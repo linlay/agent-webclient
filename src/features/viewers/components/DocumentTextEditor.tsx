@@ -169,6 +169,8 @@ export const DocumentTextEditor: React.FC<{
   reloadToken?: number;
   closeGuardKey?: string;
   onAnnotationCountChange?: (count: number) => void;
+  /** Read-only viewing keeps the document but hides editing and selection annotations. */
+  editing?: boolean;
   onChange: (value: string) => void;
   onReload: () => void;
   onSave: (mode: DocumentSaveMode) => void;
@@ -180,6 +182,7 @@ export const DocumentTextEditor: React.FC<{
   teamChat,
   markdownLinks,
   disabled = false,
+  editing = true,
   saving = false,
   dirty = false,
   canSave = false,
@@ -236,6 +239,15 @@ export const DocumentTextEditor: React.FC<{
       invalid: annotation.revision !== revision,
     })));
   }, [revision]);
+
+  React.useEffect(() => {
+    if (editing) return;
+    // Leaving edit mode discards selection annotations and returns previewable
+    // documents to their default preview; the read-only viewer has no toolbar.
+    setAnnotations([]);
+    setSaveDialogOpen(false);
+    setMode(defaultDocumentViewMode(previewable));
+  }, [editing, previewable]);
 
   const textAnnotationCount = annotations.filter((annotation) => !annotation.invalid).length;
   React.useEffect(() => {
@@ -518,7 +530,7 @@ export const DocumentTextEditor: React.FC<{
         value={value}
         language={documentEditorLanguage(kind, name)}
         path={name}
-        disabled={disabled || saving}
+        disabled={disabled || saving || !editing}
         onChange={(nextValue) => {
           setAnnotations((current) => current.map((annotation) =>
             annotation.origin === "preview" && !annotation.invalid
@@ -547,7 +559,7 @@ export const DocumentTextEditor: React.FC<{
 
   return (
     <div className="tw:flex tw:min-h-[420px] tw:flex-1 tw:flex-col tw:overflow-hidden">
-      {htmlReview.annotating ? (
+      {editing && htmlReview.annotating ? (
         <HtmlElementReviewToolbar
           listOpen={htmlReview.listOpen}
           count={htmlReview.count}
@@ -556,7 +568,7 @@ export const DocumentTextEditor: React.FC<{
           onRefresh={onReload}
           listContent={htmlReviewList}
         />
-      ) : (
+      ) : editing ? (
         <div className="tw:flex tw:items-center tw:justify-between tw:border-b tw:border-line-soft tw:px-2 tw:py-1.5">
           <Space size={4}>
             {previewable ? documentViewModes(markdown).map((item) => (
@@ -569,7 +581,7 @@ export const DocumentTextEditor: React.FC<{
                 {t(`contentViewer.markdown.${item}`)}
               </Button>
             )) : null}
-            {isHtml && mode === "preview" ? (
+            {editing && isHtml && mode === "preview" ? (
               <Button
                 ref={annotateButtonRef}
                 size="small"
@@ -586,7 +598,7 @@ export const DocumentTextEditor: React.FC<{
                   : t("contentViewer.htmlReview.annotate")}
               </Button>
             ) : null}
-            {(!isHtml && (!markdown || mode === "preview")) || (isHtml && mode === "source") ? (
+            {editing && ((!isHtml && (!markdown || mode === "preview")) || (isHtml && mode === "source")) ? (
               <Button
                 size="small"
                 disabled={markdown && mode === "preview" ? !previewSelection : !selection}
@@ -597,7 +609,7 @@ export const DocumentTextEditor: React.FC<{
             ) : null}
           </Space>
           <Space size={6}>
-            {canSave ? (
+            {canSave && editing ? (
               <Button
                 size="small"
                 type="primary"
@@ -629,7 +641,7 @@ export const DocumentTextEditor: React.FC<{
             </Dropdown>
           </Space>
         </div>
-      )}
+      ) : null}
       {mode === "source" ? editor : null}
       {mode === "preview" ? (
         isHtml ? (
@@ -686,7 +698,7 @@ export const DocumentTextEditor: React.FC<{
           </div>
         </div>
       ) : null}
-      {annotations.length && (!isHtml || mode !== "preview") ? (
+      {editing && annotations.length && (!isHtml || mode !== "preview") ? (
         <div className="tw:max-h-52 tw:overflow-auto tw:border-t tw:border-line-soft tw:p-2">
           {annotations.map((annotation, index) => (
             <div key={annotation.id} className="tw:mb-2 tw:grid tw:grid-cols-[auto_1fr_auto] tw:items-center tw:gap-2">
