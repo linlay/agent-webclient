@@ -28,14 +28,12 @@ import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
 import { TimelineTextSearchControl } from "@/features/timeline/components/TimelineTextSearchControl";
 import { Divider } from "antd";
-import { useSettingsOverlayState } from "@/features/settings/components/SettingsOverlayProvider";
-import { useMemoryOverlayState } from "@/features/memory/components/MemoryOverlayProvider";
-import { useCommandOverlayOpen } from "@/features/command-center/components/CommandOverlayProvider";
 import { UsageContextControl } from "@/features/usage/components/UsageContextControl";
-import { useGlobalSearchOpen } from "@/features/search/components/GlobalSearchOverlayProvider";
 import { useTerminalAgentStatuses } from "@/features/terminal/hooks/useActiveTerminalAgents";
 import { resolveMainChatRuntime } from "@/features/runs/lib/runRuntimeState";
 import { useOpenTarget } from "@/features/surfaces/hooks/useOpenTarget";
+import { formatVoiceShortcut } from "@/features/voice/lib/voiceShortcut";
+import { canStartVoiceChat } from "@/features/voice/lib/voiceState";
 import { isDesktopAppMode } from "@/shared/utils/routing";
 const presentationClasses = bindCssModuleClasses({ ...appPresentation, ...sharedPresentation });
 
@@ -169,10 +167,6 @@ export const TopNav: React.FC<{ surface?: "root" | "agent" }> = ({
   const appContext = useOptionalAppContext();
   const { t } = useI18n();
   const openTarget = useOpenTarget();
-  const { isAnyOverlayOpen } = useSettingsOverlayState();
-  const { isMemoryOpen } = useMemoryOverlayState();
-  const isCommandOverlayOpen = useCommandOverlayOpen();
-  const isGlobalSearchOpen = useGlobalSearchOpen();
   const ui = selectUiState(state);
   const conversation = selectConversationState(state);
   const mainChatRuntime = appContext
@@ -203,26 +197,15 @@ export const TopNav: React.FC<{ surface?: "root" | "agent" }> = ({
     : undefined;
   const isCurrentWorkerTerminalActive = Boolean(currentWorkerTerminalStatus);
   const isCurrentWorkerTerminalBusy = currentWorkerTerminalStatus === "busy";
-  const isMacPlatform = React.useMemo(
-    () =>
-      typeof navigator !== "undefined" &&
-      /Mac|iPhone|iPad|iPod/.test(navigator.platform),
-    [],
-  );
-  const voiceOpenShortcutLabel = isMacPlatform ? "⌘⇧Space" : "Ctrl+Shift+Space";
-  const voiceOpenAriaShortcut = isMacPlatform
-    ? "Meta+Shift+Space"
-    : "Control+Shift+Space";
+  const voiceOpenShortcutLabel = formatVoiceShortcut(state.voiceShortcut);
+  const voiceOpenAriaShortcut = formatVoiceShortcut(state.voiceShortcut, true);
   const voiceToggleDisabled =
     !voiceModeAvailable ||
-    (state.inputMode !== "voice" && (isMainChatRunning || Boolean(state.activeFrontendTool)));
+    (state.inputMode !== "voice" && !canStartVoiceChat(state.voiceChat, isMainChatRunning, Boolean(state.activeFrontendTool || state.activeAwaiting)));
   const handleToggleVoiceMode = () => {
     if (voiceToggleDisabled) return;
     if (state.inputMode !== "voice") window.dispatchEvent(new CustomEvent("agent:voice-start"));
-    dispatch({
-      type: "SET_INPUT_MODE",
-      mode: state.inputMode === "voice" ? "text" : "voice",
-    });
+    else dispatch({ type: "SET_INPUT_MODE", mode: "text" });
   };
 
   const handleToggleAudioMuted = () => {
@@ -231,68 +214,6 @@ export const TopNav: React.FC<{ surface?: "root" | "agent" }> = ({
       muted: !state.audioMuted,
     });
   };
-
-  const handleStartVoiceMode = React.useCallback(() => {
-    if (voiceToggleDisabled || conversation.inputMode === "voice") return;
-    window.dispatchEvent(new CustomEvent("agent:voice-start"));
-    dispatch({
-      type: "SET_INPUT_MODE",
-      mode: "voice",
-    });
-  }, [conversation.inputMode, dispatch, voiceToggleDisabled]);
-
-  const handleHangupVoiceMode = React.useCallback(() => {
-    if (conversation.inputMode !== "voice") return;
-    dispatch({
-      type: "SET_INPUT_MODE",
-      mode: "text",
-    });
-  }, [conversation.inputMode, dispatch]);
-
-  React.useEffect(() => {
-    if (isAnyOverlayOpen || isMemoryOpen || isCommandOverlayOpen || isGlobalSearchOpen) return;
-
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.defaultPrevented || event.repeat) return;
-      const target = event.target;
-      if (
-        target instanceof HTMLElement &&
-        target.closest(".modal, .ant-modal")
-      ) {
-        return;
-      }
-
-      const isVoiceOpenShortcut =
-        event.code === "Space" &&
-        event.shiftKey &&
-        !event.altKey &&
-        (isMacPlatform
-          ? event.metaKey && !event.ctrlKey
-          : event.ctrlKey && !event.metaKey);
-
-      if (isVoiceOpenShortcut) {
-        event.preventDefault();
-        handleStartVoiceMode();
-        return;
-      }
-
-      if (event.key !== "Escape") return;
-      if (event.altKey || event.ctrlKey || event.metaKey) return;
-      event.preventDefault();
-      handleHangupVoiceMode();
-    };
-
-    document.addEventListener("keydown", onKeyDown);
-    return () => document.removeEventListener("keydown", onKeyDown);
-  }, [
-    handleStartVoiceMode,
-    handleHangupVoiceMode,
-    isAnyOverlayOpen,
-    isMemoryOpen,
-    isCommandOverlayOpen,
-    isGlobalSearchOpen,
-    isMacPlatform,
-  ]);
 
   const toggleRightSidebar = (tab: RightSidebarTabKey) => {
     if (surface !== "root") {
@@ -416,15 +337,15 @@ export const TopNav: React.FC<{ surface?: "root" | "agent" }> = ({
                 }
                 aria-keyshortcuts={
                   conversation.inputMode === "voice"
-                    ? "Escape"
-                    : voiceOpenAriaShortcut
+                    ? undefined
+                    : voiceOpenAriaShortcut || undefined
                 }
                 title={
                   conversation.inputMode === "voice"
-                    ? t("topNav.voice.hangupWithShortcut")
-                    : t("topNav.voice.openWithShortcut", {
+                    ? t("topNav.voice.hangup")
+                    : voiceOpenShortcutLabel ? t("topNav.voice.openWithShortcut", {
                         shortcut: voiceOpenShortcutLabel,
-                      })
+                      }) : t("topNav.voice.open")
                 }
                 onClick={handleToggleVoiceMode}
               >

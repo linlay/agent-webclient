@@ -1,5 +1,6 @@
 import { setModelRetryTimeline, setRunActivityTimeline } from "@/features/timeline/lib/timelineState";
 import type { ActiveAwaiting, ToolState } from "@/features/tools/lib/toolsState";
+import { applyQuestionDraft } from "@/features/tools/lib/questionDraft";
 import type { AgentEvent } from "@/shared/contracts/agentEvents";
 import type { FileChangeSummary } from "@/features/overview/lib/overviewState";
 import type { PublishedArtifact } from "@/features/artifacts/lib/artifactsState";
@@ -128,7 +129,7 @@ export function reconcileReplayAwaiting(
       )) || null
     : null;
 
-  rs.activeAwaiting = matched ? cloneActiveAwaiting(matched) : null;
+  rs.activeAwaiting = matched ? applyQuestionDraft(cloneActiveAwaiting(matched), record?.questionDraft) : null;
   rs.pendingAwaitings = [];
   if (matched) {
     return { matched: true, diagnostic: '' };

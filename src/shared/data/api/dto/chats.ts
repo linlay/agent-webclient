@@ -1,3 +1,9 @@
+import type { QuestionDraft } from "@/shared/contracts/agentEvents";
+
+export interface ChatAwaitingProjection extends Record<string, unknown> {
+  questionDraft?: QuestionDraft;
+}
+
 export interface GetChatsOptions {
  primary?: boolean;
  lastRunId?: string;
@@ -62,7 +68,18 @@ export interface ChatUsageTiming {
   generationDurationMs?: number;
 }
 
+export interface ChatVoiceUsage {
+  tasks: number;
+  unknownTasks: number;
+  pendingTasks: number;
+  unpricedTasks: number;
+  characters: number;
+  billedAudioSeconds: number;
+  estimatedCost?: ChatUsageEstimatedCost;
+}
+
 export interface ChatUsageData {
+  voice?: ChatVoiceUsage;
   modelKey?: string;
   promptTokens?: number;
   completionTokens?: number;
@@ -109,7 +126,7 @@ export interface ChatSummaryResponse {
   };
   activeRun?: ActiveRunInfo | null;
   hasActiveRun?: boolean;
-  awaiting?: Record<string, unknown> | null;
+  awaiting?: ChatAwaitingProjection | null;
   hasPendingAwaiting?: boolean;
   usage?: ChatUsageData;
 }
@@ -119,7 +136,7 @@ export interface ChatDetailResponse extends ChatSummaryResponse {
   firstAgentKey?: string;
   firstAgentName?: string;
   activeRun?: ActiveRunInfo | null;
-  awaiting?: Record<string, unknown> | null;
+  awaiting?: ChatAwaitingProjection | null;
   events?: unknown[];
   runs?: unknown[];
   plan?: unknown;

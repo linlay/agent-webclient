@@ -438,6 +438,8 @@ export const UsageContextControl: React.FC<{
     resolveChatEstimatedCost(usageSnapshot),
     locale,
   );
+  const voiceUsage = usageSnapshot?.usage?.chat?.voice;
+  const voiceUsageIncomplete = Boolean(voiceUsage && (voiceUsage.unknownTasks || voiceUsage.pendingTasks || voiceUsage.unpricedTasks));
   const reasoningEffort = usageSnapshot?.contextWindow?.reasoningEffort || "";
   const reasoningEffortLabel = reasoningEffort
     ? tOrFallback(
@@ -562,6 +564,11 @@ export const UsageContextControl: React.FC<{
               >
                 <span>{t("topNav.usage.totalCost")}:</span>
                 <strong>{estimatedCostLabel}</strong>
+                {state.usageRefreshFailed ? (
+                  <span role="status">{t("topNav.usage.refreshFailed")}</span>
+                ) : voiceUsageIncomplete ? (
+                  <span role="status">{t("topNav.usage.voiceIncomplete")}</span>
+                ) : null}
               </div>
               <Tooltip title={metricVariantProps.toggleLabel} arrow={false}>
                 <UiButton

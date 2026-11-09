@@ -15,6 +15,8 @@ import { UiButton } from "@/shared/ui/UiButton";
 import { useI18n } from "@/shared/i18n";
 import type { Locale } from "@/shared/i18n";
 import { SettingsToken } from "@/features/settings/components/SettingsToken";
+import { VoiceShortcutSettings } from "@/features/voice/components/VoiceShortcutSettings";
+import { isVoiceEnabled } from "@/shared/config/featureFlags";
 import "./Settings.module.css";
 import "./SettingsFields.module.css";
 const presentationClasses = bindCssModuleClasses({ ...settingsPresentation });
@@ -89,6 +91,7 @@ export const SettingsPanel: React.FC<SettingsSurfaceProps & {
         }
       >
         {!isDesktopApp && <AppearanceSettings />}
+        {isVoiceEnabled() && <VoiceShortcutSettings />}
 
         <div className="field-group">
           <label>{t("settings.language.label")}</label>

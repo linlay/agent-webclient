@@ -1,11 +1,19 @@
 import { AIAwaitQuestionType } from "@/shared/contracts/agentEvents";
-import type { AIAwaitQuestion, AIAwaitQuestionOption, AIAwaitQuestionSubmitParamData, AIAwaitSubmitPayloadData } from "@/shared/contracts/agentEvents";
+import type { AIAwaitQuestion, AIAwaitQuestionOption, AIAwaitQuestionSubmitParamData, AIAwaitSubmitPayloadData, QuestionDraft } from "@/shared/contracts/agentEvents";
 import { t } from "@/shared/i18n";
 
 export function hasAwaitingQuestions(
   questions: AIAwaitQuestion[] | null | undefined,
 ): boolean {
   return Array.isArray(questions) && questions.length > 0;
+}
+
+export function prefillQuestionDraft(questions: AIAwaitQuestion[], current: AIAwaitQuestionSubmitParamData[], draft: QuestionDraft, edited: Set<string>): AIAwaitQuestionSubmitParamData[] {
+  return questions.map((question, index) => {
+    if (question.type === AIAwaitQuestionType.Password || edited.has(question.id)) return current[index];
+    const answer = draft.answers.find(item => item.id === question.id);
+    return answer ? { ...answer, ...(answer.answers ? { answers: [...answer.answers] } : {}) } : current[index];
+  });
 }
 
 export function createAwaitingParamPlaceholders(

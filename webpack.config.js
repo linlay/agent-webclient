@@ -210,6 +210,16 @@ module.exports = (env, argv) => {
         ],
       }),
       new PublicAssetPlugin({ from: "public/agent-creation.json", to: "agent-creation.json" }),
+      ...[
+        ['@ricky0123/vad-web/dist/silero_vad_v5.onnx', 'silero_vad_v5.onnx'],
+        ['onnxruntime-web/dist/ort-wasm-simd-threaded.wasm', 'ort-wasm-simd-threaded.wasm'],
+        ['onnxruntime-web/dist/ort-wasm-simd-threaded.mjs', 'ort-wasm-simd-threaded.mjs'],
+      ].map(([from, name]) => new PublicAssetPlugin({
+        from: `node_modules/${from}`, to: `assets/voice-vad/0.0.31-1.22.0/${name}`, minimized: true,
+      })),
+      ...['vad-web.LICENSE.txt', 'silero-vad.LICENSE.txt', 'onnxruntime.LICENSE.txt', 'onnxruntime.ThirdPartyNotices.txt'].map(name => new PublicAssetPlugin({
+        from: `public/voice-vad/${name}`, to: `assets/voice-vad/0.0.31-1.22.0/${name}`,
+      })),
       new PublicAssetPlugin({
         from: 'public/default-skill.png',
         to: 'default-skill.png',

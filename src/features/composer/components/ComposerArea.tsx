@@ -73,6 +73,7 @@ import { useComposerWonders } from "@/features/composer/hooks/useComposerWonders
 import { useCommandOverlayOpen } from "@/features/command-center/components/CommandOverlayProvider";
 import { useGlobalSearchOpen } from "@/features/search/components/GlobalSearchOverlayProvider";
 import { useOpenTarget } from "@/features/surfaces/hooks/useOpenTarget";
+import { canStartVoiceChat } from "@/features/voice/lib/voiceState";
 import { isVoiceEnabled } from "@/shared/config/featureFlags";
 import type {
   AgentSkill,
@@ -631,20 +632,19 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
   );
 
   const toggleVoiceMode = useCallback(() => {
-    if (!voiceModeAvailable || (!isVoiceMode && (isMainChatRunning || isFrontendActive))) {
+    if (!voiceModeAvailable || (!isVoiceMode && !canStartVoiceChat(state.voiceChat, isMainChatRunning, isFrontendActive || Boolean(state.activeAwaiting)))) {
       return;
     }
     if (!isVoiceMode) window.dispatchEvent(new CustomEvent("agent:voice-start"));
-    dispatch({
-      type: "SET_INPUT_MODE",
-      mode: isVoiceMode ? "text" : "voice",
-    });
+    else dispatch({ type: "SET_INPUT_MODE", mode: "text" });
   }, [
     dispatch,
     isFrontendActive,
     isVoiceMode,
     isMainChatRunning,
     voiceModeAvailable,
+    state.voiceChat,
+    state.activeAwaiting,
   ]);
 
   const togglePlanningMode = useCallback(() => {

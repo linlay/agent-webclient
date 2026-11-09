@@ -26,8 +26,8 @@ import { useKeyboard } from "@/shared/utils/useKeyboard";
 import {
   buildQuestionSubmitParams,
   buildQuestionDismissPayload,
-  clampAwaitingIndex,
   createAwaitingParamPlaceholders,
+  prefillQuestionDraft,
   findAwaitingAnswerError,
   getAwaitingDateFormat,
   getAwaitingQuestionHeading,
@@ -78,6 +78,7 @@ export const QuestionDialog: React.FC<QuestionDialogProps> = ({
   const [form] = Form.useForm<AIAwaitSubmitPayloadData>();
   const callbackRef = useRef<CallbackData>({});
   const questionsRef = useRef<QuestionRef[]>([]);
+  const draftForm = useRef({ key: "", revision: 0, edited: new Set<string>() });
   const total = useRef(0);
   const [loading, setLoading] = useState(false);
   const [timeoutExpired, setTimeoutExpired] = useState(false);
@@ -164,6 +165,7 @@ export const QuestionDialog: React.FC<QuestionDialogProps> = ({
       questionRef?.check(i);
     },
     onKeyDown: (e) => {
+      if (e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
       if (isEditableKeyboardTarget(e.target)) {
         return;
       }
@@ -226,14 +228,23 @@ export const QuestionDialog: React.FC<QuestionDialogProps> = ({
 
   useEffect(() => {
     total.current = questions.length;
-    form.setFieldsValue({
-      runId: data?.runId || "",
-      awaitingId: data?.awaitingId || "",
-      params: createAwaitingParamPlaceholders(questions) as any,
-    });
-    setCurIndex((prev) => clampAwaitingIndex(prev, questions.length));
-    setTimeoutExpired(false);
-  }, [data?.awaitingId, data?.runId, form, questions]);
+    const key = JSON.stringify([data.runId, data.awaitingId]);
+    const changed = draftForm.current.key !== key;
+    if (changed) {
+      draftForm.current = { key, revision: 0, edited: new Set() };
+      form.setFieldsValue({ runId: data.runId, awaitingId: data.awaitingId, params: createAwaitingParamPlaceholders(questions) as any });
+      setCurIndex(0);
+      setTimeoutExpired(false);
+    }
+    const draft = data.questionDraft;
+    if (!resolved && draft && draft.revision > draftForm.current.revision) {
+      const current = form.getFieldValue("params") as AIAwaitQuestionSubmitParamData[];
+      const params = prefillQuestionDraft(questions, current, draft, draftForm.current.edited);
+      form.setFieldsValue({ params });
+      draftForm.current.revision = draft.revision;
+      if (changed) setCurIndex(findAwaitingAnswerError(questions, params)?.index || 0);
+    }
+  }, [data.awaitingId, data.runId, data.questionDraft, form, questions, resolved]);
 
   const handleAutoSubmit = useCallback(() => {
     if (loading || resolved) {
@@ -269,6 +280,7 @@ export const QuestionDialog: React.FC<QuestionDialogProps> = ({
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
+      if (e.defaultPrevented || e.isComposing || e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
       if (isEditableKeyboardTarget(e.target)) {
         if (e.key === "Escape") {
           e.preventDefault();
@@ -310,6 +322,12 @@ export const QuestionDialog: React.FC<QuestionDialogProps> = ({
       className={hitlDialogClassNames.surface}
       disabled={loading}
       onFinish={doSubmit}
+      onValuesChange={(changed) => {
+        for (const index of Object.keys(changed.params || {})) {
+          const question = questions[Number(index)];
+          if (question) draftForm.current.edited.add(question.id);
+        }
+      }}
     >
       <Form.Item name="runId" hidden />
       <Form.Item name="awaitingId" hidden />

@@ -1,4 +1,5 @@
-import { invalidateChatNavigationCache } from "@/shared/data";
+import { buildLoadedChatUsageSnapshot } from "@/features/conversation/lib/conversationPayload";
+import { getChat, invalidateChatNavigationCache } from "@/shared/data";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import type { Dispatch } from "react";
 import type { AppAction } from "@/app/state/AppContext";
@@ -233,6 +234,7 @@ interface ConversationPushHandlerOptions {
 	activeAttachRef?: { current: ActiveAttachState | null };
 	handleEvent: (event: AgentEvent) => void;
 	cursorRecovery?: Pick<AttachCursorRecovery, "nudge">;
+	getChatImpl?: typeof getChat;
 }
 
 function appendWsDebug(dispatch: WsTransportDispatch, line: string): void {
@@ -786,6 +788,8 @@ export function registerDetachRunListener(
 export function createConversationPushHandler(
 	options: ConversationPushHandlerOptions,
 ): (frame: WsPushFrame) => void {
+	let usageRequest = 0;
+	let questionDraftRequest = 0;
 	return (frame) => {
 		const wireType = readPushWireType(frame);
 		const liveEvent = toPushEvent(frame);
@@ -812,6 +816,20 @@ export function createConversationPushHandler(
         ["run.start", "run.complete", "run.cancel", "run.error", "chat.updated", "chat.awaiting"].includes(type) && eventChatId) {
       window.dispatchEvent(new CustomEvent("agent:chat-runtime-updated", {detail: {chatId: eventChatId}}));
     }
+
+		if (type === "chat.awaiting" && liveEvent.questionDraftChanged === true && eventChatId === currentChatId) {
+			const request = ++questionDraftRequest;
+			void (options.getChatImpl || getChat)(eventChatId).then(response => {
+				if (request !== questionDraftRequest || options.stateRef.current.chatId !== eventChatId) return;
+				if (response.code !== 0 || !response.data) throw new Error(response.msg || "question draft unavailable");
+				const awaiting = response.data.awaiting;
+				if (awaiting?.mode !== "question" || awaiting.runId !== liveEvent.runId || awaiting.awaitingId !== liveEvent.awaitingId) return;
+				options.dispatch({ type: "SET_QUESTION_DRAFT", runId: String(awaiting.runId), awaitingId: String(awaiting.awaitingId), draft: awaiting.questionDraft });
+			}).catch(() => {
+				if (request === questionDraftRequest && options.stateRef.current.chatId === eventChatId) appendWsDebug(options.dispatch, "[question draft refresh failed] Reload the chat to read current answers.");
+			});
+			return;
+		}
 
 		if (type === "heartbeat") {
 			return;
@@ -912,6 +930,21 @@ export function createConversationPushHandler(
 		}
 
 		if (type === "chat.updated") {
+			if (liveEvent.usageChanged === true && eventChatId === currentChatId) {
+				const request = ++usageRequest;
+				void (options.getChatImpl || getChat)(eventChatId).then((response) => {
+					if (request !== usageRequest || options.stateRef.current.chatId !== eventChatId) return;
+					if (response.code !== 0 || !response.data) throw new Error(response.msg || "usage projection unavailable");
+					const projection = buildLoadedChatUsageSnapshot(eventChatId, response.data as unknown as Record<string, unknown>);
+					if (!projection) throw new Error("usage projection missing");
+					// This response refreshes usage only: no transcript replay or Run adoption.
+					options.dispatch({ type: "SET_USAGE_PROJECTION", snapshot: projection });
+				}).catch((error: unknown) => {
+					if (request !== usageRequest || options.stateRef.current.chatId !== eventChatId) return;
+					options.dispatch({ type: "SET_USAGE_REFRESH_FAILED", failed: true });
+					appendWsDebug(options.dispatch, `[usage refresh failed] ${String(error)}`);
+				});
+			}
 			upsertPushChatSummary(options.dispatch, liveEvent);
 			syncAgentUnreadCountFromPush(options.dispatch, options.stateRef, liveEvent);
 			return;

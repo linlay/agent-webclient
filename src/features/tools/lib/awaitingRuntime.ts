@@ -466,6 +466,7 @@ function reduceSingleActiveAwaiting(
         timeout: readAwaitingTimeout(event),
         createdAt,
         mode: 'question',
+        questionDraft: current?.key === key && current.mode === 'question' ? current.questionDraft : undefined,
         questions:
           nextQuestions.length > 0
             ? nextQuestions

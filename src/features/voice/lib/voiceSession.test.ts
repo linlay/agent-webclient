@@ -1,14 +1,16 @@
 /** @jest-environment jsdom */
 import { VoiceSession } from "./voiceSession";
 import type { VoiceCapabilities } from "@/shared/data/api/dto/voice";
+import type { VoicePlayStart } from "./voiceAudioPlayer";
 
-const capture = { ready: true, prepare: jest.fn(async () => undefined), start: jest.fn(), stop: jest.fn(), close: jest.fn() };
+const capture = { enableDetection: jest.fn(async (_detected: (pcm: Uint8Array[], candidateAtMs: number) => void, _failed: (error: unknown) => void) => undefined), disableDetection: jest.fn(), setDetecting: jest.fn(), ready: true, prepare: jest.fn(async () => undefined), start: jest.fn(), stop: jest.fn(), close: jest.fn() };
 const player = { playing: false, prepare: jest.fn(async () => undefined), start: jest.fn(), append: jest.fn(), finish: jest.fn(), stop: jest.fn(), close: jest.fn(), setMuted: jest.fn() };
 let drained: () => void;
 let playbackFailed: (message: string) => void;
+let playbackStarted: (point: VoicePlayStart) => void;
 let sendPCM: (pcm: Uint8Array) => void;
 jest.mock("./voiceAudioCapture", () => ({ VoiceAudioCapture: jest.fn().mockImplementation(send => { sendPCM = send; return capture; }) }));
-jest.mock("./voiceAudioPlayer", () => ({ VoiceAudioPlayer: jest.fn().mockImplementation((done, failed) => { drained = done; playbackFailed = failed; return player; }) }));
+jest.mock("./voiceAudioPlayer", () => ({ VoiceAudioPlayer: jest.fn().mockImplementation((done, failed, started) => { drained = done; playbackFailed = failed; playbackStarted = started; return player; }) }));
 
 class Socket {
   static OPEN = 1;
@@ -24,262 +26,382 @@ class Socket {
   close = jest.fn();
   constructor(readonly url: string, readonly protocols: string[]) { Socket.instance = this; }
 }
-const capabilities: VoiceCapabilities = { enabled: true, version: 1, reason: "", websocketPath: "/api/voice/ws",
+const capabilities: VoiceCapabilities = { enabled: true, version: 2, reason: "", websocketPath: "/api/voice/ws",
   input: { codecs: ["pcm_s16le"], sampleRate: 16000, channels: 1 }, output: { codecs: ["pcm_s16le"], sampleRates: [16000, 24000] },
   voices: [{ id: "voice", label: "Voice" }], defaultVoice: "voice" };
 const patch = jest.fn();
 const onRun = jest.fn();
 function frame(message: Record<string, unknown>) { Socket.instance.onmessage?.({ data: JSON.stringify(message) }); }
 function sent() { return Socket.instance.send.mock.calls.map(([message]) => typeof message === "string" ? JSON.parse(message) : message); }
-async function open(mode: "auto" | "manual" = "auto") {
-  const session = new VoiceSession({ capabilities, agentKey: "agent", chatId: "chat", voice: "voice", mode, patch, onRun });
+async function open(confirm = true) {
+  const session = new VoiceSession({ capabilities, agentKey: "agent", chatId: "chat", voice: "voice", patch, onRun });
   await session.prepare();
   session.connect("test-token");
   Socket.instance.onopen?.();
-  frame({ type: "hello", version: 1, agentKey: "agent", chatId: "chat", audio: { output: { codec: "pcm_s16le", channels: 1, sampleRate: 24000 } } });
+  frame({ type: "hello", version: 2, sessionId: "session", agentKey: "agent", chatId: "chat", audio: { output: { codec: "pcm_s16le", channels: 1, sampleRate: 24000 } } });
+  if (confirm) ready();
   return session;
+}
+function ready() {
+  const request = sent().filter(value => value.type === "listen" && value.state === "start").at(-1);
+  frame({ type: "listen.ready", requestId: request.requestId, turn: request.turn });
+}
+function speech(turn = 1, id = "speech", purpose = "final") {
+  frame({ type: "tts", turn, speechId: id, purpose, state: "start", text: "answer" });
+}
+function speechDone(turn = 1, id = "speech", purpose = "final") {
+  frame({ type: "tts", turn, speechId: id, purpose, state: "stop", reason: "done" });
 }
 beforeEach(() => {
   jest.clearAllMocks();
+  capture.ready = true;
   player.playing = false;
   jest.useFakeTimers();
   Object.defineProperty(globalThis, "WebSocket", { value: Socket, configurable: true });
 });
 afterEach(() => jest.useRealTimers());
 
-it("sends v1 media controls and uses the bearer subprotocol without URL credentials", async () => {
-  const session = await open("manual");
-  expect(Socket.instance.url).toBe("ws://localhost/api/voice/ws");
-  expect(Socket.instance.protocols).toEqual(["bearer.test-token"]);
-  expect(sent()[0]).toMatchObject({ type: "hello", version: 1, agentKey: "agent", chatId: "chat" });
-  expect(sent()[1]).toEqual({ type: "listen", state: "start", mode: "manual" });
-  capture.stop.mockImplementationOnce(flush => { if (flush) sendPCM(new Uint8Array([0, 0])); });
-  session.stopListening();
-  session.stopListening();
-  expect(sent().slice(-2)).toEqual([new Uint8Array([0, 0]), { type: "listen", state: "stop", mode: "manual" }]);
-  frame({ type: "stt", turn: 1, final: true, text: "complete original question" });
-  frame({ type: "run", turn: 1, state: "start", chatId: "chat", runId: "real-run" });
-  expect(onRun).toHaveBeenCalledWith("chat", "real-run");
-  expect(sent().filter(value => value.type).map(value => value.type)).toEqual(["hello", "listen", "listen"]);
+it("asks questions one by one and only starts bound capture after local playback drains",async()=>{
+  const session=await open();
+  frame({type:"stt",turn:1,final:true,text:"start"});
+  frame({type:"run",state:"start",chatId:"chat",runId:"owned"});
+  frame({type:"awaiting",state:"ask",runId:"owned",awaitingId:"ask",mode:"question",questionId:"q1",handoff:false});
+  speech(1,"question1","question");speechDone(1,"question1","question");
+  expect(sent().filter(item=>item.intent==="question")).toHaveLength(0);
+  drained();
+  expect(sent().at(-1)).toMatchObject({type:"listen",state:"start",turn:2,intent:"question",runId:"owned",awaitingId:"ask",questionId:"q1"});ready();
+  frame({type:"stt",turn:2,final:true,text:"answer one"});
+  frame({type:"awaiting",state:"ask",runId:"owned",awaitingId:"ask",mode:"question",questionId:"q2"});
+  speech(2,"question2","question");
+  session.listen(); // Same action interrupts the question, without task abort.
+  expect(sent().at(-1)).toMatchObject({intent:"question",turn:3,questionId:"q2"});ready();
+  expect(sent().some(item=>item.type==="abort")).toBe(false);
+  frame({type:"awaiting",state:"resolved",runId:"owned",awaitingId:"ask"});
+  const count=patch.mock.calls.length;
+  frame({type:"stt",turn:3,final:true,text:"late answer"});
+  expect(patch).toHaveBeenCalledTimes(count);
   session.close();
 });
-it.each([false, true])("sends explicit creation in hello (primary=%s) without changing media controls", async primary => {
-  const session = new VoiceSession({ capabilities, agentKey: "agent", chatId: "", newChat: true, primary, voice: "voice", mode: "auto", patch, onRun });
-  await session.prepare(); session.connect("test-token"); Socket.instance.onopen?.();
+
+it("does not capture during password handoff and handles UI winning an in-flight question listen",async()=>{
+  const session=await open();
+  frame({type:"stt",turn:1,final:true,text:"start"});frame({type:"run",state:"start",chatId:"chat",runId:"owned"});
+  frame({type:"awaiting",state:"ask",runId:"owned",awaitingId:"ask",mode:"question",questionId:"q1"});
+  session.listen();
+  frame({type:"error",turn:2,code:"input_changed",msg:"Question resolved"});
+  frame({type:"awaiting",state:"resolved",runId:"owned",awaitingId:"ask"});
+  expect(Socket.instance.close).not.toHaveBeenCalled();
+  frame({type:"awaiting",state:"ask",runId:"owned",awaitingId:"password",mode:"question",questionId:"",handoff:true});
+  speech(2,"handoff","notice");speechDone(2,"handoff","notice");drained();session.listen();
+  expect(sent().filter(item=>item.type==="listen"&&item.state==="start")).toHaveLength(2);
+  expect(patch).toHaveBeenCalledWith({awaiting:true,canAnswerQuestion:false});session.close();
+});
+
+it("records client audio evidence and terminal outcomes without logging content or confusing drain with interruption", async () => {
+  const events: Record<string, unknown>[] = [];
+  const receive = (event: Event) => events.push((event as CustomEvent).detail);
+  window.addEventListener("agent:voice-timing", receive);
+  const session = await open();
+  try {
+    jest.advanceTimersByTime(100);
+    session.stopListening();
+    frame({ type: "stt", turn: 1, final: true, text: "private question" });
+    frame({ type: "run", state: "start", chatId: "chat", runId: "owned" });
+    frame({ type: "run", state: "end", runId: "owned", finishReason: "complete" });
+    speech();
+    expect(events.some(event => event.stage === "playStart")).toBe(false);
+    playbackStarted({ atMs: 90, audioTime: .14, clockSource: "output_timestamp" });
+    speechDone(); drained(); ready();
+    expect(events.find(event => event.stage === "playStart")).toMatchObject({ atMs: 90, turn: 1, runId: "owned", speechId: "speech", purpose: "final", clock: "client_performance" });
+    expect(events.filter(event => event.stage === "turnEnd")).toEqual([expect.objectContaining({ turn: 1, outcome: "complete" })]);
+    expect(events.some(event => event.stage === "interruptRequested")).toBe(false);
+    frame({ type: "error", turn: 2, code: "asr_failed", msg: "secret diagnostic" });
+    session.close();
+    expect(events.filter(event => event.stage === "turnEnd")).toHaveLength(2);
+    expect(events.at(-1)).toMatchObject({ turn: 2, outcome: "error" });
+    expect(JSON.stringify(events)).not.toMatch(/private question|secret diagnostic|test-token|answer/);
+    expect(events.some(event => event.stage === "speechEnd")).toBe(false); // ASR is not a speech-end measurement.
+  } finally { session.close(); window.removeEventListener("agent:voice-timing", receive); }
+});
+
+it("measures local interruption on the old turn and keeps the interrupted sample", async () => {
+  const events: Record<string, unknown>[] = [];
+  const receive = (event: Event) => events.push((event as CustomEvent).detail);
+  window.addEventListener("agent:voice-timing", receive);
+  const session = await open();
+  try {
+    frame({ type: "stt", turn: 1, final: true, text: "question" });
+    speech(); session.listen(); ready(); session.abort(); session.close();
+    expect(events.filter(event => ["interruptRequested", "localSilenced", "turnEnd"].includes(String(event.stage)))).toEqual([
+      expect.objectContaining({ turn: 1, stage: "interruptRequested" }),
+      expect.objectContaining({ turn: 1, stage: "localSilenced" }),
+      expect.objectContaining({ turn: 1, stage: "turnEnd", outcome: "superseded" }),
+      expect.objectContaining({ turn: 2, stage: "turnEnd", outcome: "aborted" }),
+    ]);
+  } finally { session.close(); window.removeEventListener("agent:voice-timing", receive); }
+});
+
+it("sends v2 with timezone and buffers short recording until matching ready", async () => {
+  const session = await open(false);
+  expect(Socket.instance.url).toBe("ws://localhost/api/voice/ws");
+  expect(Socket.instance.protocols).toEqual(["bearer.test-token"]);
+  expect(sent()[0]).toMatchObject({ type: "hello", version: 2, agentKey: "agent", timeZone: expect.any(String) });
+  expect(sent()[1]).toEqual({ type: "listen", state: "start", requestId: "voice:session:1", turn: 1, intent: "conversation" });
+  sendPCM(new Uint8Array([1, 2]));
+  capture.stop.mockImplementationOnce(flush => { if (flush) sendPCM(new Uint8Array([3, 4])); });
+  session.stopListening(); session.stopListening();
+  expect(sent()).toHaveLength(2);
+  ready();
+  expect(sent().slice(-3)).toEqual([new Uint8Array([1, 2]), new Uint8Array([3, 4]), { type: "listen", state: "stop", requestId: "voice:session:1", turn: 1 }]);
+  session.close();
+});
+it.each([false, true])("preserves explicit new Chat intent (primary=%s)", async primary => {
+  const session = new VoiceSession({ capabilities, agentKey: "agent", chatId: "", newChat: true, primary, voice: "voice", patch, onRun });
+  await session.prepare(); session.connect(""); Socket.instance.onopen?.();
   expect(sent()[0]).toMatchObject({ type: "hello", newChat: true });
   expect(sent()[0].chatId).toBeUndefined();
   expect(sent()[0].primary).toBe(primary ? true : undefined);
-  frame({ type: "hello", version: 1, agentKey: "agent", chatId: "fresh-chat", audio: { output: { codec: "pcm_s16le", channels: 1, sampleRate: 24000 } } });
-  expect(sent()[1]).toEqual({ type: "listen", state: "start", mode: "auto" });
-  frame({ type: "run", turn: 1, state: "start", chatId: "fresh-chat", runId: "fresh-run" });
-  expect(onRun).toHaveBeenCalledWith("fresh-chat", "fresh-run");
   session.close();
 });
-it("does not retry a rejected creation handshake without its new-Chat intent", async () => {
-  const session = new VoiceSession({ capabilities, agentKey: "agent", chatId: "", newChat: true, voice: "voice", mode: "auto", patch, onRun });
-  await session.prepare(); session.connect("test-token"); Socket.instance.onopen?.();
-  frame({ type: "error", code: "invalid_request", msg: "unsupported hello" });
-  jest.advanceTimersByTime(20000);
-  expect(sent()).toHaveLength(1);
-  expect(sent()[0].newChat).toBe(true);
-  expect(capture.start).not.toHaveBeenCalled();
-  expect(onRun).not.toHaveBeenCalled();
-  expect(Socket.instance.close).toHaveBeenCalledTimes(1);
-  session.close();
-});
-
-it("waits for successful Run, tts.stop and actual local drain before listening again", async () => {
-  const session = await open();
-  frame({ type: "stt", turn: 1, final: true, text: "hello" });
-  frame({ type: "run", turn: 1, state: "end", finishReason: "complete" });
-  expect(sent()).toHaveLength(2); // Run end arrives before TTS start.
-  frame({ type: "tts", turn: 1, state: "start", text: "full answer" });
-  Socket.instance.onmessage?.({ data: new ArrayBuffer(960) });
-  frame({ type: "tts", turn: 1, state: "stop", reason: "done" });
-  expect(player.append).toHaveBeenCalledTimes(1);
-  expect(sent()).toHaveLength(2);
-  drained();
-  expect(sent().at(-1)).toEqual({ type: "listen", state: "start", mode: "auto" });
-  session.close();
-});
-
-it("keeps awaiting after the hint drains and resumes only after the final answer", async () => {
+it("stops playback before listen, drops old audio across ready and never aborts the Run", async () => {
   const session = await open();
   frame({ type: "stt", turn: 1, final: true, text: "question" });
-  frame({ type: "awaiting", turn: 1, awaitingId: "ask" });
-  frame({ type: "tts", turn: 1, state: "start", text: "confirm in UI" });
-  frame({ type: "tts", turn: 1, state: "stop", reason: "done" });
-  drained();
-  session.listen();
+  frame({ type: "run", state: "start", chatId: "chat", runId: "owned" });
+  speech();
+  session.listen(); session.listen();
+  expect(player.stop).toHaveBeenCalledTimes(1);
+  expect(sent().at(-1)).toMatchObject({ type: "listen", turn: 2 });
+  Socket.instance.onmessage?.({ data: new ArrayBuffer(960) });
+  speechDone(); drained();
+  expect(player.append).not.toHaveBeenCalled();
+  ready();
+  speech(); Socket.instance.onmessage?.({ data: new ArrayBuffer(960) });
+  expect(player.append).not.toHaveBeenCalled();
+  speech(2, "new"); Socket.instance.onmessage?.({ data: new ArrayBuffer(2) });
+  expect(player.append).toHaveBeenCalledTimes(1);
+  expect(sent().some(value => value.type === "abort")).toBe(false);
+  session.close();
+});
+it("filters speech identity within a turn and waits for final local drain", async () => {
+  const session = await open();
+  speech(1, "new");
+  speechDone(1, "old");
+  expect(player.finish).not.toHaveBeenCalled();
+  speechDone(1, "new");
   expect(sent()).toHaveLength(2);
-  frame({ type: "run", turn: 1, state: "end", finishReason: "complete" });
-  frame({ type: "tts", turn: 1, state: "start", text: "final" });
-  frame({ type: "tts", turn: 1, state: "stop", reason: "done" });
   drained();
+  expect(sent().at(-1)).toMatchObject({ type: "listen", turn: 2 });
+  session.close();
+});
+it("processes Run and awaiting by identity while a new media turn is pending", async () => {
+  const session = await open();
+  frame({ type: "stt", turn: 1, final: true, text: "question" });
+  session.listen();
+  frame({ type: "run", turn: 1, state: "start", chatId: "chat", runId: "owned" });
+  frame({ type: "awaiting", state: "ask", runId: "owned", awaitingId: "ask", mode: "approval" });
+  expect(onRun).toHaveBeenCalledWith("chat", "owned");
+  expect(patch).toHaveBeenLastCalledWith({ awaiting: true, canAnswerQuestion: false });
+  frame({ type: "awaiting", state: "resolved", runId: "foreign", awaitingId: "ask" });
+  expect(patch).toHaveBeenLastCalledWith({ awaiting: true, canAnswerQuestion: false });
+  frame({ type: "awaiting", state: "resolved", runId: "owned", awaitingId: "ask" });
+  expect(patch).toHaveBeenLastCalledWith({ awaiting: false, canAnswerQuestion: false, status: "thinking" });
+  session.close();
+});
+it("does not confuse notice drain with final answer even after Run completion", async () => {
+  const session = await open();
+  frame({ type: "run", state: "start", chatId: "chat", runId: "owned" });
+  frame({ type: "awaiting", state: "ask", runId: "owned", awaitingId: "ask", mode: "question" });
+  speech(1, "hint", "notice"); speechDone(1, "hint", "notice");
+  frame({ type: "run", state: "end", runId: "owned", finishReason: "complete" });
+  drained(); expect(sent()).toHaveLength(2);
+  speech(1, "final"); speechDone(1, "final"); drained();
+  expect(sent().at(-1)).toMatchObject({ type: "listen", turn: 2 });
+  session.close();
+});
+it("waits for a retained result on empty input instead of racing a new listen", async () => {
+  const session = await open();
+  frame({ type: "stt", turn: 1, final: true, text: "", pendingResult: true });
+  expect(sent()).toHaveLength(2);
+  speech(); speechDone(); drained();
   expect(sent()).toHaveLength(3);
   session.close();
 });
-
-it("clears playback immediately, discards old media until abort confirmation, and ignores old turns", async () => {
+it("continues automatically after ordinary empty input", async () => {
   const session = await open();
-  frame({ type: "tts", turn: 1, state: "start", text: "old" });
-  session.abort(); session.abort();
-  expect(player.stop).toHaveBeenCalledTimes(1);
-  Socket.instance.onmessage?.({ data: new ArrayBuffer(960) });
-  frame({ type: "tts", turn: 1, state: "stop", reason: "done" });
-  drained();
-  expect(player.append).not.toHaveBeenCalled();
-  expect(sent().filter(value => value.type === "abort")).toHaveLength(1);
-  frame({ type: "abort", turn: 1 });
-  frame({ type: "tts", turn: 1, state: "start", text: "late old" });
-  Socket.instance.onmessage?.({ data: new ArrayBuffer(960) });
-  expect(player.append).not.toHaveBeenCalled();
-  frame({ type: "tts", turn: 2, state: "start", text: "new" });
-  Socket.instance.onmessage?.({ data: new ArrayBuffer(2) });
-  expect(player.append).toHaveBeenCalledTimes(1);
+  frame({ type: "stt", turn: 1, final: true, text: "" });
+  expect(sent().at(-1)).toMatchObject({ type: "listen", turn: 2 });
+  expect(onRun).not.toHaveBeenCalled();
   session.close();
 });
-
-it("disconnects media without abort, automatic reconnect or retransmission", async () => {
+it("explicit task stop aborts once and does not automatically start new input", async () => {
   const session = await open();
-  frame({ type: "run", turn: 1, state: "start", chatId: "chat", runId: "retained" });
-  Socket.instance.onclose?.();
-  jest.advanceTimersByTime(20000);
-  expect(capture.close).toHaveBeenCalledTimes(1);
-  expect(player.close).toHaveBeenCalledTimes(1);
-  expect(sent().filter(value => value.type === "abort")).toHaveLength(0);
+  speech(); session.abort(); session.abort();
+  expect(player.stop).toHaveBeenCalledTimes(1);
+  frame({ type: "abort", turn: 1 });
+  expect(sent().filter(value => value.type === "abort")).toHaveLength(1);
+  expect(sent().filter(value => value.type === "listen")).toHaveLength(1);
+  session.listen(); ready();
+  expect(sent().at(-1)).toMatchObject({ type: "listen", turn: 2 });
+  session.close();
+});
+it.each(["timeout", "wrong ready", "overflow", "protocol"])("closes only media after %s without retry or abort", async scenario => {
+  const session = await open(false);
+  if (scenario === "timeout") jest.advanceTimersByTime(5000);
+  if (scenario === "wrong ready") frame({ type: "listen.ready", requestId: "other", turn: 1 });
+  if (scenario === "overflow") for (let i = 0; i < 26; i++) sendPCM(new Uint8Array(640));
+  if (scenario === "protocol") frame({ type: "error", turn: 0, code: "invalid_request", msg: "invalid control" });
+  expect(Socket.instance.close).toHaveBeenCalledTimes(1);
+  expect(sent()).toHaveLength(2);
   expect(patch).toHaveBeenLastCalledWith(expect.objectContaining({ status: "error", sessionActive: false }));
   session.close();
 });
-
-it("ends only the current turn on a server error and listens again on request", async () => {
-  const session = await open();
-  frame({ type: "stt", turn: 1, final: true, text: "question" });
-  frame({ type: "awaiting", turn: 1, awaitingId: "ask" });
-  frame({ type: "error", turn: 1, code: "chat_busy", msg: "聊天忙" });
-  expect(patch).toHaveBeenLastCalledWith({ status: "error", error: "聊天忙", awaiting: false });
-  expect(Socket.instance.close).not.toHaveBeenCalled();
-  expect(capture.close).not.toHaveBeenCalled();
-  expect(player.stop).toHaveBeenCalledTimes(1);
-  session.listen();
-  expect(sent().at(-1)).toEqual({ type: "listen", state: "start", mode: "auto" });
-  frame({ type: "stt", turn: 2, final: false, text: "again" });
-  expect(patch).toHaveBeenLastCalledWith({ partialUserText: "again", partialAssistantText: "" });
-  session.close();
-});
-
-it("fails the session for a handshake error and explains a close after a turn error", async () => {
-  const early = new VoiceSession({ capabilities, agentKey: "agent", chatId: "", voice: "voice", mode: "auto", patch, onRun });
-  await early.prepare(); early.connect("test-token"); Socket.instance.onopen?.();
-  frame({ type: "error", code: "invalid_request", msg: "agent unavailable" });
-  expect(patch).toHaveBeenLastCalledWith({ status: "error", error: "agent unavailable", sessionActive: false });
+it("rejects v1 without downgrade or another hello", async () => {
+  const session = new VoiceSession({ capabilities, agentKey: "agent", chatId: "chat", voice: "voice", patch, onRun });
+  await session.prepare(); session.connect(""); Socket.instance.onopen?.();
+  frame({ type: "hello", version: 1, agentKey: "agent", chatId: "chat" });
   expect(Socket.instance.close).toHaveBeenCalledTimes(1);
-
+  expect(sent()).toHaveLength(1);
+  session.close();
+});
+it("disconnects without automatic reconnect, abort or retransmission", async () => {
   const session = await open();
-  frame({ type: "error", turn: 1, code: "run_busy_timeout", msg: "任务收尾超时，请重新连接语音" });
-  Socket.instance.onclose?.();
-  expect(patch).toHaveBeenLastCalledWith({ status: "error", error: "任务收尾超时，请重新连接语音", sessionActive: false });
+  Socket.instance.onclose?.(); jest.advanceTimersByTime(20000);
+  expect(capture.close).toHaveBeenCalledTimes(1);
+  expect(player.close).toHaveBeenCalledTimes(1);
+  expect(sent()).toHaveLength(2);
+  session.close();
+});
+it("keeps a recoverable media error local and ignores late ASR during playback", async () => {
+  const session = await open();
+  speech();
+  frame({ type: "error", turn: 0, code: "asr_failed", msg: "old" });
+  frame({ type: "error", turn: 1, code: "asr_failed", msg: "late" });
+  expect(player.stop).not.toHaveBeenCalled();
+  playbackFailed("output unavailable");
+  Socket.instance.onmessage?.({ data: new ArrayBuffer(960) });
+  expect(player.append).not.toHaveBeenCalled();
+  session.listen(); ready();
+  frame({ type: "error", turn: 2, code: "asr_failed", msg: "recognition failed" });
+  expect(patch).toHaveBeenLastCalledWith({ status: "error", error: "recognition failed", awaiting: false, supplementAccepted: false });
+  expect(Socket.instance.close).not.toHaveBeenCalled();
   session.close();
 });
 
-it("continues listening after empty input without an error, Query or transcript reset", async () => {
+it("ignores stale awaiting resolution and late ready superseded by task stop", async () => {
   const session = await open();
-  patch.mockClear();
-  frame({ type: "stt", turn: 1, final: true, text: "" });
-  expect(sent().filter(value => value.type === "listen")).toHaveLength(2);
-  expect(patch).toHaveBeenLastCalledWith({ status: "listening", error: "", awaiting: false });
-  expect(onRun).not.toHaveBeenCalled(); expect(Socket.instance.close).not.toHaveBeenCalled();
+  frame({ type: "run", state: "start", chatId: "chat", runId: "owned" });
+  frame({ type: "awaiting", state: "ask", runId: "owned", awaitingId: "new", mode: "question" });
+  frame({ type: "awaiting", state: "resolved", runId: "owned", awaitingId: "old" });
+  expect(patch).toHaveBeenLastCalledWith({ awaiting: true, canAnswerQuestion: false });
+  session.abort(); frame({ type: "abort", turn: 1 });
+  session.listen(); sendPCM(new Uint8Array(640)); session.abort();
+  ready();
+  frame({ type: "abort", turn: 2 });
+  expect(Socket.instance.close).not.toHaveBeenCalled();
+  expect(sent().filter(value => value instanceof Uint8Array)).toHaveLength(0);
   session.close();
 });
 
-it("isolates old errors and recognition events from playback and waits for its entire tail", async () => {
+it("shows supplement acceptance only for the current finalized input and clears it on new input", async () => {
   const session = await open();
   frame({ type: "stt", turn: 1, final: true, text: "question" });
-  frame({ type: "run", turn: 1, state: "end", finishReason: "complete" });
-  frame({ type: "tts", turn: 1, state: "start", text: "answer" });
-  player.playing = true;
+  frame({ type: "run", state: "start", chatId: "chat", runId: "owned" });
+  session.listen(); ready();
+  frame({ type: "stt", turn: 2, final: true, text: "additional instruction" });
+  frame({ type: "run", state: "end", runId: "owned", finishReason: "complete" });
+  const accepted = { type: "steer", state: "accepted", turn: 2, requestId: "voice:session:2", steerId: "voice:session:2", runId: "owned" };
+  frame(accepted);
+  expect(patch).toHaveBeenLastCalledWith({ supplementAccepted: true });
+  expect(sent().filter(value => value.type === "listen")).toHaveLength(2);
+  session.listen(); ready();
+  expect(patch).toHaveBeenLastCalledWith(expect.objectContaining({ supplementAccepted: false, status: "listening" }));
+  const count = patch.mock.calls.length;
+  frame(accepted);
+  expect(patch).toHaveBeenCalledTimes(count);
+  expect(sent().some(value => value.type === "abort")).toBe(false);
+  session.close();
+});
+
+it("does not resend or start a Query when supplement outcome is unknown", async () => {
+  const session = await open();
+  frame({ type: "stt", turn: 1, final: true, text: "additional instruction" });
   const count = sent().length;
-  sendPCM(new Uint8Array(640)); // Environmental sound cannot upload during playback.
-  frame({ type: "stt", turn: 1, final: true, text: "background sound" });
-  frame({ type: "error", turn: 0, code: "tts_failed", msg: "old" });
-  for (const code of ["asr_failed", "recording_limit", "transcript_limit", "invalid_audio", "audio_overflow"]) {
-    frame({ type: "error", turn: 1, code, msg: "late recognition" });
-  }
-  expect(player.stop).not.toHaveBeenCalled(); expect(sent()).toHaveLength(count);
-  expect(patch).toHaveBeenLastCalledWith({ status: "speaking", partialAssistantText: "answer" });
-  frame({ type: "tts", turn: 1, state: "stop", reason: "done" });
-  session.listen(); expect(sent()).toHaveLength(count);
-  player.playing = false; drained();
+  frame({ type: "error", turn: 1, code: "steer_outcome_unknown", msg: "Check the chat; this input will not be resent" });
+  jest.advanceTimersByTime(10000);
+  expect(sent()).toHaveLength(count);
+  expect(patch).toHaveBeenLastCalledWith(expect.objectContaining({ status: "error", supplementAccepted: false }));
+  session.close();
+});
+
+it("keeps a newly observed awaiting visible when the supplement is rejected", async () => {
+  const session = await open();
+  frame({ type: "run", state: "start", chatId: "chat", runId: "owned" });
+  frame({ type: "awaiting", state: "ask", runId: "owned", awaitingId: "ask", mode: "approval" });
+  frame({ type: "error", turn: 1, code: "input_changed", msg: "Complete the waiting item in chat" });
+  expect(patch).toHaveBeenLastCalledWith(expect.objectContaining({ status: "error", awaiting: true }));
+  const count = sent().length;
+  session.listen();
+  expect(sent()).toHaveLength(count);
+  frame({ type: "awaiting", state: "resolved", runId: "owned", awaitingId: "ask" });
+  session.listen();
   expect(sent()).toHaveLength(count + 1);
   session.close();
 });
 
-it("reports an actual ASR failure during manual finalization without starting another task", async () => {
-  const session = await open("manual");
-  session.stopListening();
-  frame({ type: "error", turn: 1, code: "asr_failed", msg: "recognition failed" });
-  expect(patch).toHaveBeenLastCalledWith({ status: "error", error: "recognition failed", awaiting: false });
-  expect(sent()).toHaveLength(3); expect(onRun).not.toHaveBeenCalled();
+
+it("uses the same local-stop/listen boundary for duplex, uploads pre-roll only after ready, and keeps the Run", async () => {
+  const session = await open(); frame({ type: "run", state: "start", chatId: "chat", runId: "owned" });
+  await session.setInterruptionMode("duplex"); speech();
+  expect(capture.setDetecting).toHaveBeenLastCalledWith(true);
+  const detect = capture.enableDetection.mock.calls.at(-1)![0];
+  const pre = new Uint8Array(640).fill(1);
+  detect([pre], performance.now() - 160);
+  expect(player.stop.mock.invocationCallOrder.at(-1)).toBeLessThan(Socket.instance.send.mock.invocationCallOrder.at(-1)!);
+  expect(sent().at(-1)).toMatchObject({ type: "listen", state: "start", intent: "conversation", turn: 2 });
+  expect(sent().some(item => item instanceof Uint8Array)).toBe(false);
+  detect([pre], performance.now()); // Duplicate and late model callback cannot open a third turn.
+  sendPCM(new Uint8Array(640).fill(2)); ready();
+  expect(sent().slice(-2)).toEqual([pre, new Uint8Array(640).fill(2)]);
+  frame({ type: "stt", turn: 2, final: true, text: "", pendingResult: true });
+  frame({ type: "run", runId: "owned", state: "end", finishReason: "complete" });
+  speech(2, "later-final"); expect(player.start).toHaveBeenCalledTimes(2);
+  expect(sent().some(item => item.type === "abort")).toBe(false); expect(onRun).toHaveBeenCalledTimes(1);
   session.close();
 });
 
-it("keeps the session after exhausted local recovery without aborting or retrying the Run", async () => {
-  const session = await open();
-  frame({ type: "tts", turn: 1, state: "start", text: "answer" });
-  playbackFailed("output unavailable");
-  Socket.instance.onmessage?.({ data: new ArrayBuffer(960) });
-  expect(player.append).not.toHaveBeenCalled(); expect(Socket.instance.close).not.toHaveBeenCalled();
-  session.listen(); expect(sent()).toHaveLength(2);
-  frame({ type: "tts", turn: 1, state: "stop", reason: "done" });
-  expect(player.finish).not.toHaveBeenCalled();
-  session.listen(); expect(sent()).toHaveLength(3);
-  expect(sent().some(value => value.type === "abort")).toBe(false);
-  session.close();
+it("retains question identity on VAD onset and disables detection for UI-only handoff", async () => {
+  const session = await open(); await session.setInterruptionMode("duplex");
+  frame({ type: "run", state: "start", chatId: "chat", runId: "owned" });
+  frame({ type: "awaiting", state: "ask", runId: "owned", awaitingId: "ask", mode: "question", questionId: "q1" });
+  speech(1, "question", "question"); const detect = capture.enableDetection.mock.calls.at(-1)![0];
+  detect([], performance.now()); expect(sent().at(-1)).toMatchObject({ intent: "question", runId: "owned", awaitingId: "ask", questionId: "q1" }); ready();
+  frame({ type: "stt", turn: 2, final: true, text: "answer" });
+  frame({ type: "awaiting", state: "ask", runId: "owned", awaitingId: "ask", mode: "question", handoff: true });
+  speech(2, "notice", "notice"); expect(capture.setDetecting).toHaveBeenLastCalledWith(false);
+  const count = sent().length; detect([], performance.now()); expect(sent()).toHaveLength(count); session.close();
 });
 
-it("lets already received audio finish on a TTS error without starting another listen", async () => {
-  const session = await open();
-  frame({ type: "tts", turn: 1, state: "start", text: "answer" });
-  player.playing = true;
-  frame({ type: "tts", turn: 1, state: "stop", reason: "error" });
-  frame({ type: "error", turn: 1, code: "tts_failed", msg: "provider stopped" });
-  expect(player.stop).not.toHaveBeenCalled();
-  session.listen(); expect(sent()).toHaveLength(2);
-  player.playing = false; drained(); expect(sent()).toHaveLength(2);
-  session.close();
+it("shows initialization timeout and ignores late success while keeping button interruption", async () => {
+  let finish!: () => void;
+  const session = await open(); capture.enableDetection.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
+  const enabling = session.setInterruptionMode("duplex"); speech();
+  jest.advanceTimersByTime(20000); expect(patch).toHaveBeenLastCalledWith({ duplexStatus: "error", duplexError: expect.stringContaining("timed out") });
+  const count = patch.mock.calls.length; finish(); await enabling; expect(patch).toHaveBeenCalledTimes(count);
+  session.listen(); expect(sent().at(-1)).toMatchObject({ type: "listen", turn: 2 }); session.close();
 });
 
-it("does not count an awaiting hint drain as final playback after run.end", async () => {
-  const session = await open();
-  frame({ type: "stt", turn: 1, final: true, text: "question" });
-  frame({ type: "awaiting", turn: 1, awaitingId: "ask" });
-  frame({ type: "tts", turn: 1, state: "start", text: "confirm in UI" });
-  frame({ type: "tts", turn: 1, state: "stop", reason: "done" });
-  frame({ type: "run", turn: 1, state: "end", finishReason: "complete" });
-  drained();
-  expect(sent()).toHaveLength(2);
-  frame({ type: "tts", turn: 1, state: "start", text: "final answer" });
-  Socket.instance.onmessage?.({ data: new ArrayBuffer(960) });
-  frame({ type: "tts", turn: 1, state: "stop", reason: "done" });
-  drained();
-  expect(player.append).toHaveBeenCalledTimes(1);
-  expect(sent()).toHaveLength(3);
-  session.close();
-});
-
-it("reports a rejected listen even when the server reports its preceding turn", async () => {
-  const session = await open();
-  frame({ type: "error", turn: 0, code: "turn_busy", msg: "turn not released" });
-  expect(capture.close).toHaveBeenCalledTimes(1);
-  expect(patch).toHaveBeenLastCalledWith({ status: "error", error: "turn not released", sessionActive: false });
-  expect(sent().some(value => value.type === "abort")).toBe(false);
-});
-
-it("uses the abort barrier's turn to resume instead of carrying a divergent counter", async () => {
-  const session = await open();
-  session.abort();
-  frame({ type: "abort", turn: 0 });
-  frame({ type: "stt", turn: 1, final: false, text: "resynchronized" });
-  expect(patch).toHaveBeenLastCalledWith({ partialUserText: "resynchronized", partialAssistantText: "" });
-  session.close();
+it("survives 1000 alternating onset/disable/abort/close races without duplicate listen or stale playback", async () => {
+  for (let i = 0; i < 1000; i++) {
+    const session = await open(); await session.setInterruptionMode("duplex"); speech();
+    const detect = capture.enableDetection.mock.calls.at(-1)![0];
+    if (i % 4 === 0) { await session.setInterruptionMode("button"); detect([], 1); expect(sent()).toHaveLength(2); }
+    if (i % 4 === 1) { session.abort(); detect([], 1); expect(sent()).toHaveLength(3); expect(sent().at(-1).type).toBe("abort"); }
+    if (i % 4 === 2) { session.close(); detect([], 1); expect(sent()).toHaveLength(2); }
+    if (i % 4 === 3) {
+      detect([], 1); detect([], 1); expect(sent()).toHaveLength(3); ready();
+      const count = player.append.mock.calls.length;
+      Socket.instance.onmessage?.({ data: new ArrayBuffer(960) }); expect(player.append).toHaveBeenCalledTimes(count);
+    }
+    session.close();
+  }
 });

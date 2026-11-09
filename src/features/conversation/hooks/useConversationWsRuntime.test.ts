@@ -1913,6 +1913,47 @@ describe("createConversationPushHandler continued", () => {
 		cleanupActivation();
 	});
 
+	it("refreshes late usage without replaying content and ignores stale responses", async () => {
+		const stateRef = { current: createState({ chatId: "chat_active" }) };
+		let resolveFirst!: (value: unknown) => void;
+		const first = new Promise((resolve) => { resolveFirst = resolve; });
+		const getChatImpl = jest.fn().mockReturnValueOnce(first).mockResolvedValueOnce({ code: 0, data: {
+			usage: { chat: { voice: { tasks: 1, unknownTasks: 1, pendingTasks: 0, unpricedTasks: 0, characters: 0, billedAudioSeconds: 0 } } },
+		} });
+		const onPush = createConversationPushHandler({ dispatch, stateRef, handleEvent, getChatImpl });
+		const push = () => onPush(withPushContractTime({ frame: "push", type: "chat.updated", chatId: "chat_active", usageChanged: true }) as WsPushFrame);
+		push(); push();
+		await Promise.resolve(); await Promise.resolve();
+		expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({ type: "SET_USAGE_PROJECTION", snapshot: expect.objectContaining({ usage: expect.objectContaining({ chat: expect.objectContaining({ voice: expect.objectContaining({ unknownTasks: 1 }) }) }) }) }));
+		dispatch.mockClear();
+		resolveFirst({ code: 0, data: { usage: { chat: { totalTokens: 999 } } } });
+		await Promise.resolve(); await Promise.resolve();
+		expect(dispatch).not.toHaveBeenCalled();
+		expect(handleEvent).not.toHaveBeenCalled();
+	});
+
+	it("reports a failed authoritative usage refresh", async () => {
+		const onPush = createConversationPushHandler({ dispatch, stateRef: { current: createState({ chatId: "chat_active" }) }, handleEvent, getChatImpl: jest.fn().mockRejectedValue(new Error("projection failed")) });
+		onPush(withPushContractTime({ frame: "push", type: "chat.updated", chatId: "chat_active", usageChanged: true }) as WsPushFrame);
+		await Promise.resolve(); await Promise.resolve();
+		expect(dispatch).toHaveBeenCalledWith({ type: "SET_USAGE_REFRESH_FAILED", failed: true });
+		expect(handleEvent).not.toHaveBeenCalled();
+	});
+
+	it("refreshes only the matching current question draft and ignores out-of-order responses", async () => {
+		const stateRef={current:createState({chatId:"chat_active"})};
+		let resolveFirst!: (value: unknown)=>void;
+		const first=new Promise(resolve=>{resolveFirst=resolve;});
+		const draft={revision:2,answers:[{id:"text",answer:"voice draft"}]};
+		const getChatImpl=jest.fn().mockReturnValueOnce(first).mockResolvedValueOnce({code:0,data:{awaiting:{mode:"question",runId:"run",awaitingId:"ask",questionDraft:draft}}});
+		const onPush=createConversationPushHandler({dispatch,stateRef,handleEvent,getChatImpl});
+		const push=()=>onPush(withPushContractTime({frame:"push",type:"chat.awaiting",chatId:"chat_active",runId:"run",awaitingId:"ask",questionDraftChanged:true}) as WsPushFrame);
+		push();push();await Promise.resolve();await Promise.resolve();
+		expect(dispatch).toHaveBeenCalledWith({type:"SET_QUESTION_DRAFT",runId:"run",awaitingId:"ask",draft});
+		dispatch.mockClear();resolveFirst({code:0,data:{awaiting:{mode:"question",runId:"run",awaitingId:"ask",questionDraft:{revision:1,answers:[]}}}});
+		await Promise.resolve();await Promise.resolve();expect(dispatch).not.toHaveBeenCalled();expect(handleEvent).not.toHaveBeenCalled();
+	});
+
 	it("updates the active chat summary from chat.updated pushes without reloading the chat", async () => {
 		const state = createState({ accessToken: "token_local", chatId: "chat_active" });
 		const dispatchEvent = jest.fn();

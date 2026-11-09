@@ -118,3 +118,21 @@
     padding-inline-start: 8px;
     overflow-wrap: anywhere;
 }
+
+.shortcutSettings {
+    display: grid;
+    gap: 8px;
+    max-width: 360px;
+}
+
+.shortcutSettings p { margin: 0; }
+
+.shortcutCapture {
+    padding: 8px;
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius-md);
+}
+
+.shortcutCapture:focus-visible {
+    outline: 2px solid var(--accent-strong);
+}

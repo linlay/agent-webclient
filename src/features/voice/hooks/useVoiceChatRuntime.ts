@@ -3,19 +3,37 @@ import { flushSync } from "react-dom";
 import { useAppContext } from "@/app/state/AppContext";
 import { resolveCurrentWorkerSummary } from "@/features/workers/lib/currentWorker";
 import { shouldCreatePrimaryChat } from "@/features/chats/lib/primaryChatIntent";
+import { resolveMainChatRuntime } from "@/features/runs/lib/runRuntimeState";
 import { ensureAccessToken, getVoiceCapabilities } from "@/shared/data";
 import { isVoiceEnabled } from "@/shared/config/featureFlags";
 import { isDesktopAppMode } from "@/shared/utils/routing";
 import { VoiceSession } from "../lib/voiceSession";
-import type { VoiceChatState } from "../lib/voiceState";
+import { canStartVoiceChat, type VoiceChatState, type VoiceInterruptionMode } from "../lib/voiceState";
+import { readVoiceMode, readVoiceShortcut, saveVoiceMode, voicePreferenceScope } from "../lib/voicePreferences";
+import { isVoiceShortcutTarget, matchesVoiceShortcut } from "../lib/voiceShortcut";
 
 export function useVoiceChatRuntime(): void {
-  const { state, stateRef, dispatch } = useAppContext();
+  const { state, stateRef, dispatch, activeQuerySessionRequestIdRef, querySessionsRef } = useAppContext();
   const sessionRef = useRef<VoiceSession | null>(null);
   const capabilitiesRetry = useRef<(() => void) | null>(null);
   const bindingRef = useRef({ agentKey: "", chatId: "" });
   const worker = resolveCurrentWorkerSummary(state);
   const agentKey = worker?.type === "agent" ? worker.sourceId : "";
+  const preferenceScope = voicePreferenceScope(state.accessToken);
+  const previousScope = useRef(preferenceScope);
+
+  useEffect(() => {
+    if (previousScope.current !== preferenceScope) {
+      sessionRef.current?.close();
+      sessionRef.current = null;
+      dispatch({ type: "SET_INPUT_MODE", mode: "text" });
+      dispatch({ type: "PATCH_VOICE_CHAT", patch: { status: "idle", sessionActive: false, awaiting: false } });
+    }
+    previousScope.current = preferenceScope;
+    const { shortcut, shortcutError } = readVoiceShortcut(preferenceScope);
+    dispatch({ type: "SET_VOICE_SHORTCUT", shortcut, error: shortcutError });
+    dispatch({ type: "PATCH_VOICE_CHAT", patch: { interruptionMode: readVoiceMode(preferenceScope), duplexStatus: "off", duplexError: "" } });
+  }, [dispatch, preferenceScope]);
 
   useEffect(() => {
     if (!isVoiceEnabled()) return;
@@ -53,11 +71,17 @@ export function useVoiceChatRuntime(): void {
   useEffect(() => {
     const patch = (value: Partial<VoiceChatState>) => dispatch({ type: "PATCH_VOICE_CHAT", patch: value });
     const start = (event: Event) => {
-      const detail = (event as CustomEvent<Partial<VoiceChatState>>).detail || {};
+      const detail = (event as CustomEvent<{ selectedVoice?: string }>).detail || {};
       const current = stateRef.current;
       const capabilities = current.voiceChat.capabilities;
       const currentWorker = resolveCurrentWorkerSummary(current);
       if (!isVoiceEnabled() || !capabilities?.enabled || currentWorker?.type !== "agent") return;
+      if (current.inputMode !== "voice" && !canStartVoiceChat(current.voiceChat,
+        resolveMainChatRuntime(stateRef, activeQuerySessionRequestIdRef, querySessionsRef).running,
+        Boolean(current.activeFrontendTool || current.activeAwaiting))) return;
+      // A synchronous session reference also guards multiple macro pulses before React renders.
+      if (sessionRef.current && !sessionRef.current.isClosed && !detail.selectedVoice) return;
+      if (detail.selectedVoice && (current.voiceChat.awaiting || !["listening", "idle", "error"].includes(current.voiceChat.status))) return;
       sessionRef.current?.close();
       const binding = { agentKey: currentWorker.sourceId, chatId: current.chatId || "" };
       bindingRef.current = binding;
@@ -72,7 +96,8 @@ export function useVoiceChatRuntime(): void {
       const session = new VoiceSession({
         capabilities, agentKey: binding.agentKey, chatId: binding.chatId,
         newChat, primary,
-        voice: detail.selectedVoice || current.voiceChat.selectedVoice || capabilities.defaultVoice, mode: detail.mode || current.voiceChat.mode,
+        voice: detail.selectedVoice || current.voiceChat.selectedVoice || capabilities.defaultVoice,
+        interruptionMode: current.voiceChat.interruptionMode,
         patch: value => { if (sessionRef.current === session) patch(value); },
         onRun: (chatId, runId) => {
           if (sessionRef.current !== session) return;
@@ -88,7 +113,7 @@ export function useVoiceChatRuntime(): void {
               dispatch({ type: "SET_CHAT_ID", chatId });
             }
             dispatch({ type: "SET_CHAT_AGENT_BY_ID", chatId, agentKey: binding.agentKey });
-            dispatch({ type: "PATCH_VOICE_CHAT", patch: { sessionActive: true, status: "thinking", currentAgentKey: binding.agentKey, currentAgentName: currentWorker.displayName } });
+            dispatch({ type: "PATCH_VOICE_CHAT", patch: { sessionActive: true, currentAgentKey: binding.agentKey, currentAgentName: currentWorker.displayName } });
             dispatch({ type: "SET_CURRENT_CHAT_ACTIVE_RUN", activeRun: {
               chatId, runId, agentKey: binding.agentKey, owner: { kind: "agent", agentKey: binding.agentKey },
             } });
@@ -102,6 +127,7 @@ export function useVoiceChatRuntime(): void {
         },
       });
       sessionRef.current = session;
+      dispatch({ type: "SET_INPUT_MODE", mode: "voice" });
       session.setMuted(current.audioMuted);
       patch({ status: "connecting", sessionActive: false, awaiting: false, error: "", partialUserText: "", partialAssistantText: "",
         currentAgentKey: binding.agentKey, currentAgentName: currentWorker.displayName });
@@ -116,31 +142,51 @@ export function useVoiceChatRuntime(): void {
     };
     const abort = () => sessionRef.current?.abort();
     const stop = () => sessionRef.current?.stopListening();
-    const resume = () => sessionRef.current?.listen();
+    const resume = () => {
+      if (stateRef.current.voiceChat.sessionActive) sessionRef.current?.listen();
+    };
+    const modeChange = (event: Event) => {
+      const mode = (event as CustomEvent<VoiceInterruptionMode>).detail;
+      if (mode !== "button" && mode !== "duplex") return;
+      saveVoiceMode(voicePreferenceScope(stateRef.current.accessToken), mode);
+      patch({ interruptionMode: mode, duplexStatus: "off", duplexError: "" });
+      void sessionRef.current?.setInterruptionMode(mode);
+    };
+    const keydown = (event: KeyboardEvent) => {
+      const current = stateRef.current;
+      if (!isVoiceEnabled() || !current.voiceChat.capabilities?.enabled || resolveCurrentWorkerSummary(current)?.type !== "agent") return;
+      if (!matchesVoiceShortcut(event, current.voiceShortcut) || event.repeat || event.isComposing ||
+        event.defaultPrevented || document.hidden || !document.hasFocus() || !isVoiceShortcutTarget(event.target)) return;
+      event.preventDefault();
+      event.stopPropagation();
+      if (current.inputMode === "voice") resume();
+      else start(event);
+    };
     const leave = () => {
       sessionRef.current?.close();
       sessionRef.current = null;
       dispatch({ type: "SET_INPUT_MODE", mode: "text" });
       patch({ status: "idle", sessionActive: false, awaiting: false });
     };
-    const visibility = () => { if (document.hidden) leave(); };
+    document.addEventListener("keydown", keydown);
     window.addEventListener("pagehide", leave);
-    document.addEventListener("visibilitychange", visibility);
     window.addEventListener("agent:voice-start", start);
     window.addEventListener("agent:voice-abort", abort);
     window.addEventListener("agent:voice-listen-stop", stop);
     window.addEventListener("agent:voice-listen", resume);
+    window.addEventListener("agent:voice-interruption-mode", modeChange);
     return () => {
+      document.removeEventListener("keydown", keydown);
       window.removeEventListener("pagehide", leave);
-      document.removeEventListener("visibilitychange", visibility);
       window.removeEventListener("agent:voice-start", start);
       window.removeEventListener("agent:voice-abort", abort);
       window.removeEventListener("agent:voice-listen-stop", stop);
       window.removeEventListener("agent:voice-listen", resume);
+      window.removeEventListener("agent:voice-interruption-mode", modeChange);
       sessionRef.current?.close();
       sessionRef.current = null;
     };
-  }, [dispatch, stateRef]);
+  }, [dispatch, stateRef, activeQuerySessionRequestIdRef, querySessionsRef]);
 
   useEffect(() => {
     const binding = bindingRef.current;
