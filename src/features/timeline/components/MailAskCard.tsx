@@ -1,6 +1,7 @@
 import React, { useRef, useState } from "react";
 import { Alert, Button, Checkbox, Form, Input, InputNumber, Radio, Select } from "antd";
-import { submitMailAsk, type MailAskSubmission } from "@/shared/data/api/requests/mailbox";
+import type { AwaitingSubmitInput } from "@/features/transport/contracts/realtimeTransport";
+import { useRunTransport } from "@/features/transport/hooks/useRealtimeTransport";
 import type { MailRecord } from "@/shared/data/api/dto/mailbox";
 import { useMailDetail } from "@/features/mailbox/hooks/useMailDetail";
 import { AwaitingHtmlContainer } from "@/features/tools/components/AwaitingHtmlContainer";
@@ -8,10 +9,14 @@ import type { FormActiveAwaiting } from "@/features/tools/lib/toolsState";
 import { toWireAwaitingSubmit } from "@/features/tools/lib/protocol";
 import { useI18n } from "@/shared/i18n";
 import { buildMailFormAwaiting, parseMailAskSnapshot } from "../lib/mailAskSnapshot";
+import { useTimelineInteraction } from "./TimelineInteractionContext";
 import styles from "./MailAskCard.module.css";
 
 type Answers = Record<string, unknown>;
-type AnswerPayload = Pick<MailAskSubmission, "params" | "param">;
+type AnswerPayload = {
+  params?: Record<string, unknown>[];
+  param?: { decision: string; data?: Record<string, unknown> };
+};
 
 function MailFormView({ awaiting, submit }: {
   awaiting: FormActiveAwaiting;
@@ -37,6 +42,8 @@ function MailAskContent({ mail, loadError, refresh }: {
   mail: MailRecord; loadError: string; refresh: () => Promise<void>;
 }) {
   const { t } = useI18n();
+  const runs = useRunTransport();
+  const interaction = useTimelineInteraction();
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -61,7 +68,11 @@ function MailAskContent({ mail, loadError, refresh }: {
     submitting.current = true;
     setBusy(true); setError("");
     try {
-      await submitMailAsk({ ...payload, runId: mail.fromRunId, agentKey: mail.fromAgentKey, awaitingId: mail.awaitingId! });
+      // Run control goes through the shared transport; Desktop rejects it over plain HTTP.
+      await runs.submitAwaiting({
+        ...(payload as Pick<AwaitingSubmitInput, "params" | "param">),
+        runId: mail.fromRunId, owner: { kind: "agent", agentKey: mail.fromAgentKey }, awaitingId: mail.awaitingId!,
+      });
       setSubmitted(true);
       // A failed refresh must not make an accepted answer actionable again.
       await refresh().catch(() => undefined);
@@ -71,6 +82,8 @@ function MailAskContent({ mail, loadError, refresh }: {
       return message;
     } finally { submitting.current = false; setBusy(false); }
   };
+  const workerChat = mail.fromChatId ? { chatId: mail.fromChatId, agentKey: mail.fromAgentKey } : undefined;
+  const workerHref = workerChat && interaction?.getChatHref?.(workerChat);
   const status = submitted && ["accepting", "queued", "inflight", "delivered"].includes(mail.status)
     ? t("mailbox.ask.submitted") : t(`mailbox.status.${mail.status}`);
 
@@ -78,7 +91,11 @@ function MailAskContent({ mail, loadError, refresh }: {
     <header className={styles.header}>
       <strong>{mail.fromAgentName || mail.fromAgentKey}</strong>
       <span className={styles.status}>{status}</span>
-      <a href={`/?${new URLSearchParams({ chatId: mail.fromChatId })}`}>{t("mailbox.openWorker")}</a>
+      {workerChat && workerHref && <a href={workerHref} onClick={event => {
+        if (!interaction?.openChat || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+        event.preventDefault();
+        interaction.openChat(workerChat);
+      }}>{t("mailbox.openWorker")}</a>}
     </header>
     {(error || loadError) && <Alert type="error" message={error || loadError} />}
     {active && (!snapshot || !canSubmit) && <Alert type="info" message={t("mailbox.unavailable")} />}

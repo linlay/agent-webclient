@@ -14,17 +14,6 @@ export function getMailDetail(mailId: string, signal?: AbortSignal) {
  return requestJson<MailRecord>(`${dataEndpoints.mailDetail.path}?${new URLSearchParams({mailId})}`, {signal});
 }
 
-export interface MailAskSubmission {
-  runId: string;
-  agentKey: string;
-  awaitingId: string;
-  params?: Record<string, unknown>[];
-  param?: { decision: string; data?: Record<string, unknown> };
-}
-export function submitMailAsk(input: MailAskSubmission) {
-  return postJson(dataEndpoints.submit.path, input);
-}
-
 export function sendUserMessageHttp(input: import("../dto/mailbox").SendUserMessageRequest) {
   return postJson<import("../dto/mailbox").SendUserMessageReceipt>(dataEndpoints.send.path, input);
 }

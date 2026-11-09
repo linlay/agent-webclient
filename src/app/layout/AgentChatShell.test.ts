@@ -1402,6 +1402,44 @@ describe("AgentChatShell", () => {
     useEffectSpy.mockRestore();
   });
 
+  it("routes an explicit Agent chat open and leaves bare or same-route loads local", () => {
+    const useEffectSpy = jest
+      .spyOn(React, "useEffect")
+      .mockImplementation((effect: React.EffectCallback) => {
+        effect();
+      });
+    useSearchParams.mockReturnValue([
+      new URLSearchParams("chatId=chat-main&lang=en"),
+    ]);
+    useAppState.mockReturnValue({
+      ...createInitialState(),
+      agents: [
+        { key: "demo-agent", name: "Demo Agent", role: "Worker", mode: "REACT" },
+      ],
+      workerSelectionKey: "agent:demo-agent",
+    });
+
+    renderToStaticMarkup(React.createElement(AgentChatShell));
+
+    const loadChatListener = globalWithDom.window?.addEventListener.mock.calls.find(
+      ([type]) => type === "agent:load-chat",
+    )?.[1] as ((event: Event) => void) | undefined;
+    expect(loadChatListener).toEqual(expect.any(Function));
+
+    loadChatListener?.(new CustomEvent("agent:load-chat", { detail: { chatId: "chat-worker" } }));
+    loadChatListener?.(new CustomEvent("agent:load-chat", {
+      detail: { chatId: "chat-main", agentKey: "demo-agent", forceReload: true },
+    }));
+    expect(navigateMock).not.toHaveBeenCalled();
+
+    loadChatListener?.(new CustomEvent("agent:load-chat", {
+      detail: { chatId: "chat-worker", agentKey: "demo-agent" },
+    }));
+    expect(navigateMock).toHaveBeenCalledWith("/agent/demo-agent?lang=en&chatId=chat-worker");
+
+    useEffectSpy.mockRestore();
+  });
+
   it("leaves route theme query parameters to the base shell", () => {
     const dispatch = jest.fn();
     const useEffectSpy = jest

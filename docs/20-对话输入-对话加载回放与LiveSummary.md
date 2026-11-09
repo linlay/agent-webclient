@@ -54,7 +54,7 @@ new Chat 首次创建、数据归属一致的 canonical promotion 与有效同 C
 
 当前对象历史与全局历史是两个独立入口。Copilot 顶栏、全局搜索和全局快捷操作通过 Command Overlay 打开当前 Agent/Team 的历史抽屉：Agent 历史使用 `GET /api/chats?agentKey=...`，选择记录后派发 `agent:load-chat` 并在当前壳层内切换。全局聊天历史独立使用 `/history`，以无参数 `GET /api/chats` 获取全量摘要，并在前端按关键词、`updatedAt` 自然日范围和 Agent/Team 归属组合筛选；Agent-owned 记录只输出 `/agent/:agentKey?chatId=...`。Overview、Debug、Planning、Source、Artifact、Reference 的 URL 定位字段不会传给后端；它们只调用 `GET /api/chat?chatId=...`，再从同一 replay 投影按各自稳定 ID 定位。缺少或无效 ID 显示无效目标，不回退到其他节点或最新 Run。
 
-Agent Copilot 使用相同的稳定对话身份规则：新对话收到稳定 `chatId` 后将 `/copilot/:agentKey` replace 为 `/copilot/:agentKey?chatId=<id>`，有效原始 live query 不重复回放。历史选择和 Router 目标进入同一个会话协调入口，兼容 `agent:load-chat` 事件不维护另一套加载判定；点击新对话或切换 Agent 时清除旧 `chatId`。这些导航保留 `lang`、`theme`、`hostTheme`、`wsSource` 等宿主参数。Desktop 只被动镜像 URL，不读取 query 流 payload。
+Agent Copilot 使用相同的稳定对话身份规则：新对话收到稳定 `chatId` 后将 `/copilot/:agentKey` replace 为 `/copilot/:agentKey?chatId=<id>`，有效原始 live query 不重复回放。历史选择和 Router 目标进入同一个会话协调入口，兼容 `agent:load-chat` 事件不维护另一套加载判定；点击新对话或切换 Agent 时清除旧 `chatId`。这些导航保留 `lang`、`theme`、`hostTheme`、`wsSource` 等宿主参数。Desktop 只被动镜像 URL，不读取 query 流 payload。`/agent/:agentKey` 同样以路由 `chatId` 为当前 Chat：带 `agentKey` 且目标不同于当前路由的 `agent:load-chat` 由壳层改写为 `/agent/:agentKey?chatId=<id>` 导航，Desktop 据此同步导航目标与 owner；不带 `agentKey` 的事件仍只在本地加载，否则路由协调会切回原 Chat。
 
 ## 边界与非目标
 

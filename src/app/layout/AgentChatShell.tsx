@@ -530,6 +530,44 @@ const AgentChatShellContent: React.FC = () => {
     };
   }, [agentKey, chatId, navigate, searchParams]);
 
+  useEffect(() => {
+    if (
+      typeof window === "undefined" ||
+      typeof window.addEventListener !== "function"
+    ) {
+      return;
+    }
+
+    // This route owns the visible Chat: opening another Chat must change the
+    // route (Desktop follows it to move its navigation and owner), otherwise
+    // the route load switches straight back. Events without an Agent stay local.
+    const handleLoadChat = (event: Event) => {
+      const detail = ((event as CustomEvent).detail || {}) as {
+        chatId?: unknown;
+        agentKey?: unknown;
+      };
+      const targetChatId = String(detail.chatId || "").trim();
+      const targetAgentKey = String(detail.agentKey || "").trim();
+      if (
+        !targetChatId ||
+        !targetAgentKey ||
+        (targetAgentKey === agentKey && targetChatId === chatId)
+      ) {
+        return;
+      }
+
+      navigate(buildSurfaceRoute(
+        { kind: "agent", agentKey: targetAgentKey, chatId: targetChatId },
+        readSurfacePresentationContext(searchParams.toString()),
+      ));
+    };
+
+    window.addEventListener("agent:load-chat", handleLoadChat);
+    return () => {
+      window.removeEventListener("agent:load-chat", handleLoadChat);
+    };
+  }, [agentKey, chatId, navigate, searchParams]);
+
   const handleResendInNewChat = useCallback((text: string, snapshot?: import("@/features/timeline/lib/queryResend").QueryResendSnapshot) => {
     const resendMessage = String(text || "").trim();
     const sourceChatId = String(chatId || "").trim();

@@ -2,15 +2,17 @@
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { MailAskCard } from "./MailAskCard";
+import { TimelineInteractionProvider } from "./TimelineInteractionContext";
 import { getMailDetail } from "@/shared/data/api/requests/mailbox";
-import { postJson } from "@/shared/data/api/http";
 jest.mock("@/shared/data/api/requests/mailbox", () => ({ ...jest.requireActual("@/shared/data/api/requests/mailbox"), getMailDetail: jest.fn() }));
-jest.mock("@/shared/data/api/http", () => ({ postJson: jest.fn() }));
+const mockSubmitAwaiting = jest.fn();
+jest.mock("@/features/transport/hooks/useRealtimeTransport", () => ({ useRunTransport: () => ({ submitAwaiting: mockSubmitAwaiting }) }));
 jest.mock("@/shared/i18n", () => ({ useI18n: () => ({ t: (key: string) => key }) }));
 jest.mock("@/features/tools/hooks/useAwaitingFrameDocument", () => ({ useAwaitingFrameDocument: jest.fn(() => ({ html: "<p>Platform approval</p>", loading: false, error: "" })) }));
 jest.mock("@/shared/ui/useAppMessage", () => ({ useAppMessage: () => ({ warning: jest.fn() }) }));
 const detail = jest.mocked(getMailDetail);
-const submit = jest.mocked(postJson);
+const submit = mockSubmitAwaiting;
+const owner = { kind: "agent", agentKey: "worker" };
 beforeEach(() => { detail.mockReset(); submit.mockReset(); });
 beforeAll(() => { Object.defineProperty(window, "matchMedia", { writable: true, value: () => ({ matches: false, addListener: () => { }, removeListener: () => { }, addEventListener: () => { }, removeEventListener: () => { } }) }); (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true; });
 const mail = { mailId: "m", kind: "ask" as const, status: "delivered" as const, createdAt: 1, toAgentKey: "lead", toChatId: "parent", fromAgentKey: "worker", fromChatId: "child", fromRunId: "run", awaitingId: "await", awaitingMode: "question", message: JSON.stringify({ questions: [{ id: "q", question: "Choose", options: [{ label: "Yes", value: "yes" }] }] }) };
@@ -19,10 +21,14 @@ it("refreshes an ask card after mail.updated and disables resolved actions", asy
     const host = document.createElement("div");
     document.body.append(host);
     const root = createRoot(host);
-    await act(async () => { root.render(<MailAskCard mailId="m"/>); });
+    const openChat = jest.fn();
+    const interaction = { getChatHref: ({ chatId }: { chatId: string }) => `/agent/worker?chatId=${chatId}`, openChat };
+    await act(async () => { root.render(<TimelineInteractionProvider value={interaction}><MailAskCard mailId="m"/></TimelineInteractionProvider>); });
     expect(host.textContent).toContain("worker");
     expect(host.querySelector("form")).not.toBeNull();
-    expect(host.querySelector("a")?.href).toContain("chatId=child");
+    expect(host.querySelector("a")?.getAttribute("href")).toBe("/agent/worker?chatId=child");
+    await act(async () => { host.querySelector("a")!.click(); });
+    expect(openChat).toHaveBeenCalledWith({ chatId: "child", agentKey: "worker" });
     const before = detail.mock.calls.length;
     await act(async () => {window.dispatchEvent(new CustomEvent("agent:mail-updated", {detail: {mailId: "unrelated"}}));});
     expect(detail).toHaveBeenCalledTimes(before);
@@ -41,8 +47,8 @@ it("submits as the human to the frozen worker waiting item", async () => {
     const root = createRoot(host);
     await act(async () => { root.render(<MailAskCard mailId="m"/>); });
     await act(async () => { host.querySelector("form")?.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true })); });
-    expect(submit).toHaveBeenCalledWith("/api/submit", expect.objectContaining({ runId: "run", agentKey: "worker", awaitingId: "await", param: { decision: "approve", data: {} } }));
-    expect(submit.mock.calls.at(-1)?.[1]).not.toHaveProperty("origin");
+    expect(submit).toHaveBeenCalledWith(expect.objectContaining({ runId: "run", owner, awaitingId: "await", param: { decision: "approve", data: {} } }));
+    expect(submit.mock.calls.at(-1)?.[0]).not.toHaveProperty("origin");
     await act(async () => root.unmount());
     host.remove();
 });
@@ -78,8 +84,8 @@ it("keeps native approval IDs in the payload and removes controls after acceptan
     await act(async () => root.render(<MailAskCard mailId="m" />));
     try {
         await act(async () => [...host.querySelectorAll("button")].find(button => button.textContent === "approvalDialog.option.approve")!.click());
-        expect(submit).toHaveBeenCalledWith("/api/submit", expect.objectContaining({
-            runId: "run", agentKey: "worker", awaitingId: "await", params: [{ id: "call_1", decision: "approve" }],
+        expect(submit).toHaveBeenCalledWith(expect.objectContaining({
+            runId: "run", owner, awaitingId: "await", params: [{ id: "call_1", decision: "approve" }],
         }));
         expect(host.querySelector("form")).toBeNull();
         expect(host.textContent).toContain("mailbox.ask.submitted");
@@ -129,7 +135,7 @@ it("uses the original sandboxed form view and submits its collected data to the 
         await act(async () => (host.querySelector('input[value="submit"]') as HTMLInputElement).click());
         await act(async () => { reply(); reply(); });
         expect(submit).toHaveBeenCalledTimes(1);
-        expect(submit).toHaveBeenCalledWith("/api/submit", { runId: "run", agentKey: "worker", awaitingId: "await", param: { decision: "approve", data: { approved: true } } });
+        expect(submit).toHaveBeenCalledWith({ runId: "run", owner, awaitingId: "await", param: { decision: "approve", data: { approved: true } } });
         expect(host.querySelector("iframe")).toBeNull();
     } finally { await act(async () => root.unmount()); host.remove(); }
 });
@@ -146,8 +152,8 @@ it("submits a single declared tool approval choice without asking for an interna
         expect(host.querySelector("form")).toBeNull();
         expect(host.textContent).not.toContain("call_internal");
         await act(async () => [...host.querySelectorAll("button")].find(button => button.textContent === "approvalDialog.option.approve")!.click());
-        expect(submit).toHaveBeenCalledWith("/api/submit", expect.objectContaining({
-            param: { decision: "approve", data: { call_internal: "approve" } }, runId: "run", agentKey: "worker", awaitingId: "await",
+        expect(submit).toHaveBeenCalledWith(expect.objectContaining({
+            param: { decision: "approve", data: { call_internal: "approve" } }, runId: "run", owner, awaitingId: "await",
         }));
     } finally { await act(async () => root.unmount()); host.remove(); }
 });
