@@ -58,7 +58,7 @@ it.each([undefined, "steer"] as const)("keeps interactive mail cards outside the
 });
 
 
-it.each(["reply", "notify"] as const)("marks a child Chat %s without body, toggle or link", kind => {
+it.each(["reply", "notify"] as const)("hides an internal child Chat %s completely", kind => {
   const html = renderToStaticMarkup(
     <TimelineInteractionProvider value={{ openChat: jest.fn(), getChatHref: chat => `/?chatId=${chat.chatId}` }}>
       <TimelineRow agents={[{ key: "bot", name: "Bot" } as never]} node={{
@@ -67,11 +67,7 @@ it.each(["reply", "notify"] as const)("marks a child Chat %s without body, toggl
       }} />
     </TimelineInteractionProvider>,
   );
-  expect(html).toContain(`data-inbound="${kind}"`);
-  expect(html).not.toContain("timeline-user-bubble");
-  expect(html).not.toContain("<button");
-  expect(html).not.toContain("<a ");
-  expect(html).not.toContain("Bot");
+  expect(html).toBe("");
 });
 
 it.each(["letter", "reply", "notify"] as const)("collapses another Agent's %s behind a toggle and links the BOT", kind => {
@@ -79,7 +75,7 @@ it.each(["letter", "reply", "notify"] as const)("collapses another Agent's %s be
     <TimelineInteractionProvider value={{ openChat: jest.fn(), getChatHref: chat => `/?chatId=${chat.chatId}` }}>
       <TimelineRow agents={[{ key: "peer", name: "Peer Bot", mode: "BOT", primaryChat: { chatId: "peer-main" } } as never]} node={{
         id: "other", kind: "message", role: "user", ts: 100, text: "internal mail body",
-        inbound: { kind, fromAgentKey: "peer", fromChatId: "peer-worker", child: false },
+        inbound: { kind, fromAgentKey: "peer", fromChatId: "peer-worker", child: false, outcome: "completed" },
       }} />
     </TimelineInteractionProvider>,
   );
@@ -87,6 +83,25 @@ it.each(["letter", "reply", "notify"] as const)("collapses another Agent's %s be
   expect(html).toContain("Peer Bot");
   expect(html).toContain('href="/?chatId=peer-main"');
   expect(html).toContain('aria-expanded="false"');
+  const toggle = html.match(/<button[^>]*aria-expanded="false"[^>]*>([\s\S]*?)<\/button>/);
+  expect(toggle).not.toBeNull();
+  expect(toggle![0]).toContain("aria-label=");
+  expect(toggle![1]).toContain('data-material-icon="keyboard_arrow_down"');
+  expect(toggle![1].replace(/<[^>]+>/g, "")).toBe("");
+  expect(html).not.toContain("·");
   expect(html).not.toContain("internal mail body");
   expect(html).not.toContain("timeline-user-bubble");
+});
+
+it.each(["reply", "notify"] as const)("hides a child %s even when it carries a title, outcome, body and attachment", kind => {
+  const html = renderToStaticMarkup(
+    <TimelineInteractionProvider value={{}}>
+      <TimelineRow agents={[{ key: "bot", name: "文档小助手" } as never]} node={{ id: "reply", kind: "message", role: "user", text: "private reply body",
+        relatedChat: { chatId: "child-chat", title: "创建 Bot：文档小助手" },
+        attachments: [{ name: "private.txt" }],
+        inbound: { kind, fromAgentKey: "bot", fromChatId: "child-chat", child: true, outcome: "completed" },
+      }} />
+    </TimelineInteractionProvider>,
+  );
+  expect(html).toBe("");
 });

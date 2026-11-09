@@ -615,7 +615,7 @@ it("both levels keep a server activity message without classification", () => {
 
 
 it.each(["simple", "detailed"] as const)("keeps an Agent-delivered input as the anchor of the Run it starts in %s", level => {
-  const inbound = { kind: "reply" as const, fromAgentKey: "bot", fromChatId: "worker", child: true };
+  const inbound = { kind: "reply" as const, fromAgentKey: "bot", fromChatId: "worker", child: false };
   const nodes = [
     createNode({ id: "user", kind: "message", role: "user", text: "user query", ts: 100 }),
     createNode({ id: "reply", kind: "message", role: "user", inbound, text: "", ts: 110 }),
@@ -627,4 +627,16 @@ it.each(["simple", "detailed"] as const)("keeps an Agent-delivered input as the 
   expect(items[0]).toMatchObject({ kind: "query", node: { id: "user" } });
   expect(items[1]).toMatchObject({ kind: "query", node: { id: "reply" } });
   expect(items[2]).toMatchObject({ kind: "run", queryNode: { id: "reply" }, nodes: [{ id: "answer" }] });
+});
+
+it.each(["reply", "notify"] as const)("omits internal child %s rows before grouping without hiding the Agent answer", kind => {
+  const nodes = [
+    createNode({ id: "child", kind: "message", role: "user", ts: 100, runId: "run",
+      inbound: { kind, fromAgentKey: "botLumi", fromChatId: "child-chat", child: true } }),
+    createNode({ id: "answer", kind: "content", text: "Answer for the user", ts: 120, runId: "run" }),
+  ];
+  const items = buildTimelineDisplayItems(nodes, [{ type: "run.complete", runId: "run", timestamp: 150 }]);
+  expect(items).toHaveLength(1);
+  expect(items[0]).toMatchObject({ kind: "run", queryNode: null, nodes: [{ id: "answer" }] });
+  expect(buildTimelineDisplayItems(nodes.slice(0, 1), [])).toEqual([]);
 });

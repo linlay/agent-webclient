@@ -435,6 +435,9 @@ export function buildTimelineDisplayItemsFromTerminals(
   };
 
   for (const node of nodes) {
+    // Hide internal child delivery before grouping so it creates no empty
+    // query row or anchor. Other Agents' mail and human approvals stay visible.
+    if (node.inbound?.child) continue;
     // Agent-delivered inputs start a Run too; their row renders as a muted marker.
     const isUserQuery =
       node.kind === "message" &&

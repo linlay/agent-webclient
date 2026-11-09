@@ -147,7 +147,7 @@ export interface TimelineInbound {
 	fromAgentKey: string;
 	fromChatId?: string;
 	outcome?: string;
-	/** Sent back by this Agent's own child Chat: a marker only, never the body. */
+	/** Internal delivery from this Agent's own child Chat: hidden from the timeline, never the body. */
 	child: boolean;
 }
 
