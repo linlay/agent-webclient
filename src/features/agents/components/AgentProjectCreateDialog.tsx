@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { Alert, Button, Checkbox, Flex, Input, Modal, Radio, Select, Spin } from "antd";
 import type { AgentProjectCreateRuntime } from "@/features/agents/hooks/useAgentProjectCreate";
 import {
@@ -11,12 +11,11 @@ import { resolveModelPresentation } from "@/shared/icons/model";
 import { MaterialIcon, type MaterialIconName } from "@/shared/ui/MaterialIcon";
 import styles from "./AgentProjectCreateDialog.module.css";
 
-const projectTypes: Record<AgentCreationTypeKey, { order: number; icon: MaterialIconName }> = {
-  general: { order: 0, icon: "robot_2" },
-  coder: { order: 1, icon: "code" },
-  kbase: { order: 2, icon: "book_2" },
-  team: { order: 3, icon: "hub" },
-  acp: { order: 4, icon: "terminal" },
+const projectTypes: Partial<Record<AgentCreationTypeKey, { icon: MaterialIconName }>> = {
+  general: { icon: "robot_2" },
+  coder: { icon: "code" },
+  kbase: { icon: "book_2" },
+  acp: { icon: "terminal" },
 };
 
 const labelStyle: React.CSSProperties = {
@@ -54,8 +53,16 @@ export const AgentProjectCreateDialog: React.FC<{
   const effectiveModelKey = options && selection ? resolveProjectCreationModel(options, selection) : "";
   const bridges = type?.acpBridges ?? [];
 
+  const capabilityGroups = useMemo(() => {
+    const defaults = new Set(type?.defaultGroups ?? []);
+    return [...(options?.groups ?? [])].sort((a, b) =>
+      Number(b.available && defaults.has(b.key)) - Number(a.available && defaults.has(a.key)));
+  }, [options, type]);
+
   return (
+    <>
     <Modal
+      className={styles.dialog}
       title={t("leftSidebar.createProject.title")}
       open={runtime.open}
       width="min(560px, calc(100vw - 32px))"
@@ -113,7 +120,7 @@ export const AgentProjectCreateDialog: React.FC<{
                 buttonStyle="solid"
                 onChange={(event) => runtime.setType(event.target.value as AgentCreationTypeKey)}
               >
-                {[...options.types].sort((a, b) => (projectTypes[a.key]?.order ?? Number.MAX_SAFE_INTEGER) - (projectTypes[b.key]?.order ?? Number.MAX_SAFE_INTEGER)).map((item) => (
+                {(["general", "coder", "kbase", "acp"] as const).map((key) => options.types.find((item) => item.key === key) ?? { key, available: false, unavailableReason: t("leftSidebar.createProject.typeUnavailable"), label: key }).map((item) => (
                   <Radio.Button
                     className={styles.typeButton}
                     key={item.key}
@@ -123,12 +130,35 @@ export const AgentProjectCreateDialog: React.FC<{
                   >
                     <span className={styles.typeLabel}>
                       <MaterialIcon name={projectTypes[item.key]?.icon ?? "robot_2"} className={styles.typeIcon} />
-                      {projectTypes[item.key] ? t(`leftSidebar.createProject.type.${item.key}`) : item.label || item.key}
+                      {t(`leftSidebar.createProject.type.${item.key}`)}
+                      {!item.available && <span style={hintStyle}>{item.key === "acp" ? t("leftSidebar.createProject.noAcpProxy") : item.unavailableReason}</span>}
                     </span>
                   </Radio.Button>
                 ))}
               </Radio.Group>
             </div>
+
+            <div>
+              <label style={labelStyle}>{t("leftSidebar.createProject.projectDirectory")}</label>
+              <Flex gap={8}>
+                <Input
+                  value={runtime.workspaceDir}
+                  placeholder={t("leftSidebar.createProject.directoryRequired")}
+                  disabled={runtime.submitting}
+                  onChange={(event) => runtime.setWorkspaceDir(event.target.value)}
+                />
+                <Button
+                  disabled={runtime.submitting || runtime.browserLoading}
+                  loading={runtime.nativeDirectoryPickerAvailable && runtime.browserLoading}
+                  icon={<MaterialIcon name="folder_open" />}
+                  onClick={runtime.openBrowser}
+                >
+                  {t("leftSidebar.createProject.selectDirectory")}
+                </Button>
+              </Flex>
+              <div style={hintStyle}>{t(runtime.nativeDirectoryPickerAvailable ? "leftSidebar.createProject.directoryLocalHint" : "leftSidebar.createProject.directoryHostHint")}</div>
+            </div>
+
 
             {type?.supportsGroups ? (
               <div>
@@ -139,12 +169,12 @@ export const AgentProjectCreateDialog: React.FC<{
                   <div style={hintStyle}>{t("leftSidebar.createProject.capabilitiesEmpty")}</div>
                 ) : (
                   <Checkbox.Group
+                    className={styles.capabilityList}
                     value={selection.groups}
                     disabled={runtime.submitting}
-                    style={{ display: "flex", flexDirection: "column", gap: 8 }}
                     onChange={(values) => runtime.setGroups(values.map(String))}
                   >
-                    {options.groups.map((group) => (
+                    {capabilityGroups.map((group) => (
                       <Checkbox
                         key={group.key}
                         value={group.key}
@@ -182,12 +212,6 @@ export const AgentProjectCreateDialog: React.FC<{
               </div>
             ) : null}
 
-            {type?.key !== "acp" && <div>
-              <label style={labelStyle}>{t("knowledge.binding.label")}</label>
-              <Select style={{width: "100%"}} value={runtime.libraryChoice} disabled={runtime.submitting} onChange={runtime.setLibraryChoice}
-                options={[...(type?.key === "kbase" ? [] : [{value: "", label: t("knowledge.binding.none")}]), {value: "__new__", label: t("knowledge.binding.new")}, ...runtime.libraries.filter(lib => !lib.orphaned && !lib.invalidId).map(lib => ({value: lib.id, label: lib.name || lib.id}))]} />
-              <div style={hintStyle}>{t("knowledge.binding.hint")}</div>
-            </div>}
             {type?.modelRequired ? (
               <div>
                 <label style={labelStyle}>{t("leftSidebar.createProject.model")}</label>
@@ -223,45 +247,14 @@ export const AgentProjectCreateDialog: React.FC<{
               </div>
             ) : null}
 
-            <div>
-              <label style={labelStyle}>{t("leftSidebar.createProject.projectDirectory")}</label>
-              <Flex gap={8}>
-                <Input
-                  value={runtime.workspaceDir}
-                  placeholder={t(runtime.nativeDirectoryPickerAvailable ? "leftSidebar.createProject.directoryLocalPlaceholder" : "leftSidebar.createProject.directoryPlaceholder")}
-                  disabled={runtime.submitting}
-                  onChange={(event) => runtime.setWorkspaceDir(event.target.value)}
-                />
-                <Button
-                  disabled={runtime.submitting || runtime.browserLoading}
-                  loading={runtime.nativeDirectoryPickerAvailable && runtime.browserLoading}
-                  icon={<MaterialIcon name="folder_open" />}
-                  onClick={runtime.openBrowser}
-                >
-                  {t("leftSidebar.createProject.browse")}
-                </Button>
-              </Flex>
-              <div style={hintStyle}>{t(runtime.nativeDirectoryPickerAvailable ? "leftSidebar.createProject.directoryLocalHint" : "leftSidebar.createProject.directoryHostHint")}</div>
-              {runtime.browserOpen ? <HostDirectoryBrowser runtime={runtime} /> : null}
-            </div>
 
-            <div>
-              <label style={labelStyle}>{t("leftSidebar.createProject.projectName")}</label>
-              <Input
-                value={runtime.projectName}
-                placeholder={t("leftSidebar.createProject.projectNamePlaceholder")}
-                disabled={runtime.submitting}
-                onChange={(event) => {
-                  runtime.setProjectName(event.target.value);
-                  runtime.setProjectNameTouched(true);
-                }}
-              />
-            </div>
           </>
         )}
         {runtime.error ? <Alert type="error" showIcon message={runtime.error} /> : null}
       </Flex>
     </Modal>
+    <HostDirectoryBrowser runtime={runtime} />
+    </>
   );
 };
 
@@ -270,14 +263,16 @@ const HostDirectoryBrowser: React.FC<{ runtime: AgentProjectCreateRuntime }> = (
   const { t } = useI18n();
   const listing = runtime.browserListing;
   return (
-    <div
-      style={{
-        marginTop: 8,
-        padding: 8,
-        border: "1px solid var(--ant-color-border, rgba(128,128,128,0.3))",
-        borderRadius: 6,
-      }}
+    <Modal
+      title={t("leftSidebar.createProject.selectDirectory")}
+      open={runtime.open && runtime.browserOpen}
+      onCancel={runtime.closeBrowser}
+      width="min(560px, calc(100vw - 32px))"
+      centered
+      footer={null}
+      destroyOnHidden
     >
+      <div style={{ ...hintStyle, marginBottom: 12 }}>{t("leftSidebar.createProject.directoryHostHint")}</div>
       <Flex align="center" gap={8} style={{ marginBottom: 6 }}>
         <Button
           size="small"
@@ -328,6 +323,6 @@ const HostDirectoryBrowser: React.FC<{ runtime: AgentProjectCreateRuntime }> = (
           {t("leftSidebar.createProject.browseChoose")}
         </Button>
       </Flex>
-    </div>
+    </Modal>
   );
 };

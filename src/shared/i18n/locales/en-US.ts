@@ -2072,6 +2072,7 @@ export const enUSMessages = {
   "leftSidebar.createProject.modelRequired": "Choose a model.",
   "leftSidebar.createProject.modelDefaultMissing": "This type has no usable default model. Choose one.",
   "leftSidebar.createProject.directoryHostHint": "The directory is on the Agent Platform host, not on the computer running this browser.",
+  "leftSidebar.createProject.selectDirectory": "Select directory",
   "leftSidebar.createProject.browse": "Browse",
   "leftSidebar.createProject.browseUp": "Up",
   "leftSidebar.createProject.browseChoose": "Use this directory",

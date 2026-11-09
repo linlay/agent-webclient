@@ -1,3 +1,23 @@
+.dialog :global(.ant-modal-body) {
+    max-height: calc(100dvh - 180px);
+    overflow-y: auto;
+}
+
+.capabilityList:global(.ant-checkbox-group) {
+    display: flex;
+    flex-direction: column;
+    flex-wrap: nowrap;
+    gap: 8px;
+    max-height: min(240px, 30dvh);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+}
+
+.capabilityList > :global(.ant-checkbox-wrapper) {
+    flex-shrink: 0;
+}
+
 .modelLabel {
     display: inline-flex;
     align-items: center;

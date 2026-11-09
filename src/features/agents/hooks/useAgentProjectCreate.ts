@@ -71,8 +71,13 @@ export function useAgentProjectCreate(options: {
     try {
       const response = await loadAgentCreationOptions();
       if (seq !== loadSeq.current) return;
-      setCreationOptions(response);
-      setSelection(initialProjectCreationSelection(response));
+      const projectOptions = {
+        ...response,
+        types: (["general", "coder", "kbase", "acp"] as const).flatMap(key =>
+          response.types.filter(item => item.key === key)),
+      };
+      setCreationOptions(projectOptions);
+      setSelection(initialProjectCreationSelection(projectOptions));
     } catch (loadError) {
       if (seq !== loadSeq.current) return;
       setCreationOptions(null);

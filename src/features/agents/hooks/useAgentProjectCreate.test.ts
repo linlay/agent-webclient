@@ -67,6 +67,17 @@ describe("useAgentProjectCreate host directory browser", () => {
     });
   }
 
+  it("limits project choices to the Desktop catalog before selecting a default", async () => {
+    const type = (key: string) => ({ key, available: true, defaultGroups: [], supportsGroups: false });
+    jest.mocked(loadAgentCreationOptions).mockResolvedValue({
+      types: [type("bot"), type("acp"), type("team"), type("coder"), type("general"), type("kbase")],
+      groups: [], models: [],
+    } as any);
+    await act(async () => runtime.reloadOptions());
+    expect(runtime.creationOptions?.types.map(item => item.key)).toEqual(["general", "coder", "kbase", "acp"]);
+    expect(runtime.selection?.typeKey).toBe("general");
+  });
+
   it("cannot confirm the previous directory while another one is loading", async () => {
     await act(async () => runtime.openBrowser());
     expect(runtime.browserCanChoose).toBe(false);
