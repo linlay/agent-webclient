@@ -2655,6 +2655,8 @@ export const zhCNMessages = {
   "timeline.run.interruptedNeutral": "本次运行已中断",
   "timeline.run.deriveChat": "派生新对话",
   "timeline.run.deriveChatSuccess": "已派生新对话",
+  "timeline.run.deriveChatUnsupported": "此引擎尚不支持从所选回答派生对话。",
+  "timeline.run.deriveChatPointUnavailable": "无法定位所选回答的历史节点，不能安全派生对话。",
   "timeline.run.deriveChatFailed": "派生新对话失败",
   "timeline.feedback.downvote": "点踩",
   "timeline.feedback.clearDownvote": "取消点踩",

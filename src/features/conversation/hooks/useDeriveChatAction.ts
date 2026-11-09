@@ -1,3 +1,4 @@
+import { ApiError } from "@/shared/data/api/http";
 import { useCallback, useMemo } from "react";
 import { useAppContext } from "@/app/state/AppContext";
 import {
@@ -60,7 +61,13 @@ export function useDeriveChatAction() {
         message.success(t("timeline.run.deriveChatSuccess"));
       } catch (error) {
         const errorMessage = (error as Error)?.message || String(error);
-        message.error(t("timeline.run.deriveChatFailed"));
+        const code = error instanceof ApiError ? error.platformError?.code || (error.data as {errorCode?: string} | null)?.errorCode || String(error.code || '') : '';
+        const reason: Record<string,string> = {
+          capability_unsupported: 'timeline.run.deriveChatUnsupported',
+          fork_point_unavailable: 'timeline.run.deriveChatPointUnavailable',
+          engine_busy: 'acp.busy',
+        };
+        message.error(t(reason[code] || "timeline.run.deriveChatFailed"));
         dispatch({
           type: "APPEND_DEBUG",
           line: `[deriveChat error] ${errorMessage}`,

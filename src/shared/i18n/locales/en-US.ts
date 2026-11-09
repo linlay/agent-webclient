@@ -2517,6 +2517,8 @@ export const enUSMessages = {
   "timeline.run.interruptedNeutral": "This run was interrupted.",
   "timeline.run.deriveChat": "Derive new chat",
   "timeline.run.deriveChatSuccess": "New chat derived",
+  "timeline.run.deriveChatUnsupported": "This engine does not support deriving a chat from the selected response.",
+  "timeline.run.deriveChatPointUnavailable": "The selected response could not be located in the upstream history. A chat cannot be safely derived.",
   "timeline.run.deriveChatFailed": "Failed to derive new chat",
   "timeline.feedback.downvote": "Thumbs down",
   "timeline.feedback.clearDownvote": "Clear downvote",

@@ -6,6 +6,7 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { message } from "antd";
 import { createInitialState } from "@/app/state/state";
+import { ApiError } from "@/shared/data/api/http";
 import { deriveChat } from "@/shared/data";
 import { dispatchDerivedChatNavigation, useDeriveChatAction } from "./useDeriveChatAction";
 
@@ -115,4 +116,10 @@ describe("derive chat conversation action", () => {
     dispatchDerivedChatNavigation(" ");
     expect(dispatchEvent).not.toHaveBeenCalled();
   });
+ test.each([['capability_unsupported','timeline.run.deriveChatUnsupported'],['fork_point_unavailable','timeline.run.deriveChatPointUnavailable'],['engine_busy','acp.busy']])('explains %s without navigating',async(code,key)=>{
+  mockDeriveChat.mockRejectedValue(new ApiError(code,{data:{errorCode:code}}));
+  await readAction().execute('run_1');
+  expect(message.error).toHaveBeenCalledWith(key);
+ });
+
 });
