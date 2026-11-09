@@ -1,13 +1,8 @@
 import type { I18nMessages } from "@/shared/i18n/types";
 
 export const zhCNMessages = {
-  "bot.moreHistory": "更多历史",
   "agentConsole.mode.bot.label": "机器人",
   "agentConsole.mode.bot.description": "一个负责调度的主聊天，以及执行任务的分身。",
-  "bot.backToMain": "返回机器人主聊天",
-  "bot.workerHistory": "分身历史",
-  "bot.mainChat": "主聊天",
-  "bot.workerChat": "分身聊天",
   "bot.noMain": "主聊天将在下一条消息时创建",
   "webapps.localAccess": "应用通过 127.0.0.1 本地端口打开。访问远程服务器上的应用时，请先转发对应端口；独立域名接入将在后续提供。",
   "webapps.logs": "日志",

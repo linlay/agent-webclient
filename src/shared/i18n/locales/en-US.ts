@@ -1,13 +1,8 @@
 import type { I18nMessages } from "@/shared/i18n/types";
 
 export const enUSMessages = {
-  "bot.moreHistory": "More history",
   "agentConsole.mode.bot.label": "Bot",
   "agentConsole.mode.bot.description": "One dispatch chat with workers that execute tasks.",
-  "bot.backToMain": "Back to bot main chat",
-  "bot.workerHistory": "Worker history",
-  "bot.mainChat": "Main chat",
-  "bot.workerChat": "Worker chat",
   "bot.noMain": "Your next message creates the main chat",
   "webapps.localAccess": "Apps open on a 127.0.0.1 local port. Forward the matching port to access a remote server. Dedicated domains will be added later.",
   "webapps.logs": "Logs",

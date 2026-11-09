@@ -18,7 +18,6 @@ import {
   useAppState,
 } from "@/app/state/AppContext";
 import type { Agent } from "@/features/agents/lib/agentState";
-import { BotChatHeader } from "@/features/chats/components/BotChatHeader";
 import { TopNav } from "@/app/layout/TopNav";
 import { BottomDock } from "@/app/layout/BottomDock";
 import { ConnectedConversationStage } from "@/features/timeline/components/ConnectedConversationStage";
@@ -901,7 +900,6 @@ const AgentChatShellContent: React.FC = () => {
           id="app"
         >
           <TopNav surface="agent" />
- <BotChatHeader />
           <ConnectedConversationStage
             surfaceMode="agent"
             deriveChatAction={deriveChatAction}
