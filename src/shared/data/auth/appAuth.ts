@@ -75,6 +75,13 @@ function readJwtExpiryMs(token: string): number | null {
   return expSeconds * 1000;
 }
 
+/** Local preference key only; never an authorization decision. */
+export function readJwtPreferenceIdentity(token: string): string | null {
+  const payload = decodeBase64UrlJson(token.split('.')[1] || '');
+  return typeof payload?.sub === 'string' && payload.sub
+    ? JSON.stringify([typeof payload.iss === 'string' ? payload.iss : '', payload.sub]) : null;
+}
+
 function normalizeUsableAccessToken(token: string | null | undefined): string | null {
   const normalized = typeof token === 'string' && token.trim() ? token.trim() : null;
   if (!normalized) {

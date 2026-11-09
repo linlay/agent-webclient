@@ -3,9 +3,11 @@ import type {
   AIAwaitForm,
   AIAwaitPlan,
   AIAwaitQuestion,
+  QuestionDraft,
 } from "@/shared/contracts/agentEvents";
 import { ViewRendererEnum } from "@/shared/contracts/agentEvents";
 import type { RunOwner } from "@/shared/data/runOwner";
+import { applyQuestionDraft } from "./questionDraft";
 
 export interface ToolState {
   toolId: string;
@@ -74,6 +76,7 @@ interface ActiveAwaitingBase {
 }
 
 export interface QuestionActiveAwaiting extends ActiveAwaitingBase {
+  questionDraft?: QuestionDraft;
   mode: "question";
   questions: AIAwaitQuestion[];
 }
@@ -118,6 +121,7 @@ export interface ToolsState {
 }
 
 export type ToolsAction =
+  | { type: "SET_QUESTION_DRAFT"; runId: string; awaitingId: string; draft: unknown }
   | { type: "SET_ACTIVE_FRONTEND_TOOL"; tool: ActiveFrontendTool | null }
   | { type: "SET_ACTIVE_AWAITING"; awaiting: ActiveAwaiting | null }
   | { type: "SET_AWAITING_RUNTIME"; activeAwaiting: ActiveAwaiting | null; pendingAwaitings: ActiveAwaiting[] }
@@ -140,6 +144,10 @@ export function reduceToolsState<S extends ToolsState>(state: S, action: { type:
 export function reduceToolsState<S extends ToolsState>(state: S, input: { type: string }): S | null {
   const action = input as ToolsAction;
   switch (action.type) {
+    case "SET_QUESTION_DRAFT": {
+      const apply = (item: ActiveAwaiting | null) => item?.runId === action.runId && item.awaitingId === action.awaitingId ? applyQuestionDraft(item, action.draft) : item;
+      return { ...state, activeAwaiting: apply(state.activeAwaiting), pendingAwaitings: state.pendingAwaitings.map(item => apply(item)!) };
+    }
     case "SET_ACTIVE_FRONTEND_TOOL":
       return { ...state, activeFrontendTool: action.tool };
     case "SET_ACTIVE_AWAITING":

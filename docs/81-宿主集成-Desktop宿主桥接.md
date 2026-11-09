@@ -88,6 +88,8 @@ Main Chat Composer 只消费 owner Chat 匹配的 `workPanel.composer.insertDraf
 划词按消息或代码的正文归属解析：内联网页、Workspace 文件和 Chat 资源链接的可见文字属于所在消息或代码，支持只选链接的一部分及跨链接选择正文。Desktop 的语义探测以 `purpose: selection` 请求正文所属目标，动作执行和 Standalone 选区读取使用同一归属规则；普通右键仍优先使用链接本身的预览、路径和下载能力。此规则只跳过内联链接，不跨越消息、嵌套代码或独立资源卡片边界，也不将没有正文所属目标的独立链接提升为可操作选区。
 
 ## 相关文件
+
+2026-11-09 配套状态：`workPanel.document.editMode` 已同步 Desktop canonical 契约与两端生成镜像；本次只同步声明。Desktop 的文本 tab 编辑菜单、状态与动作派发尚未实现，不因契约检查通过而视为编辑模式已交付。WebClient 现有消费与 Standalone 行为保留，Desktop 实现与跨端验收另行完成。
 - `../src/shared/data/desktop/desktopHostBridge.ts`
 - `../src/shared/data/auth/appAuth.ts`
 - `../src/shared/data/desktop/desktopScreenshot.ts`

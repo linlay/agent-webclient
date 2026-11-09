@@ -1,5 +1,7 @@
 /** @jest-environment jsdom */
 import { VoiceAudioCapture } from "./voiceAudioCapture";
+import { VoiceVad } from "./voiceVad";
+jest.mock("./voiceVad", () => ({ VoiceVad: { create: jest.fn() } }));
 
 const trackStop = jest.fn();
 const track = { stop: trackStop, readyState: "live", onended: null as (() => void) | null };
@@ -115,4 +117,52 @@ it("coalesces preparation and rejects a context that could not resume", async ()
   await expect(capture.prepare()).rejects.toThrow("could not resume");
   expect(() => capture.start()).toThrow("not ready");
   capture.close();
+});
+
+
+it("detects on the existing microphone, keeps only 480ms locally and never uploads playback monitoring", async () => {
+  let detected!: (candidate: number) => void;
+  const vad = { push: jest.fn(), setActive: jest.fn(), close: jest.fn(async () => undefined) };
+  jest.mocked(VoiceVad.create).mockImplementation(async callback => { detected = callback; return vad as unknown as VoiceVad; });
+  getUserMedia.mockResolvedValue(media);
+  const send = jest.fn(), onset = jest.fn(); const capture = new VoiceAudioCapture(send, jest.fn());
+  await capture.prepare(); await capture.enableDetection(onset, jest.fn()); capture.setDetecting(true);
+  for (let i = 0; i < 60; i++) Context.current.processor.onaudioprocess?.({ inputBuffer: { getChannelData: () => new Float32Array(1024).fill(.5) } });
+  expect(send).not.toHaveBeenCalled(); expect(vad.push).toHaveBeenCalled();
+  detected(1);
+  const buffered = onset.mock.calls[0][0] as Uint8Array[];
+  expect(buffered.reduce((sum, frame) => sum + frame.length, 0)).toBeLessThanOrEqual(15360);
+  expect(buffered[0][1]).not.toBe(0);
+  capture.setDetecting(false); detected(2); expect(onset).toHaveBeenCalledTimes(1);
+  capture.start(); Context.current.processor.onaudioprocess?.({ inputBuffer: { getChannelData: () => new Float32Array(1024) } });
+  expect(send).toHaveBeenCalled(); capture.disableDetection();
+  expect(trackStop).not.toHaveBeenCalled(); expect(Context.current.close).not.toHaveBeenCalled();
+  expect(getUserMedia).toHaveBeenCalledTimes(1);
+  capture.close(); expect(vad.close).toHaveBeenCalledTimes(1); expect(trackStop).toHaveBeenCalledTimes(1);
+});
+
+it("drops stale pre-recording after the tab's audio callbacks stall", async () => {
+  let detected!: (candidate: number) => void;
+  const vad = { push: jest.fn(), setActive: jest.fn(), close: jest.fn(async () => undefined) };
+  jest.mocked(VoiceVad.create).mockImplementation(async callback => { detected = callback; return vad as unknown as VoiceVad; });
+  getUserMedia.mockResolvedValue(media);
+  const now = jest.spyOn(performance, "now").mockReturnValue(1000);
+  const onset = jest.fn(), capture = new VoiceAudioCapture(jest.fn(), jest.fn());
+  await capture.prepare(); await capture.enableDetection(onset, jest.fn()); capture.setDetecting(true);
+  Context.current.processor.onaudioprocess?.({ inputBuffer: { getChannelData: () => new Float32Array(960).fill(.5) } });
+  now.mockReturnValue(2000); detected(1000);
+  expect(onset.mock.calls[0][0]).toEqual([]); capture.close(); now.mockRestore();
+});
+
+it("destroys late model initialization after exit without acquiring another stream", async () => {
+  let finish!: (vad: VoiceVad) => void;
+  const vad = { close: jest.fn(async () => undefined) };
+  jest.mocked(VoiceVad.create).mockImplementation(() => new Promise(resolve => { finish = resolve; }));
+  getUserMedia.mockResolvedValue(media);
+  const capture = new VoiceAudioCapture(jest.fn(), jest.fn()); await capture.prepare();
+  const enabling = capture.enableDetection(jest.fn(), jest.fn());
+  for (let i = 0; i < 4; i++) await Promise.resolve();
+  capture.close(); finish(vad as unknown as VoiceVad); await enabling;
+  expect(vad.close).toHaveBeenCalledTimes(1); expect(getUserMedia).toHaveBeenCalledTimes(1);
+  expect(jest.mocked(VoiceVad.create).mock.calls.at(-1)![2].aborted).toBe(true);
 });

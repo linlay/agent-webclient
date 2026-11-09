@@ -201,6 +201,21 @@ export function normalizeLoadedChatUsageStats(
   if (completionTokensDetails) {
     stats.completionTokensDetails = completionTokensDetails;
   }
+  if (isObjectRecord(value.voice)) {
+    const voice = value.voice;
+    const tasks = readUsageNumber(voice.tasks);
+    if (tasks !== undefined && tasks > 0) {
+      stats.voice = {
+        tasks,
+        unknownTasks: readUsageNumber(voice.unknownTasks) ?? 0,
+        pendingTasks: readUsageNumber(voice.pendingTasks) ?? 0,
+        unpricedTasks: readUsageNumber(voice.unpricedTasks) ?? 0,
+        characters: readUsageNumber(voice.characters) ?? 0,
+        billedAudioSeconds: readUsageNumber(voice.billedAudioSeconds) ?? 0,
+        estimatedCost: normalizeUsageEstimatedCost(voice.estimatedCost),
+      };
+    }
+  }
   const estimatedCost = normalizeUsageEstimatedCost(value.estimatedCost);
   if (estimatedCost) stats.estimatedCost = estimatedCost;
   const timing = normalizeUsageTiming(value.timing);
@@ -213,6 +228,7 @@ export function normalizeLoadedChatUsageStats(
     llmChatCompletionCount > 0 ||
     toolCallCount > 0 ||
     estimatedCost ||
+    stats.voice ||
     timing
     ? stats
     : null;

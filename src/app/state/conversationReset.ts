@@ -62,6 +62,7 @@ export function buildConversationResetState(
 		activeAwaiting: null,
 		pendingAwaitings: [],
 		usageSnapshot: null,
+		usageRefreshFailed: false,
 		usagePopoverOpen: false,
 		rightSidebarOpenTab: stableRightSidebarTab,
 		activeSourceDetail: null,

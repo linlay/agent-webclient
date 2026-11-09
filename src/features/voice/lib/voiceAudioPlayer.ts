@@ -3,6 +3,8 @@ const MAX_SCHEDULED_SECONDS = 1.5;
 const MAX_BUFFERED_SECONDS = 10;
 const RECOVERY_TIMEOUT_MS = 10000;
 
+export type VoicePlayStart = { atMs: number; audioTime: number; clockSource: "output_timestamp" | "context_clock" };
+
 export class VoiceAudioPlayer {
   private context: AudioContext | null = null;
   private sources = new Set<AudioBufferSourceNode>();
@@ -17,8 +19,11 @@ export class VoiceAudioPlayer {
   private lastProgress = 0;
   private resumeAt = 0;
   private resuming = false;
+  private firstStart: number | null = null;
+  private startReported = false;
 
-  constructor(private readonly drained: () => void, private readonly failed: (message: string) => void) {}
+  constructor(private readonly drained: () => void, private readonly failed: (message: string) => void,
+    private readonly started?: (point: VoicePlayStart) => void) {}
 
   get playing(): boolean { return this.pending.length > 0 || this.sources.size > 0; }
 
@@ -68,6 +73,7 @@ export class VoiceAudioPlayer {
     const context = this.context;
     if (!context || !this.playing) return;
     try {
+      this.observeStart(context);
       const now = performance.now();
       if (context.currentTime > this.lastClock) {
         this.lastClock = context.currentTime;
@@ -108,7 +114,9 @@ export class VoiceAudioPlayer {
     source.connect(context.destination);
     this.sources.add(source);
     source.onended = () => {
-      if (!this.sources.delete(source)) return;
+      if (!this.sources.has(source)) return;
+      this.observeStart(context);
+      this.sources.delete(source);
       source.disconnect();
       this.pump();
       this.checkDrained();
@@ -117,6 +125,29 @@ export class VoiceAudioPlayer {
     const startAt = Math.max(context.currentTime + (this.cursor ? .005 : .14), this.cursor);
     this.cursor = startAt + buffer.duration;
     source.start(startAt);
+    if (this.firstStart === null) this.firstStart = startAt;
+  }
+
+  // A scheduled future source is not playback. Observe the audio clock crossing
+  // its start, then map that instant onto this page's performance clock.
+  private observeStart(context: AudioContext): void {
+    if (!this.started || this.startReported || this.firstStart === null || context.state !== "running" || context.currentTime < this.firstStart) return;
+    const now = performance.now();
+    let atMs: number;
+    let clockSource: VoicePlayStart["clockSource"];
+    if (typeof context.getOutputTimestamp === "function") {
+      let stamp: AudioTimestamp;
+      try { stamp = context.getOutputTimestamp(); } catch { return; }
+      if (!Number.isFinite(stamp.contextTime) || !Number.isFinite(stamp.performanceTime) || stamp.contextTime! < this.firstStart || stamp.performanceTime! <= 0) return;
+      atMs = stamp.performanceTime! + (this.firstStart - stamp.contextTime!) * 1000;
+      clockSource = "output_timestamp";
+    } else {
+      atMs = now - (context.currentTime - this.firstStart) * 1000;
+      clockSource = "context_clock";
+    }
+    if (!Number.isFinite(atMs) || atMs < 0 || atMs > now) return;
+    this.startReported = true;
+    this.started({ atMs, audioTime: this.firstStart, clockSource });
   }
 
   finish(): void {
@@ -134,6 +165,8 @@ export class VoiceAudioPlayer {
   }
 
   stop(): void {
+    this.firstStart = null;
+    this.startReported = false;
     this.clearTimer();
     this.pending = [];
     this.pendingBytes = 0;

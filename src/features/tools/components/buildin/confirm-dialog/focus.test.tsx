@@ -46,6 +46,28 @@ afterEach(() => {
   act(() => root.unmount()); host.remove(); jest.clearAllTimers(); jest.useRealTimers(); jest.restoreAllMocks();
 });
 
+test("new draft revisions prefill untouched fields and preserve locally edited answers", async () => {
+  const draft = (revision: number, answers: string[]) => ({ ...data, questions: data.questions.map(q=>({...q})), questionDraft: { revision, answers:[{id:"choice",answers}] } });
+  await render(draft(1,["One"])); await settle();
+  expect(checkboxes().slice(0,2).map(input=>input.checked)).toEqual([true,false]);
+  await render(draft(2,["Two"]));
+  expect(checkboxes().slice(0,2).map(input=>input.checked)).toEqual([false,true]);
+  await render(draft(1,["One"]));
+  expect(checkboxes().slice(0,2).map(input=>input.checked)).toEqual([false,true]);
+  host.querySelector<HTMLElement>(".composer-awaiting-shell")!.focus();
+  await digit("1");
+  expect(checkboxes().slice(0,2).map(input=>input.checked)).toEqual([true,true]);
+  await render(draft(3,["One"]));
+  expect(checkboxes().slice(0,2).map(input=>input.checked)).toEqual([true,true]);
+  expect(submit).not.toHaveBeenCalled();
+});
+
+test("a password field remains empty during draft handoff",async()=>{
+  await render({...data,questions:[{id:"password",question:"Password",type:AIAwaitQuestionType.Password}],questionDraft:{revision:1,answers:[{id:"password",answer:"must-not-prefill"}]}});
+  expect(host.querySelector<HTMLInputElement>('input[type="password"]')?.value).toBe("");
+  expect(submit).not.toHaveBeenCalled();
+});
+
 test("awaiting shell can receive focus and digits without selecting an answer on focus", async () => {
   await render(); await settle();
   const shell = host.querySelector<HTMLElement>(".composer-awaiting-shell")!;
@@ -55,6 +77,17 @@ test("awaiting shell can receive focus and digits without selecting an answer on
   expect(checkboxes().every((input) => !input.checked)).toBe(true);
   expect((await digit("2")).defaultPrevented).toBe(true);
   expect(checkboxes()[1].checked).toBe(true);
+  expect(submit).not.toHaveBeenCalled();
+});
+
+test("modifier shortcuts and already consumed events do not select or submit answers", async () => {
+  await render(); await settle(); option().focus();
+  for (const init of [{ key: " ", code: "Space", ctrlKey: true, shiftKey: true }, { key: "1", metaKey: true }, { key: "Enter" }]) {
+    const event = new KeyboardEvent("keydown", { ...init, bubbles: true, cancelable: true });
+    if (init.key === "Enter") event.preventDefault();
+    await act(async () => document.activeElement!.dispatchEvent(event));
+  }
+  expect(checkboxes().every(input => !input.checked)).toBe(true);
   expect(submit).not.toHaveBeenCalled();
 });
 

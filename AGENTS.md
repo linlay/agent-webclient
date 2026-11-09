@@ -42,7 +42,7 @@ Native `wait` 使用 `tool.wait/tool.wait.update` 投影同 Run 等待，时间�
 - `src/features/transport/lib/platformRunTransport.ts` 与 `src/features/transport/lib/platformFrameClient.ts` 统一传输 Run stream 和控制请求，`src/features/events/lib/eventProcessor.ts` 将协议事件投影为命令
 - `src/features/conversation/hooks/useConversationEventHandler.ts` 统一消费 SSE、WebSocket、Composer 与 Voice 事件源，并将命令归并为当前对话运行态
 - `src/features/timeline/components/*`、`src/app/layout/*`、`src/features/plan/components/PlanPanel.tsx`、`src/features/tools/components/FrontendToolContainer.tsx` 根据状态树渲染
-- `src/features/voice/lib/voiceSession.ts`、`src/features/voice/hooks/useVoiceChatRuntime.ts` 与 `/api/voice/ws` 负责媒体采集/播放和 v1 控制；Query/TTS 编排在 Platform
+- `src/features/voice/lib/voiceSession.ts`、`src/features/voice/hooks/useVoiceChatRuntime.ts` 与 `/api/voice/ws` 负责媒体采集/播放和 v2 控制；Query/TTS 编排在 Platform
 
 ## 4. 目录结构
 - `public/`：HTML 模板等静态入口资源
@@ -122,7 +122,7 @@ Native `wait` 使用 `tool.wait/tool.wait.update` 投影同 Run 等待，时间�
 - 本地开发代理依赖 `webpack.config.js` 中的 `devServer.proxy`，普通 API 与主 `/ws` 代理目标由 `BASE_URL` 控制，语音 HTTP 与精确 `/api/voice/ws` 同样使用 `BASE_URL`；入口须部署 `VOICE_ENABLED=true` 和 capabilities.enabled。
 - Desktop Program Bundle 只交付 `frontend/dist` 和 manifest；静态资源、SPA fallback、`/api/*`、`/api/voice/*` 与 `/ws` 代理由 Desktop main process 托管。
 - Desktop main process 负责 Program Bundle 的静态托管和代理；WebClient 仓库不维护第二套生产发布链。
-- 实时语音依赖浏览器 AudioContext、getUserMedia 与 Platform v1 PCM；文字输入的浏览器 SpeechRecognition 仍是独立听写消费者。浏览器兼容性需单独验证。
+- 实时语音依赖浏览器 AudioContext、getUserMedia 与 Platform v2 PCM；文字输入的浏览器 SpeechRecognition 仍是独立听写消费者。浏览器兼容性需单独验证。
 - `src/app/index.tsx` 只引入 `src/shared/styles/globals.css` 作为真正的全局样式入口；领域组件自行引入 `*.module.css`，Ant Design portal 通过局部 `:global(...)` 兼容，不得把领域选择器放回 shared globals。
 
 ## 8. 开发流程
@@ -240,7 +240,7 @@ TEAM 与普通 Agent 共用 agentKey 身份、目录、管理和运行控制。�
 
 Agent 管理表单支持 `interactionConfig.showPlanningMode/showEditingMode/showTerminal` 三个入口开关，只保存显式覆盖（包括 false）；未配置字段与恢复默认值仍交由 Platform 解析。
 
-实时语音已切换 Platform v1，浏览器不发 Query/TTS 编排。默认部署开关关闭；隔离测试和 Chrome 合成音频验证通过，真人/供应商/设备验收未完成，不宣称整阶段交付。旧协议、调试面板及 tts-voice 专属消费已同批删除，历史块按普通代码显示。
+实时语音已切换 Platform v2（当前工作区；本地 Steer、完整普通题语音收集、原表单草稿预填及按键／全双工软件接点已接入），浏览器不发 Query/TTS 编排。默认部署开关关闭；隔离测试和 Chrome 合成音频验证通过，真人/供应商/设备验收未完成，不宣称整阶段交付。旧协议、调试面板及 tts-voice 专属消费已同批删除，历史块按普通代码显示。
 
 过程展示只使用 simple/detailed（不兼容旧 none）；simple 保留后端一次启动提示、模型公示、必要状态及清除，隐藏每轮自动思考、工具等一句话进度；detailed 展示真实过程，不生成占位。Agent 编辑页提供继承模式配置、详细、精简，详细与精简各带内容说明。默认值由 Platform 解析的 interactionConfig.defaultDetail 决定（agent.yml 覆盖 agent-settings.yml mode 配置，兜底 simple）；send/query/attach 不得发送 detail（Platform 拒绝），只有 `/detail` 重读空闲历史的 /api/chat 可带 detail，不读取旧全局 detail 偏好。历史 /api/chat.display 与下发 run.start.display 区分 defaultDetail/effectiveDetail；时间线显示后端下发的全部节点，不按档位隐藏思考或工具节点（simple 下工具节点只有 wait 与 simpleVisible 工具如 image_generate），simple 仅隐藏重试提示节点；Agent 管理表单只保存显式覆盖，删除 defaultDetail 恢复继承。详见界面基础专题。
 

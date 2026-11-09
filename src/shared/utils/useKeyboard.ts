@@ -39,6 +39,7 @@ export const useKeyboard = (props: UseKeyboardProps) => {
   }, [getAllHost, onKeyDown, onEnter, onClose]);
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
+    if (e.defaultPrevented || e.isComposing) return;
     const key = e.key.toLocaleLowerCase();
     const activeElement = document.activeElement as HTMLElement | null;
     const activeTagName = activeElement?.tagName;

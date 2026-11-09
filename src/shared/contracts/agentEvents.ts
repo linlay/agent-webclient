@@ -203,7 +203,18 @@ export interface AIUsageTiming {
   generationDurationMs?: number;
 }
 
+export interface AIVoiceUsage {
+  tasks: number;
+  unknownTasks: number;
+  pendingTasks: number;
+  unpricedTasks: number;
+  characters: number;
+  billedAudioSeconds: number;
+  estimatedCost?: AIUsageEstimatedCost;
+}
+
 export interface AIUsageStats {
+  voice?: AIVoiceUsage;
   modelKey?: string;
   promptTokens?: number;
   completionTokens?: number;
@@ -302,6 +313,12 @@ export interface AIAwaitQuestionSubmitParamData {
   id: string;
   answer?: string | number;
   answers?: string[];
+}
+
+// Read-only, in-memory Runtime projection; never a stream/history event.
+export interface QuestionDraft {
+  revision: number;
+  answers: AIAwaitQuestionSubmitParamData[];
 }
 
 export interface AIAwaitApprovalSubmitParamData {

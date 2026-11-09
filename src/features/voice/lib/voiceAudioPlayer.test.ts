@@ -125,3 +125,49 @@ it("schedules the final buffered frame as soon as resume resolves, without anoth
   expect(drained).toHaveBeenCalledTimes(1);
   player.close();
 });
+
+it("reports the first output clock crossing once, without treating scheduling as playback", async () => {
+  const started = jest.fn(), player = new VoiceAudioPlayer(jest.fn(), jest.fn(), started);
+  await player.prepare(); player.start(24000); player.append(new ArrayBuffer(960));
+  const context = Context.current;
+  const timestamp = jest.fn(() => ({ contextTime: .13, performanceTime: 180 }));
+  Object.assign(context, { getOutputTimestamp: timestamp });
+  expect(started).not.toHaveBeenCalled();
+  context.currentTime = .18;
+  jest.advanceTimersByTime(200);
+  expect(started).not.toHaveBeenCalled(); // Render clock passed start; output clock has not.
+  timestamp.mockReturnValue({ contextTime: .16, performanceTime: 280 });
+  jest.advanceTimersByTime(100);
+  expect(started).toHaveBeenCalledTimes(1);
+  expect(started.mock.calls[0][0]).toMatchObject({ audioTime: .14, clockSource: "output_timestamp" });
+  expect(started.mock.calls[0][0].atMs).toBeCloseTo(260);
+  context.sources[0].onended?.();
+  expect(started).toHaveBeenCalledTimes(1);
+  player.close();
+});
+
+it("labels the context-clock fallback and waits through suspension", async () => {
+  const started = jest.fn(), player = new VoiceAudioPlayer(jest.fn(), jest.fn(), started);
+  await player.prepare(); player.start(16000); player.append(new ArrayBuffer(640));
+  const context = Context.current;
+  context.state = "suspended"; context.currentTime = .15;
+  jest.advanceTimersByTime(1000);
+  expect(started).not.toHaveBeenCalled();
+  context.state = "running";
+  jest.advanceTimersByTime(100);
+  expect(started.mock.calls[0][0]).toMatchObject({ audioTime: .14, clockSource: "context_clock" });
+  expect(started.mock.calls[0][0].atMs).toBeCloseTo(1090);
+  player.close();
+  await Promise.resolve(); await Promise.resolve();
+});
+
+it.each(["stop", "mute"])("does not report a cancelled first source after %s", async action => {
+  const started = jest.fn(), player = new VoiceAudioPlayer(jest.fn(), jest.fn(), started);
+  await player.prepare(); player.start(16000); player.append(new ArrayBuffer(640));
+  const context = Context.current, lateEnd = context.sources[0].onended!;
+  if (action === "stop") player.stop(); else player.setMuted(true);
+  context.currentTime = 1;
+  jest.advanceTimersByTime(1000); lateEnd();
+  expect(started).not.toHaveBeenCalled();
+  player.close();
+});

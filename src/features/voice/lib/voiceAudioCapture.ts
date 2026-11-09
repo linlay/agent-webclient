@@ -1,4 +1,8 @@
 import { Pcm16Encoder, VOICE_CHAT_FRAME_BYTES } from "./voiceChatAudio";
+import type { VoiceVad } from "./voiceVad";
+
+const PRE_ROLL_MS = 480;
+const PRE_ROLL_BYTES = 16000 * 2 * PRE_ROLL_MS / 1000;
 
 export class VoiceAudioCapture {
   private stream: MediaStream | null = null;
@@ -7,9 +11,15 @@ export class VoiceAudioCapture {
   private processor: ScriptProcessorNode | null = null;
   private encoder: Pcm16Encoder | null = null;
   private remain = new Uint8Array(0);
+  private lastPCMAtMs = 0;
   private listening = false;
   private disposed = false;
   private preparing: Promise<void> | null = null;
+  private vad: VoiceVad | null = null;
+  private vadGeneration = 0;
+  private vadLoading: AbortController | null = null;
+  private detecting = false;
+  private preRoll: { pcm: Uint8Array; atMs: number }[] = [];
 
   constructor(private readonly send: (pcm: Uint8Array) => void, private readonly failed: (message: string) => void) {}
 
@@ -69,14 +79,22 @@ export class VoiceAudioCapture {
     this.source = source;
     this.processor = context.createScriptProcessor(1024, 1, 1);
     this.processor.onaudioprocess = event => {
-      if (!this.listening || !this.encoder) return;
+      if ((!this.listening && !this.detecting) || !this.encoder) return;
       const bytes = this.encoder.encode(event.inputBuffer.getChannelData(0));
+      this.lastPCMAtMs = performance.now();
       const merged = new Uint8Array(this.remain.length + bytes.length);
       merged.set(this.remain);
       merged.set(bytes, this.remain.length);
       let offset = 0;
       while (offset + VOICE_CHAT_FRAME_BYTES <= merged.length) {
-        this.send(merged.slice(offset, offset + VOICE_CHAT_FRAME_BYTES));
+        const pcm = merged.slice(offset, offset + VOICE_CHAT_FRAME_BYTES);
+        if (this.listening) this.send(pcm);
+        else if (this.detecting) {
+          const atMs = performance.now();
+          this.preRoll.push({ pcm, atMs });
+          while (this.preRoll.length * VOICE_CHAT_FRAME_BYTES > PRE_ROLL_BYTES || this.preRoll[0]?.atMs < atMs - PRE_ROLL_MS) this.preRoll.shift();
+          this.vad?.push(pcm, atMs);
+        }
         offset += VOICE_CHAT_FRAME_BYTES;
       }
       this.remain = merged.slice(offset);
@@ -84,18 +102,63 @@ export class VoiceAudioCapture {
     this.source.connect(this.processor);
     this.processor.connect(context.destination);
     const unavailable = () => {
-      if (this.listening && !this.ready) this.failed("Microphone unavailable. Reconnect to speak again.");
+      if ((this.listening || this.detecting) && !this.ready) this.failed("Microphone unavailable. Reconnect to speak again.");
     };
     context.onstatechange = unavailable;
     stream.getAudioTracks().forEach(track => { track.onended = unavailable; });
     if (!this.ready) throw new Error("Microphone could not start");
   }
 
-  start(): void {
+  start(preRollTail?: Uint8Array): void {
     if (!this.ready || !this.context) throw new Error("Microphone is not ready");
-    this.encoder = new Pcm16Encoder(this.context.sampleRate);
-    this.remain = new Uint8Array(0);
+    if (!preRollTail || !this.encoder) this.encoder = new Pcm16Encoder(this.context.sampleRate);
+    this.remain = preRollTail?.slice() || new Uint8Array(0);
     this.listening = true;
+  }
+
+  async enableDetection(detected: (preRoll: Uint8Array[], candidateAtMs: number) => void, failed: (error: unknown) => void): Promise<void> {
+    const generation = ++this.vadGeneration;
+    const loading = new AbortController();
+    this.vadLoading = loading;
+    const { VoiceVad } = await import(/* webpackChunkName: "voice-vad" */ "./voiceVad");
+    if (this.disposed || generation !== this.vadGeneration) return;
+    const vad = await VoiceVad.create(candidateAtMs => {
+      if (!this.detecting || this.disposed || generation !== this.vadGeneration) return;
+      const cutoff = performance.now() - PRE_ROLL_MS;
+      const pcm = this.preRoll.filter(frame => frame.atMs >= cutoff).map(frame => frame.pcm);
+      // Include the unsent even tail, while preserving the byte cap.
+      if (this.remain.length && this.lastPCMAtMs >= cutoff) pcm.push(this.remain.slice());
+      while (pcm.reduce((sum, frame) => sum + frame.length, 0) > PRE_ROLL_BYTES) pcm.shift();
+      detected(pcm, candidateAtMs);
+    }, error => {
+      if (!this.disposed && generation === this.vadGeneration) failed(error);
+    }, loading.signal);
+    if (this.disposed || generation !== this.vadGeneration) { await vad.close(); return; }
+    this.vadLoading = null;
+    if (!this.ready) { await vad.close(); throw new Error("Microphone is not ready for voice detection"); }
+    this.vad = vad;
+  }
+
+  setDetecting(active: boolean): void {
+    active = active && Boolean(this.vad) && !this.disposed;
+    if (active === this.detecting) return;
+    this.detecting = active;
+    this.preRoll = [];
+    this.vad?.setActive(active);
+    if (active && !this.listening && this.context) {
+      this.encoder = new Pcm16Encoder(this.context.sampleRate);
+      this.remain = new Uint8Array(0);
+    }
+  }
+
+  disableDetection(): void {
+    this.vadGeneration++;
+    this.vadLoading?.abort();
+    this.vadLoading = null;
+    this.setDetecting(false);
+    const vad = this.vad;
+    this.vad = null;
+    void vad?.close().catch(() => undefined);
   }
 
   stop(flush = false): void {
@@ -110,6 +173,7 @@ export class VoiceAudioCapture {
   }
 
   private releaseMedia(): void {
+    this.disableDetection();
     this.stop();
     if (this.context) this.context.onstatechange = null;
     this.stream?.getAudioTracks().forEach(track => { track.onended = null; });

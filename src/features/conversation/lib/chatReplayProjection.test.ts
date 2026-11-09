@@ -5,6 +5,13 @@ import { formatToolPillTitle } from "@/features/timeline/components/ToolPill";
 const EPOCH = 1_710_000_000_000;
 
 describe("buildChatReplayProjection", () => {
+  it("loads the live question draft on refresh without injecting it into replay events",()=>{
+    const questions=[{id:"text",type:"text",question:"Text"},{id:"password",type:"password",question:"Password"}];
+    const draft={revision:1,answers:[{id:"text",answer:"draft only"}]};
+    const replay=buildChatReplayProjection("chat",{events:[{type:"awaiting.ask",runId:"run",chatId:"chat",agentKey:"agent",awaitingId:"ask",mode:"question",questions,timestamp:EPOCH}],awaiting:{runId:"run",awaitingId:"ask",mode:"question",status:"awaiting",createdAt:EPOCH,questionDraft:draft}});
+    expect(replay.state.activeAwaiting).toMatchObject({questionDraft:draft});
+    expect(JSON.stringify(replay.events)).not.toContain("draft only");
+  });
   it.each([undefined, "读取文件"])("preserves the file_read snapshot label through results (label=%s) and grouped tool titles", (toolLabel) => {
     const snapshot = {
       seq: 73,
