@@ -32,6 +32,7 @@ import { useAuthenticatedResourceUrl } from "@/shared/ui/useAuthenticatedResourc
 import {
   useDesktopContextMenuTarget,
   useDesktopCurrentResourceDownload,
+  useDesktopTextEditMode,
 } from "@/shared/data/desktop/desktopContextMenu";
 import { useDesktopHtmlPreviewReview } from "@/features/viewers/hooks/useDesktopHtmlPreviewReview";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
@@ -130,6 +131,17 @@ interface ContentViewerPanelProps {
   onOpenOnlinePreview?: (preview: DocumentPreviewTabState) => void;
   /** Opens links in a Markdown preview; without it those links explain they cannot open. */
   onOpenTarget?: (intent: OpenTargetIntent) => boolean;
+  /**
+   * Per-tab text edit mode. `undefined` keeps the legacy always-editable
+   * behavior (standalone full-page viewers); `false` renders the document
+   * read-only and hides selection annotations until the tab enters edit mode.
+   */
+  textEditMode?: boolean;
+  onDocumentStateChange?: (state: {
+    dirty: boolean;
+    busy: boolean;
+    annotationCount: number;
+  }) => void;
   surfaceContext?: {
     chatId: string;
     agentKey?: string;
@@ -324,6 +336,8 @@ export const ContentViewerPanel: React.FC<ContentViewerPanelProps> = ({
   enableDesktopPreviewReview = false,
   onOpenOnlinePreview,
   onOpenTarget,
+  textEditMode,
+  onDocumentStateChange,
   surfaceContext,
 }) => {
   const appState = useAppState();
@@ -434,6 +448,22 @@ export const ContentViewerPanel: React.FC<ContentViewerPanelProps> = ({
     ? viewerContentKindForDocument(documentKind)
     : fallbackContentKind;
   const htmlEditorOwnsPreview = documentKind === "document-html";
+  const textDocumentKind = documentKind === "document-markdown" ||
+    documentKind === "document-text" ||
+    documentKind === "document-code";
+  const [desktopTextEditMode, setDesktopTextEditMode] =
+    React.useState<boolean | undefined>();
+  useDesktopTextEditMode(
+    textDocumentKind && textEditMode === undefined && hasDesktopHostBridge()
+      ? setDesktopTextEditMode
+      : null,
+  );
+  const effectiveTextEditMode = textEditMode !== undefined
+    ? textEditMode
+    : desktopTextEditMode;
+  const textEditing = textDocumentKind
+    ? effectiveTextEditMode !== false
+    : undefined;
   const viewerUrl = fileRequest
     ? workspaceFileResponse?.contentUrl || ""
     : target.type === "resource" ? target.url : "";
@@ -688,7 +718,25 @@ export const ContentViewerPanel: React.FC<ContentViewerPanelProps> = ({
   const browserImageEditable = !hasDesktopHostBridge() && contentKind === "image" &&
     ["image/png", "image/jpeg", "image/webp"].includes(imageMimeType) &&
     Boolean(imageCommitSource && documentRevision);
-  const documentDirty = editableTextDocument && textContent !== savedTextContent;
+  const documentDirty = editableTextDocument && textEditing !== false &&
+    textContent !== savedTextContent;
+  React.useEffect(() => {
+    if (textEditing !== false) return;
+    // Leaving text edit mode discards unsaved edits and restores the last
+    // saved revision; annotations are cleared by DocumentTextEditor.
+    setTextContent(savedTextContent);
+  }, [savedTextContent, textEditing]);
+  const onDocumentStateChangeRef = React.useRef(onDocumentStateChange);
+  onDocumentStateChangeRef.current = onDocumentStateChange;
+  React.useEffect(() => {
+    onDocumentStateChangeRef.current?.({
+      dirty: editableTextDocument ? documentDirty : false,
+      busy: editableTextDocument ? documentSaving : browserImageState.busy,
+      annotationCount: editableTextDocument
+        ? documentAnnotationCount
+        : browserImageState.annotationCount,
+    });
+  }, [browserImageState, documentAnnotationCount, documentDirty, documentSaving, editableTextDocument]);
   const handleDocumentReload = React.useCallback(() => {
     if (documentSaving || browserImageState.busy) return;
     const annotationsPresent =
@@ -707,7 +755,7 @@ export const ContentViewerPanel: React.FC<ContentViewerPanelProps> = ({
     lastRefreshRequest.current = refreshRequest;
     handleDocumentReload();
   }, [refreshRequest, handleDocumentReload]);
-  const canSaveDocument = editableTextDocument && !textTruncated && Boolean(
+  const canSaveDocument = editableTextDocument && textEditing !== false && !textTruncated && Boolean(
     documentRevision && (target.type === "file" || resourceSource),
   );
   const documentSaveProfile = target.type === "file"
@@ -776,11 +824,12 @@ export const ContentViewerPanel: React.FC<ContentViewerPanelProps> = ({
       dirty: editableTextDocument ? documentDirty : browserImageState.dirty,
       busy: editableTextDocument ? documentSaving : browserImageState.busy,
       annotationCount: editableTextDocument ? documentAnnotationCount : browserImageState.annotationCount,
+      textEditable: textDocumentKind && !textTruncated,
       targetKey: target.type === "file"
         ? `file:${target.agentKey}:${target.path}`
         : `resource:${target.url}`,
     });
-  }, [browserImageEditable, browserImageState, documentAnnotationCount, documentDirty, documentSaving, editableTextDocument, target]);
+  }, [browserImageEditable, browserImageState, documentAnnotationCount, documentDirty, documentSaving, editableTextDocument, target, textDocumentKind, textTruncated]);
 
   const targetLine =
     target.type === "file" && Number.isFinite(target.line) && Number(target.line) > 0
@@ -947,6 +996,7 @@ export const ContentViewerPanel: React.FC<ContentViewerPanelProps> = ({
               teamChat={teamChat}
               markdownLinks={markdownLinks}
               saving={documentSaving}
+              editing={textEditing !== false}
               dirty={documentDirty}
               canSave={canSaveDocument}
               saveProfile={documentSaveProfile}
@@ -992,6 +1042,7 @@ export const ContentViewerPanel: React.FC<ContentViewerPanelProps> = ({
               teamChat={teamChat}
               markdownLinks={markdownLinks}
               saving={documentSaving}
+              editing={textEditing !== false}
               dirty={documentDirty}
               canSave={canSaveDocument}
               saveProfile={documentSaveProfile}

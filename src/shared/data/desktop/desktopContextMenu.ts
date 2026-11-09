@@ -3,6 +3,8 @@ import { useCallback, useEffect, useRef } from "react";
 import {
   AGENT_WEBCLIENT_COMPOSER_DRAFT_ACTION,
   AGENT_WEBCLIENT_COMPOSER_DRAFT_VERSION,
+  AGENT_WEBCLIENT_WORKPANEL_DOCUMENT_EDIT_MODE_ACTION,
+  AGENT_WEBCLIENT_WORKPANEL_DOCUMENT_EDIT_MODE_VERSION,
   AGENT_WEBCLIENT_WORKPANEL_PREVIEW_REVIEW_ACTION,
   AGENT_WEBCLIENT_WORKPANEL_PREVIEW_REVIEW_VERSION,
   AGENT_WEBCLIENT_WORKPANEL_RESOURCE_DOWNLOAD_ACTION,
@@ -13,6 +15,7 @@ import {
   type AgentWebclientSelectionAction,
   type AgentWebclientSelectionActionErrorCode,
   type AgentWebclientSelectionActionId,
+  type AgentWebclientWorkPanelDocumentEditModeAction,
   type AgentWebclientWorkPanelPreviewReviewAction,
 } from "@/shared/contracts/generated/agentWebclientBridge";
 import {
@@ -67,6 +70,9 @@ type DesktopContextMenuWindow = Window & typeof globalThis & {
 const targets = new WeakMap<Element, DesktopContextMenuTargetDescriptor>();
 let currentResourceDownloadHandler: (() => void | Promise<void>) | null = null;
 let currentPreviewReviewHandler: ((action: AgentWebclientWorkPanelPreviewReviewAction) => void) | null = null;
+let currentDocumentEditModeHandler:
+  | ((action: AgentWebclientWorkPanelDocumentEditModeAction) => void)
+  | null = null;
 type DesktopSelectionActionHandlerResult = {
   ok: boolean;
   code?: AgentWebclientSelectionActionErrorCode;
@@ -188,6 +194,33 @@ export function registerDesktopCurrentPreviewReview(
       currentPreviewReviewHandler = null;
     }
   };
+}
+
+/**
+ * Desktop owns the per-tab "edit mode" switch for text documents. The host
+ * sends the versioned workPanel.document.editMode action; only the mounted
+ * text viewer consumes it.
+ */
+export function useDesktopTextEditMode(
+  handler: ((enabled: boolean) => void) | null,
+) {
+  const handlerRef = useRef(handler);
+  handlerRef.current = handler;
+  const enabled = handler !== null;
+
+  useEffect(() => {
+    if (!enabled) return;
+    const registeredHandler = (action: AgentWebclientWorkPanelDocumentEditModeAction) => {
+      if (action.version !== AGENT_WEBCLIENT_WORKPANEL_DOCUMENT_EDIT_MODE_VERSION) return;
+      handlerRef.current?.(action.enabled);
+    };
+    currentDocumentEditModeHandler = registeredHandler;
+    return () => {
+      if (currentDocumentEditModeHandler === registeredHandler) {
+        currentDocumentEditModeHandler = null;
+      }
+    };
+  }, [enabled]);
 }
 
 export function useDesktopSelectionActionHandler(
@@ -630,6 +663,14 @@ export function initializeDesktopContextMenuBridge() {
         currentPreviewReviewHandler
       ) {
         currentPreviewReviewHandler(value as AgentWebclientWorkPanelPreviewReviewAction);
+      }
+      if (
+        value.action === AGENT_WEBCLIENT_WORKPANEL_DOCUMENT_EDIT_MODE_ACTION &&
+        value.version === AGENT_WEBCLIENT_WORKPANEL_DOCUMENT_EDIT_MODE_VERSION &&
+        typeof value.enabled === "boolean" &&
+        currentDocumentEditModeHandler
+      ) {
+        currentDocumentEditModeHandler(value as AgentWebclientWorkPanelDocumentEditModeAction);
       }
       if (
         value.action === AGENT_WEBCLIENT_COMPOSER_DRAFT_ACTION &&

@@ -62,6 +62,35 @@ describe("ContentViewerPanel", () => {
 		expect(html).toMatch(/下\s*载/u);
 	});
 
+	it("hides text selection annotations until the tab enters edit mode", () => {
+		const target = {
+			type: "resource" as const,
+			name: "novel.md",
+			url: "artifacts/run_1/novel.md",
+			downloadUrl: "artifacts/run_1/novel.md",
+			contentKind: "text" as const,
+			documentKind: "document-markdown" as const,
+		};
+		const readOnly = renderToStaticMarkup(
+			React.createElement(ContentViewerPanel, {
+				target,
+				textEditMode: false,
+			}),
+		);
+		expect(readOnly).not.toContain("批注选区");
+		expect(readOnly).not.toContain("更多文档操作");
+		expect(readOnly).not.toContain("源码");
+
+		const editing = renderToStaticMarkup(
+			React.createElement(ContentViewerPanel, {
+				target,
+				textEditMode: true,
+			}),
+		);
+		expect(editing).toContain("批注选区");
+		expect(editing).toContain("更多文档操作");
+	});
+
 	it("explains unsafe Markdown as an unsupported text encoding", () => {
 		const html = renderToStaticMarkup(
 			React.createElement(ContentViewerPanel, {

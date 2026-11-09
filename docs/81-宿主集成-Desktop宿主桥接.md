@@ -78,6 +78,9 @@ WorkPanel 外层 Artifact/Reference tab 的下载不依赖坐标解析。Desktop
 
 WorkPanel 评审批注复用同一 service action channel，但使用独立版本化 preview-review action 与 page event。Resource Viewer 在当前可访问的图片或 HTML 目标上声明 capability；批注权威状态始终在 Desktop renderer。图片接收编辑模式和编号矩形的无状态同步，并按请求导出有尺寸/字节上限的临时 PNG。HTML 继续使用不带 `allow-same-origin` 的 sandbox `srcDoc`，由 Viewer 在 CSP 之前插入窄批注脚本；父页面只接受当前 iframe `contentWindow` 且匹配运行期 token 的消息，iframe 只接收父窗口同步的启用状态和有界批注列表。该桥不提供任意 JavaScript/CDP 执行，不回传资源 URL、凭据或表单输入值。
 
+
+文本类 WorkPanel tab（Markdown、文本与代码）默认只读：正文以只读方式展示，文档工具栏（含刷新/更多）、选区批注、保存和交接入口全部隐藏。Resource Viewer 通过 `document-state` 的 `textEditable` 声明当前 tab 可进入文本编辑；Desktop 在 tab 右键菜单声明“进入/退出编辑模式”，并通过版本化 `workPanel.document.editMode`（`enabled`）发送 per-tab 开关。HTML 元素批注与图片区域批注仍使用带 `kind` 的既有路径，不能与文本开关互相推断。退出编辑模式时若存在未保存修改或批注，宿主确认后丢弃；刷新、重载或重新挂载后由宿主重新断言当前模式。
+
 Main Chat Composer 只消费 owner Chat 匹配的 `workPanel.composer.insertDraft`。草稿为空时填入，非空时追加分隔符；可选 PNG 先转为本地 `staged` 附件，不在动作处理时上传，也不自动发送。WebClient 通过共享 preview-review page event 返回一次 ack，Desktop 只有收到成功 ack 才清理运行期 ReviewSession。vendored contract hash、Desktop mirror 与 Program Bundle 必须原子发布，缺少新能力时保持只读。
 
 划词动作使用 bridge v6 的 `selectionToolbar.execute`。Desktop 只提供 request/selection/target ID、动作枚举与首尾坐标；WebClient 按坐标、DOM Selection 和语义 target 三重核对后创建最多 50,000 字符的 `type=selection` reference，正文使用顶层 `text`，可选用户批注使用顶层 `annotation`；正文保持引用材料语义，批注属于用户指令。动作结果只允许稳定错误码或 `chatId/runId` handoff，禁止把正文、Prompt、凭据或 URL 回传 Desktop。Standalone 使用本地工具条提供添加引用与侧边提问，不注册 Desktop host action，也不提供详细解释。Desktop 详细解释首发、订阅、续问与控制携带显式解释 purpose，由 Frame Port adapter 转为宿主专用元数据；宿主校验、剥离后统一路由到独立解释 lane，不能与普通 WorkPanel BTW 混用。该能力在 macOS 和 Windows 上一致。
