@@ -264,65 +264,58 @@ const HostDirectoryBrowser: React.FC<{ runtime: AgentProjectCreateRuntime }> = (
   const listing = runtime.browserListing;
   return (
     <Modal
+      className={styles.directoryDialog}
       title={t("leftSidebar.createProject.selectDirectory")}
       open={runtime.open && runtime.browserOpen}
       onCancel={runtime.closeBrowser}
       width="min(560px, calc(100vw - 32px))"
       centered
-      footer={null}
+      footer={[
+        <Button key="cancel" onClick={runtime.closeBrowser}>
+          {t("leftSidebar.createProject.cancel")}
+        </Button>,
+        <Button key="choose" type="primary" disabled={!runtime.browserCanChoose} onClick={runtime.chooseBrowsedDirectory}>
+          {t("leftSidebar.createProject.browseChoose")}
+        </Button>,
+      ]}
       destroyOnHidden
     >
-      <div style={{ ...hintStyle, marginBottom: 12 }}>{t("leftSidebar.createProject.directoryHostHint")}</div>
-      <Flex align="center" gap={8} style={{ marginBottom: 6 }}>
-        <Button
-          size="small"
-          disabled={runtime.browserLoading || !listing?.parent}
-          onClick={() => listing?.parent && runtime.browseTo(listing.parent)}
-        >
-          {t("leftSidebar.createProject.browseUp")}
-        </Button>
-        <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: 12 }}>
-          {listing?.path ?? ""}
-        </span>
-        <Spin size="small" spinning={runtime.browserLoading} />
-      </Flex>
-      {runtime.browserError ? (
-        <Alert type="error" showIcon message={runtime.browserError} style={{ marginBottom: 6 }} />
-      ) : null}
-      <div style={{ maxHeight: 180, overflowY: "auto" }}>
-        {listing && listing.entries.length === 0 ? (
-          <div style={hintStyle}>{t("leftSidebar.createProject.browseEmpty")}</div>
-        ) : null}
-        {listing?.entries.map((entry) => (
+      <div className={styles.directoryContent}>
+        <p className={styles.directoryHint}>{t("leftSidebar.createProject.directoryHostHint")}</p>
+        <div className={styles.directoryToolbar}>
           <Button
-            key={entry.path}
-            type="text"
-            size="small"
-            block
-            style={{ textAlign: "left", justifyContent: "flex-start" }}
-            disabled={runtime.browserLoading}
-            onClick={() => runtime.browseTo(entry.path)}
-          >
-            {entry.name}
-          </Button>
-        ))}
-        {listing?.truncated ? (
-          <div style={hintStyle}>{t("leftSidebar.createProject.browseTruncated")}</div>
-        ) : null}
+            icon={<MaterialIcon name="arrow_upward" />}
+            disabled={runtime.browserLoading || !listing?.parent}
+            onClick={() => listing?.parent && runtime.browseTo(listing.parent)}
+            aria-label={t("leftSidebar.createProject.browseUp")}
+            title={t("leftSidebar.createProject.browseUp")}
+          />
+          <span className={styles.directoryPath} title={listing?.path}>{listing?.path ?? ""}</span>
+        </div>
+        {runtime.browserError ? <Alert type="error" showIcon message={runtime.browserError} /> : null}
+        <Spin spinning={runtime.browserLoading}>
+          <div className={styles.directoryList}>
+            {listing && listing.entries.length === 0 ? (
+              <div className={styles.directoryEmpty}>{t("leftSidebar.createProject.browseEmpty")}</div>
+            ) : null}
+            {listing?.entries.map((entry) => (
+              <Button
+                key={entry.path}
+                type="text"
+                block
+                className={styles.directoryRow}
+                disabled={runtime.browserLoading}
+                onClick={() => runtime.browseTo(entry.path)}
+              >
+                <MaterialIcon name="folder_open" className={styles.directoryFolder} />
+                <span className={styles.directoryName} title={entry.name}>{entry.name}</span>
+                <MaterialIcon name="chevron_right" className={styles.directoryChevron} />
+              </Button>
+            ))}
+            {listing?.truncated ? <div className={styles.directoryHint}>{t("leftSidebar.createProject.browseTruncated")}</div> : null}
+          </div>
+        </Spin>
       </div>
-      <Flex justify="flex-end" gap={8} style={{ marginTop: 6 }}>
-        <Button size="small" onClick={runtime.closeBrowser}>
-          {t("leftSidebar.createProject.cancel")}
-        </Button>
-        <Button
-          size="small"
-          type="primary"
-          disabled={!runtime.browserCanChoose}
-          onClick={runtime.chooseBrowsedDirectory}
-        >
-          {t("leftSidebar.createProject.browseChoose")}
-        </Button>
-      </Flex>
     </Modal>
   );
 };

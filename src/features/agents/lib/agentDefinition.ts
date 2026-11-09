@@ -461,17 +461,17 @@ export function modePresentation(
 ): ChoicePresentation {
   switch (normalizeModeForForm(mode)) {
     case "GENERAL":
-      return { icon: "refresh", label: t("agentConsole.mode.react.label"), description: t("agentConsole.mode.react.description") };
+      return { icon: "parentheses", label: t("agentConsole.mode.react.label"), description: t("agentConsole.mode.react.description") };
     case "BOT":
-      return { icon: "smart_toy", label: t("agentConsole.mode.bot.label"), description: t("agentConsole.mode.bot.description") };
+      return { icon: "bot_simple", label: t("agentConsole.mode.bot.label"), description: t("agentConsole.mode.bot.description") };
     case "CODER":
-      return { icon: "code", label: t("agentConsole.mode.coder.label"), description: t("agentConsole.mode.coder.description") };
+      return { icon: "data_object", label: t("agentConsole.mode.coder.label"), description: t("agentConsole.mode.coder.description") };
     case "TEAM":
-      return { icon: "person", label: t("agentConsole.mode.team.label"), description: t("agentConsole.mode.team.description") };
+      return { icon: "agent_group", label: t("agentConsole.mode.team.label"), description: t("agentConsole.mode.team.description") };
     case "KBASE":
       return { icon: "book_2", label: t("agentConsole.mode.kbase.label"), description: t("agentConsole.mode.kbase.description") };
     case "EXECUTOR":
-      return { icon: "bolt", label: t("agentConsole.mode.executor.label"), description: t("agentConsole.mode.executor.description") };
+      return { icon: "task_complete", label: t("agentConsole.mode.executor.label"), description: t("agentConsole.mode.executor.description") };
     default:
       return { icon: "settings", label: fallbackLabel || mode, description: t("agentConsole.mode.custom.description") };
   }
@@ -486,9 +486,9 @@ export function visibilityPresentation(
     case "nav":
       return { icon: "dock_to_right", label: t("agentConsole.visibility.nav.label"), description: t("agentConsole.visibility.nav.description") };
     case "copilot":
-      return { icon: "dock_to_left", label: t("agentConsole.visibility.copilot.label"), description: t("agentConsole.visibility.copilot.description") };
+      return { icon: "panel_right", label: t("agentConsole.visibility.copilot.label"), description: t("agentConsole.visibility.copilot.description") };
     case "invoke":
-      return { icon: "hub", label: t("agentConsole.visibility.invoke.label"), description: t("agentConsole.visibility.invoke.description") };
+      return { icon: "invoke_agent", label: t("agentConsole.visibility.invoke.label"), description: t("agentConsole.visibility.invoke.description") };
     case "internal":
       return { icon: "lock", label: t("agentConsole.visibility.internal.label"), description: t("agentConsole.visibility.internal.description") };
     default:
@@ -502,15 +502,15 @@ export function interactionPresentation(
 ): ChoicePresentation {
   switch (key) {
     case "model":
-      return { icon: "psychology", label: t("agents.interaction.model"), description: t("agents.interaction.model.description") };
+      return { icon: "tune", label: t("agents.interaction.model"), description: t("agents.interaction.model.description") };
     case "accessLevel":
       return { icon: "verified_user", label: t("agents.interaction.accessLevel"), description: t("agents.interaction.accessLevel.description") };
     case "skills":
-      return { icon: "skills", label: t("agents.interaction.skills"), description: t("agents.interaction.skills.description") };
+      return { icon: "bolt", label: t("agents.interaction.skills"), description: t("agents.interaction.skills.description") };
     case "kbases":
       return { icon: "book_2", label: t("kbase.title"), description: t("kbase.interactionDescription") };
     case "connectors":
-      return { icon: "hub", label: t("agents.interaction.connectors"), description: t("agents.interaction.connectors.description") };
+      return { icon: "power_2", label: t("agents.interaction.connectors"), description: t("agents.interaction.connectors.description") };
     case "localFiles":
       return { icon: "folder", label: t("agents.interaction.localFiles"), description: t("agents.interaction.localFiles.description") };
     case "chatRecords":

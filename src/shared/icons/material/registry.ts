@@ -1,4 +1,10 @@
 export const materialIconSymbolIds = {
+  bot_simple: "material-symbol-bot-simple",
+  parentheses: "material-symbol-parentheses",
+  agent_group: "material-symbol-agent-group",
+  task_complete: "material-symbol-task-complete",
+  panel_right: "material-symbol-panel-right",
+  invoke_agent: "material-symbol-invoke-agent",
   agent_type: "material-symbol-agent-type",
   add: "material-symbol-add",
   archive: "material-symbol-archive",
