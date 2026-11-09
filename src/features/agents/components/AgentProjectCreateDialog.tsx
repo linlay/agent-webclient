@@ -113,7 +113,7 @@ export const AgentProjectCreateDialog: React.FC<{
                 buttonStyle="solid"
                 onChange={(event) => runtime.setType(event.target.value as AgentCreationTypeKey)}
               >
-                {[...options.types].sort((a, b) => projectTypes[a.key].order - projectTypes[b.key].order).map((item) => (
+                {[...options.types].sort((a, b) => (projectTypes[a.key]?.order ?? Number.MAX_SAFE_INTEGER) - (projectTypes[b.key]?.order ?? Number.MAX_SAFE_INTEGER)).map((item) => (
                   <Radio.Button
                     className={styles.typeButton}
                     key={item.key}
@@ -122,8 +122,8 @@ export const AgentProjectCreateDialog: React.FC<{
                     title={item.available ? undefined : item.unavailableReason}
                   >
                     <span className={styles.typeLabel}>
-                      <MaterialIcon name={projectTypes[item.key].icon} className={styles.typeIcon} />
-                      {t(`leftSidebar.createProject.type.${item.key}`)}
+                      <MaterialIcon name={projectTypes[item.key]?.icon ?? "robot_2"} className={styles.typeIcon} />
+                      {projectTypes[item.key] ? t(`leftSidebar.createProject.type.${item.key}`) : item.label || item.key}
                     </span>
                   </Radio.Button>
                 ))}
