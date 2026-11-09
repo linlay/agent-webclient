@@ -9,6 +9,7 @@ import { useI18n } from "@/shared/i18n";
 import { isChatActiveRun } from "@/features/chats/lib/chatRunState";
 import { isChatUnread } from "@/features/chats/lib/chatReadState";
 import { selectPrimaryNavigation } from "../lib/primaryNavigation";
+import { SidebarOverflowText } from "./SidebarOverflowText";
 import styles from "./PrimaryChatNavigation.module.css";
 
 export function PrimaryChatNavigation(props: {
@@ -30,6 +31,7 @@ export function PrimaryChatNavigation(props: {
       const awaiting = chat?.hasPendingAwaiting === true;
       const running = isChatActiveRun(chat);
       const loading = Boolean(chat && props.getChatLoading(chat.chatId));
+      const unread = Boolean(chat && isChatUnread(chat));
       const preview = chat ? String(chat.lastRunContent || chat.chatName || t("leftSidebar.navigation.primaryNoReply")).replace(/\s+/g, " ") : t("leftSidebar.navigation.primaryNoChat");
       const status = awaiting ? t("leftSidebar.navigation.primaryAwaiting") : running ? t("leftSidebar.navigation.primaryRunning") : "";
       return <div className={styles.row} key={agent.key} data-menu-open={menuAgent === agent.key || undefined}>
@@ -40,16 +42,16 @@ export function PrimaryChatNavigation(props: {
           aria-label={`${agent.name}, ${preview}${status ? `, ${status}` : ""}`}
           onClick={() => chat ? props.onSelectChat(chat.chatId) : props.onStartPrimary(`agent:${agent.key}`)}>
           <span className={styles.icon}><AgentIcon type="agent" icon={effectiveAgentIcon(agent.icon, agent.mode)}
-            props={{ icon: { width: 30, height: 30 }, avatar: { size: 30 } }} />
+            props={{ icon: { width: 36, height: 36 }, avatar: { size: 36 } }} />
             {agent.workspaceDir && <span className={styles.workspace} title={agent.workspaceDir}><MaterialIcon name="folder" /></span>}
           </span>
           {!props.collapsed && <span className={styles.body}>
-            <span className={styles.name}>{agent.name}</span>
-            <span className={styles.preview}>{preview}</span>
+            <SidebarOverflowText className={styles.name} text={agent.name} />
+            <SidebarOverflowText className={styles.preview} text={preview} />
           </span>}
-          <span className={styles.status}>
-            {awaiting ? <MaterialIcon name="front_hand" /> : (running || loading) ? <MaterialIcon name="progress_activity" className={styles.loading} /> : chat && isChatUnread(chat) ? <span className={styles.unread} /> : null}
-          </span>
+          {(awaiting || running || loading || unread) && <span className={styles.status}>
+            {awaiting ? <MaterialIcon name="front_hand" /> : (running || loading) ? <MaterialIcon name="progress_activity" className={styles.loading} /> : unread ? <span className={styles.unread} /> : null}
+          </span>}
         </button>
         <Dropdown trigger={["click"]} onOpenChange={open => setMenuAgent(open ? agent.key : "")} menu={{
           items: [
