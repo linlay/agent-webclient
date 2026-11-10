@@ -15,7 +15,9 @@ Worker 是对话选择和历史归属的内部模型，继续兼容 Agent 与 Te
 ## 核心流程
 应用启动、侧栏刷新和 Agent 创建完成后，`readSidebarAgents` 并行读取 `scope=nav&hasWorkspace=false` 的普通 Agent 和 `hasWorkspace=true` 的完整项目目录，均不包含 Team。项目请求不设置 nav scope，避免排除有工作目录的 KBASE Agent。两份目录各携带 `includeChats=5&chatsPinned=false`；协调层保留后端顺序、补齐嵌套摘要的 owner。Team 的模型和历史归属仍保留，Copilot scope 与回退规则继续按 Agent 数量判断。
 
-`SidebarAgentNavigation` 以 `state.workerRows` 顺序展示项目。项目标题与普通对话行左侧对齐，项目内会话只增加 12px 缩进，各项目可独立展开。普通 Agent 通过“对话”标题内的选择器作为新对话目标；按时间/名称排序控制位于新对话图标前，只排序普通会话预览。
+`SidebarAgentNavigation` 默认以 `state.workerRows` 顺序展示项目。项目标题与普通对话行左侧对齐，项目内会话只增加 12px 缩进，各项目可独立展开。普通 Agent 通过“对话”标题内的选择器作为新对话目标；按时间/名称排序控制位于新对话图标前，只排序普通会话预览。
+
+Projects、各 Project 内的 Chats、普通 Chats 与 Bots 均支持直接拖动现有行进行组内排序，不增加拖拽按钮；项目只从标题行拖动，聊天行不会触发项目拖动。目标行上／下半部决定插入前／后，拖动显示插入线，取消时保留原顺序；聚焦行后也可用 `Alt+↑/↓` 调整。更多菜单和新建按钮保持原交互。手动顺序作为当前浏览器偏好存入 localStorage，按后端身份和列表（含 project Agent key）隔离，刷新与折叠后保留；新增项沿用默认顺序追加，分页或临时不可见项不丢失已存位置。普通 Chats 重新选择按时间／名称排序会清除其手动顺序。拖拽不跨组移动，不修改 Chat owner、Agent 管理顺序、后端置顶协议或 History。
 
 普通预览独立请求 `/api/chats?hasWorkspace=false&pinned=false`，初始显示 8 条，每次“查看更多”增加 8 条，最多 24 条。项目初始显示 5 条，每次增加 5 条，最多 20 条；展开请求使用 `agentKey` 和 `pinned=false`。分页多读取 1 条判断是否还有下一批，不改变完整历史目录。过期目录和乱序响应被丢弃，合并摘要时保留运行态并按当前平台置顶顺序校准。
 

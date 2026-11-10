@@ -1,0 +1,5 @@
+.row { position: relative; }
+.dragging { opacity: 0.45; }
+.before::before, .after::after { content: ""; position: absolute; z-index: 2; left: 4px; right: 4px; height: 2px; border-radius: 1px; background: var(--accent); pointer-events: none; }
+.before::before { top: 0; }
+.after::after { bottom: 0; }

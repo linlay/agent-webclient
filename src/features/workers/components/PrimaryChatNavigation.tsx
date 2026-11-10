@@ -11,6 +11,8 @@ import { isChatUnread } from "@/features/chats/lib/chatReadState";
 import { selectPrimaryNavigation } from "../lib/primaryNavigation";
 import { SidebarOverflowText } from "./SidebarOverflowText";
 import styles from "./PrimaryChatNavigation.module.css";
+import { useSidebarOrder } from "../hooks/useSidebarOrder";
+import { SidebarSortableList } from "./SidebarSortableList";
 
 export function PrimaryChatNavigation(props: {
   collapsed?: boolean;
@@ -24,9 +26,10 @@ export function PrimaryChatNavigation(props: {
   const { state } = useAppContext();
   const { t } = useI18n();
   const [menuAgent, setMenuAgent] = useState("");
+  const order = useSidebarOrder("bots");
   const rows = useMemo(() => selectPrimaryNavigation(state.agents, state.chats), [state.agents, state.chats]);
   return <nav className={`${styles.navigation} ${props.collapsed ? styles.collapsed : ""}`} aria-label={t("leftSidebar.navigation.primaryChats")}>
-    {rows.map(({ agent, chat }) => {
+    <SidebarSortableList items={order.sort(rows, row => row.agent.key)} getId={row => row.agent.key} onMove={order.move} renderItem={({ agent, chat }, drag) => {
       const active = Boolean(chat && state.chatId === chat.chatId);
       const awaiting = chat?.hasPendingAwaiting === true;
       const running = isChatActiveRun(chat);
@@ -34,7 +37,7 @@ export function PrimaryChatNavigation(props: {
       const unread = Boolean(chat && isChatUnread(chat));
       const preview = chat ? String(chat.lastRunContent || chat.chatName || t("leftSidebar.navigation.primaryNoReply")).replace(/\s+/g, " ") : t("leftSidebar.navigation.primaryNoChat");
       const status = awaiting ? t("leftSidebar.navigation.primaryAwaiting") : running ? t("leftSidebar.navigation.primaryRunning") : "";
-      return <div className={styles.row} key={agent.key} data-menu-open={menuAgent === agent.key || undefined}>
+      return <div {...drag} className={`${styles.row} ${drag.className}`} data-menu-open={menuAgent === agent.key || undefined}>
         <button data-agent-pointer-idle="" data-agent-identity="" type="button"
           className={`${styles.item} ${active ? styles.active : ""}`}
           aria-current={active ? "page" : undefined}
@@ -73,6 +76,6 @@ export function PrimaryChatNavigation(props: {
           </UiButton>
         </Dropdown>
       </div>;
-    })}
+    }} />
   </nav>;
 }

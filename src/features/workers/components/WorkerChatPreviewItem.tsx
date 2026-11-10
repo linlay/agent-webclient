@@ -12,6 +12,7 @@ import type { Agent } from "@/features/agents/lib/agentState";
 import { isChatActiveRun } from "@/features/chats/lib/chatRunState";
 import { SidebarOverflowText } from "./SidebarOverflowText";
 import styles from "./WorkerChatPreviewItem.module.css";
+import type { SidebarDragProps } from "./SidebarSortableList";
 
 function getAwaitingStatusKey(mode?: string): string {
   switch (mode) {
@@ -33,7 +34,8 @@ export const WorkerChatPreviewItem: React.FC<{
   ownerType?: "agent";
   ownerIcon?: Agent["icon"];
   ownerPosition?: "before" | "after";
-}> = ({ chat, isActive, loading, onClick, ownerLabel, ownerType, ownerIcon, ownerPosition = "after" }) => {
+  dragProps?: SidebarDragProps;
+}> = ({ chat, isActive, loading, onClick, ownerLabel, ownerType, ownerIcon, ownerPosition = "after", dragProps }) => {
   const { t } = useI18n();
   const previewText = chat.chatName || chat.lastRunContent || t("leftSidebar.noPreview");
   const showAutomationSource = String(chat.source || "").trim().startsWith("automation:");
@@ -50,7 +52,8 @@ export const WorkerChatPreviewItem: React.FC<{
       agentKey={chat.agentKey}
       renderTrigger={(openMenu) => (
         <UiListItem
-          className={`${styles.row} worker-chat-item ${isActive ? "is-active" : ""}`}
+          {...dragProps}
+          className={`${styles.row} worker-chat-item ${isActive ? "is-active" : ""} ${dragProps?.className || ""}`}
           data-hover-space={!hasStatus && (!ownerLabel || ownerPosition === "before") ? "true" : undefined}
           selected={isActive}
           role="button"

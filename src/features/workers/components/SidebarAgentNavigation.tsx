@@ -13,6 +13,19 @@ import { WorkerChatPreviewItem } from "./WorkerChatPreviewItem";
 import { WorkerActionsMenu, type WorkerActionHandlers } from "./WorkerActionsMenu";
 import type { TerminalAgentTerminalStatus } from "@/features/terminal/lib/terminalStatusActivity";
 import styles from "./SidebarAgentNavigation.module.css";
+import { useSidebarOrder } from "../hooks/useSidebarOrder";
+import { SidebarSortableList, type SidebarDragProps } from "./SidebarSortableList";
+
+function ProjectChatList({ agentKey, chats, limit, renderChat }: {
+  agentKey: string;
+  chats: WorkerConversationRow[];
+  limit: number;
+  renderChat: (chat: WorkerConversationRow, showOwner: boolean, drag: SidebarDragProps) => React.ReactNode;
+}) {
+  const order = useSidebarOrder(`project-chats:${agentKey}`);
+  return <SidebarSortableList items={order.sort(chats, chat => chat.chatId).slice(0, limit)}
+    getId={chat => chat.chatId} onMove={order.move} renderItem={(chat, drag) => renderChat(chat, false, drag)} />;
+}
 
 export function SidebarAgentNavigation(props: {
   generalAgentKey: string;
@@ -31,6 +44,8 @@ export function SidebarAgentNavigation(props: {
   const { state } = useAppContext();
   const { t } = useI18n();
   const [sort, setSort] = useState<SidebarChatSort>("byTime");
+  const generalOrder = useSidebarOrder("chats");
+  const projectOrder = useSidebarOrder("projects");
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set(state.workerSelectionKey ? [state.workerSelectionKey] : []));
   const [generalOpen, setGeneralOpen] = useState(true);
   const [projectsOpen, setProjectsOpen] = useState(true);
@@ -56,14 +71,14 @@ export function SidebarAgentNavigation(props: {
     if (state.workerSelectionKey) setExpanded(value => new Set(value).add(state.workerSelectionKey));
   }, [state.workerSelectionKey]);
 
-  const chatRow = (chat: WorkerConversationRow, showOwner: boolean) => {
+  const chatRow = (chat: WorkerConversationRow, showOwner: boolean, drag?: SidebarDragProps) => {
     const agent = state.agents.find(item => item.key === chat.agentKey);
     return <WorkerChatPreviewItem key={chat.chatId} chat={chat}
       isActive={state.chatId === chat.chatId} loading={props.getChatLoading(chat.chatId)}
       onClick={() => props.onSelectChat(chat.chatId)}
       ownerLabel={showOwner ? agent?.name || chat.agentKey : undefined}
       ownerType={showOwner && agent ? "agent" : undefined} ownerIcon={agent?.icon}
-      ownerPosition="before" />;
+      ownerPosition="before" dragProps={drag} />;
   };
   const footer = (key: string, canShowMore: boolean, agentKey?: string) => <div className={styles.footer}>
     {canShowMore && <UiButton size="mini" variant="ghost" disabled={preview.pending[key]}
@@ -97,7 +112,7 @@ export function SidebarAgentNavigation(props: {
               <span>{selectedGeneral.displayName}</span><MaterialIcon name="expand_more" />
             </UiButton>
           </Dropdown>}
-          <Dropdown trigger={["click"]} menu={{ selectedKeys: [sort], onClick: ({ key }) => setSort(key as SidebarChatSort),
+          <Dropdown trigger={["click"]} menu={{ selectedKeys: generalOrder.manual ? [] : [sort], onClick: ({ key }) => { setSort(key as SidebarChatSort); generalOrder.reset(); },
             items: [{ key: "byTime", label: t("leftSidebar.sort.byTime") }, { key: "byName", label: t("leftSidebar.sort.byName") }] }}>
             <UiButton className={`${styles.iconButton} ${styles.headingHoverAction}`} size="mini" variant="ghost" iconOnly aria-label={t("leftSidebar.navigation.sort")} title={t("leftSidebar.navigation.sort")}><MaterialIcon name="list_arrow" /></UiButton>
           </Dropdown>
@@ -107,7 +122,8 @@ export function SidebarAgentNavigation(props: {
         </div>
       </div>
       {generalOpen && <>
-        {generalChats.slice(0, generalLimit).map(chat => chatRow(chat, true))}
+        <SidebarSortableList items={generalOrder.sort(generalChats, chat => chat.chatId).slice(0, generalLimit)}
+          getId={chat => chat.chatId} onMove={generalOrder.move} renderItem={(chat, drag) => chatRow(chat, true, drag)} />
         {generalChats.length === 0 && !preview.pending.general && <div className={styles.empty}>{t("leftSidebar.navigation.noChats")}</div>}
         {footer("general", generalLimit < GENERAL_CHAT_MAX && (generalChats.length > generalLimit || preview.moreAvailable.general === true))}
       </>}
@@ -133,7 +149,7 @@ export function SidebarAgentNavigation(props: {
             onClick={props.onNewProject} title={t("topNav.newProject")} aria-label={t("topNav.newProject")}><MaterialIcon name="create_new_folder" /></UiButton>
         </div>
       </div>
-      {projectsOpen && groups.projects.map(row => {
+      {projectsOpen && <SidebarSortableList items={projectOrder.sort(groups.projects, row => row.key)} getId={row => row.key} onMove={projectOrder.move} renderItem={(row, drag) => {
         const open = expanded.has(row.key);
         const limit = preview.limits[row.key] || PROJECT_CHAT_LIMIT;
         const chats = (props.chatsByWorker.get(row.key) || []).filter(chat => !chat.pinned && !state.chatPinnedOrder?.includes(chat.chatId));
@@ -141,7 +157,7 @@ export function SidebarAgentNavigation(props: {
         const status = props.terminalStatuses.get(row.sourceId);
         const attention = chats.some(chat => chat.hasPendingAwaiting || chat.hasActiveRun || chat.isRead === false) || (agent?.stats?.unreadCount || 0) > 0;
         return <div className={styles.project} key={row.key}>
-          <div className={styles.projectHead}>
+          <div {...drag} className={`${styles.projectHead} ${drag.className}`}>
             <WorkerActionsMenu row={row} trigger={["contextMenu"]} {...props.workerActions}>
               <div data-agent-pointer-idle="" data-agent-identity="" className={`${styles.projectButton} ${state.workerSelectionKey === row.key ? styles.selectedProject : ""}`} role="button" tabIndex={0}
                 aria-label={row.displayName} aria-expanded={open} onClick={() => toggleProject(row)}
@@ -160,12 +176,12 @@ export function SidebarAgentNavigation(props: {
             </div>
           </div>
           {open && <div className={styles.projectChats}>
-            {chats.slice(0, limit).map(chat => chatRow(chat, false))}
+            <ProjectChatList agentKey={row.sourceId} chats={chats} limit={limit} renderChat={chatRow} />
             {chats.length === 0 && <div className={styles.empty}>{t("leftSidebar.navigation.noChats")}</div>}
             {footer(row.key, limit < PROJECT_CHAT_MAX && (chats.length > limit || preview.moreAvailable[row.key] === true || (preview.moreAvailable[row.key] === undefined && (agent?.stats?.totalCount || 0) > limit)), row.sourceId)}
           </div>}
         </div>;
-      })}
+      }} />}
       {projectsOpen && groups.projects.length === 0 && <div className={styles.empty}>{t("leftSidebar.navigation.noProjects")}</div>}
     </section>}
   </div>;
