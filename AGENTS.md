@@ -5,6 +5,8 @@ Chat 置顶由 Platform `/api/chats/order` 与 `chat-pinned.json` 管理，WebCl
 
 BOT 是独立的 Native mode。Agent 管理支持创建与编辑 BOT；机器人、对话、项目三区并存，机器人显示偏好仅存 localStorage（agent:show-bots），BOT 的聊天不进入普通对话、项目和置顶列表。点击机器人只使用 Platform 的 primaryChat 指针；首次消息不传 chatId，由 /api/send 原子创建主聊天，文件上传可保留暂存 ChatID。客户端不为 BOT 设置 primary:true，也不把已有分身提升为主聊天。
 
+侧栏置顶区位于机器人分组上方；机器人分组与对话／项目一样可折叠。机器人可按 Agent 身份置顶到统一置顶区，置顶项不在机器人分组重复显示，点击仍读取当前 primaryChat；无主聊天的机器人也可置顶。机器人置顶是按后端身份隔离的 localStorage 导航偏好，不把 BOT Chat 写入 `/api/chats/order`，不受重新开始导致的主 Chat 更换影响。普通 Chat 置顶继续使用 Platform 协议。
+
 BOT 聊天沿用普通对话布局，不增加主聊天／分身标识、返回主聊天按钮或分身历史入口。BOT 所有聊天隐藏规划和终端入口，主聊天另隐藏模型及编辑开关；其余 mode 仍使用后端 interactionConfig。重新开始会先显示严重影响提示：旧分身结果仍在旧聊天，不会转投新主聊天，排队工作可能取消；确认后归档旧主聊天，再以 /api/send 开新主聊天。主聊天运行或待确认时不允许重新开始。
 
 只有 BOT 聊天的主 lane 输入走 /api/send，由 Platform 为主聊天排队或交给分身；GENERAL、CODER、KBASE、TEAM、EXECUTOR 保持原 query/steer 体验：客户端按自己看到的 Run 状态，空闲时发 /api/query，运行中进入本地待发送区并经 /api/steer 提交，等待项期间不允许发送。Platform 内部同样经 mailbox 中转，但 query 遇到忙碌会话返回冲突，steer 只插入指定 Run 并沿用客户端 steerId。入口只按 Agent mode 判定（`features/composer/lib/messageEntry.ts`），不按后端模式另分规则。BTW/explain、等待项作答、空白继续、规划批准与语音协议本轮不改；Gateway 独立部署没有 /api/send，保留原 Query/steer 路径。BOT 的语音/WebApp 支持、进行中筛选与跨 Run 最终结果关联仍待讨论，不标记为已交付。

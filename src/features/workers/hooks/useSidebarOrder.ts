@@ -3,6 +3,8 @@ import { useAppContext } from "@/app/state/AppContext";
 import { resolveStorageIdentity } from "@/shared/data/auth/storageIdentity";
 import { moveSidebarItem, normalizeSidebarOrder, sortSidebarItems } from "../lib/sidebarOrder";
 
+const ORDER_CHANGED = "agent-webclient:sidebar-order-changed";
+
 function readOrder(key: string): string[] {
   try { return normalizeSidebarOrder(JSON.parse(window.localStorage.getItem(key) || "[]")); }
   catch { return []; }
@@ -18,15 +20,26 @@ export function useSidebarOrder(group: string) {
     const onStorage = (event: StorageEvent) => {
       if (event.key === key || event.key === null) setSaved({ key, order: readOrder(key) });
     };
+    const onLocalChange = (event: Event) => {
+      const detail = (event as CustomEvent<{ key: string; order: string[] }>).detail;
+      if (detail.key === key) setSaved({ key, order: detail.order });
+    };
     window.addEventListener("storage", onStorage);
-    return () => window.removeEventListener("storage", onStorage);
+    window.addEventListener(ORDER_CHANGED, onLocalChange);
+    return () => {
+      window.removeEventListener("storage", onStorage);
+      window.removeEventListener(ORDER_CHANGED, onLocalChange);
+    };
   }, [key]);
   const save = useCallback((next: string[]) => {
     setSaved({ key, order: next });
     try { window.localStorage.setItem(key, JSON.stringify(next)); }
     catch { /* Keep the current in-memory order when storage is unavailable. */ }
+    window.dispatchEvent(new CustomEvent(ORDER_CHANGED, { detail: { key, order: next } }));
   }, [key]);
   return {
+    ids: order,
+    toggle: (id: string) => save(order.includes(id) ? order.filter(value => value !== id) : [...order, id]),
     manual: order.length > 0,
     sort: <T,>(items: T[], getId: (item: T) => string) => sortSidebarItems(items, order, getId),
     move: (ids: string[], active: string, target: string, after: boolean) => save(moveSidebarItem(order, ids, active, target, after)),

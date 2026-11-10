@@ -2098,6 +2098,8 @@ export const zhCNMessages = {
   "leftSidebar.navigation.primaryMode": "显示机器人",
   "leftSidebar.navigation.standardMode": "隐藏机器人",
   "leftSidebar.navigation.primaryChats": "机器人",
+  "leftSidebar.navigation.pinBot": "置顶机器人",
+  "leftSidebar.navigation.unpinBot": "取消置顶机器人",
   "leftSidebar.navigation.primaryNoChat": "暂无对话",
   "leftSidebar.navigation.primaryNoReply": "暂无回复",
   "leftSidebar.navigation.primaryEmpty": "暂无可用 Agent",

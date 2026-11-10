@@ -1994,6 +1994,8 @@ export const enUSMessages = {
   "leftSidebar.navigation.primaryMode": "Show bots",
   "leftSidebar.navigation.standardMode": "Hide bots",
   "leftSidebar.navigation.primaryChats": "Bots",
+  "leftSidebar.navigation.pinBot": "Pin bot",
+  "leftSidebar.navigation.unpinBot": "Unpin bot",
   "leftSidebar.navigation.primaryNoChat": "No conversations yet",
   "leftSidebar.navigation.primaryNoReply": "No reply yet",
   "leftSidebar.navigation.primaryEmpty": "No agents available",

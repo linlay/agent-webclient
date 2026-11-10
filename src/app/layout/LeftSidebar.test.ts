@@ -1853,10 +1853,14 @@ describe("LeftSidebar", () => {
     const coder = { ...state.workerRows[0], key: "agent:coder", sourceId: "coder", displayName: "Coder project", workspaceDir: "/work/coder" };
     state.workerRows.push(coder); state.workerIndexByKey.set(coder.key, coder); state.workerSelectionKey = coder.key;
     state.chats.push({ chatId: "coder-chat", agentKey: "coder", chatName: "Coder history", lastRunContent: "normal coder reply" });
+    state.chats.push({ chatId: "coder-pin", agentKey: "coder", chatName: "Pinned before bots" });
+    state.chatPinnedOrder = ["coder-pin"];
     globalWithStorage.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = { QUICK_ACTIONS_ENABLED: true };
     mockState(state);
     const html = renderSidebar();
     expect(html).toContain("GENERAL primary summary");
+    expect(html.indexOf("Pinned before bots")).toBeLessThan(html.indexOf('aria-label="机器人"'));
+    expect(html).toContain(">机器人<");
     expect(html).not.toContain(">主要对话<");
     expect(html).not.toContain("Latest reply 6");
     expect(html).toContain("Coder history");

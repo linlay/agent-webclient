@@ -12,22 +12,29 @@ import { WorkerChatPreviewItem } from "./WorkerChatPreviewItem";
 import "./PinnedChatSection.module.css";
 import { UiButton } from "@/shared/ui/UiButton";
 import navigationStyles from "./SidebarAgentNavigation.module.css";
+import { PrimaryChatNavigation, type PrimaryChatNavigationProps } from "./PrimaryChatNavigation";
+import { useSidebarOrder } from "../hooks/useSidebarOrder";
+import { selectPrimaryNavigation } from "../lib/primaryNavigation";
 
 export function PinnedChatSection({
   collapsed,
   onSelectChat,
   getChatLoading,
   excludeAgentKeys,
+  botActions,
 }: {
   collapsed: boolean;
   onSelectChat: (chatId: string) => void;
   getChatLoading: (chatId: string) => boolean;
   excludeAgentKeys?: ReadonlySet<string>;
+  botActions?: Pick<PrimaryChatNavigationProps, "onStartPrimary" | "onOpenHistory" | "onClearPrimary" | "onEditAgent">;
 }) {
   const { state } = useAppContext();
   const { t } = useI18n();
   const [expanded, setExpanded] = useState(true);
   const [popoverOpen, setPopoverOpen] = useState(false);
+  const botPins = useSidebarOrder("pinned-bots");
+  const bots = botActions ? selectPrimaryNavigation(state.agents, state.chats).filter(row => botPins.ids.includes(row.agent.key)) : [];
   const pinned = useMemo(
     () => selectPinnedChats(state.chats, state.chatPinnedOrder).filter(chat => !excludeAgentKeys?.has(chat.agentKey || chat.firstAgentKey || "")),
     [state.chats, state.chatPinnedOrder, excludeAgentKeys],
@@ -42,10 +49,14 @@ export function PinnedChatSection({
       ownerIcon: agent?.icon || (agent?.mode ? effectiveAgentIcon(undefined, agent.mode) : undefined),
     };
   });
-  if (pinned.length === 0) return null;
+  const count = pinned.length + bots.length;
+  if (count === 0) return null;
 
   const content = (
     <div className="pinned-chat-list">
+      {botActions && <PrimaryChatNavigation {...botActions} pinnedOnly getChatLoading={getChatLoading}
+        onSelectChat={chatId => { setPopoverOpen(false); onSelectChat(chatId); }}
+        onStartPrimary={key => { setPopoverOpen(false); botActions.onStartPrimary(key); }} />}
       {rows.map(({ chat, ownerLabel, ownerType, ownerIcon }) => (
         <WorkerChatPreviewItem
           key={chat.chatId}
@@ -64,7 +75,7 @@ export function PinnedChatSection({
       ))}
     </div>
   );
-  const needsAttention = pinned.some(
+  const needsAttention = [...pinned, ...bots.flatMap(row => row.chat ? [row.chat] : [])].some(
     (chat) =>
       isChatUnread(chat) ||
       chat.hasPendingAwaiting ||
@@ -75,6 +86,7 @@ export function PinnedChatSection({
     return (
       <div className="pinned-chat-rail">
         <Popover
+          trigger={["hover", "click"]}
           open={popoverOpen}
           onOpenChange={setPopoverOpen}
           placement="rightTop"
@@ -127,7 +139,7 @@ export function PinnedChatSection({
           >
             <span>{t("leftSidebar.pinned")}</span>
           </Badge>
-          <span className="pinned-chat-count">({pinned.length})</span>
+          <span className="pinned-chat-count">({count})</span>
           <MaterialIcon name={expanded ? "expand_more" : "chevron_right"} />
         </button>
       </div>

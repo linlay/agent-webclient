@@ -57,6 +57,8 @@ Projects、各 Project 内的 Chats、普通 Chats 与 Bots 均支持直接拖�
 
 ## 统一 Chat 置顶
 
+置顶区展示在机器人分组上方，展开与收起导航保持相同顺序。机器人分组提供与对话／项目一致的标题和折叠入口；机器人菜单支持置顶／取消置顶，置顶后从分组移到统一置顶区。机器人置顶按 Agent key 保存到按后端身份隔离的 localStorage，与普通 Chat 的平台置顶独立；可置顶尚无主聊天的机器人，点击仍使用最新 Platform primaryChat 指针或进入首次发送流程，重新开始不丢失置顶身份。置顶机器人保留原菜单、状态与直接拖动排序，未置顶机器人保持自己的顺序。
+
 独立侧栏顶部的 Pinned 共用一组顺序，接纳普通 Agent、CODER、KBASE 和 Team 对话。展开时显示会话标题、所属 Agent/Team、运行/HITL/未读状态；收起时由置顶图标打开列表。会话右键菜单或 hover/focus 时显示的更多按钮支持置顶与取消置顶，更多按钮覆盖行尾、不占固定列宽；键盘 Shift+F10 也可打开菜单。拖动手柄或空格、方向键、空格完成组内排序。所有智能体图标继续使用 `AgentIcon` 和原始彩色 SVG 资源。
 
 `useWorkerData` 通过一次 `/api/chats/order` 读取完整有序 `pinnedChats`，与 Desktop 共用相同契约，不再探测能力或追加置顶列表请求。后续 Agent 两类目录的 `includeChats=5&chatsPinned=false` 在后端截取之前排除置顶，普通对话、项目预览和收起时的摘要也不重复展示置顶 Chat。Worker 的历史总数、未读计数和 History 搜索仍覆盖完整历史；导航目录的分类不会修改已有 Chat owner。

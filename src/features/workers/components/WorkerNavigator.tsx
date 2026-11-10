@@ -717,6 +717,16 @@ export const WorkerNavigator: React.FC<WorkerNavigatorProps> = ({
           <Spin spinning={isSidebarLoading} tip={t("leftSidebar.loading")}>
             {state.leftDrawerOpen ? (
               <>
+                <PinnedChatSection
+                  collapsed={false}
+                  excludeAgentKeys={primaryAgentKeys}
+                  onSelectChat={handleSelectChat}
+                  getChatLoading={getWorkerChatLoading}
+                  botActions={{
+                    onStartPrimary: key => startNewConversationForWorker(key, { focusComposerOnComplete: true }),
+                    onOpenHistory: openHistory, onClearPrimary: handleClearPrimary, onEditAgent: handleEditAgent,
+                  }}
+                />
               {state.primaryNavigation && <PrimaryChatNavigation
                 onSelectChat={handleSelectChat}
                 onStartPrimary={(key) => startNewConversationForWorker(key, { focusComposerOnComplete: true })}
@@ -725,12 +735,6 @@ export const WorkerNavigator: React.FC<WorkerNavigatorProps> = ({
                 onEditAgent={handleEditAgent}
                 getChatLoading={getWorkerChatLoading}
               />}
-                <PinnedChatSection
-                  collapsed={false}
-                  excludeAgentKeys={primaryAgentKeys}
-                  onSelectChat={handleSelectChat}
-                  getChatLoading={getWorkerChatLoading}
-                />
                 <SidebarAgentNavigation
                   excludeAgentKeys={primaryAgentKeys}
                   generalAgentKey={currentGeneralKey}
@@ -763,6 +767,16 @@ export const WorkerNavigator: React.FC<WorkerNavigatorProps> = ({
                   >
                     <MaterialIcon name="dock_to_right" className="tw:text-[16px]" />
                   </UiButton>
+                  <PinnedChatSection
+                    collapsed
+                    excludeAgentKeys={primaryAgentKeys}
+                    onSelectChat={handleSelectChat}
+                    getChatLoading={getWorkerChatLoading}
+                    botActions={{
+                      onStartPrimary: key => startNewConversationForWorker(key, { focusComposerOnComplete: true }),
+                      onOpenHistory: openHistory, onClearPrimary: handleClearPrimary, onEditAgent: handleEditAgent,
+                    }}
+                  />
                   {state.primaryNavigation && <PrimaryChatNavigation collapsed
                     onSelectChat={handleSelectChat}
                     onStartPrimary={(key) => startNewConversationForWorker(key, { focusComposerOnComplete: true })}
@@ -772,12 +786,6 @@ export const WorkerNavigator: React.FC<WorkerNavigatorProps> = ({
                     getChatLoading={getWorkerChatLoading}
                   />}
                   <>
-                  <PinnedChatSection
-                    collapsed
-                    excludeAgentKeys={primaryAgentKeys}
-                    onSelectChat={handleSelectChat}
-                    getChatLoading={getWorkerChatLoading}
-                  />
                   {filteredWorkerRows.filter(row => row.type === "agent" && !primaryAgentKeys.has(row.sourceId)).map((item) => {
                     const unreadCount =
                       workerUnreadCountByKey.get(item.key) || 0;

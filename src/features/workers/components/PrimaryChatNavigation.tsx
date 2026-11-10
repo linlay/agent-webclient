@@ -13,23 +13,37 @@ import { SidebarOverflowText } from "./SidebarOverflowText";
 import styles from "./PrimaryChatNavigation.module.css";
 import { useSidebarOrder } from "../hooks/useSidebarOrder";
 import { SidebarSortableList } from "./SidebarSortableList";
+import navigationStyles from "./SidebarAgentNavigation.module.css";
 
-export function PrimaryChatNavigation(props: {
+export interface PrimaryChatNavigationProps {
   collapsed?: boolean;
+  pinnedOnly?: boolean;
   onSelectChat: (chatId: string) => void;
   onStartPrimary: (workerKey: string) => void;
   onOpenHistory: (agentKey?: string) => void;
   onClearPrimary?: (agentKey: string, chatId: string) => void;
   onEditAgent?: (agentKey: string) => void;
   getChatLoading: (chatId: string) => boolean;
-}) {
+}
+
+export function PrimaryChatNavigation(props: PrimaryChatNavigationProps) {
   const { state } = useAppContext();
   const { t } = useI18n();
   const [menuAgent, setMenuAgent] = useState("");
+  const [expanded, setExpanded] = useState(true);
   const order = useSidebarOrder("bots");
-  const rows = useMemo(() => selectPrimaryNavigation(state.agents, state.chats), [state.agents, state.chats]);
-  return <nav className={`${styles.navigation} ${props.collapsed ? styles.collapsed : ""}`} aria-label={t("leftSidebar.navigation.primaryChats")}>
-    <SidebarSortableList items={order.sort(rows, row => row.agent.key)} getId={row => row.agent.key} onMove={order.move} renderItem={({ agent, chat }, drag) => {
+  const pins = useSidebarOrder("pinned-bots");
+  const allRows = useMemo(() => selectPrimaryNavigation(state.agents, state.chats), [state.agents, state.chats]);
+  const rows = allRows.filter(row => pins.ids.includes(row.agent.key) === Boolean(props.pinnedOnly));
+  const rowOrder = props.pinnedOnly ? pins : order;
+  if (!allRows.length || (props.pinnedOnly && !rows.length)) return null;
+  return <nav className={`${styles.navigation} ${props.collapsed ? styles.collapsed : ""} ${props.pinnedOnly ? styles.pinned : ""}`} aria-label={t("leftSidebar.navigation.primaryChats")}>
+    {!props.collapsed && !props.pinnedOnly && <div className={navigationStyles.heading}>
+      <button className={navigationStyles.sectionTitle} type="button" aria-expanded={expanded} onClick={() => setExpanded(!expanded)}>
+        <span>{t("leftSidebar.navigation.primaryChats")}</span><MaterialIcon name={expanded ? "expand_more" : "chevron_right"} />
+      </button>
+    </div>}
+    {(props.collapsed || props.pinnedOnly || expanded) && <SidebarSortableList items={rowOrder.sort(rows, row => row.agent.key)} getId={row => row.agent.key} onMove={rowOrder.move} renderItem={({ agent, chat }, drag) => {
       const active = Boolean(chat && state.chatId === chat.chatId);
       const awaiting = chat?.hasPendingAwaiting === true;
       const running = isChatActiveRun(chat);
@@ -58,6 +72,7 @@ export function PrimaryChatNavigation(props: {
         </button>
         <Dropdown trigger={["click"]} onOpenChange={open => setMenuAgent(open ? agent.key : "")} menu={{
           items: [
+            { key: "pin", icon: <MaterialIcon name="push_pin" />, label: t(pins.ids.includes(agent.key) ? "leftSidebar.navigation.unpinBot" : "leftSidebar.navigation.pinBot") },
             { key: "history", icon: <MaterialIcon name="history" />, label: t("leftSidebar.navigation.showHistory") },
             ...(props.onEditAgent ? [{ key: "settings", icon: <MaterialIcon name="settings" />, label: t("leftSidebar.editAgent") }] : []),
             { type: "divider" },
@@ -65,6 +80,7 @@ export function PrimaryChatNavigation(props: {
           ],
           onClick: ({ key, domEvent }) => {
             domEvent.stopPropagation();
+            if (key === "pin") pins.toggle(agent.key);
             if (key === "history") props.onOpenHistory(agent.key);
             if (key === "settings") props.onEditAgent?.(agent.key);
             if (key === "clearPrimary" && chat && !running && !awaiting) props.onClearPrimary?.(agent.key, chat.chatId);
@@ -76,6 +92,6 @@ export function PrimaryChatNavigation(props: {
           </UiButton>
         </Dropdown>
       </div>;
-    }} />
+    }} />}
   </nav>;
 }
