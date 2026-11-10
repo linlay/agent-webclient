@@ -28,7 +28,7 @@ import { ToolPill } from "@/features/timeline/components/ToolPill";
 import { ContentBlock } from "@/features/timeline/components/ContentBlock";
 import { SourceBlock } from "@/features/timeline/components/SourceBlock";
 import { SystemAlert } from "@/features/timeline/components/SystemAlert";
-import { Skeleton } from "@/shared/components/skeleton";
+import { TimelineActivityText } from "./TimelineActivityText";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import type { MaterialIconName } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
@@ -125,7 +125,7 @@ export function TimelineActivityRow({
         role="status"
         aria-live="polite"
       >
-        <Skeleton active={true} text={text} />
+        <TimelineActivityText text={text} />
       </div>
     </div>
   );
