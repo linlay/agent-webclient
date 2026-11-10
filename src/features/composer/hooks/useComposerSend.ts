@@ -24,7 +24,7 @@ import type {
   SlashCommandAvailability,
   SlashPaletteItem,
 } from "@/features/composer/lib/slashCommands";
-import { parseBTWSlashInput, parseCompactSlashInput, parseDetailSlashInput } from "@/features/composer/lib/slashCommands";
+import { isSlashCommandDisabled, parseBTWSlashInput, parseCompactSlashInput, parseDetailSlashInput } from "@/features/composer/lib/slashCommands";
 import { useBTW } from "@/features/btw/components/BtwProvider";
 import {
   normalizeSteerSubmissionResponse,
@@ -34,8 +34,7 @@ import { normalizeTimelineAttachments } from "@/features/events/lib/timelineAtta
 import { findPendingSteer } from "@/features/composer/lib/pendingSteers";
 import { useBackgroundCommandActions } from "@/features/composer/hooks/useBackgroundCommandActions";
 import { useCompactChooser } from "@/features/composer/hooks/useCompactChooser";
-import { reloadChatAtDetail, useDetailChooser } from "@/features/composer/hooks/useDetailChooser";
-import { chatDetailLevel } from "@/features/chats/lib/chatDetailLevel";
+import { reloadChatDetails } from "@/features/composer/lib/chatDetails";
 import { useI18n } from "@/shared/i18n";
 import { parseLeadingAgentMention } from "@/features/composer/lib/mentionParser";
 import { resolveMentionCandidatesFromState } from "@/features/composer/lib/mentionCandidates";
@@ -209,11 +208,12 @@ export function useComposerSend(input: UseComposerSendInput) {
   });
 
   const openCompactChooser = useCompactChooser(submitCompactCommand);
-  const showDetailChooser = useDetailChooser();
-  const openDetailChooser = useCallback(() => {
-    const chatId = String(stateRef.current.chatId || "").trim();
-    if (chatId) showDetailChooser(chatId, chatDetailLevel(stateRef.current));
-  }, [showDetailChooser, stateRef]);
+  const showChatDetails = useCallback(() => {
+    const current = stateRef.current;
+    const chatId = String(current.chatId || "").trim();
+    const detail = current.chats.find(chat => chat.chatId === chatId)?.display?.effectiveDetail;
+    if (chatId && detail === "simple") reloadChatDetails(chatId);
+  }, [stateRef]);
 
   useEffect(() => {
     const message = inputValue.trim();
@@ -407,7 +407,7 @@ export function useComposerSend(input: UseComposerSendInput) {
         params: controlParams,
       });
     },
-    openDetailChooser,
+    showChatDetails,
     state: executeSlashCommandInput.state,
   });
 
@@ -525,12 +525,12 @@ export function useComposerSend(input: UseComposerSendInput) {
     }
     const detailAction = parseDetailSlashInput(message);
     if (detailAction !== null) {
-      if (!activeChatId || mainChatRunning) return;
+      if (detailAction === "unsupported" || !activeChatId || mainChatRunning
+        || isSlashCommandDisabled("detail", executeSlashCommandInput.slashAvailability)) return;
       setInputValue("");
       setSlashDismissed(false);
       closeMention();
-      if (detailAction === "chooser") openDetailChooser();
-      else reloadChatAtDetail(activeChatId, detailAction);
+      showChatDetails();
       return;
     }
     const btwMessage = parseBTWSlashInput(message);
@@ -681,6 +681,7 @@ export function useComposerSend(input: UseComposerSendInput) {
     controlParams,
     dispatch,
     executeSlashCommand,
+    executeSlashCommandInput.slashAvailability,
     hasUploadingAttachments,
     hasFailedAttachments,
     inputValue,
@@ -690,7 +691,7 @@ export function useComposerSend(input: UseComposerSendInput) {
     skillReferenceAgentKey,
     messageApi,
     openCompactChooser,
-    openDetailChooser,
+    showChatDetails,
     openBTW,
     activeQuerySessionRequestIdRef,
     querySessionsRef,

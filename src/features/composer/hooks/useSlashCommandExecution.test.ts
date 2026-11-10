@@ -70,4 +70,34 @@ describe("useSlashCommandExecution", () => {
     expect(setSlashDismissed).toHaveBeenCalledWith(true);
     expect(closeMention).toHaveBeenCalled();
   });
+
+  it.each([
+    ["simple", false, true],
+    ["detailed", false, false],
+    [undefined, false, false],
+    ["simple", true, false],
+  ] as const)("expands history only when available (detail=%s, running=%s)", async (chatDetail, streaming, allowed) => {
+    const showChatDetails = jest.fn();
+    const setInputValue = jest.fn();
+    let execute: ReturnType<typeof useSlashCommandExecution> | undefined;
+    const Harness = () => {
+      execute = useSlashCommandExecution({
+        slashAvailability: {
+          streaming, chatDetail, hasLatestQuery: true, isFrontendActive: false,
+          canUsePlanningMode: false, canUseVoiceMode: false, hasActiveChat: true,
+          hasCurrentWorker: true, commandOverlayOpen: false, canShowUsage: false,
+        },
+        closeMention: jest.fn(), latestQueryText: "hello", resetForNewConversation: jest.fn(),
+        dispatch: jest.fn(), toggleVoiceMode: jest.fn(), submitCompactCommand: jest.fn(),
+        setInputValue, setSlashDismissed: jest.fn(), openBTW: jest.fn(), showChatDetails,
+        state: { rightSidebarOpen: false, planningMode: false, chatId: "chat_1", usagePopoverOpen: false, runId: "" },
+      });
+      return null;
+    };
+    renderToStaticMarkup(React.createElement(Harness));
+    await execute?.("detail");
+    expect(showChatDetails).toHaveBeenCalledTimes(allowed ? 1 : 0);
+    expect(setInputValue).toHaveBeenCalledTimes(allowed ? 1 : 0);
+  });
+
 });

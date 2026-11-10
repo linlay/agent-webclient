@@ -78,6 +78,7 @@ export interface SlashCommandAvailability {
   canShowUsage: boolean;
   canCompactActiveRun?: boolean;
   compactPending?: boolean;
+  chatDetail?: EventDetailLevel;
 }
 
 export interface SlashCommandFilterOptions {
@@ -148,7 +149,7 @@ export const SLASH_COMMANDS: SlashCommandDefinition[] = [
     command: '/detail',
     labelKey: 'slash.command.detail.label',
     descriptionKey: 'slash.command.detail.description',
-    keywords: ['detail', 'detailed', 'simple', 'announce', 'events'],
+    keywords: ['detail', 'detailed', 'events'],
   },
   {
     id: 'plan',
@@ -308,19 +309,20 @@ export function isSlashCommandDisabled(
     return !availability.canShowUsage;
   }
   if (commandId === 'detail') {
-    // A running Chat is delivered at its Run's level; only an idle Chat can switch.
-    return !availability.hasActiveChat || availability.streaming || availability.commandOverlayOpen;
+    // Only loaded, idle simple history can be expanded.
+    return !availability.hasActiveChat || availability.streaming || availability.commandOverlayOpen
+      || availability.chatDetail !== 'simple';
   }
   return false;
 }
 
-export type DetailSlashAction = "chooser" | EventDetailLevel;
+export type DetailSlashAction = "detailed" | "unsupported";
 
-/** `/detail` opens the chooser; `/detail detailed|simple` applies directly. */
+/** Expand history directly; consume the old simple argument without downgrading. */
 export function parseDetailSlashInput(input: string): DetailSlashAction | null {
   const match = String(input || "").match(/^\/detail(?:\s+(detailed|simple))?\s*$/i);
   if (!match) return null;
-  return match[1] ? match[1].toLowerCase() as EventDetailLevel : "chooser";
+  return match[1]?.toLowerCase() === "simple" ? "unsupported" : "detailed";
 }
 
 export function parseBTWSlashInput(input: string): string | null {

@@ -699,9 +699,11 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     return false;
   }
 
+  const currentChatDetail = state.chats.find(chat => chat.chatId === state.chatId)?.display?.effectiveDetail;
   const slashAvailability = useMemo(
     () => ({
       streaming: isMainChatRunning,
+      chatDetail: currentChatDetail,
       hasLatestQuery: Boolean(latestQueryText),
       isFrontendActive,
       canUsePlanningMode: planningModeAvailable,
@@ -722,6 +724,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     }),
     [
       currentWorker,
+      currentChatDetail,
       isFrontendActive,
       latestQueryText,
       state.chatId,

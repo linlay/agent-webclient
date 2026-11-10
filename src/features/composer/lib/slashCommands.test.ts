@@ -62,7 +62,7 @@ describe('slashCommands', () => {
     expect(getFilteredSlashCommands('btw').map((item) => item.id)).toEqual(['btw']);
     expect(getFilteredSlashCommands('side').map((item) => item.id)).toEqual(['btw']);
     expect(getFilteredSlashCommands('顺便').map((item) => item.id)).toEqual(['btw']);
-    // /detail now switches a past Chat's delivery level; the old Agent detail popup stays removed.
+    // /detail expands past Chat history.
     expect(getFilteredSlashCommands('detail').map((item) => item.id)).toEqual(['detail']);
     expect(getFilteredSlashCommands('switch')).toEqual([]);
   });
@@ -123,10 +123,10 @@ describe('slashCommands', () => {
     ]);
   });
 
-  it('parses /detail as the chooser or a direct level', () => {
-    expect(parseDetailSlashInput('/detail')).toBe('chooser');
+  it('parses /detail as expansion and blocks the old downgrade argument', () => {
+    expect(parseDetailSlashInput('/detail')).toBe('detailed');
     expect(parseDetailSlashInput('/detail DETAILED')).toBe('detailed');
-    expect(parseDetailSlashInput('/detail simple ')).toBe('simple');
+    expect(parseDetailSlashInput('/detail simple ')).toBe('unsupported');
     expect(parseDetailSlashInput('/detail summary')).toBeNull();
     expect(parseDetailSlashInput('/detail full')).toBeNull();
     expect(parseDetailSlashInput('/detail none ')).toBeNull();
@@ -134,12 +134,15 @@ describe('slashCommands', () => {
     expect(parseDetailSlashInput('/details')).toBeNull();
   });
 
-  it('allows /detail only for an idle active Chat', () => {
+  it('allows /detail only for loaded idle simple history', () => {
     const idle = {
-      streaming: false, hasLatestQuery: true, isFrontendActive: false, canUsePlanningMode: false,
+      streaming: false, chatDetail: "simple" as const, hasLatestQuery: true, isFrontendActive: false, canUsePlanningMode: false,
       canUseVoiceMode: false, hasActiveChat: true, hasCurrentWorker: true, commandOverlayOpen: false, canShowUsage: true,
     };
     expect(isSlashCommandDisabled('detail', idle)).toBe(false);
+    expect(isSlashCommandDisabled('detail', { ...idle, chatDetail: 'detailed' })).toBe(true);
+    expect(isSlashCommandDisabled('detail', { ...idle, chatDetail: undefined })).toBe(true);
+    expect(isSlashCommandDisabled('detail', { ...idle, commandOverlayOpen: true })).toBe(true);
     expect(isSlashCommandDisabled('detail', { ...idle, streaming: true })).toBe(true);
     expect(isSlashCommandDisabled('detail', { ...idle, hasActiveChat: false })).toBe(true);
   });
