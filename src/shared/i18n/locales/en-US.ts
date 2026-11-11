@@ -2412,6 +2412,7 @@ export const enUSMessages = {
   "btw.new.confirmTitle": "Start a new side question?",
   "btw.new.created": "Started a new side question",
   "btw.noChat": "Open an existing conversation first",
+  "btw.openFailed": "Could not open the side question panel. Try again.",
   "btw.send": "Send",
   "btw.selectionOnlyPrompt": "Please explain the selected text.",
   "btw.status.readOnly": "Read only",

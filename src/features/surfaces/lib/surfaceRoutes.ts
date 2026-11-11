@@ -33,6 +33,7 @@ export type SurfaceRouteIntent =
       chatId: string;
       btwId?: string;
       selectionTransferTarget?: string;
+      btwLaunchTarget?: string;
     }
   | { kind: "source"; sourceId: string; chatId: string; libraryId?: string; chunkId?: string }
   | { kind: "view"; chatId: string; runId: string; sourceId: string; viewIndex: string }
@@ -142,6 +143,7 @@ export function buildSurfaceRoute(
     pathname = `/btw/${chatId}`;
     set(params, "btwId", intent.btwId);
     set(params, "selectionTransferTarget", intent.selectionTransferTarget);
+    set(params, "btwLaunchTarget", intent.btwLaunchTarget);
   } else if (intent.kind === "source") {
     const sourceId = pathSegment(intent.sourceId);
     if (!sourceId || !clean(intent.chatId)) return "";

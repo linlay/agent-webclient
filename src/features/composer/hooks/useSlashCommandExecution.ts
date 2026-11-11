@@ -21,7 +21,7 @@ export function useSlashCommandExecution(input: {
 	submitCompactCommand: (level?: CompactLevel) => Promise<void>;
 	setInputValue: (value: string) => void;
 	setSlashDismissed: (dismissed: boolean) => void;
-	openBTW: () => void;
+	openBTW: () => void | Promise<void>;
 	showChatDetails: () => void;
 	state: Pick<
 		AppState,
@@ -55,15 +55,16 @@ export function useSlashCommandExecution(input: {
 			if (isSlashCommandDisabled(commandId, slashAvailability)) {
 				return;
 			}
+			if (commandId === "btw") {
+				await openBTW();
+				return;
+			}
 
 			setSlashDismissed(true);
 			setInputValue("");
 			closeMention();
 
 			switch (commandId) {
-				case "btw":
-					openBTW();
-					return;
 				case "compact":
 					await submitCompactCommand();
 					return;

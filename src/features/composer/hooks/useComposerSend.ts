@@ -26,6 +26,11 @@ import type {
 } from "@/features/composer/lib/slashCommands";
 import { isSlashCommandDisabled, parseBTWSlashInput, parseCompactSlashInput, parseDetailSlashInput } from "@/features/composer/lib/slashCommands";
 import { useBTW } from "@/features/btw/components/BtwProvider";
+import { sendBtwLaunch, type BtwLaunch } from "@/features/btw/lib/btwLaunchTransfer";
+import { buildDesktopWorkPanelDescriptor } from "@/features/surfaces/lib/openTarget";
+import { useOptionalWorkPanelTransport } from "@/features/transport/components/RealtimeTransportProvider";
+import { DESKTOP_SELECTION_BTW_TARGET } from "@/features/selection/lib/selectionTransfer";
+import { isDesktopAppMode } from "@/shared/utils/routing";
 import {
   normalizeSteerSubmissionResponse,
   resolveActiveRunId,
@@ -180,10 +185,14 @@ export function useComposerSend(input: UseComposerSendInput) {
   const runs = useRunTransport();
   const { message: messageApi } = AntdApp.useApp();
   const { openBTW } = useBTW();
+  const workPanel = useOptionalWorkPanelTransport();
+  const openingBtwChats = useRef(new Set<string>());
   const pendingSendRef = useRef(false);
   const pendingSentMessageRef = useRef("");
   const pendingSentReferencesRef = useRef("");
   const referenceSignature = JSON.stringify(sendReferences);
+  const btwDraftRef = useRef({ inputValue, referenceSignature });
+  btwDraftRef.current = { inputValue, referenceSignature };
   const interruptSafetyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const {
     submitCompactCommand,
@@ -390,6 +399,59 @@ export function useComposerSend(input: UseComposerSendInput) {
     stateRef,
   ]);
 
+  const openBtwCommand = useCallback(async (message = "") => {
+    const chatId = String(stateRef.current.chatId || "").trim();
+    if (!chatId) {
+      void messageApi.warning(t("btw.noChat"));
+      return;
+    }
+    if (openingBtwChats.current.has(chatId)) return;
+    const draft = btwDraftRef.current;
+    const options: BtwLaunch = {
+      accessLevel,
+      model: modelOverride,
+      params: controlParams,
+      ...(message ? { message, references: sendReferences, attachments: sendAttachmentMeta } : {}),
+    };
+    try {
+      if (isDesktopAppMode()) {
+        openingBtwChats.current.add(chatId);
+        const owner = resolveCurrentOwner();
+        const launchTarget = message ? `btw-${crypto.randomUUID()}` : "";
+        const target = launchTarget || DESKTOP_SELECTION_BTW_TARGET;
+        const descriptor = buildDesktopWorkPanelDescriptor({
+          version: 1,
+          kind: "btw",
+          chatId,
+          agentKey: owner?.agentKey,
+          instanceId: target,
+          ...(launchTarget ? { btwLaunchTarget: launchTarget } : { selectionTransferTarget: target }),
+          title: t("selection.sideChat.title"),
+        }, window.location.search);
+        if (!workPanel || !descriptor) throw new Error("Side chat WorkPanel is unavailable");
+        await workPanel.openDescriptor(descriptor);
+        if (!await sendBtwLaunch(chatId, target, options)) throw new Error("Side chat is not ready");
+      } else if (!openBTW({ ...options, parentChatId: chatId, sendImmediately: Boolean(message) })) {
+        throw new Error("Side chat is unavailable");
+      }
+    } catch {
+      if (stateRef.current.chatId === chatId) void messageApi.warning(t("btw.openFailed"));
+      return;
+    } finally {
+      openingBtwChats.current.delete(chatId);
+    }
+    const latest = btwDraftRef.current;
+    if (stateRef.current.chatId !== chatId || latest.inputValue !== draft.inputValue ||
+      (message && latest.referenceSignature !== draft.referenceSignature)) return;
+    setInputValue("");
+    if (message) clearComposerAttachments();
+    setSlashDismissed(!message);
+    closeMention();
+  }, [
+    accessLevel, clearComposerAttachments, closeMention, controlParams, messageApi, modelOverride, openBTW,
+    resolveCurrentOwner, sendAttachmentMeta, sendReferences, setInputValue, setSlashDismissed, stateRef, t, workPanel,
+  ]);
+
   const executeSlashCommand = useSlashCommandExecution({
     slashAvailability: executeSlashCommandInput.slashAvailability,
     closeMention,
@@ -400,13 +462,7 @@ export function useComposerSend(input: UseComposerSendInput) {
     submitCompactCommand: openCompactChooser,
     setInputValue,
     setSlashDismissed,
-    openBTW: () => {
-      openBTW({
-        accessLevel,
-        model: modelOverride,
-        params: controlParams,
-      });
-    },
+    openBTW: openBtwCommand,
     showChatDetails,
     state: executeSlashCommandInput.state,
   });
@@ -535,31 +591,12 @@ export function useComposerSend(input: UseComposerSendInput) {
     }
     const btwMessage = parseBTWSlashInput(message);
     if (btwMessage !== null) {
-      if (referenceIds(sendReferences, "kbase").length > 0) { void messageApi.warning(t("kbase.btwUnsupported")); return; }
-      if (referenceIds(sendReferences, "skill").length > 0) {
+      if (btwMessage && referenceIds(sendReferences, "kbase").length > 0) { void messageApi.warning(t("kbase.btwUnsupported")); return; }
+      if (btwMessage && referenceIds(sendReferences, "skill").length > 0) {
         void messageApi.warning(t("composer.addMenu.skill.btwUnsupported"));
         return;
       }
-      if (!activeChatId) {
-        void messageApi.warning(t("btw.noChat"));
-        return;
-      }
-      openBTW({
-        parentChatId: activeChatId,
-        message: btwMessage,
-        references: sendReferences,
-        attachments: sendAttachmentMeta,
-        accessLevel,
-        model: modelOverride,
-        params: controlParams,
-        sendImmediately: Boolean(btwMessage),
-      });
-      setInputValue("");
-      if (btwMessage) {
-        clearComposerAttachments();
-      }
-      setSlashDismissed(false);
-      closeMention();
+      void openBtwCommand(btwMessage);
       return;
     }
     const mainRuntime = resolveMainChatRuntime(
@@ -692,7 +729,7 @@ export function useComposerSend(input: UseComposerSendInput) {
     messageApi,
     openCompactChooser,
     showChatDetails,
-    openBTW,
+    openBtwCommand,
     activeQuerySessionRequestIdRef,
     querySessionsRef,
     resolveCurrentRunId,

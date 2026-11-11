@@ -32,6 +32,7 @@ export type OpenTargetIntent =
       btwId?: string;
       instanceId?: string;
       selectionTransferTarget?: string;
+      btwLaunchTarget?: string;
       title?: string;
     } & AgentIntent)
   | ({
@@ -169,6 +170,7 @@ export function toSurfaceRouteIntent(intent: OpenTargetIntent): SurfaceRouteInte
       chatId: intent.chatId,
       btwId: intent.btwId,
       selectionTransferTarget: intent.selectionTransferTarget,
+      btwLaunchTarget: intent.btwLaunchTarget,
     };
   }
   if (intent.kind === "source") {

@@ -36,6 +36,16 @@ jest.mock('@/features/terminal/lib/terminalDockPersistence', () => ({
 }));
 
 const openBTWMock = jest.fn(() => true);
+const mockOpenDescriptor = jest.fn();
+const mockSendBtwLaunch = jest.fn();
+
+jest.mock('@/features/transport/components/RealtimeTransportProvider', () => ({
+  useOptionalWorkPanelTransport: () => ({ openDescriptor: mockOpenDescriptor }),
+}));
+
+jest.mock('@/features/btw/lib/btwLaunchTransfer', () => ({
+  sendBtwLaunch: (...args: unknown[]) => mockSendBtwLaunch(...args),
+}));
 
 jest.mock('@/features/btw/components/BtwProvider', () => ({
   useBTW: () => ({
@@ -883,7 +893,13 @@ describe('useComposerSend active run gate', () => {
     expect(dispatch).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'SET_SELECTED_KBASES' }));
   });
 
-  it.each([false, true])('handles an inline /btw question with required libraries selected: %s', (selected) => {
+  it.each([
+    { name: 'sends an inline question in the browser', desktop: false, selected: false, palette: false, denied: false },
+    { name: 'keeps an inline question with an unsupported library', desktop: false, selected: true, palette: false, denied: false },
+    { name: 'opens the side chat from the Desktop palette', desktop: true, selected: false, palette: true, denied: false },
+    { name: 'hands off an inline question to a fresh Desktop tab', desktop: true, selected: false, palette: false, denied: false },
+    { name: 'preserves the question when Desktop denies opening the tab', desktop: true, selected: false, palette: false, denied: true },
+  ])('$name', async ({ desktop, selected, palette, denied }) => {
     const state = createInitialState();
     state.chatId = 'chat-1';
     state.currentChatActiveRun = {
@@ -938,7 +954,7 @@ describe('useComposerSend active run gate', () => {
           toggleVoiceMode: jest.fn(),
         },
         hasUploadingAttachments: false,
-        inputValue: '/btw side question',
+        inputValue: palette ? '/btw' : '/btw side question',
         isAwaitingActive: false,
         isVoiceMode: false,
         mainChatRunning: true,
@@ -963,17 +979,64 @@ describe('useComposerSend active run gate', () => {
       return null;
     };
 
-    renderToStaticMarkup(React.createElement(Harness));
-    actions?.handleSend();
+    const previousRuntime = globalThis.__AGENT_WEBCLIENT_RUNTIME_CONFIG__;
+    const previousWindow = Object.getOwnPropertyDescriptor(globalThis, 'window');
+    if (desktop) {
+      globalThis.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = { DESKTOP_APP: true };
+      Object.defineProperty(globalThis, 'window', { configurable: true, value: { location: { search: '' } } });
+    }
+    mockOpenDescriptor.mockReset().mockResolvedValue({ ok: true });
+    if (denied) mockOpenDescriptor.mockRejectedValueOnce(new Error('denied'));
+    mockSendBtwLaunch.mockReset().mockResolvedValue(true);
+    try {
+      renderToStaticMarkup(React.createElement(Harness));
+      if (palette) {
+        await actions?.executeSlashCommand('btw');
+      } else {
+        actions?.handleSend();
+        await new Promise<void>(resolve => setTimeout(resolve, 0));
+      }
+    } finally {
+      globalThis.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = previousRuntime;
+      if (previousWindow) Object.defineProperty(globalThis, 'window', previousWindow);
+      else Reflect.deleteProperty(globalThis, 'window');
+    }
 
-    if (selected) {
+    if (desktop) {
+      const descriptor = mockOpenDescriptor.mock.calls[0]?.[0];
+      expect(descriptor).toMatchObject({
+        kind: 'webclient',
+        module: 'btw',
+        context: { chatId: 'chat-1', agentKey: 'agent-a' },
+      });
+      expect(openBTWMock).not.toHaveBeenCalled();
+      if (!denied) {
+        const target = descriptor.context.instanceId;
+        expect(descriptor.route).toBe(palette
+          ? '/btw/chat-1?selectionTransferTarget=selection-actions-v1'
+          : `/btw/chat-1?btwLaunchTarget=${target}`);
+        expect(mockSendBtwLaunch).toHaveBeenCalledWith('chat-1', target, {
+          accessLevel: 'ask_for_approval',
+          model: { key: 'model-a' },
+          params: { temperature: 0.2 },
+          ...(!palette ? {
+            message: 'side question',
+            references: [{ name: 'spec.md', path: '/tmp/spec.md' }],
+            attachments: [{ name: 'spec.md', size: 12 }],
+          } : {}),
+        });
+      } else {
+        expect(mockSendBtwLaunch).not.toHaveBeenCalled();
+      }
+    }
+    if (selected || denied) {
       expect(openBTWMock).not.toHaveBeenCalled();
       expect(mockMessageApi.warning).toHaveBeenCalled();
       expect(setInputValue).not.toHaveBeenCalled();
       expect(clearComposerAttachments).not.toHaveBeenCalled();
       return;
     }
-    expect(openBTWMock).toHaveBeenCalledWith(
+    if (!desktop) expect(openBTWMock).toHaveBeenCalledWith(
       expect.objectContaining({
         parentChatId: 'chat-1',
         message: 'side question',
@@ -988,6 +1051,7 @@ describe('useComposerSend active run gate', () => {
       expect.objectContaining({ type: 'ENQUEUE_PENDING_STEER' }),
     );
     expect(setInputValue).toHaveBeenCalledWith('');
-    expect(clearComposerAttachments).toHaveBeenCalled();
+    if (palette) expect(clearComposerAttachments).not.toHaveBeenCalled();
+    else expect(clearComposerAttachments).toHaveBeenCalled();
   });
 });
