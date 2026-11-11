@@ -10,7 +10,7 @@ Form awaiting 使用后端 view 引用渲染交互表单。HTML/QLC 通过统一
 - 仅在宿主主动 collect 后接收当前 iframe 的 submit，校验表单 ID，并构造 awaiting submit payload。
 
 ## 核心流程
-`reduceActiveAwaiting` 进入 form 模式后保存 view、forms 和 runtime state。`AwaitingHtmlContainer` 拉取 HTML，iframe load 后发送初始化消息。用户提交时，宿主请求 iframe collect 数据，校验 payload 后调用 awaiting submit。
+`reduceActiveAwaiting` 进入 form 模式后保存 view、forms 和 runtime state。`AwaitingHtmlContainer` 拉取 HTML，等当前 iframe 的 load 事件后发送初始化消息，再启用「同意」、快捷键 `1` 和表单切换。用户提交时，宿主向当前 iframe 发出一次 collect 请求，校验该 iframe 的回复后调用 awaiting submit。
 
 ## 边界与非目标
 - 普通 Form 使用 HTML/QLC；Team 的 builtin/team-hitl 由宿主渲染成员组件并汇总提交。
@@ -29,7 +29,7 @@ Form awaiting 使用后端 view 引用渲染交互表单。HTML/QLC 通过统一
 
 Platform 控制操作通过 `awaiting.ask(mode: form, view: {source: builtin, key: platform_control_review, renderer: html})` 复用容器。HTML 随 Platform 内置，业务内容全部位于 `forms[].form`，WebClient 不解释资源类型、版本或前后文本；通用 approval 不包含 review/fingerprint 扩展。
 
-所有 HTML form iframe 统一使用 `sandbox="allow-scripts"`，宿主通过 init/update 附带 locale 与 colorScheme。模板只响应宿主 collect；主动 submit/close、重复响应、未知或重复表单 ID 均不能提交。拒绝不等待 HTML 响应；倒计时只更新 UI，由后端结束等待，不自动批准。旧模板需要实现 awaiting_collect，不能依赖同源访问或自行提交。
+所有 HTML form iframe 统一使用 `sandbox="allow-scripts"`，宿主通过 init/update 附带 locale 与 colorScheme。模板只响应宿主 collect；主动 submit/close、重复响应、未知或重复表单 ID 均不能提交。表单就绪时拒绝会先收集已编辑的数据，表单尚未就绪或收集超时时可由宿主直接拒绝。倒计时只更新 UI，由后端结束等待，不自动批准。旧模板需要实现 awaiting_collect，不能依赖同源访问或自行提交。
 
 容器按 HTML 上报的正文高度收缩或增高，整体仍限制最大高度，超出时 iframe 内部滚动，标题和底部操作保留空间。单表单由 `awaitingId` 标识，init/update 不发送 `form.id` 或 `activeFormId`；尺寸桥接的 `formId` 使用 `awaitingId`，与前端内部单元素列表的 ID 一致。HTML 可发送 `awaiting_resize`，携带 `runId`、`awaitingId`、`formId` 与正数 `height`（CSS 像素）；宿主仅接受当前 iframe、当前表单的有限数值，不触发提交。未实现高度上报的模板保留 420px 默认高度。Platform 的内置 view 加载入口为所有 HTML 统一注入尺寸桥接，包括独立安装页；新增内置模板也自动获得该能力。桥接监听内容尺寸变化，展开、收起、语言及宽度变化后重新上报；测量自然正文高度，避免使用受 iframe 当前高度影响的 document scrollHeight。外部 VIEW 或内联 HTML 可使用同一上报协议，未实现时仍保留默认高度。Platform 模板只读，默认展示差异，完整文本折叠。
 

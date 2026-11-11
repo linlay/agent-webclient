@@ -13,7 +13,13 @@ let mockExpire: (() => void) | undefined;
 jest.mock("@/shared/i18n", () => ({ useI18n: () => ({ locale: "zh-CN", t: (key: string) => key }) }));
 jest.mock("@/shared/ui/useAppMessage", () => ({ useAppMessage: () => ({ warning: jest.fn() }) }));
 jest.mock("@/app/state/provider", () => ({ useOptionalAppContext: () => null }));
-jest.mock("@/features/tools/hooks/useAwaitingFrameDocument", () => ({ useAwaitingFrameDocument: () => ({ html: "<p>Review</p>", loading: false, error: "" }) }));
+jest.mock("@/features/tools/hooks/useAwaitingFrameDocument", () => {
+ const { useMemo } = jest.requireActual<typeof React>("react");
+ return {
+  useAwaitingFrameDocument: ({ key }: FormActiveAwaiting) =>
+   useMemo(() => ({ key, html: "<p>Review</p>", loading: false, error: "" }), [key]),
+ };
+});
 jest.mock("@/features/tools/hooks/useAwaitingTimeoutCountdown", () => ({ useAwaitingTimeoutCountdown: ({ onExpire }: any) => { mockExpire = onExpire; return {label:""}; } }));
 jest.mock("@/shared/ui/MaterialIcon", () => ({ MaterialIcon: () => null }));
 jest.mock("antd", () => {
@@ -26,13 +32,19 @@ jest.mock("antd", () => {
 const data = {key:"run:wait", mode:"form", runId:"run", awaitingId:"wait", viewKey:"embedded-review", timeout:60,
  forms:[{id:"call",title:"Review operation",form:{content:"original"}}]} as FormActiveAwaiting;
 
-async function mount(keyboardShortcuts = true) {
+async function mount(keyboardShortcuts = true, deferFrameLoad = false) {
  const host=document.createElement("div");document.body.append(host);
+ // jsdom emits a load for about:blank without executing srcDoc. Drive load explicitly.
+ host.addEventListener("load", event => {
+  if (event.isTrusted && event.target instanceof HTMLIFrameElement) event.stopPropagation();
+ }, true);
  const root=createRoot(host), submit=jest.fn().mockResolvedValue(undefined), patch=jest.fn();
  await act(async()=>root.render(<AwaitingHtmlContainer data={data} onSubmit={submit} onPatch={patch} keyboardShortcuts={keyboardShortcuts}/>));
- const frame=host.querySelector("iframe")!;
- const reply=async(decision="approve",data:unknown={content:"edited"})=>act(async()=>{window.dispatchEvent(new MessageEvent("message",{source:frame.contentWindow,data:{type:"frontend_awaiting_submit",param:{decision,data}}}));});
- return {host,frame,submit,patch,reply,render: async (next: FormActiveAwaiting) => act(async () => root.render(<AwaitingHtmlContainer data={next} onSubmit={submit} onPatch={patch}/>)),click:async(decision:string)=>act(async()=>(host.querySelector(`[data-decision="${decision}"]`) as HTMLButtonElement).click()),cleanup:()=>{act(()=>root.unmount());host.remove();}};
+ const frame = () => host.querySelector("iframe")!;
+ const load = () => act(async () => { frame().dispatchEvent(new Event("load")); });
+ if (!deferFrameLoad) await load();
+ const reply=async(decision="approve",data:unknown={content:"edited"},source=frame().contentWindow)=>act(async()=>{window.dispatchEvent(new MessageEvent("message",{source,data:{type:"frontend_awaiting_submit",param:{decision,data}}}));});
+ return {host,get frame() { return frame(); },load,submit,patch,reply,render: async (next: FormActiveAwaiting) => act(async () => root.render(<AwaitingHtmlContainer data={next} onSubmit={submit} onPatch={patch} keyboardShortcuts={keyboardShortcuts}/>)),click:async(decision:string)=>act(async()=>(host.querySelector(`[data-decision="${decision}"]`) as HTMLButtonElement).click()),cleanup:()=>{act(()=>root.unmount());host.remove();}};
 }
 
 test("HTML form accepts one requested response, ignores unsolicited and duplicate submits",async()=>{
@@ -91,6 +103,54 @@ test("digit 1 collects the form once and digit 2 uses the rejection flow", async
   await view.reply("reject");
   expect(view.submit.mock.calls[1][0].params[0].decision).toBe("reject");
  }finally{view.cleanup();}
+});
+
+test("rapid skin approvals wait for each iframe and collect once from the current card", async () => {
+ const view = await mount(true, true);
+ const approve = () => view.host.querySelector<HTMLButtonElement>('[data-decision="submit"]')!;
+ let previousFrame: Window | null = null;
+ try {
+  for (const index of [1, 2, 3, 4]) {
+   const awaitingId = `skin-${index}`;
+   const form = { action: "skin.import", args: { filePath: `/tmp/${awaitingId}.skin.zip` } };
+   await view.render({
+    ...data,
+    key: `run:${awaitingId}`,
+    awaitingId,
+    forms: [{ id: awaitingId, title: "desktop_settings / skin.import", form }],
+   });
+   const post = jest.spyOn(view.frame.contentWindow!, "postMessage");
+   expect(approve().disabled).toBe(true);
+   expect((await pressDigit("1")).defaultPrevented).toBe(false);
+   await view.click("submit");
+   expect(post).not.toHaveBeenCalled();
+
+   await view.load();
+   expect(approve().disabled).toBe(false);
+   expect(post).toHaveBeenCalledTimes(1);
+   expect(post).toHaveBeenLastCalledWith(expect.objectContaining({ type: "awaiting_init" }), "*");
+   // Two key presses before React flushes the disabled state still start one collect.
+   await act(async () => {
+    for (const key of ["1", "1"]) {
+     window.dispatchEvent(new KeyboardEvent("keydown", { key, cancelable: true }));
+    }
+   });
+   expect(post).toHaveBeenCalledTimes(2);
+   expect(post).toHaveBeenLastCalledWith(expect.objectContaining({
+    type: "awaiting_collect",
+    data: { runId: "run", awaitingId, decision: "submit" },
+   }), "*");
+   if (previousFrame) await view.reply("approve", {}, previousFrame);
+   expect(view.submit).toHaveBeenCalledTimes(index - 1);
+   await view.reply("approve", form);
+   expect(view.submit).toHaveBeenCalledTimes(index);
+   expect(view.submit).toHaveBeenLastCalledWith({
+    runId: "run", awaitingId, params: [{ id: awaitingId, decision: "approve", form }],
+   });
+   previousFrame = view.frame.contentWindow;
+   post.mockRestore();
+  }
+ } finally { view.cleanup(); }
 });
 
 test("digits ignore editing, modifiers, composition, repeats and expired forms",async()=>{

@@ -6,10 +6,6 @@ export function awaitingViewFrame(data: FormActiveAwaiting, index: number) {
   return { awaiting: data, index };
 }
 
-export function acceptsViewSubmit(collecting: boolean, currentKey: string, expectedKey: string): boolean {
-  return collecting && currentKey === expectedKey;
-}
-
 export function wrapViewFrameSubmit(data: FormActiveAwaiting, frame: ReturnType<typeof awaitingViewFrame>, payload: AIAwaitSubmitPayloadData): AIAwaitSubmitPayloadData | null {
   const ids = new Set(frame.awaiting.forms.map(form => form.id));
   const seen = new Set<string>();

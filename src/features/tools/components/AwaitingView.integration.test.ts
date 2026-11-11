@@ -36,6 +36,7 @@ test("VIEW requires host collection, rejects malformed replies, and preserves su
     const respond = async (data: unknown = { name: "new" }) => act(async () => { window.dispatchEvent(new MessageEvent("message", { source: iframe.contentWindow!, data: { type: "frontend_awaiting_submit", runId: "forged", awaitingId: "forged", param: { decision: "approve", data } } })); });
     await respond(); expect(submit).not.toHaveBeenCalled();
     expect(post).not.toHaveBeenCalled(); expect(submit).not.toHaveBeenCalled();
+    await act(async () => { iframe.dispatchEvent(new Event("load")); });
     act(() => (host.querySelector('[data-decision="submit"]') as HTMLButtonElement).click());
     expect(post).toHaveBeenCalledWith(expect.objectContaining({ type: "awaiting_collect" }), "*");
     const warn = jest.spyOn(console, "warn").mockImplementation(() => {});
