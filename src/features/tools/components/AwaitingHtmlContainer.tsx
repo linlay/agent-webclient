@@ -1,7 +1,7 @@
 import { bindCssModuleClasses } from "@/shared/utils/cssModuleClasses";
 import toolsPresentation from "@/features/tools/components/AwaitingPresentation.module.css";
 import sharedPresentation from "@/shared/ui/Presentation.module.css";
-import { awaitingViewFrame, acceptsViewSubmit, wrapViewFrameSubmit } from "@/features/tools/lib/viewFrame";
+import { awaitingViewFrame, wrapViewFrameSubmit } from "@/features/tools/lib/viewFrame";
 import { useAwaitingFrameDocument } from "@/features/tools/hooks/useAwaitingFrameDocument";
 import { useOptionalAppContext } from "@/app/state/provider";
 import React, {
@@ -122,22 +122,6 @@ interface AwaitingCollectLifecycleHandlers {
   onCollectingChange: (decision: AwaitingCollectDecision | null) => void;
   onStatusChange: (status: string) => void;
   onErrorChange: (error: string) => void;
-}
-
-export interface AwaitingInitFrame {
-  addEventListener: (type: "load", listener: () => void) => void;
-  removeEventListener: (type: "load", listener: () => void) => void;
-}
-
-export function bindAwaitingInitListener(
-  frame: AwaitingInitFrame,
-  sendInit: () => void,
-): () => void {
-  frame.addEventListener("load", sendInit);
-  sendInit();
-  return () => {
-    frame.removeEventListener("load", sendInit);
-  };
 }
 
 export function beginAwaitingCollectRequest(
@@ -396,12 +380,14 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
   const colorScheme = appContext?.state.themeMode;
   const viewChatId = data.chatId || appContext?.state.chatId || "";
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
-  const activeKeyRef = useRef(data.key);
-  const currentFrameKeyRef = useRef("");
+  const [initializedFrame, setInitializedFrame] = useState<{
+    document: ReturnType<typeof useAwaitingFrameDocument>;
+    element: HTMLIFrameElement;
+  } | null>(null);
   const lastPostedSignatureRef = useRef("");
   const resolutionHandledRef = useRef(false);
   const collectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const collectFlowRef = useRef<AwaitingCollectFlow | null>(null);
+  const collectFlowRef = useRef<(AwaitingCollectFlow & { frame: HTMLIFrameElement }) | null>(null);
   const [activeFormIndex, setActiveFormIndex] = useState(0);
   const [submitStatus, setSubmitStatus] = useState("");
   const [submitError, setSubmitError] = useState("");
@@ -413,10 +399,12 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
     useState<AwaitingFooterDecision>();
   const currentForm = data.forms[activeFormIndex];
   const frameData = useMemo(() => awaitingViewFrame(data, activeFormIndex), [data, activeFormIndex]);
-  const frameKey = frameData.awaiting.key;
   const frameView = frameData.awaiting.view;
   const isUserForm = frameView?.source === "builtin" && frameView.key === "ask_user_form";
-  const { html: renderedHtml, loading: frameLoading, error: frameError } = useAwaitingFrameDocument(frameData.awaiting, viewChatId);
+  const frameDocument = useAwaitingFrameDocument(frameData.awaiting, viewChatId);
+  const { key: frameKey, html: renderedHtml, loading, error: frameError } = frameDocument;
+  const readyFrame = initializedFrame?.document === frameDocument ? initializedFrame.element : null;
+  const frameLoading = loading || (Boolean(renderedHtml) && !readyFrame);
   const [frameSize, setFrameSize] = useState({ key: "", height: 420 });
   const sizeKey = JSON.stringify([frameKey, frameData.index, frameData.awaiting.forms[frameData.index]?.id]);
   const frameHeight = frameSize.key === sizeKey ? frameSize.height : 420;
@@ -430,8 +418,8 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
   ).trim();
 
   const viewSignature = useMemo(
-    () => buildAwaitingViewSignature(frameData.awaiting, frameData.index),
-    [frameData],
+    () => JSON.stringify([buildAwaitingViewSignature(frameData.awaiting, frameData.index), locale, colorScheme]),
+    [frameData, locale, colorScheme],
   );
 
   const clearCollectTimeout = useCallback(() => {
@@ -443,16 +431,11 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
   }, []);
 
   const postToFrame = useCallback(
-    (kind: "init" | "update") => {
-      const frame = iframeRef.current;
-      if (!frame?.contentWindow) {
-        return;
-      }
-
+    (target: Window, kind: "init" | "update") => {
       const messageValue = kind === "init"
         ? buildAwaitingInitMessage(frameData.awaiting, frameData.index)
         : buildAwaitingUpdateMessage(frameData.awaiting, frameData.index);
-      frame.contentWindow.postMessage({
+      target.postMessage({
         ...messageValue,
         data: { ...messageValue.data, locale, colorScheme },
       }, "*");
@@ -483,11 +466,11 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
   const requestCollectFromFrame = useCallback(
     (decision: AwaitingCollectDecision, flow: AwaitingCollectFlow) => {
       const frame = iframeRef.current;
-      if (!frame?.contentWindow) {
+      if (!frame?.contentWindow || frame !== readyFrame || collectFlowRef.current) {
         return;
       }
 
-      collectFlowRef.current = flow;
+      collectFlowRef.current = { ...flow, frame };
       clearCollectTimeout();
       collectTimeoutRef.current = beginAwaitingCollectRequest({
         awaiting: frameData.awaiting,
@@ -499,6 +482,12 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
           setTimeout(() => {
             const pending = collectFlowRef.current;
             collectFlowRef.current = null;
+            collectTimeoutRef.current = null;
+            if (pending?.frame !== iframeRef.current) {
+              setCollectingDecision(null);
+              setSubmitStatus("");
+              return;
+            }
             if (pending?.type === "reject") {
               clearAwaitingCollectRequest(clearTimeout, null, {
                 onCollectingChange: setCollectingDecision,
@@ -513,7 +502,7 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
         onErrorChange: setSubmitError,
       });
     },
-    [clearCollectTimeout, frameData, rejectWithoutCollecting],
+    [clearCollectTimeout, frameData, readyFrame, rejectWithoutCollecting],
   );
 
   const submitAggregatedPayload = useCallback(
@@ -570,14 +559,8 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
   });
 
   useEffect(() => {
-    activeKeyRef.current = frameKey;
-  }, [frameKey]);
-
-  useEffect(() => {
     clearCollectTimeout();
     collectFlowRef.current = null;
-    currentFrameKeyRef.current = "";
-    lastPostedSignatureRef.current = "";
     setActiveFormIndex(0);
     setCollectingDecision(null);
     setSubmitStatus("");
@@ -631,40 +614,19 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
     [clearCollectTimeout],
   );
 
-  useEffect(() => {
-    if (!renderedHtml || !iframeRef.current) {
-      return;
-    }
-
-    const frame = iframeRef.current;
-    const expectedKey = frameKey;
-    const sendInit = () => {
-      if (activeKeyRef.current !== expectedKey) {
-        return;
-      }
-      currentFrameKeyRef.current = expectedKey;
-      postToFrame("init");
-    };
-
-    return bindAwaitingInitListener(frame, sendInit);
-  }, [frameKey, renderedHtml, postToFrame]);
+  const handleFrameLoad = (event: React.SyntheticEvent<HTMLIFrameElement>) => {
+    const frame = event.currentTarget;
+    if (frame !== iframeRef.current || !frame.contentWindow) return;
+    // Post init after srcDoc has loaded so it reaches the same document as collect.
+    postToFrame(frame.contentWindow, "init");
+    setInitializedFrame({ document: frameDocument, element: frame });
+  };
 
   useEffect(() => {
-    if (!renderedHtml) {
-      return;
+    if (readyFrame?.contentWindow && lastPostedSignatureRef.current !== viewSignature) {
+      postToFrame(readyFrame.contentWindow, "update");
     }
-    if (currentFrameKeyRef.current !== frameKey) {
-      return;
-    }
-    if (!lastPostedSignatureRef.current) {
-      return;
-    }
-    if (lastPostedSignatureRef.current === viewSignature) {
-      return;
-    }
-
-    postToFrame("update");
-  }, [frameKey, renderedHtml, postToFrame, viewSignature]);
+  }, [readyFrame, postToFrame, viewSignature]);
 
   useEffect(() => {
     const onWindowMessage = async (event: MessageEvent) => {
@@ -693,7 +655,8 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
         return;
       }
 
-      if (resolved || timeoutExpired || !acceptsViewSubmit(Boolean(collectFlowRef.current), currentFrameKeyRef.current, frameKey)) return;
+      const flow = collectFlowRef.current;
+      if (resolved || timeoutExpired || !flow || flow.frame !== iframeRef.current) return;
 
       if (event.data?.type === "frontend_awaiting_invalid") {
         if (event.data.runId !== frameData.awaiting.runId || event.data.awaitingId !== frameData.awaiting.awaitingId) return;
@@ -719,7 +682,6 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
       clearAwaitingCollectRequest(clearTimeout, null, {
         onCollectingChange: setCollectingDecision,
       });
-      const flow = collectFlowRef.current;
       collectFlowRef.current = null;
       const collectedParams = payload.params as AIAwaitFormSubmitParamData[];
       const nextForms = mergeSubmittedParamsIntoAwaitingForms(
@@ -733,7 +695,7 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
         onPatch?.({ forms: nextForms });
       }
 
-      if (flow?.type === "switch") {
+      if (flow.type === "switch") {
         setActiveFormIndex(
           clampAwaitingFormIndex(flow.nextIndex, nextForms.length),
         );
@@ -742,7 +704,7 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
         return;
       }
 
-      if (flow?.type === "reject") {
+      if (flow.type === "reject") {
         setSubmitStatus("submitting");
         setSubmitError("");
         const result = await onSubmit?.(
@@ -772,7 +734,6 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
     frameData,
     frameView,
     isUserForm,
-    frameKey,
     sizeKey,
     resolved,
     timeoutExpired,
@@ -823,12 +784,12 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
   // view first, exactly like an approval.
   const handleReject = useCallback(async () => {
     const trimmedReason = rejectReason.trim();
-    if (renderedHtml && iframeRef.current?.contentWindow) {
+    if (readyFrame?.contentWindow) {
       requestCollectFromFrame("reject", { type: "reject", reason: trimmedReason });
       return;
     }
     await rejectWithoutCollecting(trimmedReason);
-  }, [rejectReason, renderedHtml, requestCollectFromFrame, rejectWithoutCollecting]);
+  }, [rejectReason, readyFrame, requestCollectFromFrame, rejectWithoutCollecting]);
 
   const reasonInputDisabled =
     !onSubmit ||
@@ -846,7 +807,7 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
 
   const handleFooterDecisionSubmit = useCallback(
     (decision: AwaitingFooterDecision) => {
-      if (footerReadOnly || (decision === "submit" && !renderedHtml)) {
+      if (footerReadOnly || collectFlowRef.current || (decision === "submit" && !readyFrame)) {
         return;
       }
 
@@ -857,7 +818,7 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
       }
       void handleReject();
     },
-    [renderedHtml, footerReadOnly, handleReject, requestCollectFromFrame],
+    [readyFrame, footerReadOnly, handleReject, requestCollectFromFrame],
   );
   const hostRef = useRef<HTMLDivElement>(null);
   const radioItemsRef = useRef<RadioRef[]>([]);
@@ -878,7 +839,7 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
         isEditableKeyboardTarget(e.target) ||
         footerReadOnly ||
         (e.key !== "1" && e.key !== "2") ||
-        (e.key === "1" && !renderedHtml)
+        (e.key === "1" && !readyFrame)
       ) {
         return;
       }
@@ -969,6 +930,7 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
           id="awaiting-html-frame"
           srcDoc={renderedHtml}
           key={frameKey}
+          onLoad={handleFrameLoad}
           sandbox="allow-scripts"
           style={{ colorScheme, height: frameHeight, flexBasis: frameHeight }}
           title={`awaiting-${data.viewKey}`}
@@ -989,7 +951,7 @@ export const AwaitingHtmlContainer: React.FC<AwaitingHtmlContainerProps> = ({
               }
             }}
             className={AWAITING_PANEL_OPTION_CLASS_NAME}
-            disabled={footerReadOnly || !renderedHtml}
+            disabled={footerReadOnly || !readyFrame}
             onClick={() => {
               handleFooterDecisionSubmit("submit");
             }}

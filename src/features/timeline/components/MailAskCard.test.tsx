@@ -8,7 +8,10 @@ jest.mock("@/shared/data/api/requests/mailbox", () => ({ ...jest.requireActual("
 const mockSubmitAwaiting = jest.fn();
 jest.mock("@/features/transport/hooks/useRealtimeTransport", () => ({ useRunTransport: () => ({ submitAwaiting: mockSubmitAwaiting }) }));
 jest.mock("@/shared/i18n", () => ({ useI18n: () => ({ t: (key: string) => key }) }));
-jest.mock("@/features/tools/hooks/useAwaitingFrameDocument", () => ({ useAwaitingFrameDocument: jest.fn(() => ({ html: "<p>Platform approval</p>", loading: false, error: "" })) }));
+jest.mock("@/features/tools/hooks/useAwaitingFrameDocument", () => {
+    const document = { key: "run:await", html: "<p>Platform approval</p>", loading: false, error: "" };
+    return { useAwaitingFrameDocument: jest.fn(() => document) };
+});
 jest.mock("@/shared/ui/useAppMessage", () => ({ useAppMessage: () => ({ warning: jest.fn() }) }));
 const detail = jest.mocked(getMailDetail);
 const submit = mockSubmitAwaiting;
@@ -132,6 +135,7 @@ it("uses the original sandboxed form view and submits its collected data to the 
             data: { type: "frontend_awaiting_submit", param: { decision: "approve", data: { approved: true } } },
         }));
         await act(async () => { reply(); }); expect(submit).not.toHaveBeenCalled();
+        await act(async () => { frame.dispatchEvent(new Event("load")); });
         await act(async () => (host.querySelector('input[value="submit"]') as HTMLInputElement).click());
         await act(async () => { reply(); reply(); });
         expect(submit).toHaveBeenCalledTimes(1);
