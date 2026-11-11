@@ -298,6 +298,79 @@ it('does not auto-send if the observed run changed during the running-to-idle tr
 
 const imageReferences = [{ id: 'image-a', type: 'file', name: 'image.png', mimeType: 'image/png', url: 'image.png' }];
 
+it.each(['Use the new connector', ''])('preserves an idle Chat submission while its connector updates: %j', message => {
+  const references = message ? imageReferences : [];
+  const clearComposerAttachments = jest.fn();
+  const options = {
+    connectorUpdatePending: true,
+    inputValue: message,
+    sendReferences: references,
+    clearComposerAttachments,
+  };
+  const h = mount(options);
+  const sendEvent = jest.spyOn(window, 'dispatchEvent');
+  h.setState({
+    chats: [{ chatId: 'chat-a', agentKey: 'agent-a', lastRunId: 'run-a', canContinue: true }],
+    composerDraft: message,
+    currentChatActiveRun: null,
+    pendingSteers: {},
+    streaming: false,
+  });
+  h.render(false);
+  h.send();
+
+  expect(sendEvent).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'agent:send-message' }));
+  expect(h.stateRef.current.composerDraft).toBe(message);
+  expect(h.setInputValue).not.toHaveBeenCalled();
+  expect(clearComposerAttachments).not.toHaveBeenCalled();
+
+  options.connectorUpdatePending = false;
+  h.render(false);
+  h.send();
+  expect(sendEvent).toHaveBeenCalledWith(expect.objectContaining({
+    type: 'agent:send-message',
+    detail: expect.objectContaining({ chatId: 'chat-a', agentKey: 'agent-a', message, references }),
+  }));
+  expect(h.setInputValue).toHaveBeenCalledWith('');
+});
+
+it('queues active input and starts its next query once the connector update completes', () => {
+  const message = 'Use the new connector';
+  const options = { connectorUpdatePending: true, inputValue: message, sendReferences: imageReferences };
+  const h = mount(options);
+  const sendEvent = jest.spyOn(window, 'dispatchEvent');
+  h.setState({ pendingSteers: {} });
+  h.send();
+  expect(mockSteer).not.toHaveBeenCalled();
+  expect(h.stateRef.current.pendingSteers['chat-a']).toEqual([
+    expect.objectContaining({ runId: 'run-a', message, status: 'queued', references: imageReferences }),
+  ]);
+
+  h.setState({ currentChatActiveRun: null, streaming: false });
+  h.render(false);
+  expect(sendEvent).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'agent:send-message' }));
+  expect(h.stateRef.current.pendingSteers['chat-a']).toHaveLength(1);
+
+  options.connectorUpdatePending = false;
+  h.render(false);
+  h.render(false);
+  const queries = sendEvent.mock.calls.filter(([event]) => event.type === 'agent:send-message');
+  expect(queries).toHaveLength(1);
+  expect((queries[0][0] as CustomEvent).detail).toMatchObject({
+    chatId: 'chat-a', message, references: imageReferences,
+  });
+  expect(h.stateRef.current.pendingSteers['chat-a']).toBeUndefined();
+});
+
+it('still allows explicit steering of the current run during a connector update', async () => {
+  const message = 'Continue the active run';
+  mockSteer.mockResolvedValue({ data: { accepted: true } });
+  const h = mount({ connectorUpdatePending: true, inputValue: message });
+  await act(async () => h.submitQueued());
+
+  expect(mockSteer).toHaveBeenCalledWith(expect.objectContaining({ chatId: 'chat-a', runId: 'run-a', message }));
+});
+
 it('sends image references and restores them on an explicit rejection', async () => {
   mockSteer.mockResolvedValue({ data: { accepted: false, status: 'invalid_reference', detail: 'not supported' } });
   const h = mount();

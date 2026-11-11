@@ -1,16 +1,53 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useAppContext } from "@/app/state/AppContext";
-import { getAgent, getConnectorConnection, getConnectorConnections, setAgentConnector, type ConnectorConnection } from "@/shared/data";
+import { getAgent, getConnectorConnection, getConnectorConnections, getConnectors, setAgentConnector, type ConnectorConnection } from "@/shared/data";
 import { invalidateAgentDetail } from "@/shared/data/api/routedClient";
 import { usePushTransport } from "@/features/transport/hooks/useRealtimeTransport";
 import { useReconnectSignal } from "@/features/transport/hooks/useRefreshSignals";
-import { ConnectorChatError, readConnectorConnection } from "../lib/connectorChat";
+import { ConnectorChatError, readConnectorConnection, waitForConnectorPoll } from "../lib/connectorChat";
 
 const asError = (cause: unknown) => cause instanceof Error ? cause : new Error(String(cause));
 // Platform owns builtin.*. Its older delegated CLIs have no managed account;
 // external delegated packages must still satisfy their configured marker.
 const hasConnectionConfiguration = (connection: ConnectorConnection) => !connection.configurationRequired || connection.configured
   || connection.connectorId.toLowerCase().startsWith("builtin.") && ["delegated", "not_required"].includes(connection.authentication.status);
+
+async function waitForConnectorPublication(agentKey: string, connectorId: string, controller: AbortController) {
+  const { signal } = controller;
+  let timedOut = false;
+  const timeout = window.setTimeout(() => {
+    timedOut = true;
+    controller.abort();
+  }, 60_000);
+  try {
+    for (;;) {
+      const { data } = await getConnectors(agentKey, signal);
+      if (signal.aborted) throw new DOMException("Aborted", "AbortError");
+      if (data.agentKey !== agentKey) throw new ConnectorChatError("invalidResponse");
+      const item = data.connectors.find(connector => connector.id === connectorId);
+      if (!item) throw new ConnectorChatError("invalidResponse");
+      if (!data.reloadPending) {
+        const servers = item.mcp?.filter(server => server.status !== "disabled") ?? [];
+        if (servers.some(server => server.status === "unavailable" || server.status === "unmounted")) {
+          throw new ConnectorChatError("toolsUnavailable");
+        }
+        if (servers.some(server => server.agentKey !== agentKey)) throw new ConnectorChatError("invalidResponse");
+        if (servers.every(server => server.status === "ready")) {
+          if (servers.length > 0 && !servers.some(server => server.toolCount > 0)) {
+            throw new ConnectorChatError("toolsUnavailable");
+          }
+          return;
+        }
+      }
+      await waitForConnectorPoll(signal);
+    }
+  } catch (cause) {
+    if (timedOut) throw new ConnectorChatError("toolsSyncTimeout");
+    throw cause;
+  } finally {
+    window.clearTimeout(timeout);
+  }
+}
 
 /** Agent owns associations; this hook observes connection configuration and owns switch mutations. */
 export function useAgentConnectors(agentKey: string) {
@@ -23,6 +60,7 @@ export function useAgentConnectors(agentKey: string) {
   const [savingId, setSavingId] = useState("");
   const [loadError, setLoadError] = useState<Error | null>(null);
   const [saveError, setSaveError] = useState<Error | null>(null);
+  const [syncError, setSyncError] = useState<ConnectorChatError | null>(null);
   const [catalogRevision, setCatalogRevision] = useState(0);
   const [availableIds, setAvailableIds] = useState<string[] | null>(null);
   const [configurationLoading, setConfigurationLoading] = useState(false);
@@ -30,6 +68,7 @@ export function useAgentConnectors(agentKey: string) {
   const scope = useRef(0);
   const request = useRef(0);
   const saving = useRef(false);
+  const publicationCheck = useRef<AbortController | null>(null);
   const attempted = useRef(false);
   const configurationRequest = useRef(0);
   const configurationRefreshQueued = useRef(false);
@@ -100,13 +139,20 @@ export function useAgentConnectors(agentKey: string) {
     setSavingId("");
     setLoadError(null);
     setSaveError(null);
+    setSyncError(null);
     setCatalogRevision(0);
     setAvailableIds(null);
     setConfigurationError(null);
     setConfigurationLoading(false);
     configurationRefreshQueued.current = false;
     configuredIds.current = null;
-    return () => { scope.current += 1; request.current += 1; configurationRequest.current += 1; };
+    return () => {
+      scope.current += 1;
+      request.current += 1;
+      configurationRequest.current += 1;
+      publicationCheck.current?.abort();
+      publicationCheck.current = null;
+    };
   }, [agentKey]);
   useEffect(() => {
     if (!agentKey) return;
@@ -153,12 +199,16 @@ export function useAgentConnectors(agentKey: string) {
     setLoading(false);
     setSavingId(connectorId);
     setSaveError(null);
+    setSyncError(null);
     let failed = false;
+    let saved = false;
     try {
+      let hasMcp = false;
       if (enabled) {
         const connection = readConnectorConnection((await getConnectorConnection(connectorId)).data, connectorId);
         if (currentScope !== scope.current) return;
         if (!hasConnectionConfiguration(connection)) throw new ConnectorChatError("configurationRequired");
+        hasMcp = connection.capabilities.hasMcp === true;
         setAvailableIds(previous => previous?.includes(connectorId) ? previous : [...(previous || []), connectorId]);
       }
       const { data } = await setAgentConnector({ agentKey, connectorId, enabled });
@@ -169,11 +219,21 @@ export function useAgentConnectors(agentKey: string) {
       window.dispatchEvent(new CustomEvent("agent:availability-invalidate", { detail: { agentKey } }));
       dispatch({ type: "SET_AGENTS", agents: stateRef.current.agents.map(item => item.key === agentKey
         ? { ...item, connectors: data.connectorIds } : item) });
+      saved = true;
+      // A saved mount can precede MCP discovery. Keep the next new Run waiting
+      // for the published tools of this Agent, even after the picker closes.
+      if (enabled && (data.reloadPending || hasMcp)) {
+        const controller = new AbortController();
+        publicationCheck.current = controller;
+        await waitForConnectorPublication(agentKey, connectorId, controller);
+      }
     } catch (cause) {
-      failed = true;
-      if (currentScope === scope.current) setSaveError(asError(cause));
+      if (currentScope !== scope.current) return;
+      if (saved) setSyncError(cause instanceof ConnectorChatError ? cause : new ConnectorChatError("toolsSyncFailed"));
+      else { failed = true; setSaveError(asError(cause)); }
     } finally {
       if (currentScope === scope.current) {
+        publicationCheck.current = null;
         saving.current = false;
         setSavingId("");
         setCatalogRevision(value => value + 1);
@@ -193,5 +253,7 @@ export function useAgentConnectors(agentKey: string) {
     availableIds: availableIds || [],
     loading: loading || availability === "checking" || configurationLoading && !availableIds, savingId,
     loadError: loadError || configurationError || (unavailable ? new Error(`Agent ${availability}`) : null),
-    saveError, refresh, setSelected, catalogRevision };
+    saveError, syncError, refresh, setSelected, catalogRevision };
 }
+
+export type AgentConnectorSelection = ReturnType<typeof useAgentConnectors>;

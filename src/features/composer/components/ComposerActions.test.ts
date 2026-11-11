@@ -1,6 +1,12 @@
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { ComposerActions } from "@/features/composer/components/ComposerActions";
+import type { ConnectorOption } from "@/shared/data";
+
+const mockConnectorCatalogItems: ConnectorOption[] = [];
+jest.mock("@/features/connectors/hooks/useConnectorPickerCatalog", () => ({
+  useConnectorPickerCatalog: () => ({ items: mockConnectorCatalogItems }),
+}));
 
 jest.mock("@/features/composer/components/ComposerContext", () => ({
   useComposerContext: () => ({
@@ -133,15 +139,20 @@ describe("ComposerActions", () => {
   });
 
   it("renders enabled connectors avatar stack when available", () => {
+    mockConnectorCatalogItems.push(
+      { id: "conn-1", name: "Connector 1" },
+      { id: "conn-2", name: "Connector 2" },
+    );
     const html = renderToStaticMarkup(
       React.createElement(ComposerActions, {
         ...baseProps,
         planningMode: true,
         canUsePlanningMode: true,
-        enabledConnectors: [
-          { id: "conn-1", name: "Connector 1" },
-          { id: "conn-2", name: "Connector 2" },
-        ],
+        currentAgentKey: "demo",
+        connectorSelection: {
+          data: { agentKey: "demo", connectorIds: ["conn-1", "conn-2"] },
+          availableIds: ["conn-1", "conn-2"],
+        },
       } as any),
     );
 

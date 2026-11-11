@@ -23,12 +23,11 @@ import { useI18n } from "@/shared/i18n";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
 import { Flex, Popover, Tooltip } from "antd";
-import { useAgentConnectors } from "@/features/connectors/hooks/useAgentConnectors";
+import type { AgentConnectorSelection } from "@/features/connectors/hooks/useAgentConnectors";
 import { useConnectorPickerCatalog } from "@/features/connectors/hooks/useConnectorPickerCatalog";
 import { ConnectorIcon } from "@/features/connectors/components/ConnectorIcon";
 import { AgentConnectorPicker } from "@/features/connectors/components/AgentConnectorPicker";
 import { orderConnectorsBuiltinLast } from "@/features/connectors/lib/connectorSelection";
-import { useOptionalAppContext } from "@/app/state/AppContext";
 const presentationClasses = bindCssModuleClasses({
   ...timelinePresentation,
   ...composerPresentation,
@@ -112,14 +111,14 @@ interface ComposerActionsProps extends Omit<
 }
 
 export const ComposerActions: React.FC<ComposerActionsProps> = (props) => {
-  const hasAppContext = Boolean(useOptionalAppContext());
-  if (isEmbedMode() || !props.currentAgentKey || !hasAppContext) {
-    return <ComposerActionsPure {...props} />;
+  const connectorSelection = isEmbedMode() ? undefined : props.connectorSelection;
+  if (!props.currentAgentKey || !connectorSelection) {
+    return <ComposerActionsPure {...props} connectorSelection={connectorSelection} />;
   }
   return (
     <ComposerActionsWithConnectors
       {...props}
-      currentAgentKey={props.currentAgentKey}
+      connectorSelection={connectorSelection}
     />
   );
 };
@@ -159,6 +158,7 @@ const ComposerActionsPure: React.FC<
   onEditingModeChange,
   onAddReference,
   currentAgentKey,
+  connectorSelection,
   isMainChatRunning,
   selectedSkillIds,
   kbaseCatalog,
@@ -253,6 +253,7 @@ const ComposerActionsPure: React.FC<
                 loading={hasUploadingAttachments}
                 currentChatId={currentChatId}
                 currentAgentKey={currentAgentKey}
+                connectorSelection={connectorSelection}
                 planningMode={planningMode}
                 editingMode={editingMode}
                 canUsePlanningMode={canUsePlanningMode}
@@ -311,7 +312,7 @@ const ComposerActionsPure: React.FC<
                   </UiButton>
                 </Tooltip>
               )}
-              {enabledConnectors.length > 0 && (
+              {connectorSelection && enabledConnectors.length > 0 && (
                 <Popover
                   open={connectorPickerOpen}
                   onOpenChange={setConnectorPickerOpen}
@@ -332,6 +333,7 @@ const ComposerActionsPure: React.FC<
                       <AgentConnectorPicker
                         key={currentAgentKey}
                         agentKey={currentAgentKey || ""}
+                        selection={connectorSelection}
                         search={connectorSearch}
                         onSearchChange={setConnectorSearch}
                         disabled={addMenuDisabled}
@@ -498,9 +500,9 @@ const ComposerActionsPure: React.FC<
 };
 
 const ComposerActionsWithConnectors: React.FC<
-  ComposerActionsProps & { currentAgentKey: string }
+  ComposerActionsProps & { connectorSelection: AgentConnectorSelection }
 > = (props) => {
-  const connectorSelection = useAgentConnectors(props.currentAgentKey);
+  const { connectorSelection } = props;
   const connectorCatalog = useConnectorPickerCatalog(
     props.currentAgentKey,
     connectorSelection.catalogRevision,

@@ -1,7 +1,10 @@
 import type { AdminAgentConnectorsResponse, ConnectorConnection, ConnectorPreparation, ConnectorSummary } from "@/shared/data";
 
 export class ConnectorChatError extends Error {
-  constructor(public readonly reason: "configurationRequired" | "authorizationRequired" | "preparationFailed" | "preparationTimeout" | "reloadTimeout" | "invalidResponse") {
+  constructor(public readonly reason:
+    | "configurationRequired" | "authorizationRequired" | "preparationFailed" | "preparationTimeout"
+    | "reloadTimeout" | "invalidResponse" | "toolsUnavailable" | "toolsSyncFailed" | "toolsSyncTimeout"
+  ) {
     super(`connectors.chat.${reason}`);
   }
 }
