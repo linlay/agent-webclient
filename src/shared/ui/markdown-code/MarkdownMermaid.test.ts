@@ -129,3 +129,12 @@ it("does not re-render mermaid when only streamStatus changed", async () => {
   expect(container.querySelector(".markdown-mermaid-busy")).toBeNull();
   expect(container.querySelector(".markdown-mermaid")).not.toBeNull();
 });
+
+it("shows a localized failure for a genuine syntax error", async () => {
+  mockedParse.mockRejectedValueOnce(new Error("Parse error: internal parser diagnostic"));
+  await mount("flowchart LR\nA[unclosed", "done");
+  expect(container.querySelector('[data-mermaid-status="error"]')).not.toBeNull();
+  expect(container.querySelector('[data-mermaid-status="error"]')?.textContent).toBe("Mermaid 图表渲染失败。");
+  expect(container.textContent).not.toContain("internal parser diagnostic");
+  expect(mockedRender).not.toHaveBeenCalled();
+});

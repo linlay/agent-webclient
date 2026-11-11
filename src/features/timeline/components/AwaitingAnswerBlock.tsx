@@ -6,6 +6,7 @@ import { Flex } from "antd";
 import { TimelineCollapse } from "@/shared/ui/TimelineCollapse";
 import { useI18n } from "@/shared/i18n";
 import { useTimelineInteraction } from "./TimelineInteractionContext";
+import type { AwaitingAnswerEnvelope } from "../lib/awaitingAnswer";
 const presentationClasses = bindCssModuleClasses({ ...timelinePresentation });
 
 
@@ -18,16 +19,6 @@ interface AwaitingAnswerDisplayItem {
   title: string;
   command?: string;
   value: string;
-}
-
-interface AwaitingAnswerEnvelope {
-  status?: "answered" | "error";
-  items?: Record<string, unknown>[];
-  planning?: Record<string, unknown>;
-  error?: {
-    code?: string;
-    message?: string;
-  };
 }
 
 function formatUnknownJson(value: unknown): string {
@@ -140,20 +131,10 @@ function formatAwaitingAnswerItem(
 
 function parseAwaitingAnswerEnvelope(text: string): AwaitingAnswerEnvelope {
   try {
-    const parsed = JSON.parse(text || "[]");
-    if (Array.isArray(parsed)) {
-      return {
-        status: "answered",
-        items: parsed.filter(
-          (item): item is Record<string, unknown> =>
-            Boolean(item) && typeof item === "object" && !Array.isArray(item),
-        ),
-      };
-    }
-    if (!parsed || typeof parsed !== "object") {
-      return {};
-    }
-    const record = parsed as Record<string, unknown>;
+    const parsed: unknown = JSON.parse(text || "[]");
+    const value = Array.isArray(parsed) ? { status: "answered", items: parsed } : parsed;
+    if (!value || typeof value !== "object") return {};
+    const record = value as Record<string, unknown>;
     const status =
       record.status === "answered" || record.status === "error"
         ? record.status
@@ -182,8 +163,7 @@ function parseAwaitingAnswerEnvelope(text: string): AwaitingAnswerEnvelope {
       planning,
       error,
     };
-  } catch (error) {
-    console.error("Error parsing awaiting answers:", error);
+  } catch {
     return {};
   }
 }
@@ -219,7 +199,9 @@ export const AwaitingAnswerBlock: React.FC<AwaitingAnswerBlockProps> = ({
   }, [envelope, t]);
   const summaryText =
     envelope.status === "error"
-      ? node.title || t("awaitingAnswer.error")
+      ? node.title || t(envelope.error?.code === "timeout" ? "timeline.awaitingAnswer.timeout"
+        : envelope.error?.code === "user_dismissed" ? "timeline.awaitingAnswer.canceled"
+        : envelope.error?.code === "invalid_submit" ? "timeline.awaitingAnswer.submitFailed" : "awaitingAnswer.error")
       : t("awaitingAnswer.submitted", { count: items.length || 0 });
 
   return (

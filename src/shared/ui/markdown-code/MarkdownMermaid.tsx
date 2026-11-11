@@ -10,7 +10,7 @@ type RenderState =
   | { status: "empty" }
   | { status: "loading" }
   | { status: "ready"; svg: string }
-  | { status: "error"; message: string };
+  | { status: "error" };
 
 type ReadyRenderState = Extract<RenderState, { status: "ready" }>;
 type VisibleRenderState =
@@ -98,10 +98,15 @@ function getMermaidTheme(): "default" | "dark" {
 // Only call on Mermaid's strict, sanitized SVG output. Keep the host's style
 // policy without granting a nonce to arbitrary Markdown or changing CSP.
 export function mermaidSvgWithStyleNonce(svg: string, nonce?: string): string {
-  if (!nonce) return svg;
-  const parsed = new DOMParser().parseFromString(svg, "image/svg+xml");
-  for (const style of parsed.querySelectorAll("style")) style.setAttribute("nonce", nonce);
-  return new XMLSerializer().serializeToString(parsed.documentElement);
+  const template = document.createElement("template");
+  template.innerHTML = svg;
+  const root = template.content.firstElementChild;
+  if (template.content.childElementCount !== 1 || root?.localName !== "svg" ||
+      root.namespaceURI !== "http://www.w3.org/2000/svg") {
+    throw new Error("Invalid Mermaid SVG");
+  }
+  if (nonce) for (const style of root.querySelectorAll("style")) style.setAttribute("nonce", nonce);
+  return template.innerHTML;
 }
 
 export const MarkdownMermaid: React.FC<{
@@ -261,7 +266,7 @@ export const MarkdownMermaid: React.FC<{
             setState(readyState);
           }
         })
-        .catch((error: unknown) => {
+        .catch(() => {
           if (disposed) return;
           if (streamStatus === "loading") {
             setState((current) =>
@@ -269,11 +274,7 @@ export const MarkdownMermaid: React.FC<{
             );
             return;
           }
-          setState({
-            status: "error",
-            message:
-              error instanceof Error ? error.message : t("mermaid.status.renderFailed"),
-          });
+          setState({ status: "error" });
         });
     }, renderDelay);
 
@@ -391,9 +392,7 @@ export const MarkdownMermaid: React.FC<{
 
   const text =
     visibleState.status === "error"
-      ? t("mermaid.status.failedWithDetail", {
-          detail: visibleState.message,
-        })
+      ? t("mermaid.status.renderFailed")
       : t("mermaid.status.receiving");
 
   return (

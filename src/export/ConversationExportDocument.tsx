@@ -1,7 +1,7 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Tooltip } from "antd";
 import { ConversationPreview, type ConversationPreviewProps } from "@/features/conversation/components/ConversationPreview";
-import { ConversationMarkdown, type ConversationMarkdownElementProps } from "@/shared/ui/ConversationMarkdown";
+import { ConversationMarkdown, type ConversationMarkdownComponents, type ConversationMarkdownElementProps } from "@/shared/ui/ConversationMarkdown";
 import { ConversationMarkdownCode, type ConversationMarkdownCodeProps } from "@/shared/ui/markdown-code/ConversationMarkdownCode";
 import { AgentIcon } from "@/shared/icons/agent";
 import type { MarkdownContentProps } from "@/features/viewers/components/MarkdownContent";
@@ -36,7 +36,7 @@ export const ConversationExportDocument: React.FC<ConversationExportDocumentProp
   const selected = snapshot.attachments.find((attachment) => attachment.id === selectedId);
   const previewOpen = Boolean(selected);
   const sharePath = conversationSharePath(window.location.pathname);
-  const attachmentLinks = (id: string) => buildShareAttachmentLinks(sharePath, id, window.location.origin);
+  const attachmentLinks = useCallback((id: string) => buildShareAttachmentLinks(sharePath, id, window.location.origin), [sharePath]);
   const close = () => { setSelectedId(null); setExpanded(false); };
   useEffect(() => {
     if (!previewOpen) return;
@@ -65,27 +65,24 @@ export const ConversationExportDocument: React.FC<ConversationExportDocumentProp
     /^artifacts\/[^/]+\/[^/]+$/u.test(attachment.sourceRef));
   const omissions = useMemo(() => new Map((snapshot.omittedResources ?? []).flatMap((item) =>
     item.sourceRef ? [[item.sourceRef, item] as const] : [])), [snapshot.omittedResources]);
-  const findResource = (url: string | undefined) => attachments.get(canonicalChatSourceRef(url || "") || "");
-  const unavailable = (url: string | undefined) => {
+  const findResource = useCallback((url: string | undefined) => attachments.get(canonicalChatSourceRef(url || "") || ""), [attachments]);
+  const unavailable = useCallback((url: string | undefined) => {
     const omitted = omissions.get(canonicalChatSourceRef(url || "") || "");
     return omitted ? labels.omission[omitted.reason] : sharePath ? labels.notFound : labels.unavailable;
-  };
-  const open = (attachment: SnapshotAttachmentV1) => {
+  }, [omissions, labels, sharePath]);
+  const open = useCallback((attachment: SnapshotAttachmentV1) => {
     if (!attachmentLinks(attachment.id).preview) return;
     setSelectedId(attachment.id);
-  };
-  const attachmentLink = (attachment: SnapshotAttachmentV1, children: React.ReactNode, props?: React.AnchorHTMLAttributes<HTMLAnchorElement>) => {
+  }, [attachmentLinks]);
+  const attachmentLink = useCallback((attachment: SnapshotAttachmentV1, children: React.ReactNode, props?: React.AnchorHTMLAttributes<HTMLAnchorElement>) => {
     const previewable = shareMediaKind(attachment.mimeType) !== "unsupported";
     const links = attachmentLinks(attachment.id);
     const route = previewable ? links.preview : links.download;
     if (!route) return <span key={attachment.id} title={labels.unavailable}>{children}</span>;
     return <a key={attachment.id} {...props} href={route}
       onClick={previewable ? (event) => { event.preventDefault(); open(attachment); } : undefined}>{children}</a>;
-  };
-  const renderMarkdown = (props: MarkdownContentProps) => <ConversationMarkdown
-    content={props.content}
-    codeComponent={ExportMarkdownCode}
-    components={{
+  }, [attachmentLinks, labels, open]);
+  const markdownComponents = useMemo<ConversationMarkdownComponents>(() => ({
       a: ({ href, children, domNode: _domNode, streamStatus: _streamStatus, ...rest }: LinkProps) => {
         const attachment = findResource(href);
         if (attachment) return attachmentLink(attachment, children, rest);
@@ -98,8 +95,10 @@ export const ConversationExportDocument: React.FC<ConversationExportDocumentProp
           ? attachmentLink(resource, <ShareMediaPreview attachment={resource} url={attachmentLinks(resource.id).preview} unavailable={labels.loadFailed} />)
           : <span role="status">{alt || "image"} — {unavailable(src)}</span>;
       },
-    }}
-  />;
+  }), [attachmentLink, attachmentLinks, findResource, labels, unavailable]);
+  const renderMarkdown = useCallback((props: MarkdownContentProps) => <ConversationMarkdown
+    content={props.content} codeComponent={ExportMarkdownCode} components={markdownComponents}
+  />, [markdownComponents]);
   const renderRunHeader: NonNullable<ConversationPreviewProps["renderRunHeader"]> = (item) => {
     const assistant = assistantByRunId.get(item.runId || "");
     return <div className={styles.assistantIdentity}>
@@ -114,7 +113,7 @@ export const ConversationExportDocument: React.FC<ConversationExportDocumentProp
     </div></header>
     <div className={`${styles.shell} ${publicBrand ? styles.shellWithBrand : ""}`}>
       <div className={styles.notice}>{copy.aiNotice}</div>
-      <ConversationPreview data={data} agents={agents} viewportMode="document"
+      <ConversationPreview data={data} agents={agents} viewportMode="document" keepUserInteractionsVisible
         ariaLabel={snapshot.title} renderMarkdown={renderMarkdown} renderRunHeader={renderRunHeader}
         renderAttachment={(attachment, options) => {
           const resource = findResource(attachment.url);

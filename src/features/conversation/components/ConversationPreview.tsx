@@ -45,13 +45,14 @@ export interface ConversationPreviewProps {
   getChatHref?: TimelineInteractionValue["getChatHref"];
   onCopyResult?: TimelineInteractionValue["onCopyResult"];
   viewportMode?: "container" | "document";
+  keepUserInteractionsVisible?: boolean;
   renderRunHeader?: (item: Extract<TimelineDisplayItem, { kind: "run" }>) => React.ReactNode;
 }
 
 export const ConversationPreview: React.FC<ConversationPreviewProps> = ({
   data, agents, agentKey = "", teamChat = false,
   startAtBottom = false, ariaLabel, emptyLabel, renderMarkdown, renderAttachment,
-  openTarget, getChatHref, copyText = copyWebText, onCopyResult, viewportMode = "container", renderRunHeader,
+  openTarget, getChatHref, copyText = copyWebText, onCopyResult, viewportMode = "container", renderRunHeader, keepUserInteractionsVisible = false,
 }) => {
   const { t } = useI18n();
   const scrollerId = React.useId();
@@ -143,6 +144,7 @@ export const ConversationPreview: React.FC<ConversationPreviewProps> = ({
   return <TimelineInteractionProvider value={interaction}>
     <div className={viewportMode === "document" ? styles.document : styles.root} role="region" aria-label={ariaLabel || t("automationHistory.panel.chat")}>
       <ConversationStage items={items} agents={agents} fallbackAgentKey={agentKey}
+        keepUserInteractionsVisible={keepUserInteractionsVisible}
         tasks={data.tasks}
         expandedRuns={expandedRuns}
         onToggleRun={(key) => setExpandedRuns((current) => ({ ...current, [key]: !current[key] }))}
