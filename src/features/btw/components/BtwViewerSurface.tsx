@@ -5,15 +5,20 @@ import { useChatSurfaceReplay } from "@/features/conversation/hooks/useChatSurfa
 import { IndependentSurfaceFrame } from "@/features/surfaces/components/IndependentSurfaceFrame";
 import { useI18n } from "@/shared/i18n";
 import { receiveSelectedTextTransfers } from "@/features/selection/lib/selectionTransfer";
+import { receiveBtwLaunches } from "@/features/btw/lib/btwLaunchTransfer";
+import { useRealtimeTransport } from "@/features/transport/hooks/useRealtimeTransport";
+import { isDesktopAppMode } from "@/shared/utils/routing";
 
 export const BtwViewerSurface: React.FC<{
   chatId: string;
   initialBtwId: string;
   selectionTransferTarget?: string;
+  btwLaunchTarget?: string;
   onBtwIdChange: (btwId: string) => void;
   onBtwIdClear: () => void;
-}> = ({ chatId, initialBtwId, selectionTransferTarget, onBtwIdChange, onBtwIdClear }) => {
+}> = ({ chatId, initialBtwId, selectionTransferTarget, btwLaunchTarget, onBtwIdChange, onBtwIdClear }) => {
   const { t } = useI18n();
+  const transport = useRealtimeTransport();
   const chatRuntime = useChatSurfaceReplay({ chatId });
   const runtime = useStandaloneBtwRuntime({
     chatId,
@@ -29,6 +34,19 @@ export const BtwViewerSurface: React.FC<{
       onFragment: runtime.addDraftSelection,
     });
   }, [chatId, runtime.addDraftSelection, selectionTransferTarget]);
+  const ownerReady = chatRuntime.status === "ready" && Boolean(chatRuntime.snapshot?.owner);
+  React.useEffect(() => {
+    const target = btwLaunchTarget || selectionTransferTarget;
+    if (!isDesktopAppMode() || !target || !ownerReady || typeof BroadcastChannel !== "function") return;
+    return receiveBtwLaunches(chatId, target, {
+      isReady: () => transport.isSurfaceActive?.() !== false,
+      accept: (options) => {
+        // Only a new, uniquely addressed WorkPanel tab may send an inline question.
+        if (options.message && !btwLaunchTarget) return false;
+        return runtime.acceptLaunch(options);
+      },
+    });
+  }, [btwLaunchTarget, chatId, ownerReady, runtime.acceptLaunch, selectionTransferTarget, transport]);
   const invalid = !chatId;
   const missingOwner = chatRuntime.status === "ready" && !chatRuntime.snapshot?.owner;
   return (

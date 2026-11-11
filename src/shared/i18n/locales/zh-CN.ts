@@ -2547,6 +2547,7 @@ export const zhCNMessages = {
   "btw.new.confirmTitle": "开始新的顺便问？",
   "btw.new.created": "已开始新的顺便问",
   "btw.noChat": "请先进入一个已有对话",
+  "btw.openFailed": "顺便问未能打开，请重试",
   "btw.send": "发送",
   "btw.selectionOnlyPrompt": "请结合所选内容给出说明。",
   "btw.status.readOnly": "只读",

@@ -4,6 +4,7 @@ import { createInitialState } from "@/app/state/state";
 import type { AgentEvent } from "@/shared/contracts/agentEvents";
 import type { TimelineNode } from "@/features/timeline/lib/timelineState";
 import type { BTWSessionState } from "@/features/btw/lib/btwTypes";
+import type { BtwLaunch } from "@/features/btw/lib/btwLaunchTransfer";
 import { resolveBTWSendMessage } from "@/features/btw/lib/btwSend";
 import {
   createLocalCacheFromState,
@@ -92,6 +93,7 @@ export function useStandaloneBtwRuntime(input: {
 }): {
   session: BTWSessionState;
   send: (selectionOnlyPrompt?: string) => void;
+  acceptLaunch: (options: BtwLaunch) => boolean;
   setDraft: (draft: string) => void;
   addDraftSelection: (fragment: SelectedTextFragment) => boolean;
   updateDraftAnnotation: (referenceId: string, annotation: string) => void;
@@ -276,18 +278,24 @@ export function useStandaloneBtwRuntime(input: {
     });
   }, [chatId, handleEvent, initialRunId, input.owner, publish, runs, transportPurpose]);
 
-  const send = useCallback((selectionOnlyPrompt = "") => {
+  const send = useCallback((selectionOnlyPrompt = "", launch?: BtwLaunch): boolean => {
     const current = sessionRef.current;
     const selectedFragments = current.draftSelections;
     const message = resolveBTWSendMessage(
-      current.draft,
+      launch?.message ?? current.draft,
       selectedFragments.length,
       selectionOnlyPrompt,
     );
     const owner = current.owner || input.owner;
-    if (!chatId || !message || !owner || current.status === "running") return;
-    const references = selectedFragments.map((fragment) => fragment.reference);
-    const attachments = selectedFragments.map(selectedTextReferenceToAttachment);
+    if (!chatId || !message || !owner || current.status === "running") return false;
+    const references = [
+      ...(launch?.references || []),
+      ...selectedFragments.map((fragment) => fragment.reference),
+    ];
+    const attachments = [
+      ...(launch?.attachments || []),
+      ...selectedFragments.map(selectedTextReferenceToAttachment),
+    ];
     const acceptedReferenceIds = new Set(
       selectedFragments.map((fragment) => fragment.reference.id),
     );
@@ -333,6 +341,7 @@ export function useStandaloneBtwRuntime(input: {
       btwId: current.btwId || undefined,
       message,
       references: references.length > 0 ? references : undefined,
+      ...current.config,
       stream: true,
     };
     const execution = runs.startBtw({
@@ -386,7 +395,20 @@ export function useStandaloneBtwRuntime(input: {
       active.interruptPending = false;
       publish(active);
     });
+    return true;
   }, [chatId, handleEvent, input.owner, publish, runs, transportPurpose]);
+
+  const acceptLaunch = useCallback((options: BtwLaunch) => {
+    const current = sessionRef.current;
+    if (current.parentChatId !== chatId || !current.owner) return false;
+    if (options.message && (current.btwId || current.status === "running")) return false;
+    const { accessLevel, model, params } = options;
+    current.config = { accessLevel, model, params };
+    if (options.message) return send("", options);
+    current.focusToken += 1;
+    publish(current);
+    return true;
+  }, [chatId, publish, send]);
 
   const setDraft = useCallback((draft: string) => {
     const current = sessionRef.current;
@@ -505,6 +527,7 @@ export function useStandaloneBtwRuntime(input: {
   return {
     session,
     send,
+    acceptLaunch,
     setDraft,
     addDraftSelection,
     removeDraftSelection,

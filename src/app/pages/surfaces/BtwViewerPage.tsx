@@ -15,6 +15,8 @@ export const BtwViewerPage: React.FC = () => {
   const selectionTransferTarget = isSelectionTransferTarget(rawSelectionTransferTarget)
     ? rawSelectionTransferTarget
     : "";
+  const rawBtwLaunchTarget = searchParams.get("btwLaunchTarget") || "";
+  const btwLaunchTarget = /^btw-[a-f0-9-]{36}$/u.test(rawBtwLaunchTarget) ? rawBtwLaunchTarget : "";
   const updateBtwId = React.useCallback((btwId: string) => {
     const normalized = String(btwId || "").trim();
     if (!normalized || normalized === searchParams.get("btwId")) return;
@@ -32,6 +34,7 @@ export const BtwViewerPage: React.FC = () => {
       chatId={chatId.trim()}
       initialBtwId={String(searchParams.get("btwId") || "").trim()}
       selectionTransferTarget={selectionTransferTarget}
+      btwLaunchTarget={btwLaunchTarget}
       onBtwIdChange={updateBtwId}
       onBtwIdClear={clearBtwId}
     />
