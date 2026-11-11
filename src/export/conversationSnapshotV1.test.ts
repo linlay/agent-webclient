@@ -1,4 +1,4 @@
-import { parseConversationSnapshotV1 } from "./conversationSnapshotV1";
+import { parseConversationSnapshotV1, snapshotV1PreviewData } from "./conversationSnapshotV1";
 
 const EPOCH = 1_800_000_000_000;
 
@@ -30,6 +30,25 @@ function buildSnapshot(turns: ReturnType<typeof buildTurn>[]) {
     attachments: [],
   };
 }
+
+it.each([undefined, { code: "run_timeout", message: "运行超时。" }])("shows one terminal error and expanded historical answers (error=%s)", error => {
+  const value = buildSnapshot([buildTurn("run-1", 1)]);
+  Object.assign(value.turns[0], { outcome: "failed", error, endedAt: EPOCH,
+    nodes: [{ id: "answer", kind: "awaiting-answer", role: "user", text: '{"status":"answered","items":[]}', at: EPOCH, runId: "run-1" }] });
+  const snapshot = parseConversationSnapshotV1(JSON.stringify(value));
+  expect(snapshot).not.toBeNull();
+  const data = snapshotV1PreviewData(snapshot!);
+  expect(data.nodes[0].expanded).toBe(true);
+  const errors = data.nodes.filter(node => node.systemMessageLevel === "error");
+  expect(errors).toHaveLength(1);
+  expect(errors[0].text).toBe(error?.message ?? "运行失败。");
+});
+
+it("rejects malformed optional terminal errors", () => {
+  const value = buildSnapshot([buildTurn("run-1", 1)]);
+  Object.assign(value.turns[0], { error: { code: "run_error", message: {} } });
+  expect(parseConversationSnapshotV1(JSON.stringify(value))).toBeNull();
+});
 
 describe("parseConversationSnapshotV1 node limits", () => {
   it("accepts more than 2000 nodes when every turn stays within the limit", () => {

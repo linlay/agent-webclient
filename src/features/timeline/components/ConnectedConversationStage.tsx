@@ -71,6 +71,7 @@ import { resolvePreferredAgentKey } from "@/features/workers/lib/queryRouting";
 import { ToolOutputTerminal } from "@/features/terminal/components/ToolOutputTerminal";
 import { useViewPreviewPublisher } from "@/features/viewers/hooks/useViewPreviewTransfer";
 import { ViewEmbed } from "@/features/timeline/components/ViewEmbed";
+import { MailAskCard } from "./MailAskCard";
 import { MarkdownContent } from "@/features/viewers/components/MarkdownContent";
 import { TimelineAttachmentView } from "@/features/timeline/components/TimelineAttachmentView";
 import { useI18n } from "@/shared/i18n";
@@ -1922,6 +1923,7 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
     renderContentView: (segment, chatId, binding, runId, sourceId) =>
       <ViewEmbed allowSidebar={surfaceMode === "main"} chatId={chatId} view={binding.view} viewError={binding.viewError} payloadRaw={segment.payloadRaw || "{}"} rawData={segment.payloadRaw} runId={runId} sourceId={sourceId} viewIndex={String(segment.index)} />,
     renderMarkdown: (props) => <MarkdownContent {...props} htmlPreview />,
+    renderMailAsk: (mailId) => <MailAskCard mailId={mailId} />,
     renderAttachment: (attachment, options) => <TimelineAttachmentView
       attachment={attachment}
       surfaceContext={{ chatId: state.chatId, agentKey: resolvePreferredAgentKey(state),

@@ -1,7 +1,6 @@
 import { bindCssModuleClasses } from "@/shared/utils/cssModuleClasses";
 import timelinePresentation from "@/features/timeline/components/TimelinePresentation.module.css";
 import { MailBadge } from "./MailBadge";
-import { MailAskCard } from "./MailAskCard";
 import { InboundMessage } from "./InboundMessage";
 import { RelatedChatCards } from "./RelatedChatCards";
 import type { Agent } from "@/features/agents/lib/agentState";
@@ -370,7 +369,7 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
       >
         <div className={TIMELINE_USER_STACK_CLASS_NAME}>
           {node.mail && <MailBadge mail={node.mail} />}
-          {node.mail?.kind === "ask" && !interaction?.readOnly && <MailAskCard mailId={node.mail.id} />}
+          {node.mail?.kind === "ask" && !interaction?.readOnly && interaction?.renderMailAsk?.(node.mail.id)}
           {/* 消息发出后引用只是记录：可以回看文本与批注，但不再提供"跳回原文"的定位，避免把已读的这一行再滚走。 */}
           <SelectedTextFragmentsPill
             fragments={selectedTextFragments}
@@ -431,7 +430,7 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
           <div className={TIMELINE_COMMAND_LABEL_CLASS_NAME}>
             {node.mail ? <MailBadge mail={node.mail} /> : getCommandMessageLabel(node.messageVariant)}
           </div>
-          {node.mail?.kind === "ask" && !interaction?.readOnly && <MailAskCard mailId={node.mail.id} />}
+          {node.mail?.kind === "ask" && !interaction?.readOnly && interaction?.renderMailAsk?.(node.mail.id)}
           <div className="tw:flex tw:flex-wrap tw:gap-1">
             {(node.attachments || []).map((attachment, index) => (
               <React.Fragment key={attachment.id || index}>

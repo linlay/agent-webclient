@@ -2387,7 +2387,6 @@ export const zhCNMessages = {
   "memoryPreferences.validation.unknown": "未知校验错误",
   "memoryPreferences.validation.warning":
     "提示 第 {line} 行 {field}：{message}",
-  "mermaid.status.failedWithDetail": "Mermaid 图表渲染失败：{detail}",
   "mermaid.status.parseFailed": "Mermaid 语法解析失败。",
   "mermaid.status.receiving": "Mermaid 图表接收中…",
   "mermaid.status.renderFailed": "Mermaid 图表渲染失败。",
@@ -2675,6 +2674,7 @@ export const zhCNMessages = {
   "timeline.query.resend": "重问",
   "timeline.query.resendInNewChat": "新对话重问",
   "timeline.query.resendInNewChatFailed": "新对话重问失败，请重试",
+  "timeline.run.process": "执行过程",
   "timeline.run.processed": "已处理 {duration}",
   "timeline.run.duration": "耗时 {duration}",
   "timeline.run.responseDuration": "响应耗时 {duration}",

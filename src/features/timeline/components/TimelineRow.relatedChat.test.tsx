@@ -42,19 +42,27 @@ it("renders the chat card in the tool row beside its existing timeline marker", 
 });
 
 
-jest.mock("./MailAskCard", () => ({ MailAskCard: () => <section data-mail-card="ask" /> }));
-
 it.each([undefined, "steer"] as const)("keeps interactive mail cards outside the metadata label (%s)", messageVariant => {
-  const html = renderToStaticMarkup(<TimelineRow node={{
+  const html = renderToStaticMarkup(<TimelineInteractionProvider value={{ renderMailAsk: () => <section data-mail-card="ask" /> }}><TimelineRow node={{
     id: "ask", kind: "message", role: "user", messageVariant, ts: 100,
     text: "internal forwarding prompt",
     mail: { id: "mail", kind: "ask", fromAgentKey: "worker", fromChatId: "child" },
-  }} />);
+  }} /></TimelineInteractionProvider>);
   expect(html).toContain('data-mail-card="ask"');
   expect(html).not.toContain("internal forwarding prompt");
   if (messageVariant === "steer") {
     expect(html).toMatch(/timeline-command-label[^]*?<\/div><section data-mail-card="ask"/);
   }
+});
+
+it("does not render an actionable mail card in a read-only host", () => {
+  const renderMailAsk = jest.fn(() => <button>Approve</button>);
+  const html = renderToStaticMarkup(<TimelineInteractionProvider value={{ readOnly: true, renderMailAsk }}>
+    <TimelineRow node={{ id: "ask", kind: "message", role: "user", text: "internal prompt",
+      mail: { id: "mail", kind: "ask", fromAgentKey: "worker" } }} />
+  </TimelineInteractionProvider>);
+  expect(renderMailAsk).not.toHaveBeenCalled();
+  expect(html).not.toContain("Approve");
 });
 
 

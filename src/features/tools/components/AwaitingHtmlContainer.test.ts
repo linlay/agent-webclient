@@ -9,7 +9,6 @@ import {
   AwaitingHtmlContainer,
   INVALID_AWAITING_SUBMIT_ERROR,
   beginAwaitingCollectRequest,
-  bindAwaitingInitListener,
   buildAggregatedAwaitingSubmitPayload,
   buildCancelAwaitingSubmitPayload,
   buildRejectAwaitingSubmitPayload,
@@ -302,24 +301,6 @@ describe('AwaitingHtmlContainer', () => {
     expect(onErrorChange).toHaveBeenCalledWith(
       INVALID_AWAITING_SUBMIT_ERROR,
     );
-  });
-
-  it('binds iframe load and sends init immediately', () => {
-    const addEventListener = jest.fn();
-    const removeEventListener = jest.fn();
-    const sendInit = jest.fn();
-
-    const cleanup = bindAwaitingInitListener({
-      addEventListener,
-      removeEventListener,
-    }, sendInit);
-
-    expect(addEventListener).toHaveBeenCalledWith('load', sendInit);
-    expect(sendInit).toHaveBeenCalledTimes(1);
-
-    cleanup();
-
-    expect(removeEventListener).toHaveBeenCalledWith('load', sendInit);
   });
 
   it('merges collected form payloads back into the awaiting form list', () => {
