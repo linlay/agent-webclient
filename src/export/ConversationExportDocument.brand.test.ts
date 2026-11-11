@@ -39,6 +39,23 @@ const snapshot: ConversationSnapshotV1 = {
   attachments: [],
 };
 
+it("retains inline image DOM across repeated Markdown renders", () => {
+  window.history.replaceState({}, "", "/share/share-1");
+  const value = { ...snapshot, attachments: [{ id: "1".repeat(24), name: "generated.png", sourceRef: "generated.png", mimeType: "image/png" }] };
+  const container = document.createElement("div");
+  document.body.appendChild(container);
+  const root = createRoot(container);
+  try {
+    act(() => root.render(React.createElement(ConversationExportDocument, { snapshot: value })));
+    const image = container.querySelector('img[alt="generated.png"]');
+    expect(image).not.toBeNull();
+    for (let index = 0; index < 5; index += 1) {
+      act(() => root.render(React.createElement(ConversationExportDocument, { snapshot: value })));
+      expect(container.querySelector('img[alt="generated.png"]')).toBe(image);
+    }
+  } finally { act(() => root.unmount()); container.remove(); }
+});
+
 it("uses each run's assistant identity and falls back for an older turn", () => {
   const html = renderToStaticMarkup(React.createElement(ConversationExportDocument, { snapshot }));
   expect(html).toContain('data-agent-icon-name="proxy"');

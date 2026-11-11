@@ -32,6 +32,7 @@ export interface TimelineInteractionValue {
   /** Renders a Markdown VIEW block after the platform bound it to a snapshot. */
   renderContentView?: (segment: ContentSegment, chatId: string, binding: ContentViewBinding, runId?: string, sourceId?: string) => React.ReactNode;
   renderMarkdown?: (props: MarkdownContentProps) => React.ReactNode;
+  renderMailAsk?: (mailId: string) => React.ReactNode;
   renderAttachment?: (attachment: TimelineAttachment, options: {
     displayMode?: "auto" | "file" | "preview";
     subtitle?: string;

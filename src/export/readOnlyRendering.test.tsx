@@ -1,13 +1,45 @@
 /** @jest-environment jsdom */
-import React, { act } from "react";
+import React, { act, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { ImageGenerationCard } from "@/features/timeline/components/ImageGenerationCard";
 import { ReferenceCard } from "@/features/artifacts/components/ReferenceCard";
 import { PlanningTimeline } from "@/features/timeline/components/planning";
 import { TimelineInteractionProvider } from "@/features/timeline/components/TimelineInteractionContext";
 import { ShareMediaPreview } from "./ShareMediaPreview";
+import { AwaitingAnswerBlock } from "@/features/timeline/components/AwaitingAnswerBlock";
+import { I18nProvider } from "@/shared/i18n";
 
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
+
+it("expands saved choices and timeout records without submission controls", () => {
+  const host = document.createElement("div"); document.body.append(host);
+  const root = createRoot(host);
+  function History() {
+    const [expanded, setExpanded] = useState(true);
+    return <I18nProvider locale="zh-CN" persistLocale={false}>
+      <TimelineInteractionProvider value={{ readOnly: true, setExpanded: (_id, value) => setExpanded(value) }}>
+        <AwaitingAnswerBlock node={{ id: "answer", kind: "awaiting-answer", expanded,
+          text: JSON.stringify({ status: "answered", items: [{ description: "像素扫描", command: "python3 probe.py", decision: "approve_rule_run" }, { question: "次数", answer: 0 }, { question: "开启", answer: false }] }) }} />
+        <AwaitingAnswerBlock node={{ id: "timeout", kind: "awaiting-answer", expanded: true,
+          text: JSON.stringify({ status: "error", error: { code: "timeout", message: "等待用户回应超时。" } }) }} />
+      </TimelineInteractionProvider>
+    </I18nProvider>;
+  }
+  try {
+    act(() => root.render(<History />));
+    expect(host.textContent).toContain("同意（本次运行同规则都放行）");
+    expect(host.textContent).toContain("等待用户回应超时。");
+    expect(host.textContent).toContain("false");
+    expect(host.textContent).toContain("0");
+    expect(host.querySelector('form, input, button[type="submit"]')).toBeNull();
+    const toggle = host.querySelector<HTMLElement>('[aria-expanded="true"]')!;
+    act(() => toggle.click());
+    expect(toggle.getAttribute("aria-expanded")).toBe("false");
+    act(() => toggle.click());
+    expect(toggle.getAttribute("aria-expanded")).toBe("true");
+    expect(host.textContent).toContain("python3 probe.py");
+  } finally { act(() => root.unmount()); host.remove(); }
+});
 it("renders successful generation, references and planning without an application provider and keeps failures local", async () => {
   const host = document.createElement("div"); document.body.append(host);
   const root = createRoot(host);

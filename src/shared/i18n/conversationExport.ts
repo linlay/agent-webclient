@@ -2,6 +2,7 @@ export type ConversationExportLocale = "zh-CN" | "en-US";
 
 export const conversationExportMessages = {
   "zh-CN": {
+    runFailed: "运行失败。",
     attachments: {
       attachments: "附件", download: "下载", close: "关闭", unavailable: "仅在线分享页面可预览",
       selectFile: "选择附件",
@@ -62,6 +63,7 @@ export const conversationExportMessages = {
     user: "用户",
   },
   "en-US": {
+    runFailed: "The run failed.",
     attachments: {
       attachments: "Attachments", download: "Download", close: "Close", unavailable: "Available only from the shared page",
       selectFile: "Select attachment",

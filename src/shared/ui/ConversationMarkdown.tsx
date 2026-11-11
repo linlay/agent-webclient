@@ -100,6 +100,7 @@ const FORBIDDEN_HTML_TAGS = [
   "style",
   "video",
 ];
+const MARKDOWN_DOMPURIFY_CONFIG = { FORBID_TAGS: FORBIDDEN_HTML_TAGS };
 
 const MarkdownPre: React.FC<MarkdownPreProps> = ({
   children,
@@ -182,7 +183,7 @@ export const ConversationMarkdown: React.FC<ConversationMarkdownProps> = ({
         config={markdownConfig}
         components={markdownComponents}
         escapeRawHtml
-        dompurifyConfig={{ FORBID_TAGS: FORBIDDEN_HTML_TAGS }}
+        dompurifyConfig={MARKDOWN_DOMPURIFY_CONFIG}
       >
         {processedContent}
       </Markdown>

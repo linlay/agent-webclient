@@ -1,5 +1,5 @@
 import { canonicalChatSourceRef, shareMediaKind } from "./shareResources";
-import { conversationExportToolLabels } from "@/shared/i18n/conversationExport";
+import { conversationExportMessages, conversationExportToolLabels } from "@/shared/i18n/conversationExport";
 import type {
   TimelineNode,
   TimelineSource,
@@ -63,6 +63,7 @@ export interface ConversationSnapshotV1 {
     startedAt: number;
     endedAt?: number;
     outcome: "running" | "completed" | "failed" | "cancelled";
+    error?: { code: string; message: string };
     assistant?: { name: string; iconName?: string; mode?: string; iconColor?: string };
     nodes: SnapshotNodeV1[];
     tasks?: Array<{
@@ -249,6 +250,10 @@ export function parseConversationSnapshotV1(input: string): ConversationSnapshot
       };
       requireValue(!runIds.has(result.runId)); runIds.add(result.runId);
       if (turn.endedAt !== undefined) { result.endedAt = epoch(turn.endedAt); requireValue(result.endedAt >= result.queryAt); }
+      if (turn.error !== undefined) {
+        const error = object(turn.error);
+        result.error = { code: identifier(error.code), message: string(error.message) };
+      }
       if (turn.assistant !== undefined) {
         const assistant = object(turn.assistant);
         result.assistant = { name: string(assistant.name), ...optionalStrings(assistant, ["iconName"]) };
@@ -291,6 +296,7 @@ export function snapshotV1PreviewData(
     for (const node of turn.nodes) {
       nodes.push({
         ...node,
+        expanded: node.kind === "awaiting-answer" ? true : undefined,
         messageVariant: node.steerId ? "steer" : undefined,
         attachments: node.attachmentIds?.flatMap((id) => {
           const resource = resources.get(id);
@@ -304,6 +310,15 @@ export function snapshotV1PreviewData(
             ? null
             : { text: node.resultText, isCode: Boolean(node.resultIsCode) },
         sourcePublishId: node.sourcePublishId,
+      });
+    }
+    if (turn.outcome === "failed") {
+      const error = turn.error;
+      nodes.push({
+        id: `snapshot-error:${turn.runId}`, kind: "message", role: "system",
+        systemMessageLevel: "error", runId: turn.runId,
+        ts: turn.endedAt ?? snapshot.capturedAt,
+        text: error?.message.trim() || conversationExportMessages[snapshot.locale].runFailed,
       });
     }
     for (const task of turn.tasks || []) {

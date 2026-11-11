@@ -18,6 +18,8 @@ Standalone 支持浅色/深色/跟随系统、内置薄雾、PNG/JPEG 背景与 
 
 分享运行时通过 Ant Design `ConfigProvider` 将页面 nonce 传给动态样式。Tunnel 每次渲染分享或返回可下载模板时，都会生成独立的 32 字节随机 nonce，同时填入 CSP 与 `conversation-export-style-nonce` 元数据；本地导出客户端仍只替换 Snapshot、资产 origin 和品牌占位符，不需要生成 nonce。新增运行时资产必须发布为新 hash 集合，不能覆盖历史资源。
 
+分享和 HTML 通过 `keepUserInteractionsVisible` 保留按时间排列的交互记录：复用 `awaiting-answer` 卡片，默认展开且仅可折叠；执行过程按交互、补充输入和最终错误分段。Snapshot V1 的可选 `turn.error` 转成一条终态错误，旧失败快照使用通用提示。Markdown 由 Platform 生成问答摘要，包含未完成状态和错误兜底，不包含交互明细。发布时先交付兼容新字段的 Tunnel 渲染资源，再交付 Platform／Desktop；旧快照缺失的交互和具体原因需从原对话重新分享，不做历史回填。
+
 本地调试分享页时运行 `npm run preview:conversation-export`，打开 `http://127.0.0.1:11959/preview`。预览直接构建 `src/export/`，修改组件、样式或模板后浏览器自动刷新，无需同步或发布 Tunnel。默认读取忽略目录 `.local/share-preview/current.snapshot.json` 中的 Snapshot V1；文件不存在时使用内置样例，`?case=example` 可强制查看内置样例。也可设置 `CONVERSATION_PREVIEW_SNAPSHOT=/absolute/path/snapshot.json` 显式加载本地 JSON，此时忽略 `case` 参数。修改当前快照文件会触发浏览器刷新；端口可通过 `PORT` 调整。预览仅监听 `127.0.0.1`，使用开发态资源路径和自动刷新连接；发布前仍需执行正式导出构建与资源一致性检查。
 
 接入以后，一个智能体后端可以快速拥有：

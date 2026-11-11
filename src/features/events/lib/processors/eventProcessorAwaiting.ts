@@ -7,6 +7,7 @@ import {
 import { readAwaitingAnswerErrorInfo } from "@/features/events/lib/awaitingAnswerError";
 import { t } from "@/shared/i18n";
 import { safeText, toText } from "@/shared/utils/eventUtils";
+import type { AwaitingAnswerEnvelope } from "@/features/timeline/lib/awaitingAnswer";
 
 export function maskStructuredAwaitingAnswers(event: AgentEvent): unknown {
 	const runId = toText(event.runId);
@@ -85,25 +86,13 @@ export function buildAwaitingAnswerEnvelope(event: AgentEvent): unknown {
 		return {
 			status: "error",
 			error: error.code || error.message ? error : undefined,
-		};
+		} satisfies AwaitingAnswerEnvelope;
 	}
-	if (status === "answered") {
-		if (
-			rawRecord.planning
-			&& typeof rawRecord.planning === "object"
-			&& !Array.isArray(rawRecord.planning)
-		) {
-			return {
-				status: "answered",
-				planning: maskStructuredAwaitingAnswers(event),
-			};
-		}
-		return {
-			status: "answered",
-			items: maskStructuredAwaitingAnswers(event),
-		};
-	}
-	return maskStructuredAwaitingAnswers(event);
+	const value = maskStructuredAwaitingAnswers(event);
+	if (status !== "answered") return value;
+	return rawRecord.planning && value && typeof value === "object" && !Array.isArray(value)
+		? { status: "answered", planning: value as Record<string, unknown> } satisfies AwaitingAnswerEnvelope
+		: { status: "answered", items: Array.isArray(value) ? value : [] } satisfies AwaitingAnswerEnvelope;
 }
 
 export function readAwaitingAnswerText(event: AgentEvent): string {

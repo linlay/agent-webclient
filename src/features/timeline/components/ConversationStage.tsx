@@ -12,6 +12,7 @@ import { TimelineRenderEntryView } from "./TimelineRenderEntryView";
 import { RunTerminalNotice } from "./RunTerminalNotice";
 import { buildRunRenderEntries, type TimelineDisplayItem, type TimelineRenderEntry } from "../lib/timelineDisplay";
 import { isImageGenerationTool } from "../lib/imageGenerationDisplay";
+import { runPresentationSections } from "../lib/runPresentationSections";
 import "./Timeline.module.css";
 
 export type ConversationListItem =
@@ -36,6 +37,7 @@ export interface ConversationStageProps {
   skills?: readonly AgentSkill[];
   fallbackAgentKey?: string;
   tasks?: Map<string, TaskItemMeta>;
+  keepUserInteractionsVisible?: boolean;
   expandedRuns: Record<string, boolean>;
   onToggleRun: (key: string) => void;
   expandedTasks: Record<string, boolean>;
@@ -66,7 +68,7 @@ const ConversationItem = ({ item, children, ...rest }: React.HTMLAttributes<HTML
 
 export function ConversationStage({
   items, agents, skills, fallbackAgentKey, tasks, expandedRuns, onToggleRun,
-  expandedTasks, onToggleTask, queryMeta, runMeta, runHeader, viewport,
+  expandedTasks, onToggleTask, queryMeta, runMeta, runHeader, viewport, keepUserInteractionsVisible = false,
 }: ConversationStageProps): React.ReactElement {
   const { t } = useI18n();
   const renderEntry = (entry: TimelineRenderEntry) => <TimelineRenderEntryView
@@ -121,18 +123,32 @@ export function ConversationStage({
           && !item.nodes.some(isImageGenerationTool);
         return <Flex vertical gap={8} data-run-id={item.runId || undefined}>
           {runHeader?.(item)}
-          {collapse && <Collapse ghost destroyOnHidden className="timeline-run-collapse"
-            activeKey={expandedRuns[item.key] ? ["run-entries"] : []}
-            onChange={() => onToggleRun(item.key)}
-            items={[{ key: "run-entries", label: t("timeline.run.processed", { duration }), children:
-              <div className="timeline-run-items tw:flex tw:flex-col tw:gap-[12px]">
-                {buildRunRenderEntries(process, tasks).map(renderEntry)}
-              </div> }]} />}
-          <section className="timeline-run-group tw:relative tw:flex tw:flex-col tw:gap-2 tw:mt-[4px]">
-            {collapse ? buildRunRenderEntries(persistent, tasks).map(renderEntry)
-              : <div className="timeline-run-items tw:flex tw:flex-col tw:gap-[12px]">{item.renderEntries.map(renderEntry)}</div>}
-          </section>
-          {!collapse && <RunTerminalNotice terminalType={item.terminalType} duration={duration} />}
+          {keepUserInteractionsVisible ? runPresentationSections(item.nodes).map(section => {
+            const key = `${item.key}:${section.key}`;
+            // Submitted inputs must also stay outside task-group collapses.
+            const entries: TimelineRenderEntry[] = section.process
+              ? buildRunRenderEntries(section.nodes, tasks)
+              : section.nodes.map(node => ({ kind: "node", key: `node_${node.id}`, node }));
+            const content = <div className="timeline-run-items tw:flex tw:flex-col tw:gap-[12px]">{entries.map(renderEntry)}</div>;
+            return section.process && item.completedAt && !section.nodes.some(isImageGenerationTool)
+              ? <Collapse key={key} ghost destroyOnHidden className="timeline-run-collapse"
+                  activeKey={expandedRuns[key] ? [key] : []} onChange={() => onToggleRun(key)}
+                  items={[{ key, label: t("timeline.run.process"), children: content }]} />
+              : <React.Fragment key={key}>{content}</React.Fragment>;
+          }) : <>
+            {collapse && <Collapse ghost destroyOnHidden className="timeline-run-collapse"
+              activeKey={expandedRuns[item.key] ? ["run-entries"] : []}
+              onChange={() => onToggleRun(item.key)}
+              items={[{ key: "run-entries", label: t("timeline.run.processed", { duration }), children:
+                <div className="timeline-run-items tw:flex tw:flex-col tw:gap-[12px]">
+                  {buildRunRenderEntries(process, tasks).map(renderEntry)}
+                </div> }]} />}
+            <section className="timeline-run-group tw:relative tw:flex tw:flex-col tw:gap-2 tw:mt-[4px]">
+              {collapse ? buildRunRenderEntries(persistent, tasks).map(renderEntry)
+                : <div className="timeline-run-items tw:flex tw:flex-col tw:gap-[12px]">{item.renderEntries.map(renderEntry)}</div>}
+            </section>
+          </>}
+          {(keepUserInteractionsVisible || !collapse) && <RunTerminalNotice terminalType={item.terminalType} duration={duration} />}
           {item.completedAt && runMeta?.(item, duration)}
         </Flex>;
       }
