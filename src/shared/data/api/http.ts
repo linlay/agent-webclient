@@ -1,10 +1,12 @@
+import { isEmbedMode } from "@/shared/config/embed";
+import { getEmbedToken, ensureEmbedToken, emitEmbedEvent } from "@/shared/data/embed/embedSession";
 import {
   type PlatformError,
   formatPlatformErrorForDisplay,
 } from "@/shared/data/errors/platformError";
 import {
-  isGatewayBackendMode,
-} from "@/shared/config/backendMode";
+  usesGatewaySession,
+} from "@/shared/config/authMode";
 import {
   getGatewaySession,
 } from "@/shared/data/auth/gatewaySession";
@@ -93,7 +95,7 @@ function buildAuthHeaders(
   if (includeJsonContentType && !hasHeader(merged, "Content-Type")) {
     merged["Content-Type"] = "application/json";
   }
-  if (isGatewayBackendMode()) {
+  if (usesGatewaySession()) {
     for (const key of Object.keys(merged)) {
       if (key.toLowerCase() === "authorization" || key.toLowerCase() === "x-csrf-token") {
         delete merged[key];
@@ -122,7 +124,8 @@ export function setAccessToken(token = ""): void {
 }
 
 export function getCurrentAccessToken(): string {
-  if (isGatewayBackendMode()) {
+  if (isEmbedMode()) return getEmbedToken();
+  if (usesGatewaySession()) {
     return "";
   }
   if (!isAppMode()) {
@@ -139,7 +142,8 @@ export function getCurrentAccessToken(): string {
 export async function ensureAccessToken(
   reason: AppAccessTokenRefreshReason = 'missing',
 ): Promise<string> {
-  if (isGatewayBackendMode()) {
+  if (isEmbedMode()) return ensureEmbedToken(reason === "unauthorized");
+  if (usesGatewaySession()) {
     setAccessToken("");
     return "";
   }
@@ -271,10 +275,10 @@ export async function requestWithAuth(
     ...requestOptions
   } = options;
 
-  const gatewayMode = isGatewayBackendMode();
+  const gatewayMode = usesGatewaySession();
   // Capture before authentication awaits: retries belong to the same UI request.
   const requestLocale = getI18nRuntimeConfig().locale;
-  if (includePlatformAuth && !gatewayMode && isAppMode()) {
+  if (includePlatformAuth && !gatewayMode && (isAppMode() || isEmbedMode())) {
     await ensureAccessToken('missing');
   }
 
@@ -287,10 +291,11 @@ export async function requestWithAuth(
       return false;
     }
   })();
+  if (isEmbedMode() && includePlatformAuth && !sameOrigin) throw new ApiError("Cross-origin authenticated requests are disabled in embed mode");
   const buildRequestOptions = (): RequestInit => ({
     ...requestOptions,
     method,
-    ...(sameOrigin ? { credentials: "same-origin" as RequestCredentials } : {}),
+    ...(sameOrigin ? { credentials: (isEmbedMode() ? "omit" : "same-origin") as RequestCredentials } : {}),
     headers: includePlatformAuth
       ? buildAuthHeaders(requestOptions.headers || {}, {
           includeJsonContentType: jsonContentType,
@@ -303,7 +308,8 @@ export async function requestWithAuth(
 
   let response = await fetch(path, buildRequestOptions());
 
-  if (includePlatformAuth && retryUnauthorized && !gatewayMode && isAppMode() && response.status === 401) {
+  if (includePlatformAuth && retryUnauthorized && !gatewayMode && (isAppMode() || isEmbedMode()) && response.status === 401
+      && (!isEmbedMode() || ["GET", "HEAD", "OPTIONS"].includes(method))) {
     const refreshedToken = await ensureAccessToken('unauthorized');
     if (refreshedToken) {
       response = await fetch(path, buildRequestOptions());
@@ -314,6 +320,7 @@ export async function requestWithAuth(
     handleFinalUnauthorized(authFailureSource);
   }
 
+  if (isEmbedMode() && response.status === 401) emitEmbedEvent("auth.required");
   return response;
 }
 

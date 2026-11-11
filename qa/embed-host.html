@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>WebClient 跨源嵌入联调</title>
+<style>body{font:15px system-ui;margin:24px;background:#f4f6fa;color:#172033}label{display:block;margin:12px 0}input,textarea,button{font:inherit;padding:8px}input,textarea{width:min(90%,640px)}textarea{height:70px}.frames{display:flex;flex-wrap:wrap;gap:16px}.frame{width:380px;height:640px;background:white;border:1px solid #ccd3df;border-radius:12px;overflow:hidden}pre{white-space:pre-wrap;overflow-wrap:anywhere}button{margin:4px}</style></head>
+<body><h1>WebClient 跨源嵌入联调</h1><p>在本目录运行 <code>python3 -m http.server 3000</code>，通过 localhost:3000 打开此页。WebClient 配置允许该精确 origin。仅填写后端签发的受限 embed token，不使用完整登录 token。页面不持久化凭据。</p>
+<label>WebClient origin <input id="origin" value="http://localhost:11948"></label><label>Agent Key <input id="agent" value="support"></label><label>受限 embed token <textarea id="token" autocomplete="off"></textarea></label>
+<button id="mount">创建实例（可创建多个）</button><button id="prefill">填入草稿</button><button id="send">发送消息</button><button id="theme">切换深色</button><button id="destroy">销毁全部</button>
+<div class="frames" id="frames"></div><pre id="events" role="log"></pre>
+<script>
+const instances=[];
+const log=(type,data)=>{document.querySelector('#events').textContent+=type+' '+JSON.stringify(data)+'\n';};
+document.querySelector('#mount').onclick=async()=>{
+ const origin=new URL(document.querySelector('#origin').value).origin;
+ if(!window.ZenmindChat){await new Promise((resolve,reject)=>{const script=document.createElement('script');script.src=origin+'/embed/v1.js';script.onload=resolve;script.onerror=reject;document.head.append(script);});}
+ const frame=document.createElement('div');frame.className='frame';document.querySelector('#frames').append(frame);
+ const chat=ZenmindChat.mount(frame,{origin,agentKey:document.querySelector('#agent').value,features:{history:true,attachments:true,newChat:true},theme:'light',locale:'zh-CN',getToken:async()=>({token:document.querySelector('#token').value.trim(),expiresAt:Date.now()+120000}),context:{page:'embed-demo'}});
+ instances.push(chat);['ready','auth.required','chat.changed','run.started','run.finished','awaiting.pending','error'].forEach(type=>chat.on(type,data=>log(type,data)));
+ chat.ready.catch(error=>log('error',{code:error.message}));
+};
+document.querySelector('#prefill').onclick=()=>instances.at(-1)?.prefill('你好，请介绍一下自己').catch(error=>log('error',error.message));
+document.querySelector('#send').onclick=()=>instances.at(-1)?.send('你好').then(data=>log('send',data)).catch(error=>log('error',error.message));
+document.querySelector('#theme').onclick=()=>instances.at(-1)?.setTheme('dark').catch(error=>log('error',error.message));
+document.querySelector('#destroy').onclick=()=>{instances.splice(0).forEach(chat=>chat.destroy());document.querySelector('#frames').replaceChildren();};
+</script></body></html>

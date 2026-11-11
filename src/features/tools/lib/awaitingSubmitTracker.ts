@@ -1,3 +1,4 @@
+import { getClientStorage } from "@/shared/utils/clientStorage";
 const AWAITING_SUBMIT_STORAGE_KEY = "agent-webclient.awaitingSubmitIds.v1";
 const AWAITING_SUBMIT_TTL_MS = 24 * 60 * 60 * 1000;
 
@@ -22,10 +23,10 @@ export function buildAwaitingSubmitKey(runId: unknown, awaitingId: unknown): str
 
 function getSessionStorage(): Storage | null {
 	try {
-		if (typeof window === "undefined" || !window.sessionStorage) {
+		if (typeof window === "undefined" || !getClientStorage("session")) {
 			return null;
 		}
-		return window.sessionStorage;
+		return getClientStorage("session");
 	} catch {
 		return null;
 	}

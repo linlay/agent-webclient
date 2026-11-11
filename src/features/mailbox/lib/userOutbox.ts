@@ -1,3 +1,4 @@
+import { getClientStorage } from "@/shared/utils/clientStorage";
 import type { SendUserMessageRequest, SendUserMessageReceipt } from "@/shared/data/api/dto/mailbox";
 
 export interface UserOutboxEntry {
@@ -20,7 +21,7 @@ function key(scope: string, requestId: string): string { return `${scope}\0${req
 function all(): UserOutboxEntry[] {
   if (entries) return entries;
   try {
-    const value: unknown = JSON.parse(localStorage.getItem(storageKey) || "[]");
+    const value: unknown = JSON.parse(getClientStorage("local").getItem(storageKey) || "[]");
     entries = Array.isArray(value) ? value.filter((v): v is UserOutboxEntry =>
       Boolean(v && typeof v.scope === "string" && typeof v.request?.requestId === "string" && typeof v.request?.message === "string")) : [];
   } catch { entries = []; }
@@ -28,7 +29,7 @@ function all(): UserOutboxEntry[] {
 }
 function publish(next: UserOutboxEntry[]): void {
   entries = next;
-  try { localStorage.setItem(storageKey, JSON.stringify(next)); } catch { /* Keep drafts in memory when storage is unavailable. */ }
+  try { getClientStorage("local").setItem(storageKey, JSON.stringify(next)); } catch { /* Keep drafts in memory when storage is unavailable. */ }
   if (typeof window !== "undefined") window.dispatchEvent(new Event(userOutboxChanged));
 }
 export function readUserOutbox(scope: string): UserOutboxEntry[] { return all().filter(entry => entry.scope === scope).sort((a, b) => a.createdAt - b.createdAt); }

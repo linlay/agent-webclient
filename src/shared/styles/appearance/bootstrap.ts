@@ -29,13 +29,14 @@ export function resolveBootAppearance(input: {
 
 export function readBootAppearance(search?: string) {
   let storedTheme: unknown;
-  try { storedTheme = globalThis.localStorage?.getItem(THEME_STORAGE_KEY); } catch { /* blocked storage */ }
+  const embed = typeof window !== "undefined" && window.location?.pathname?.startsWith("/embed/") === true;
+  try { if (!embed) storedTheme = globalThis.localStorage?.getItem(THEME_STORAGE_KEY); } catch { /* blocked storage */ }
   const config = (globalThis as typeof globalThis & {
     __AGENT_WEBCLIENT_RUNTIME_CONFIG__?: Record<string, unknown>;
   }).__AGENT_WEBCLIENT_RUNTIME_CONFIG__;
   return resolveBootAppearance({
     search: search ?? (typeof window !== "undefined" ? window.location?.search : "") ?? "",
-    desktop: config?.DESKTOP_APP === true || config?.DESKTOP_APP === "true",
+    desktop: !embed && (config?.DESKTOP_APP === true || config?.DESKTOP_APP === "true"),
     storedTheme,
     systemDark: globalThis.matchMedia?.("(prefers-color-scheme: dark)").matches === true,
   });

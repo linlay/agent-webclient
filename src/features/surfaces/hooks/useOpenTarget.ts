@@ -1,3 +1,5 @@
+import { isEmbedMode } from "@/shared/config/embed";
+import { emitEmbedEvent } from "@/shared/data/embed/embedSession";
 import { useCallback, useRef } from "react";
 import { useAppDispatch, useAppState } from "@/app/state/AppContext";
 import { resolveCurrentWorkerSummary } from "@/features/workers/lib/currentWorker";
@@ -29,6 +31,23 @@ export function useOpenTarget(): (intent: OpenTargetIntent) => boolean {
     if (intent.version !== 1) return false;
     const pathname = typeof window === "undefined" ? "/" : window.location.pathname;
     const desktopMode = isDesktopAppMode();
+    if (isEmbedMode()) {
+      if (intent.kind === "web") {
+        try {
+          const url = new URL(intent.url);
+          if (!["https:", "http:"].includes(url.protocol) || url.username || url.password || url.origin === window.location.origin) return false;
+          window.open(url.href, "_blank", "noopener,noreferrer");
+          emitEmbedEvent("link.open", { url: url.href });
+          return true;
+        } catch { return false; }
+      }
+      if (!["artifact", "reference", "resource"].includes(intent.kind)) return false;
+      const normalized = resolvePublishedArtifactIntent(intent, state.chatId, state.artifacts);
+      const target = viewerTargetFromIntent(normalized);
+      if (!target || target.type === "file") return false;
+      window.dispatchEvent(new CustomEvent("agent:embed-viewer", { detail: target }));
+      return true;
+    }
     const currentWorker = resolveCurrentWorkerSummary(state);
     const chatId = "chatId" in intent ? clean(intent.chatId) : "";
     const chat = chatId

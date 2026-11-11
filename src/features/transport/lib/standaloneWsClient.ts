@@ -1,5 +1,6 @@
+import { isEmbedMode } from "@/shared/config/embed";
 import { ensureAccessToken, getCurrentAccessToken } from "@/shared/data/api/http";
-import { isGatewayBackendMode } from "@/shared/config/backendMode";
+import { usesGatewaySession } from "@/shared/config/authMode";
 import {
 	destroyWsClient,
 	getWsClient,
@@ -14,7 +15,8 @@ import type {
 async function resolveStandaloneAccessToken(
   reason: WsAccessTokenRefreshReason = "missing",
 ): Promise<string> {
-  if (isGatewayBackendMode()) return "";
+  if (isEmbedMode()) return ensureAccessToken(reason);
+  if (usesGatewaySession()) return "";
   let token = String(getCurrentAccessToken() || "").trim();
   if (!token || reason === "unauthorized") {
     token = String(await ensureAccessToken(reason)).trim();
@@ -26,8 +28,8 @@ export async function ensureStandaloneWsClient(): Promise<WsClient> {
   const accessToken = await resolveStandaloneAccessToken();
   const options = {
     accessToken,
-    allowAnonymous: isGatewayBackendMode() || !accessToken,
-    resolveAccessToken: isGatewayBackendMode()
+    allowAnonymous: usesGatewaySession() || (!isEmbedMode() && !accessToken),
+    resolveAccessToken: usesGatewaySession()
       ? undefined
       : resolveStandaloneAccessToken,
   };

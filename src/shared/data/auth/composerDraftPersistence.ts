@@ -1,3 +1,4 @@
+import { getClientStorage } from "@/shared/utils/clientStorage";
 const STORAGE_KEY = "agent-webclient.gateway-composer-draft";
 
 export interface PersistedComposerDrafts {
@@ -9,7 +10,7 @@ export interface PersistedComposerDrafts {
 export function persistComposerDrafts(snapshot: PersistedComposerDrafts): void {
 	if (typeof window === "undefined") return;
 	try {
-		window.sessionStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot));
+		getClientStorage("session").setItem(STORAGE_KEY, JSON.stringify(snapshot));
 	} catch {
 		// Session storage can be unavailable in restricted browser contexts.
 	}
@@ -18,7 +19,7 @@ export function persistComposerDrafts(snapshot: PersistedComposerDrafts): void {
 export function restoreComposerDrafts(): PersistedComposerDrafts | null {
 	if (typeof window === "undefined") return null;
 	try {
-		const raw = window.sessionStorage.getItem(STORAGE_KEY);
+		const raw = getClientStorage("session").getItem(STORAGE_KEY);
 		if (!raw) return null;
 		const value = JSON.parse(raw) as Partial<PersistedComposerDrafts>;
 		const drafts: Record<string, string> = {};

@@ -7,6 +7,7 @@ export type SurfacePresentationContext = {
 };
 
 export const SURFACE_ROUTE_PATHS = {
+  embed: "/embed/:agentKey",
   chatPreview: "/chat-preview/:chatId",
   overview: "/overview/:chatId",
   debug: "/debug/:chatId",

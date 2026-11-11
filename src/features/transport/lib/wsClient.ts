@@ -3,7 +3,7 @@ import { getI18nRuntimeConfig } from "@/shared/i18n/runtime";
 import { createCompactId } from "@/shared/utils/compactId";
 import { getClientDeviceId } from "@/shared/data/clientDeviceId";
 import { getClientSurfaceId } from "@/shared/data/clientSurfaceId";
-import { isGatewayBackendMode } from "@/shared/config/backendMode";
+import { usesGatewaySession } from "@/shared/config/authMode";
 import {
 	handleFinalUnauthorized,
 	isWsAuthenticationRequired,
@@ -382,7 +382,7 @@ function buildWsUrl(accessToken = ""): string {
 	const protocol =
 		window.location.protocol === "https:" ? "wss:" : "ws:";
 	const url = new URL(`${protocol}//${window.location.host}/ws`);
-	if (isGatewayBackendMode()) {
+	if (usesGatewaySession()) {
 		return url.toString();
 	}
 	const normalizedToken = String(accessToken || "").trim();
@@ -862,7 +862,7 @@ export class StandaloneSocketDriver extends PlatformFrameClient {
 						resolve();
 						return;
 					}
-					if (isGatewayBackendMode() && Number(event?.code) === 4401) {
+					if (usesGatewaySession() && Number(event?.code) === 4401) {
 						handleFinalUnauthorized("ws");
 						this.socket = null;
 						this.connectPromise = null;
@@ -1027,7 +1027,7 @@ export class StandaloneSocketDriver extends PlatformFrameClient {
 			this.setStatus("disconnected");
 			return;
 		}
-		if (isGatewayBackendMode() && Number(event?.code) === 4401) {
+		if (usesGatewaySession() && Number(event?.code) === 4401) {
 			handleFinalUnauthorized("ws");
 			this.setStatus("error");
 			this.failPlatformFrames(createDisconnectErrorFromClose(event));
@@ -1184,7 +1184,7 @@ export class StandaloneSocketDriver extends PlatformFrameClient {
 	private shouldRefreshTokenForClose(
 		event?: Pick<CloseEvent, "code" | "reason">,
 	): boolean {
-		if (isGatewayBackendMode()) {
+		if (usesGatewaySession()) {
 			return false;
 		}
 		if (isHeartbeatTimeoutClose(event)) {

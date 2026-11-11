@@ -1,3 +1,4 @@
+import { getClientStorage } from "@/shared/utils/clientStorage";
 import React, {
   createContext,
   useContext,
@@ -66,7 +67,7 @@ export const I18nProvider: React.FC<I18nProviderProps> = ({
         options.persist !== false &&
         typeof window !== "undefined"
       ) {
-        window.localStorage?.setItem(I18N_LOCALE_STORAGE_KEY, nextLocale);
+        getClientStorage("local")?.setItem(I18N_LOCALE_STORAGE_KEY, nextLocale);
       }
       setCurrentLocale(nextLocale);
     },
@@ -129,7 +130,7 @@ export function useI18n(): I18nContextValue {
     terms: config.terms,
     setLocale: (nextLocale, options = {}) => {
       if (options.persist !== false && typeof window !== "undefined") {
-        window.localStorage?.setItem(I18N_LOCALE_STORAGE_KEY, nextLocale);
+        getClientStorage("local")?.setItem(I18N_LOCALE_STORAGE_KEY, nextLocale);
       }
       configureI18nRuntime({
         locale: nextLocale,

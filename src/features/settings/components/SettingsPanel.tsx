@@ -1,3 +1,4 @@
+import { getClientStorage } from "@/shared/utils/clientStorage";
 import { bindCssModuleClasses } from "@/shared/utils/cssModuleClasses";
 import settingsPresentation from "@/features/settings/components/SettingsOverlay.module.css";
 import React, { useCallback, useEffect, useState } from "react";
@@ -55,7 +56,7 @@ export const SettingsPanel: React.FC<SettingsSurfaceProps & {
     }
     const token = tokenInput.trim();
     setAccessToken(token);
-    localStorage.setItem(ACCESS_TOKEN_STORAGE_KEY, token);
+    getClientStorage("local").setItem(ACCESS_TOKEN_STORAGE_KEY, token);
     dispatch({ type: "SET_ACCESS_TOKEN", token });
     window.dispatchEvent(new CustomEvent("agent:refresh-worker-data"));
     setError("");

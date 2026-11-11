@@ -36,6 +36,8 @@ import { useStandaloneDesktopActionRuntime } from "@/features/conversation/hooks
 import { initializeDesktopContextMenuBridge } from "@/shared/data/desktop/desktopContextMenu";
 import { RealtimeTransportProvider } from "@/features/transport/components/RealtimeTransportProvider";
 import { WebClientRouteErrorPage, WebClientRenderErrorBoundary } from "@/app/WebClientRenderError";
+import { isEmbedMode } from "@/shared/config/embed";
+import { EmbedBoundary } from "@/features/embed/components/EmbedBoundary";
 import "@/app/layout/CopilotLayout.module.css";
 import "@/app/layout/ManagementPages.module.css";
 import "@/app/layout/SidebarLayout.module.css";
@@ -48,6 +50,7 @@ function lazyPage<T extends React.ComponentType<object>, M>(
   return React.lazy(() => factory().then((mod) => ({ default: pick(mod) })));
 }
 
+const EmbedShell = lazyPage(() => import("@/app/layout/EmbedShell"), (m) => m.EmbedShell);
 const AutomationsPage = lazyPage(() => import("./pages/automations"), (m) => m.AutomationsPage);
 const KBasesPage = lazyPage(() => import("./pages/kbases"), (m) => m.KBasesPage);
 const MailboxPage = lazyPage(() => import("./pages/mailbox"), (m) => m.MailboxPage);
@@ -87,6 +90,7 @@ const BaseShell = () => {
   useLayoutEffect(() => controller.setRouteSearch(location.search), [controller, location.search]);
 
   useEffect(() => {
+    if (isEmbedMode()) return;
     const routeLocale = readUrlLocale(location.search);
     const nextLocale = routeLocale || resolveInitialLocale();
     if (nextLocale !== locale) {
@@ -203,6 +207,10 @@ const router = createBrowserRouter(
               <RootInteractiveRoute />
             </DocumentTitleRoute>
           ),
+        },
+        {
+          path: "/embed/:agentKey",
+          element: <DocumentTitleRoute><BtwProvider enabled={false}><EmbedShell /></BtwProvider></DocumentTitleRoute>,
         },
         {
           path: "/copilot/:agentKey",
@@ -481,6 +489,7 @@ const App: React.FC<AppProps> = ({ i18n }) => {
     <I18nProvider {...mergedI18n}>
       <AppearanceProvider>
         <WebClientRenderErrorBoundary>
+          <EmbedBoundary>
           <AppProvider>
             <AppearanceStateBridge />
             <RealtimeTransportProvider>
@@ -489,6 +498,7 @@ const App: React.FC<AppProps> = ({ i18n }) => {
               </GatewayAuthBoundary>
             </RealtimeTransportProvider>
           </AppProvider>
+          </EmbedBoundary>
         </WebClientRenderErrorBoundary>
       </AppearanceProvider>
     </I18nProvider>

@@ -1,3 +1,4 @@
+import { isEmbedMode } from "@/shared/config/embed";
 import { useCallback } from "react";
 import type { AppAction } from "@/app/state/AppContext";
 import type { AppState } from "@/app/state/AppContext";
@@ -49,6 +50,7 @@ export function useSlashCommandExecution(input: {
 
 	return useCallback(
 		async (commandId: SlashCommandId) => {
+      if (isEmbedMode()) return;
 			if (!isSlashCommandFeatureEnabled(commandId)) {
 				return;
 			}

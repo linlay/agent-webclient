@@ -1,3 +1,4 @@
+import { useEmbedComposer } from "../hooks/useEmbedComposer";
 import { usesMailboxSend } from "@/features/composer/lib/messageEntry";
 import { locateSelectedTextReference } from "@/shared/data/desktop/selectedTextLocate";
 import { bindCssModuleClasses } from "@/shared/utils/cssModuleClasses";
@@ -954,6 +955,11 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     hasUploadingAttachments ||
     hasFailedAttachments ||
     !(isMainChatRunning ? hasSendableContent(inputValue, combinedSendReferences, true) : hasSendableQuery(inputValue, combinedSendReferences, hasQueryHistory(state), canContinueChat(state)));
+
+  useEmbedComposer({ value: inputValue, setValue: value => { setInputValue(value); setSlashDismissed(true); },
+    disabled: inputDisabled || (!usesMailboxSend(currentWorker?.raw?.mode) && (isFrontendActive || isAwaitingActive)) || isVoiceMode || interactionPending,
+    sendDisabled, busy: isMainChatRunning, hasAttachments: attachments.length > 0,
+    submit: handleSend, interrupt: interruptCurrentRun });
 
   const handleKeyDown = useComposerKeyboard({
     onSubmitQueuedSteer: isMainChatRunning && !isFrontendActive && !chatTransitionBlocking ? () => handleSend(true) : undefined,

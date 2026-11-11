@@ -1,3 +1,4 @@
+import { isEmbedMode } from "@/shared/config/embed";
 import { bindCssModuleClasses } from "@/shared/utils/cssModuleClasses";
 import timelinePresentation from "@/features/timeline/components/TimelinePresentation.module.css";
 import composerPresentation from "@/features/composer/components/ComposerPresentation.module.css";
@@ -112,7 +113,7 @@ interface ComposerActionsProps extends Omit<
 
 export const ComposerActions: React.FC<ComposerActionsProps> = (props) => {
   const hasAppContext = Boolean(useOptionalAppContext());
-  if (!props.currentAgentKey || !hasAppContext) {
+  if (isEmbedMode() || !props.currentAgentKey || !hasAppContext) {
     return <ComposerActionsPure {...props} />;
   }
   return (

@@ -1,3 +1,4 @@
+import { isEmbedMode } from "./embed";
 import { readRuntimeConfigValue } from "@/shared/config/runtimeConfig";
 import { isPlatformBackendMode } from "@/shared/config/backendMode";
 import { isDesktopAppMode } from "@/shared/utils/routing";
@@ -21,15 +22,15 @@ export function isDeltaLogsEnabled(): boolean {
 }
 
 export function isSettingsMenuEnabled(): boolean {
-  return !isDesktopAppMode() && parseFeatureFlag(readRuntimeConfigValue("SETTINGS_MENU_ENABLED"));
+  return !isEmbedMode() && !isDesktopAppMode() && parseFeatureFlag(readRuntimeConfigValue("SETTINGS_MENU_ENABLED"));
 }
 
 export function isQuickActionsEnabled(): boolean {
-  return !isDesktopAppMode() && parseFeatureFlag(readRuntimeConfigValue("QUICK_ACTIONS_ENABLED"));
+  return !isEmbedMode() && !isDesktopAppMode() && parseFeatureFlag(readRuntimeConfigValue("QUICK_ACTIONS_ENABLED"));
 }
 
 export function isVoiceEnabled(): boolean {
-  return isPlatformBackendMode() && parseFeatureFlag(readRuntimeConfigValue("VOICE_ENABLED"));
+  return !isEmbedMode() && isPlatformBackendMode() && parseFeatureFlag(readRuntimeConfigValue("VOICE_ENABLED"));
 }
 
 export function isMemoryEnabled(): boolean {

@@ -1,13 +1,13 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { Button, Result, Spin } from "antd";
-import { isGatewayBackendMode } from "@/shared/config/backendMode";
+import { usesGatewaySession } from "@/shared/config/authMode";
 import { initializeGatewaySession } from "@/shared/data/auth/gatewaySession";
 import { useI18n } from "@/shared/i18n";
 
 export const GatewayAuthBoundary: React.FC<{ children: React.ReactNode }> = ({
 	children,
 }) => {
-	const gatewayMode = isGatewayBackendMode();
+	const gatewayMode = usesGatewaySession();
 	const { t } = useI18n();
 	const [status, setStatus] = useState<"loading" | "ready" | "error">(
 		gatewayMode ? "loading" : "ready",

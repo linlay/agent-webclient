@@ -1,3 +1,4 @@
+import { getClientStorage } from "@/shared/utils/clientStorage";
 import { readBootAppearance, readThemeModeFromUrl as readUrl, readThemeParam, THEME_STORAGE_KEY, type ThemeMode } from "./appearance/bootstrap";
 export { THEME_STORAGE_KEY, readThemeParam };
 export type { ThemeMode };
@@ -10,7 +11,7 @@ export function readThemeModeFromUrl(search?: string): ThemeMode | null {
 }
 export function writeStoredThemeMode(themeMode: ThemeMode): void {
   if (readBootAppearance().desktop) return;
-  try { globalThis.localStorage?.setItem(THEME_STORAGE_KEY, themeMode); } catch { /* in-memory only */ }
+  try { getClientStorage("local")?.setItem(THEME_STORAGE_KEY, themeMode); } catch { /* in-memory only */ }
 }
 export function applyThemeModeToDocument(themeMode: ThemeMode): void {
   if (typeof document !== "undefined") document.documentElement.setAttribute("data-theme", themeMode);

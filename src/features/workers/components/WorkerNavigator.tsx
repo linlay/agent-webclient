@@ -1,3 +1,4 @@
+import { getClientStorage } from "@/shared/utils/clientStorage";
 import libraryPresentation from "@/shared/ui/Presentation.module.css";
 import { bindCssModuleClasses } from "@/shared/utils/cssModuleClasses";
 import sharedPresentation from "@/shared/ui/Presentation.module.css";
@@ -140,7 +141,7 @@ function readStoredLeftSidebarWidth(): number {
   }
 
   try {
-    const stored = window.localStorage?.getItem(
+    const stored = getClientStorage("local")?.getItem(
       LEFT_SIDEBAR_WIDTH_STORAGE_KEY,
     );
     const parsed = stored ? Number.parseInt(stored, 10) : NaN;
@@ -156,7 +157,7 @@ function persistLeftSidebarWidth(width: number): void {
   if (typeof window === "undefined") return;
 
   try {
-    window.localStorage?.setItem(
+    getClientStorage("local")?.setItem(
       LEFT_SIDEBAR_WIDTH_STORAGE_KEY,
       String(width),
     );
@@ -194,7 +195,7 @@ export const WorkerNavigator: React.FC<WorkerNavigatorProps> = ({
   const isSidebarLoading = navigation.sidebarPendingRequestCount > 0;
   useEffect(() => {
     try {
-      if (window.localStorage.getItem("agent:show-bots") !== "false") {
+      if (getClientStorage("local").getItem("agent:show-bots") !== "false") {
         dispatch({ type: "SET_PRIMARY_NAVIGATION", enabled: true });
       }
     } catch { /* Navigation remains available without storage. */ }
@@ -202,7 +203,7 @@ export const WorkerNavigator: React.FC<WorkerNavigatorProps> = ({
   const togglePrimaryNavigation = () => {
     const enabled = !state.primaryNavigation;
     dispatch({ type: "SET_PRIMARY_NAVIGATION", enabled });
-    try { window.localStorage.setItem("agent:show-bots", String(enabled)); } catch { /* Optional preference. */ }
+    try { getClientStorage("local").setItem("agent:show-bots", String(enabled)); } catch { /* Optional preference. */ }
   };
   const [generalAgentKey, setGeneralAgentKey] = useState(readStoredGeneralAgentKey);
   const [historyAgentKey, setHistoryAgentKey] = useState("");

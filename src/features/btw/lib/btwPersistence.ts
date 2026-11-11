@@ -1,3 +1,4 @@
+import { getClientStorage } from "@/shared/utils/clientStorage";
 import type { TimelineNode } from "@/features/timeline/lib/timelineState";
 import type {
   BTWSessionState,
@@ -20,7 +21,7 @@ interface BTWStorageEnvelope {
 
 function getSessionStorage(): Storage | null {
   try {
-    return typeof window !== "undefined" ? window.localStorage : null;
+    return typeof window !== "undefined" ? getClientStorage("local") : null;
   } catch {
     return null;
   }

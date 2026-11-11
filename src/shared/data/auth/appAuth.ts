@@ -1,3 +1,4 @@
+import { getClientStorage } from "@/shared/utils/clientStorage";
 import { isAppMode } from '@/shared/utils/routing';
 import {
   hasDesktopHostBridge,
@@ -95,10 +96,10 @@ function readStoredToken(): string | null {
       return null;
     }
     syncStoredAuthContext(currentContext);
-    const token = window.sessionStorage.getItem(AGENT_APP_ACCESS_TOKEN_STORAGE_KEY);
+    const token = getClientStorage("session").getItem(AGENT_APP_ACCESS_TOKEN_STORAGE_KEY);
     const usableToken = normalizeUsableAccessToken(token);
     if (token && !usableToken) {
-      window.sessionStorage.removeItem(AGENT_APP_ACCESS_TOKEN_STORAGE_KEY);
+      getClientStorage("session").removeItem(AGENT_APP_ACCESS_TOKEN_STORAGE_KEY);
     }
     return usableToken;
   } catch {
@@ -121,12 +122,12 @@ function syncStoredAuthContext(
   if (!currentContext) {
     return;
   }
-  const storedContext = window.sessionStorage.getItem(AGENT_APP_AUTH_CONTEXT_STORAGE_KEY) || '';
+  const storedContext = getClientStorage("session").getItem(AGENT_APP_AUTH_CONTEXT_STORAGE_KEY) || '';
   if (storedContext === currentContext) {
     return;
   }
-  window.sessionStorage.removeItem(AGENT_APP_ACCESS_TOKEN_STORAGE_KEY);
-  window.sessionStorage.setItem(AGENT_APP_AUTH_CONTEXT_STORAGE_KEY, currentContext);
+  getClientStorage("session").removeItem(AGENT_APP_ACCESS_TOKEN_STORAGE_KEY);
+  getClientStorage("session").setItem(AGENT_APP_AUTH_CONTEXT_STORAGE_KEY, currentContext);
   if (typeof window !== 'undefined') {
     window.__AGENT_APP_ACCESS_TOKEN = undefined;
   }
@@ -154,9 +155,9 @@ function writeStoredToken(token: string | null): void {
   try {
     syncStoredAuthContext();
     if (normalized) {
-      window.sessionStorage.setItem(AGENT_APP_ACCESS_TOKEN_STORAGE_KEY, normalized);
+      getClientStorage("session").setItem(AGENT_APP_ACCESS_TOKEN_STORAGE_KEY, normalized);
     } else {
-      window.sessionStorage.removeItem(AGENT_APP_ACCESS_TOKEN_STORAGE_KEY);
+      getClientStorage("session").removeItem(AGENT_APP_ACCESS_TOKEN_STORAGE_KEY);
     }
   } catch {
     // Ignore storage errors in embedded contexts.

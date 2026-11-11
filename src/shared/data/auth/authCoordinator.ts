@@ -1,4 +1,6 @@
-import { isGatewayBackendMode } from "@/shared/config/backendMode";
+import { isEmbedMode } from "@/shared/config/embed";
+import { emitEmbedEvent } from "@/shared/data/embed/embedSession";
+import { usesGatewaySession } from "@/shared/config/authMode";
 import { getGatewaySession } from "@/shared/data/auth/gatewaySession";
 
 export type AuthFailureSource = "json" | "sse" | "ws" | "download";
@@ -74,7 +76,8 @@ export function isWsAuthenticationRequired(input: {
 }
 
 export function handleFinalUnauthorized(source: AuthFailureSource): boolean {
-	if (!isGatewayBackendMode() || navigationStarted) {
+  if (isEmbedMode()) { emitEmbedEvent("auth.required", { source }); return true; }
+	if (!usesGatewaySession() || navigationStarted) {
 		return false;
 	}
 	navigationStarted = true;

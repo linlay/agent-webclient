@@ -1,3 +1,4 @@
+import { getClientStorage } from "@/shared/utils/clientStorage";
 import {
   RIGHT_SIDEBAR_MIN_WIDTH, RIGHT_SIDEBAR_COLLAPSED_MAIN_GAP,
   clampRightSidebarLayoutWidth, rightSidebarWidthFromDrag,
@@ -92,7 +93,7 @@ function readStoredRightSidebarWidth(): number {
   }
 
   try {
-    const stored = window.localStorage?.getItem(
+    const stored = getClientStorage("local")?.getItem(
       RIGHT_SIDEBAR_WIDTH_STORAGE_KEY,
     );
     const parsed = stored ? Number.parseInt(stored, 10) : NaN;
@@ -108,7 +109,7 @@ function persistRightSidebarWidth(width: number): void {
   if (typeof window === "undefined") return;
 
   try {
-    window.localStorage?.setItem(
+    getClientStorage("local")?.setItem(
       RIGHT_SIDEBAR_WIDTH_STORAGE_KEY,
       String(width),
     );

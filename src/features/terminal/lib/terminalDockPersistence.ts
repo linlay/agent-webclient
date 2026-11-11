@@ -1,3 +1,4 @@
+import { getClientStorage } from "@/shared/utils/clientStorage";
 import { toText } from "@/shared/utils/eventUtils";
 import { t } from "@/shared/i18n";
 
@@ -18,18 +19,8 @@ export type TerminalDockStoredState = {
 
 const terminalDockStateByAgentKey = new Map<string, TerminalDockStoredState>();
 
-function getStorage(): Storage | null {
-  try {
-    if (typeof window !== "undefined" && window.localStorage) {
-      return window.localStorage;
-    }
-    if (typeof localStorage !== "undefined") {
-      return localStorage;
-    }
-  } catch {
-    return null;
-  }
-  return null;
+function getStorage(): Storage {
+  return getClientStorage("local");
 }
 
 function dockStateStorageKey(agentKey: string): string {

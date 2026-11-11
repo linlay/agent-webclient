@@ -1,3 +1,4 @@
+import { getClientStorage } from "@/shared/utils/clientStorage";
 const CLIENT_DEVICE_ID_STORAGE_KEY = "agent-webclient.deviceId.v1";
 const CLIENT_DEVICE_ID_MAX_LENGTH = 128;
 
@@ -10,18 +11,8 @@ function normalizeClientDeviceId(value: unknown): string {
     .slice(0, CLIENT_DEVICE_ID_MAX_LENGTH);
 }
 
-function getStorage(): Storage | null {
-  try {
-    if (typeof window !== "undefined" && window.localStorage) {
-      return window.localStorage;
-    }
-    if (typeof localStorage !== "undefined") {
-      return localStorage;
-    }
-  } catch {
-    return null;
-  }
-  return null;
+function getStorage(): Storage {
+  return getClientStorage("local");
 }
 
 function createClientDeviceId(): string {

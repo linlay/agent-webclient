@@ -1,3 +1,5 @@
+import { isEmbedMode } from "@/shared/config/embed";
+import { getClientStorage } from "@/shared/utils/clientStorage";
 import { APPEARANCE_STORAGE_KEY, THEME_STORAGE_KEY, readBootAppearance, readThemeModeFromUrl, type ThemeMode, type ThemePreference } from "@/shared/styles/appearance/bootstrap";
 import type { DesktopAppearanceSnapshot } from "@/shared/contracts/desktopAppearance";
 import type { DesktopSkinDefinition } from "@/shared/styles/appearance/skinDefinition";
@@ -20,7 +22,7 @@ export type AppearanceSnapshot = AppearancePresentation & {
 
 function readSkinPreference(): string {
   try {
-    const value = JSON.parse(localStorage.getItem(APPEARANCE_STORAGE_KEY) || "null");
+    const value = JSON.parse(getClientStorage("local").getItem(APPEARANCE_STORAGE_KEY) || "null");
     return typeof value?.skinId === "string" && (findDesktopSkin(value.skinId) || /^pack:[a-z][a-z0-9.-]{0,63}$/.test(value.skinId)) ? value.skinId : "default";
   } catch { return "default"; }
 }
@@ -30,7 +32,7 @@ export function createAppearanceController() {
   let snapshot: AppearanceSnapshot = {
     ...boot, preference: boot.preference, selectedSkinId: boot.desktop ? "default" : readSkinPreference(),
     skin: DESKTOP_SKINS[0], backgroundMode: boot.desktop ? "host-fallback" : "standalone",
-    hostReady: false, assetsLoading: !boot.desktop, busy: false, error: "", backgroundName: "", installedSkins: [],
+    hostReady: false, assetsLoading: !boot.desktop && !isEmbedMode(), busy: false, error: "", backgroundName: "", installedSkins: [],
   };
   let host: DesktopAppearanceSnapshot | null = null;
   let lastHost: DesktopAppearanceSnapshot | null = null;
@@ -109,8 +111,8 @@ export function createAppearanceController() {
   }
   function storePreference(theme: ThemePreference, skinId: string) {
     try {
-      localStorage.setItem(THEME_STORAGE_KEY, theme);
-      localStorage.setItem(APPEARANCE_STORAGE_KEY, JSON.stringify({ skinId }));
+      getClientStorage("local").setItem(THEME_STORAGE_KEY, theme);
+      getClientStorage("local").setItem(APPEARANCE_STORAGE_KEY, JSON.stringify({ skinId }));
     } catch { snapshot = { ...snapshot, error: "storage" }; }
   }
   async function changeAssets(change: (value: AppearanceAssets) => Promise<AppearanceAssets> | AppearanceAssets) {
@@ -151,7 +153,7 @@ export function createAppearanceController() {
         const mediaChange = () => { systemDark = media?.matches === true; publish(); };
         media?.addEventListener("change", mediaChange);
         const storageChange = (event: StorageEvent) => {
-          if (snapshot.desktop || (event.key && ![THEME_STORAGE_KEY, APPEARANCE_STORAGE_KEY].includes(event.key))) return;
+          if (isEmbedMode() || snapshot.desktop || (event.key && ![THEME_STORAGE_KEY, APPEARANCE_STORAGE_KEY].includes(event.key))) return;
           snapshot = { ...snapshot, preference: readBootAppearance().preference, selectedSkinId: readSkinPreference() };
           publish();
         };
@@ -161,7 +163,7 @@ export function createAppearanceController() {
           if (value) lastHost = value;
           publish();
         }) : undefined;
-        if (!snapshot.desktop) {
+        if (!snapshot.desktop && !isEmbedMode()) {
           assetLoad = appearanceAssetStore().then((loaded) => {
             if (current !== generation) return;
             // Treat corrupt/missing local assets as recoverable, never a boot failure.

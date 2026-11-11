@@ -1,3 +1,4 @@
+import { getClientStorage } from "@/shared/utils/clientStorage";
 import { enUSMessages } from "@/shared/i18n/locales/en-US";
 import { zhCNMessages } from "@/shared/i18n/locales/zh-CN";
 import type {
@@ -96,7 +97,7 @@ export function readUrlLocale(
 
 function storeLocale(locale: Locale): void {
   try {
-    window.localStorage?.setItem(I18N_LOCALE_STORAGE_KEY, locale);
+    getClientStorage("local")?.setItem(I18N_LOCALE_STORAGE_KEY, locale);
   } catch {
     // URL language should still apply when guest storage is unavailable.
   }
@@ -113,7 +114,7 @@ export function resolveInitialLocale(
       return queryLocale;
     }
 
-    const storedLocale = window.localStorage?.getItem(I18N_LOCALE_STORAGE_KEY);
+    const storedLocale = getClientStorage("local")?.getItem(I18N_LOCALE_STORAGE_KEY);
     if (storedLocale) {
       return normalizeLocale(storedLocale, locales);
     }

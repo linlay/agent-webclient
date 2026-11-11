@@ -18,6 +18,8 @@ const allowedHosts = allowedHostsEnv === 'all'
 
 const runtimeConfigEnvKeys = [
   'BACKEND_MODE',
+  'EMBED_ENABLED',
+  'EMBED_ALLOWED_ORIGINS',
   'DESKTOP_APP',
   'DEBUG_PANEL_ENABLED',
   'DEBUG_RUN_OBSERVATION_ENABLED',
@@ -202,6 +204,7 @@ module.exports = (env, argv) => {
       ],
     },
     plugins: [
+      new PublicAssetPlugin({ from: 'public/embed/v1.js', to: 'embed/v1.js' }),
       ...require('./scripts/webpack-diagnostics.cjs')(__dirname, isProd),
       new MonacoWebpackPlugin({
         languages: [

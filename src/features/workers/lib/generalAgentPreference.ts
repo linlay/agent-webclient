@@ -1,9 +1,10 @@
+import { getClientStorage } from "@/shared/utils/clientStorage";
 const GENERAL_AGENT_STORAGE_KEY = "agent-webclient:general-agent-key";
 
 export function readStoredGeneralAgentKey(): string {
   if (typeof window === "undefined") return "";
   try {
-    return window.localStorage.getItem(GENERAL_AGENT_STORAGE_KEY)?.trim() || "";
+    return getClientStorage("local").getItem(GENERAL_AGENT_STORAGE_KEY)?.trim() || "";
   } catch {
     return "";
   }
@@ -11,7 +12,7 @@ export function readStoredGeneralAgentKey(): string {
 
 export function persistGeneralAgentKey(workerKey: string): void {
   try {
-    window.localStorage.setItem(GENERAL_AGENT_STORAGE_KEY, workerKey);
+    getClientStorage("local").setItem(GENERAL_AGENT_STORAGE_KEY, workerKey);
   } catch {
     // Agent selection remains usable when storage is unavailable.
   }

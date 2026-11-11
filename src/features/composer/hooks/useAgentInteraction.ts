@@ -1,3 +1,5 @@
+import { isEmbedMode } from "@/shared/config/embed";
+import { getEmbedOptions } from "@/shared/data/embed/embedSession";
 import { useEffect, useState } from "react";
 import { useAppContext } from "@/app/state/AppContext";
 import { getAgent } from "@/shared/data";
@@ -34,7 +36,12 @@ export function useAgentInteraction(worker: CurrentWorkerSummary | null): Intera
     return () => { canceled = true; };
   }, [key, embedded, dispatch, stateRef]);
 
-  const config = embedded || (loaded?.key === key ? loaded.config : pendingInteraction);
+  const resolved = embedded || (loaded?.key === key ? loaded.config : pendingInteraction);
+  const config = !isEmbedMode() || resolved === pendingInteraction ? resolved : {
+    ...resolved, connectors: false, showTerminal: false,
+    attachment: { ...resolved.attachment, chatRecords: false, skills: false, kbases: false,
+      localFiles: resolved.attachment.localFiles && getEmbedOptions().features?.attachments === true },
+  };
   const state = stateRef.current;
   const agent = state.agents.find(item => item.key === key);
   if (String(agent?.mode || worker?.raw?.mode || "").toUpperCase() !== "BOT") return config;

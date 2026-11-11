@@ -80,6 +80,7 @@
         "/agents/",
         "/automations",
         "/copilot/",
+        "/embed/",
         "/chat-preview/",
         "/overview/",
         "/debug/",

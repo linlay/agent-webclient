@@ -1,3 +1,4 @@
+import { getClientStorage } from "@/shared/utils/clientStorage";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { Modal } from "antd";
 import type { ViewDocument, ViewQueryResult, ViewReference, ViewActionResult } from "@/shared/contracts/view";
@@ -108,10 +109,10 @@ export function ViewEmbed({ chatId, view, payloadRaw, viewError, rawData, runId,
     // Canonical keys let remount/reload reuse the same durable write receipt.
     const key = "view-write:" + JSON.stringify([chatId, runId, view?.connectorId, view?.key, view?.hash, name, canonical(params)]);
     let id = actionRequestIDs.current.get(key);
-    try { id = id || sessionStorage.getItem(key) || undefined; } catch { /* memory fallback */ }
+    try { id = id || getClientStorage("session").getItem(key) || undefined; } catch { /* memory fallback */ }
     if (!id) id = createRequestId();
     actionRequestIDs.current.set(key, id);
-    try { sessionStorage.setItem(key, id); } catch { /* memory fallback */ }
+    try { getClientStorage("session").setItem(key, id); } catch { /* memory fallback */ }
     return id;
   };
   const actionParamTitle = (name: string, key: string) => {

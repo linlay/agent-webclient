@@ -1,3 +1,4 @@
+import { getClientStorage } from "@/shared/utils/clientStorage";
 import type { QueryAccessLevel } from "@/shared/data";
 
 export interface ComposerAccessState {
@@ -54,8 +55,8 @@ function normalizeValues(value: unknown, legacy = false): Record<string, QueryAc
 
 export function restoreComposerAccessLevels(): ComposerAccessState {
   try {
-    const stored = window.sessionStorage.getItem(STORAGE_KEY);
-    const value = JSON.parse(stored ?? window.sessionStorage.getItem("agent-webclient.composer-access.v2") ?? "{}");
+    const stored = getClientStorage("session").getItem(STORAGE_KEY);
+    const value = JSON.parse(stored ?? getClientStorage("session").getItem("agent-webclient.composer-access.v2") ?? "{}");
     const legacy = stored === null;
     return {
       accessLevelByChatId: normalizeValues(value?.accessLevelByChatId, legacy),
@@ -68,7 +69,7 @@ export function restoreComposerAccessLevels(): ComposerAccessState {
 
 export function persistComposerAccessLevels(state: ComposerAccessState): void {
   try {
-    window.sessionStorage.setItem(STORAGE_KEY, JSON.stringify({
+    getClientStorage("session").setItem(STORAGE_KEY, JSON.stringify({
       accessLevelByChatId: state.accessLevelByChatId,
       newChatAccessLevelByAgentKey: state.newChatAccessLevelByAgentKey,
     }));

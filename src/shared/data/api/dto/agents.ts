@@ -37,6 +37,7 @@ export interface AgentToolBinding {
 }
 
 export interface AgentDetailResponse {
+  primaryChat?: { chatId: string; [key: string]: unknown };
   teamConfig?: { members: string[]; maxParallel?: number };
   modelKey?: string;
   reasoningEffort?: QueryReasoningEffort;

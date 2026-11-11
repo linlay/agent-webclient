@@ -1,3 +1,4 @@
+import { isEmbedMode } from "@/shared/config/embed";
 import React, { useState } from "react";
 import { isDesktopAppMode } from "@/shared/utils/routing";
 import { openDesktopAgentConfiguration } from "@/shared/data/desktop/desktopAgentConfiguration";
@@ -7,6 +8,7 @@ export function AgentConfigurationLink({ agentKey }: { agentKey: string }) {
   const { t } = useI18n();
   const [pending, setPending] = useState(false);
   const [failed, setFailed] = useState(false);
+  if (isEmbedMode()) return <span>{t("composer.agent.unavailable")}</span>;
   if (!isDesktopAppMode()) {
     return <a href={`/agents/${encodeURIComponent(agentKey)}`} className="tw:underline">
       {t("composer.agent.unavailable")}

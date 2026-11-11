@@ -1,3 +1,4 @@
+import { getClientStorage } from "@/shared/utils/clientStorage";
 const CLIENT_SURFACE_ID_STORAGE_KEY = "agent-webclient.surfaceId.v1";
 const CLIENT_SURFACE_ID_MAX_LENGTH = 128;
 
@@ -7,18 +8,8 @@ function normalizeClientSurfaceId(value: unknown): string {
   return String(value || "").trim().slice(0, CLIENT_SURFACE_ID_MAX_LENGTH);
 }
 
-function getStorage(): Storage | null {
-  try {
-    if (typeof window !== "undefined" && window.sessionStorage) {
-      return window.sessionStorage;
-    }
-    if (typeof sessionStorage !== "undefined") {
-      return sessionStorage;
-    }
-  } catch {
-    return null;
-  }
-  return null;
+function getStorage(): Storage {
+  return getClientStorage("session");
 }
 
 function createClientSurfaceId(): string {

@@ -1,3 +1,4 @@
+import { isEmbedMode } from "@/shared/config/embed";
 import { readRuntimeConfigValue } from "@/shared/config/runtimeConfig";
 
 export const APP_UI_BASE = '/';
@@ -9,7 +10,7 @@ function parseRuntimeFlag(value: unknown): boolean {
 }
 
 export function isDesktopAppMode(): boolean {
-  return parseRuntimeFlag(readRuntimeConfigValue('DESKTOP_APP'));
+  return !isEmbedMode() && parseRuntimeFlag(readRuntimeConfigValue('DESKTOP_APP'));
 }
 
 export function isAppMode(

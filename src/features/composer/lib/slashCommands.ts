@@ -1,3 +1,4 @@
+import { isEmbedMode } from "@/shared/config/embed";
 import { skillDisplayName, skillPackageDisplayName } from "@/shared/utils/skillDisplayName";
 import type { TimelineNode } from "@/features/timeline/lib/timelineState";
 import type { AgentSkill, AgentSkillPackage } from '@/shared/data';
@@ -242,6 +243,7 @@ export function getFilteredSlashSkills(
 }
 
 export function isSlashCommandFeatureEnabled(commandId: SlashCommandId): boolean {
+  if (isEmbedMode()) return false;
   if (commandId === 'debug') {
     return isDebugPanelEnabled();
   }

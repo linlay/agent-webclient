@@ -1,3 +1,4 @@
+import { getClientStorage } from "@/shared/utils/clientStorage";
 import type { QueryModelOverride } from "@/shared/data";
 import type { AgentEvent } from "@/shared/contracts/agentEvents";
 import { normalizeRunModel, resolveChatModel } from "@/features/runs/lib/modelSelection";
@@ -34,12 +35,12 @@ export function restoreComposerModels(): ComposerModelState {
     return Object.fromEntries(Object.entries(value).map(([key, model]) => [key, normalizeRunModel(model)]));
   };
   try {
-    const value = JSON.parse(window.sessionStorage.getItem(STORAGE_KEY) || "{}");
+    const value = JSON.parse(getClientStorage("session").getItem(STORAGE_KEY) || "{}");
     return { modelByChatId: normalizeMap(value?.modelByChatId), newChatModelByAgentKey: normalizeMap(value?.newChatModelByAgentKey) };
   } catch { return { modelByChatId: {}, newChatModelByAgentKey: {} }; }
 }
 export function persistComposerModels(state: ComposerModelState): void {
-  try { window.sessionStorage.setItem(STORAGE_KEY, JSON.stringify({
+  try { getClientStorage("session").setItem(STORAGE_KEY, JSON.stringify({
     modelByChatId: state.modelByChatId, newChatModelByAgentKey: state.newChatModelByAgentKey,
   })); } catch { /* Keep in-memory choices if storage is unavailable. */ }
 }

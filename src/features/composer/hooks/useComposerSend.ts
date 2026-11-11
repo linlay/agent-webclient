@@ -1,3 +1,5 @@
+import { isEmbedMode } from "@/shared/config/embed";
+import { withEmbedContext } from "@/shared/data/embed/hostContext";
 import { currentChatUsesMailboxSend } from "@/features/composer/lib/messageEntry";
 import type { PendingSteer } from "@/features/composer/lib/composerState";
 import { isAgentExecutionBlocked } from "@/features/agents/lib/agentAvailability";
@@ -216,7 +218,7 @@ export function useComposerSend(input: UseComposerSendInput) {
   }, [stateRef]);
 
   useEffect(() => {
-    const message = inputValue.trim();
+    const message = isEmbedMode() ? withEmbedContext(inputValue.trim()) : inputValue.trim();
     if (!message) {
       pendingSendRef.current = false;
       pendingSentMessageRef.current = "";
@@ -498,7 +500,8 @@ export function useComposerSend(input: UseComposerSendInput) {
       return;
     }
 
-    const message = inputValue.trim();
+    if (isEmbedMode() && inputValue.trim().startsWith("/")) { void messageApi.warning(t("embed.commandUnavailable")); return; }
+    const message = isEmbedMode() ? withEmbedContext(inputValue.trim()) : inputValue.trim();
     if (!hasSendableQuery(message, sendReferences, hasQueryHistory(stateRef.current), canContinueChat(stateRef.current)) && !hasSendableContent(message, sendReferences, true)) return;
     if (hasUploadingAttachments || hasFailedAttachments) return;
     if (pendingSendRef.current && pendingSentMessageRef.current === message && pendingSentReferencesRef.current === referenceSignature) {
