@@ -149,7 +149,7 @@ export function ConversationStage({
             </section>
           </>}
           {(keepUserInteractionsVisible || !collapse) && <RunTerminalNotice terminalType={item.terminalType} duration={duration} />}
-          {item.completedAt && runMeta?.(item, duration)}
+          {item.completedAt ? runMeta?.(item, duration) : null}
         </Flex>;
       }
       return renderEntry(listItem.item.renderEntry);

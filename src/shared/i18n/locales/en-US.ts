@@ -1780,6 +1780,7 @@ export const enUSMessages = {
   "archive.deleteConfirm.title": "Delete archive record",
   "archive.detail.archivedAt": "Archived at {time}",
   "archive.detail.attachmentsUnavailable": "Attachment information is unavailable. The conversation is still viewable.",
+  "archive.detail.conversationAria": "Archived conversation",
   "archive.empty.detail": "No previewable content in this archive.",
   "archive.empty.list": "No archived conversations.",
   "archive.empty.preview": "(no preview)",

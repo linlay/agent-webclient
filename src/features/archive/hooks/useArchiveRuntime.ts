@@ -19,10 +19,10 @@ import {
   type ArchivedSummaryResponse,
   type ChatSummaryResponse,
 } from "@/shared/data";
+import { buildArchiveConversationData } from "@/features/archive/lib/archiveConversation";
 import {
   asArchiveSummary,
   buildArchiveBulkCandidates,
-  extractArchivePreviewLines,
   filterArchives,
   formatArchiveUsageSummary,
   normalizeRestoredChat,
@@ -367,6 +367,10 @@ export function useArchiveRuntime(options: UseArchiveRuntimeOptions) {
   }, []);
 
   const selectedItem = items.find((item) => item.chatId === selected);
+  const conversation = useMemo(
+    () => buildArchiveConversationData(detail),
+    [detail],
+  );
   return {
     agents,
     query,
@@ -391,7 +395,7 @@ export function useArchiveRuntime(options: UseArchiveRuntimeOptions) {
     bulkCandidateCount: bulkCandidates.length,
     resultText: [bulkResult, actionResult].filter(Boolean).join(" · "),
     selectedItem,
-    previewLines: extractArchivePreviewLines(detail),
+    conversation,
     usageSummary: formatArchiveUsageSummary(selectedItem),
     loadArchiveDetail,
     deleteSelected,
