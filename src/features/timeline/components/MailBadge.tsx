@@ -39,7 +39,6 @@ export function MailBadge({
       type="agent"
       icon={agent.icon}
       mode={agent.mode}
-      interactive={false}
       props={{
         icon: {
           className: "tw:shrink-0",

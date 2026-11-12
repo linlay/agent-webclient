@@ -27,8 +27,8 @@ it("puts the sender avatar before the name", () => {
     />,
   );
   expect(html).toContain("data-agent-avatar");
-  // A tiny identity mark should not follow the pointer.
-  expect(html).toContain('data-agent-pointer-disabled="true"');
+  // Default interactivity: the avatar may follow the pointer like other agent icons.
+  expect(html).not.toContain("data-agent-pointer-disabled");
   expect(html.indexOf("data-agent-avatar")).toBeLessThan(
     html.indexOf("Worker"),
   );
@@ -52,8 +52,8 @@ it("renders the avatar without a link when no Chat target is known", () => {
     />,
   );
   expect(html).toContain("data-agent-avatar");
-  // A tiny identity mark should not follow the pointer.
-  expect(html).toContain('data-agent-pointer-disabled="true"');
+  // Default interactivity: the avatar may follow the pointer like other agent icons.
+  expect(html).not.toContain("data-agent-pointer-disabled");
   expect(html).not.toContain("<a ");
 });
 
