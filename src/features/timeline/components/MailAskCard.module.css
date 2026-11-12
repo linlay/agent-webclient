@@ -21,6 +21,17 @@
   min-width: 0;
 }
 
+/* Header-only asks read as one centered mail line, like the inbound row.
+   The card must span the column so the line centers on the timeline, not on its
+   own content width. */
+.card[data-header-only] {
+  width: 100%;
+}
+
+.card[data-header-only] .header {
+  justify-content: center;
+}
+
 .header a {
   font-size: 12px;
 }
@@ -111,5 +122,13 @@
 }
 
 .header a {
-  color: var(--accent, var(--ant-color-primary, #83c99e));
+  color: inherit;
+  font-weight: 500;
+  text-decoration: underline;
+  text-decoration-color: var(--line-soft);
+  text-underline-offset: 2px;
+  &:hover{
+    color: var(--accent);
+    text-decoration-color: currentColor;
+  }
 }

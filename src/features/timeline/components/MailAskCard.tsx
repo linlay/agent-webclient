@@ -76,14 +76,22 @@ export function MailAskCard({ mailId, metadata }: MailAskCardProps) {
     if (!metadata)
       return <Alert type="info" message={t("mailbox.unavailable")} />;
     return (
-      <section className={styles.card} aria-label={t("mailbox.kind.ask")}>
+      <section
+        className={styles.card}
+        data-header-only=""
+        aria-label={t("mailbox.kind.ask")}
+      >
         <MailAskHeader mail={metadata} error={t("mailbox.unavailable")} />
       </section>
     );
   }
   if (!metadata) return null;
   return (
-    <section className={styles.card} aria-label={t("mailbox.kind.ask")}>
+    <section
+      className={styles.card}
+      data-header-only=""
+      aria-label={t("mailbox.kind.ask")}
+    >
       <MailAskHeader mail={metadata} />
     </section>
   );
@@ -239,10 +247,16 @@ function MailAskContent({
       ? t("mailbox.ask.submitted")
       : t(`mailbox.status.${mail.status}`);
 
+  // Without a body the ask is one identity line, so it centers like the inbound
+  // mail line instead of opening a left-aligned block.
+  const showBody = active && snapshot && canSubmit;
+  const showNotice = active && (!snapshot || !canSubmit);
+
   return (
     <section
       className={styles.card}
       data-resolved={!active || undefined}
+      data-header-only={showBody || showNotice ? undefined : ""}
       aria-label={t("mailbox.kind.ask")}
     >
       <MailAskHeader
@@ -250,14 +264,14 @@ function MailAskContent({
         status={status}
         error={error || loadError || undefined}
       />
-      {active && (!snapshot || !canSubmit) && (
+      {showNotice && (
         <Alert
           className={styles.notice}
           type="info"
           message={t("mailbox.unavailable")}
         />
       )}
-      {active && snapshot && canSubmit && (
+      {showBody && (
         <div className={styles.content}>
           {singleApproval ? (
             <div className={styles.operation}>
