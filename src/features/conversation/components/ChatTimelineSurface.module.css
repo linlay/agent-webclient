@@ -1,0 +1,23 @@
+.root {
+  display: flex;
+  position: relative;
+  isolation: isolate;
+  width: 100%;
+  height: 100dvh;
+  min-height: 0;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--main-chat-surface);
+  color: var(--ink-1);
+}
+.notice { padding: 8px 16px; color: var(--ink-muted); font-size: 13px; }
+.error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 16px;
+  color: var(--accent-danger);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}

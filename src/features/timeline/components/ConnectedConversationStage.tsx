@@ -503,6 +503,8 @@ interface ConversationStageProps {
   ) => Promise<void>;
   expectedChatId?: string;
   showEmptyState?: boolean;
+  /** Share the full chat timeline with a host-owned, observation-only surface. */
+  readOnly?: boolean;
   onResendInNewChat?: (message: string, snapshot?: import("../lib/queryResend").QueryResendSnapshot) => void;
 }
 
@@ -512,6 +514,7 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
   onFeedback,
   expectedChatId,
   showEmptyState = true,
+  readOnly = false,
   onResendInNewChat,
 }) => {
   const { t } = useI18n();
@@ -621,7 +624,7 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
     [timelineEntries],
   );
   const skillCatalogQuery = useAgentSkillsQuery(currentAgentKey, {
-    enabled: Boolean(currentAgentKey && hasSkillReferences),
+    enabled: Boolean(!readOnly && currentAgentKey && hasSkillReferences),
   });
   const activeAgentSkills =
     skillCatalogQuery.data?.skills ?? EMPTY_AGENT_SKILLS;
@@ -925,7 +928,7 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
     [flashActionStatus, message, t],
   );
 
-  const agentExecutionBlocked = isAgentExecutionBlocked(state);
+  const agentExecutionBlocked = readOnly || isAgentExecutionBlocked(state);
 
   const handleResend = useCallback(
     (text: string, snapshot: import("../lib/queryResend").QueryResendSnapshot) => {
@@ -970,7 +973,7 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
 
   const handleDeriveChat = useCallback(
     async (runId: string) => {
-      if (deriveChatAction.isDisabled(runId)) return;
+      if (readOnly || deriveChatAction.isDisabled(runId)) return;
 
       setDerivingRunId(runId);
       try {
@@ -979,7 +982,7 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
         setDerivingRunId((current) => (current === runId ? "" : current));
       }
     },
-    [deriveChatAction],
+    [deriveChatAction, readOnly],
   );
 
   const toggleTaskGroup = useCallback((key: string) => {
@@ -1817,7 +1820,7 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
           onClick={() => handleCopy(copyKey, item.node.text || "")}>
           <MaterialIcon name="content_copy" />
         </UiButton>
-        <Dropdown placement="bottomRight" menu={{
+        {!readOnly && <Dropdown placement="bottomRight" menu={{
           onClick: ({ key }) => key === "resend"
             ? handleResend(item.node.text || "", queryResendSnapshot(item.node))
             : handleResendInNewChat(item.node.text || "", queryResendSnapshot(item.node)),
@@ -1830,7 +1833,7 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
             disabled={agentExecutionBlocked || isMainChatRunning} title={t("timeline.query.resend")} aria-label={t("timeline.query.resend")}>
             <MaterialIcon name="refresh" />
           </UiButton>
-        </Dropdown>
+        </Dropdown>}
       </div>
       {time.short && <div className={TIMELINE_ROW_TIME_CLASS_NAME} title={time.full}>{time.short}</div>}
     </div>;
@@ -1853,7 +1856,7 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
         onClick={() => handleCopy(copyKey, serializeRunTranscript(item.queryNode, item.nodes))}>
         <MaterialIcon name="content_copy" />
       </UiButton>
-      {isDownvoted ? <UiButton className={`${TIMELINE_RUN_ACTION_BUTTON_CLASS_NAME} ${TIMELINE_META_BUTTON_DOWNVOTED_CLASS_NAME}`}
+      {!readOnly && (isDownvoted ? <UiButton className={`${TIMELINE_RUN_ACTION_BUTTON_CLASS_NAME} ${TIMELINE_META_BUTTON_DOWNVOTED_CLASS_NAME}`}
         variant="ghost" size="sm" iconOnly active title={t("timeline.feedback.clearDownvote")}
         aria-label={t("timeline.feedback.clearDownvote")} disabled={!runId}
         onClick={() => onFeedback(runId, false)}><MaterialIcon name="thumb_down" /></UiButton>
@@ -1862,11 +1865,11 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
             title={t("timeline.feedback.downvote")} aria-label={t("timeline.feedback.downvote")} disabled={!runId}>
             <MaterialIcon name="thumb_down" />
           </UiButton>
-        </Popover>}
-      <UiButton className={TIMELINE_RUN_ACTION_BUTTON_CLASS_NAME} variant="ghost" size="sm" iconOnly
+        </Popover>)}
+      {!readOnly && <UiButton className={TIMELINE_RUN_ACTION_BUTTON_CLASS_NAME} variant="ghost" size="sm" iconOnly
         loading={derivingRunId === runId} title={t("timeline.run.deriveChat")}
         aria-label={t("timeline.run.deriveChat")} disabled={deriveChatAction.isDisabled(runId)}
-        onClick={() => handleDeriveChat(runId)}><MaterialIcon name="fork_chat" /></UiButton>
+        onClick={() => handleDeriveChat(runId)}><MaterialIcon name="fork_chat" /></UiButton>}
     </div>;
     // 精简过程不显示结束图标，操作按钮在前，时间与耗时排在按钮右侧；
     // 整行默认透明，由样式在悬停或键盘聚焦该 Run 时显示。
@@ -1891,6 +1894,7 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
     // "Continue now" is a blank steer, which Platform treats as "continue"; a
     // request.steer without content renders no user message.
     continueWait: async (runId) => {
+      if (readOnly) return false;
       const chatId = String(state.chatId || "").trim();
       const owner = resolveRunOwner({ chatId, chats: state.chats, fallbackOwner: resolvePreferredRunOwner(state) });
       if (!chatId || !owner || isAgentExecutionBlocked(state)) return false;
@@ -1918,11 +1922,11 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
       return { active, recovering: Boolean(active && mainChatRuntime?.hasActiveRun && !mainChatRuntime.streaming),
         terminal: terminal === "run.complete" || terminal === "run.error" || terminal === "run.cancel" ? terminal : undefined };
     },
-    readOnly: false,
-    openChat: ({ chatId, agentKey }) => {
+    readOnly,
+    openChat: readOnly ? undefined : ({ chatId, agentKey }) => {
       window.dispatchEvent(new CustomEvent("agent:load-chat", { detail: { chatId, agentKey } }));
     },
-    registerContextMenuTarget: registerDesktopContextMenuTarget,
+    registerContextMenuTarget: readOnly ? undefined : registerDesktopContextMenuTarget,
     surfaceContext: {
       chatId: state.chatId,
       agentKey: resolvePreferredAgentKey(state),
@@ -1966,7 +1970,7 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
       openTarget({ version: 1, kind: "source", chatId: state.chatId,
         publishId, sourceId: source.id, source, title: source.title || source.name });
     },
-  }), [currentWorker, dispatch, isMainChatRunning, mainChatRuntime, message, t, openTarget, state, waitTransport]);
+  }), [currentWorker, dispatch, isMainChatRunning, mainChatRuntime, message, t, openTarget, state, waitTransport, readOnly]);
 
   return (
     <TimelineInteractionProvider value={interaction}>
@@ -2034,7 +2038,7 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
           />
         )}
 
-        <PendingMailMessages />
+        {!readOnly && <PendingMailMessages />}
         {renderScrollToBottomControl()}
       </div>
       {presentation.blocked ? (
