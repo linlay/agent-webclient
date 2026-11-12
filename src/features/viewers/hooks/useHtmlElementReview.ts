@@ -11,6 +11,7 @@ import {
   createInitialHtmlElementReviewState,
   htmlElementReviewReducer,
   normalizeHtmlElementSelection,
+  normalizeHtmlElementViewportRect,
   submittableHtmlElementAnnotations,
 } from "../lib/htmlElementReview";
 
@@ -80,6 +81,9 @@ export function useHtmlElementReview(input: {
       token,
       enabled: current.annotating,
       locked: Boolean(current.pending),
+      pending: current.pending
+        ? { fullXPath: current.pending.selection.fullXPath }
+        : null,
       annotations: current.annotations.map((annotation) => ({
         id: annotation.id,
         number: annotation.number,
@@ -161,7 +165,19 @@ export function useHtmlElementReview(input: {
           onLimitReachedRef.current?.();
           return;
         }
-        dispatch({ type: "SELECT", selection });
+        const viewportRect = normalizeHtmlElementViewportRect(record.viewportRect) || {
+          x: selection.rect.x,
+          y: selection.rect.y,
+          width: selection.rect.width,
+          height: selection.rect.height,
+        };
+        dispatch({ type: "SELECT", selection, viewportRect });
+        return;
+      }
+
+      if (eventName === "pending-rect") {
+        const rect = normalizeHtmlElementViewportRect(record.rect);
+        if (rect) dispatch({ type: "PENDING_RECT", rect });
         return;
       }
 

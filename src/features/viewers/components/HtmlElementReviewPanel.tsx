@@ -1,39 +1,16 @@
 import React from "react";
-import { Button, Input, Modal } from "antd";
+import { Button, Input } from "antd";
 import type { TextAreaRef } from "antd/es/input/TextArea";
 import { useI18n } from "@/shared/i18n";
-import { useAppMessage } from "@/shared/ui/useAppMessage";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import {
   HTML_ELEMENT_REQUIREMENT_MAX,
+  HTML_REVIEW_EDITOR_WIDTH,
+  placeHtmlReviewEditor,
   type HtmlElementReviewAnnotation,
   type HtmlElementReviewPending,
 } from "../lib/htmlElementReview";
-
-async function copyLocator(value: string) {
-  try {
-    if (navigator.clipboard?.writeText) {
-      await navigator.clipboard.writeText(value);
-      return true;
-    }
-  } catch {
-    // Fall through to the legacy selection copy path.
-  }
-  try {
-    const textarea = document.createElement("textarea");
-    textarea.value = value;
-    textarea.setAttribute("readonly", "");
-    textarea.style.position = "fixed";
-    textarea.style.opacity = "0";
-    document.body.appendChild(textarea);
-    textarea.select();
-    const ok = document.execCommand("copy");
-    textarea.remove();
-    return ok;
-  } catch {
-    return false;
-  }
-}
+import { UiButton } from "@/shared/ui/UiButton";
 
 function NumberBadge({ number }: { number: number }) {
   return (
@@ -46,7 +23,11 @@ function NumberBadge({ number }: { number: number }) {
   );
 }
 
-/** The annotation list lives in its own Popover; it never hosts the pending editor. */
+/**
+ * The annotation list lives in its own Popover. Each row is only the sequence
+ * number, the requirement input and the delete button; the element locator is
+ * carried by the bridge and never repeated here.
+ */
 export const HtmlElementReviewPanel: React.FC<{
   annotations: readonly HtmlElementReviewAnnotation[];
   invalidIds: readonly string[];
@@ -67,19 +48,15 @@ export const HtmlElementReviewPanel: React.FC<{
   onHandoff,
 }) => {
   const { t } = useI18n();
-  const message = useAppMessage();
-
-  const copy = async (value: string) => {
-    const ok = await copyLocator(value);
-    if (ok) message.success(t("contentViewer.htmlReview.copied"));
-    else message.error(t("contentViewer.htmlReview.copyFailed"));
-  };
 
   return (
     <div
       role="dialog"
       aria-label={t("contentViewer.htmlReview.listLabel")}
-      style={{ width: "min(368px, calc(100vw - 32px))", maxHeight: "min(70vh, 560px)" }}
+      style={{
+        width: "min(368px, calc(100vw - 32px))",
+        maxHeight: "min(70vh, 560px)",
+      }}
       className="tw:flex tw:flex-col tw:overflow-hidden tw:rounded-xl tw:bg-bg-elev-1"
     >
       <div className="tw:flex tw:items-center tw:justify-between tw:gap-2 tw:px-3 tw:py-2.5">
@@ -87,8 +64,13 @@ export const HtmlElementReviewPanel: React.FC<{
           <span className="tw:truncate tw:text-sm tw:font-semibold tw:text-ink-1">
             {t("contentViewer.htmlReview.panelTitle")}
           </span>
-          <span className="tw:shrink-0 tw:text-xs tw:text-ink-muted" aria-live="polite">
-            {t("contentViewer.htmlReview.listTotal", { count: annotations.length })}
+          <span
+            className="tw:shrink-0 tw:text-xs tw:text-ink-muted"
+            aria-live="polite"
+          >
+            {t("contentViewer.htmlReview.listTotal", {
+              count: annotations.length,
+            })}
           </span>
         </div>
         <Button
@@ -101,7 +83,7 @@ export const HtmlElementReviewPanel: React.FC<{
         />
       </div>
 
-      <div className="tw:min-h-0 tw:flex-1 tw:overflow-auto tw:px-3 tw:py-3 tw:space-y-4">
+      <div className="tw:min-h-0 tw:flex-1 tw:overflow-auto tw:px-3 tw:py-3 tw:space-y-3">
         {annotations.length === 0 ? (
           <div className="tw:flex tw:min-h-40 tw:flex-col tw:items-center tw:justify-center tw:gap-1 tw:text-center">
             <span className="tw:text-sm tw:font-semibold tw:text-ink-1">
@@ -115,74 +97,63 @@ export const HtmlElementReviewPanel: React.FC<{
 
         {annotations.map((annotation) => {
           const invalid = invalidIds.includes(annotation.id);
-          const locator = annotation.cssSelector || annotation.fullXPath;
           return (
-            <section
+            <div
               key={annotation.id}
-              aria-label={t("contentViewer.htmlReview.annotationLabel", { number: annotation.number })}
-              className="tw:flex tw:items-start tw:gap-2"
+              aria-label={t("contentViewer.htmlReview.annotationLabel", {
+                number: annotation.number,
+              })}
+              className="tw:grid tw:grid-cols-[auto_1fr_auto] tw:items-start tw:gap-2"
             >
-              <NumberBadge number={annotation.number} />
-              <div className="tw:min-w-0 tw:flex-1">
-                <div className="tw:flex tw:items-center tw:gap-1 tw:rounded-lg tw:bg-accent-soft tw:pl-2.5">
-                  <button
-                    type="button"
-                    onClick={() => void copy(locator)}
-                    title={locator}
-                    aria-label={t("contentViewer.htmlReview.copyLocator")}
-                    className="tw:min-w-0 tw:flex-1 tw:truncate tw:border-0 tw:bg-transparent tw:p-0 tw:text-left tw:font-code tw:text-[12px] tw:text-ink-muted"
-                  >
-                    {locator}
-                  </button>
-                  <Button
-                    size="small"
-                    type="text"
-                    danger
-                    aria-label={t("contentViewer.htmlReview.remove")}
-                    title={t("contentViewer.htmlReview.remove")}
-                    icon={<MaterialIcon name="delete" />}
-                    onClick={() => onRemove(annotation.id)}
-                  />
-                </div>
-
-                {annotation.textExcerpt ? (
-                  <p className="tw:mt-1.5 tw:mb-0 tw:text-[13px] tw:text-ink-1">
-                    {annotation.textExcerpt}
-                  </p>
-                ) : null}
-
-                {invalid ? (
-                  <div className="tw:mt-1.5 tw:flex tw:items-center tw:gap-2">
-                    <span className="tw:text-[11px] tw:font-semibold tw:text-danger">
-                      {t("contentViewer.htmlReview.invalid")}
-                    </span>
-                    <Button size="small" type="link" onClick={() => onRemove(annotation.id)}>
-                      {t("contentViewer.htmlReview.reselect")}
-                    </Button>
-                  </div>
-                ) : null}
-
-                <Input.TextArea
-                  className="tw:mt-1.5"
-                  value={annotation.requirement}
-                  maxLength={HTML_ELEMENT_REQUIREMENT_MAX}
-                  disabled={invalid}
-                  autoSize={{ minRows: 1, maxRows: 4 }}
-                  placeholder={t("contentViewer.htmlReview.requirementPlaceholder")}
-                  aria-label={t("contentViewer.htmlReview.requirementLabel", { number: annotation.number })}
-                  onChange={(event) => onUpdateRequirement(annotation.id, event.target.value)}
-                />
-              </div>
-            </section>
+              <span className="tw:mt-1">
+                <NumberBadge number={annotation.number} />
+              </span>
+              <Input.TextArea
+                value={annotation.requirement}
+                maxLength={HTML_ELEMENT_REQUIREMENT_MAX}
+                disabled={invalid}
+                autoSize={{ minRows: 1, maxRows: 3 }}
+                placeholder={
+                  invalid
+                    ? t("contentViewer.htmlReview.invalid")
+                    : t("contentViewer.htmlReview.requirementPlaceholder")
+                }
+                aria-label={t("contentViewer.htmlReview.requirementLabel", {
+                  number: annotation.number,
+                })}
+                onChange={(event) =>
+                  onUpdateRequirement(annotation.id, event.target.value)
+                }
+              />
+              <UiButton
+                size="mini"
+                variant="ghost"
+                color="danger"
+                aria-label={t("contentViewer.htmlReview.remove")}
+                title={t("contentViewer.htmlReview.remove")}
+                className="tw:mt-1"
+                iconOnly
+                onClick={() => onRemove(annotation.id)}
+              >
+                <MaterialIcon name="delete" />
+              </UiButton>
+            </div>
           );
         })}
       </div>
 
       <div className="tw:flex tw:shrink-0 tw:items-center tw:justify-between tw:gap-3 tw:border-t tw:border-line-soft tw:px-2 tw:py-2">
         <span className="tw:text-xs tw:text-ink-muted">
-          {t("contentViewer.htmlReview.handoffCount", { count: submittableCount })}
+          {t("contentViewer.htmlReview.handoffCount", {
+            count: submittableCount,
+          })}
         </span>
-        <Button type="primary" size="small" disabled={!canHandoff} onClick={onHandoff}>
+        <Button
+          type="primary"
+          size="small"
+          disabled={!canHandoff}
+          onClick={onHandoff}
+        >
           {t("contentViewer.htmlReview.handoff")}
         </Button>
       </div>
@@ -190,115 +161,178 @@ export const HtmlElementReviewPanel: React.FC<{
   );
 };
 
-/** The pending editor is a centered modal opened by selecting an element. */
+/**
+ * The inline editor is anchored next to the selected element inside the
+ * iframe's viewport. It starts at the element's top-left corner and moves
+ * around the element when that side has no room, so it never covers the
+ * element it edits.
+ */
 export const HtmlElementReviewEditor: React.FC<{
   pending: HtmlElementReviewPending;
+  frameRef: React.RefObject<HTMLIFrameElement>;
   onRequirementChange: (value: string) => void;
   onConfirm: () => void;
   onCancel: () => void;
-}> = ({ pending, onRequirementChange, onConfirm, onCancel }) => {
+}> = ({ pending, frameRef, onRequirementChange, onConfirm, onCancel }) => {
   const { t } = useI18n();
-  const message = useAppMessage();
-  const pendingInput = React.useRef<TextAreaRef>(null);
+  const inputRef = React.useRef<TextAreaRef>(null);
+  const cardRef = React.useRef<HTMLDivElement>(null);
+  const [cardHeight, setCardHeight] = React.useState<number | null>(null);
+  const [frameBox, setFrameBox] = React.useState<{
+    left: number;
+    top: number;
+    width: number;
+    height: number;
+  } | null>(null);
+  const target = pending.viewportRect;
+
+  React.useLayoutEffect(() => {
+    const frame = frameRef.current;
+    const parent = frame?.parentElement;
+    if (!frame || !parent) return;
+    const measure = () => {
+      const frameRect = frame.getBoundingClientRect();
+      const parentRect = parent.getBoundingClientRect();
+      const next = {
+        left: frameRect.left - parentRect.left,
+        top: frameRect.top - parentRect.top,
+        width: frameRect.width,
+        height: frameRect.height,
+      };
+      setFrameBox((current) =>
+        current &&
+        current.left === next.left &&
+        current.top === next.top &&
+        current.width === next.width &&
+        current.height === next.height
+          ? current
+          : next,
+      );
+    };
+    measure();
+    const observer =
+      typeof ResizeObserver === "function" ? new ResizeObserver(measure) : null;
+    observer?.observe(frame);
+    observer?.observe(parent);
+    window.addEventListener("resize", measure);
+    return () => {
+      observer?.disconnect();
+      window.removeEventListener("resize", measure);
+    };
+  }, [frameRef]);
+
+  // The card is sized by its content, so measure it before choosing a spot.
+  React.useLayoutEffect(() => {
+    const node = cardRef.current;
+    if (!node) return;
+    const measure = () => {
+      const height = node.getBoundingClientRect().height;
+      if (height > 0) {
+        setCardHeight((current) => (current === height ? current : height));
+      }
+    };
+    measure();
+    const observer =
+      typeof ResizeObserver === "function" ? new ResizeObserver(measure) : null;
+    observer?.observe(node);
+    return () => observer?.disconnect();
+  }, []);
 
   React.useEffect(() => {
+    if (cardHeight === null) return;
     const frame = window.requestAnimationFrame(() => {
-      pendingInput.current?.focus({ preventScroll: true });
+      inputRef.current?.focus({ preventScroll: true });
     });
     return () => window.cancelAnimationFrame(frame);
-  }, [pending.selection.fullXPath]);
+  }, [pending.selection.fullXPath, cardHeight]);
 
-  const pendingText = pending.requirement;
-  const canConfirm = Boolean(pendingText.trim());
-  const locator = pending.selection.cssSelector || pending.selection.fullXPath;
-
-  const copy = async () => {
-    const ok = await copyLocator(locator);
-    if (ok) message.success(t("contentViewer.htmlReview.copied"));
-    else message.error(t("contentViewer.htmlReview.copyFailed"));
-  };
+  const width = frameBox
+    ? Math.min(
+        HTML_REVIEW_EDITOR_WIDTH,
+        Math.max(160, Math.round(frameBox.width) - 16),
+      )
+    : HTML_REVIEW_EDITOR_WIDTH;
+  const placement =
+    frameBox && cardHeight !== null
+      ? placeHtmlReviewEditor({
+          target,
+          bounds: { width: frameBox.width, height: frameBox.height },
+          size: { width, height: cardHeight },
+        })
+      : null;
+  const canConfirm = pending.requirement.trim().length > 0;
 
   return (
-    <Modal
-      open
-      width={520}
-      footer={null}
-      closable={false}
-      maskClosable={false}
-      keyboard
-      onCancel={onCancel}
-      destroyOnHidden
-      styles={{
-        mask: {
-          background: "color-mix(in srgb, var(--bg-base) 55%, transparent)",
-          backdropFilter: "blur(3px)",
-        },
-        content: { padding: 0, borderRadius: 14 },
-        body: { padding: 0 },
+    <div
+      ref={cardRef}
+      role="dialog"
+      aria-label={t("contentViewer.htmlReview.editorTitle")}
+      className="tw:absolute tw:z-20 tw:flex tw:items-center tw:gap-1 tw:rounded-xl tw:border tw:border-line-soft tw:bg-bg-elev-2 tw:px-1 tw:py-1 tw:shadow-elevated"
+      style={
+        placement && frameBox
+          ? {
+              left: frameBox.left + placement.left,
+              top: frameBox.top + placement.top,
+              width,
+              boxSizing: "border-box",
+            }
+          : {
+              left: -9999,
+              top: -9999,
+              width,
+              boxSizing: "border-box",
+              visibility: "hidden" as const,
+            }
+      }
+      onKeyDown={(event) => {
+        if (event.key === "Escape") {
+          event.preventDefault();
+          event.stopPropagation();
+          onCancel();
+          return;
+        }
+        if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
+          event.preventDefault();
+          if (canConfirm) onConfirm();
+        }
       }}
     >
-      <div className="tw:flex tw:flex-col tw:p-5">
-        <div className="tw:mb-4 tw:flex tw:items-center tw:justify-between tw:gap-3">
-          <h2 className="tw:m-0 tw:text-base tw:font-semibold tw:text-ink-1">
-            {t("contentViewer.htmlReview.editorTitle")}
-          </h2>
-          <button
-            type="button"
-            onClick={onCancel}
-            aria-label={t("contentViewer.htmlReview.closeEditor")}
-            className="tw:cursor-pointer tw:border-0 tw:bg-transparent tw:p-0 tw:text-xs tw:text-ink-muted"
-          >
-            {t("contentViewer.htmlReview.escClose")}
-          </button>
-        </div>
-
-        <button
-          type="button"
-          onClick={() => void copy()}
-          title={t("contentViewer.htmlReview.copyLocator")}
-          aria-label={t("contentViewer.htmlReview.copyLocator")}
-          className="tw:flex tw:w-full tw:min-w-0 tw:rounded-lg tw:border-none tw:bg-accent-soft tw:px-3 tw:py-2 tw:text-left tw:font-code tw:text-[12px] tw:text-ink-muted"
-        >
-          <span className="tw:block tw:w-full tw:truncate">{locator}</span>
-        </button>
-
-        {pending.selection.textExcerpt ? (
-          <p className="tw:mt-3 tw:mb-0 tw:text-sm tw:text-ink-1">
-            {pending.selection.textExcerpt}
-          </p>
-        ) : null}
-
-        <Input.TextArea
-          ref={pendingInput}
-          className="tw:mt-2"
-          value={pendingText}
-          maxLength={HTML_ELEMENT_REQUIREMENT_MAX}
-          autoSize={{ minRows: 3, maxRows: 8 }}
-          placeholder={t("contentViewer.htmlReview.editorPlaceholder")}
-          aria-label={t("contentViewer.htmlReview.requirement")}
-          autoFocus
-          onChange={(event) => onRequirementChange(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === "Escape") {
-              event.preventDefault();
-              event.stopPropagation();
-              onCancel();
-              return;
-            }
-            if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
-              event.preventDefault();
-              if (canConfirm) onConfirm();
-            }
-          }}
-        />
-
-        <div className="tw:mt-4 tw:flex tw:justify-end tw:gap-2">
-          <Button onClick={onCancel}>{t("contentViewer.htmlReview.cancel")}</Button>
-          <Button type="primary" disabled={!canConfirm} onClick={onConfirm}>
-            {t("contentViewer.htmlReview.confirm")}
-          </Button>
-        </div>
-      </div>
-    </Modal>
+      <Input.TextArea
+        ref={inputRef}
+        className="tw:min-h-0 tw:flex-1 tw:self-stretch tw:resize-none"
+        rows={1}
+        autoSize
+        variant="borderless"
+        style={{ resize: "none" }}
+        value={pending.requirement}
+        maxLength={HTML_ELEMENT_REQUIREMENT_MAX}
+        placeholder={t("contentViewer.htmlReview.editorPlaceholder")}
+        aria-label={t("contentViewer.htmlReview.requirement")}
+        onChange={(event) => onRequirementChange(event.target.value)}
+      />
+      <UiButton
+        size="mini"
+        variant="ghost"
+        className="tw:shrink-0"
+        iconOnly
+        disabled={!canConfirm}
+        aria-label={t("contentViewer.htmlReview.confirm")}
+        title={t("contentViewer.htmlReview.confirm")}
+        onClick={onConfirm}
+      >
+        <MaterialIcon name="keyboard_return" />
+      </UiButton>
+      <UiButton
+        size="mini"
+        variant="ghost"
+        className="tw:shrink-0"
+        iconOnly
+        aria-label={t("contentViewer.htmlReview.cancel")}
+        title={t("contentViewer.htmlReview.cancel")}
+        onClick={onCancel}
+      >
+        <MaterialIcon name="delete" />
+      </UiButton>
+    </div>
   );
 };

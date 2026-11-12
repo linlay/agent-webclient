@@ -673,6 +673,7 @@ export const DocumentTextEditor: React.FC<{
             {htmlReview.pending ? (
               <HtmlElementReviewEditor
                 pending={htmlReview.pending}
+                frameRef={htmlReview.frameRef}
                 onRequirementChange={htmlReview.setPendingRequirement}
                 onConfirm={htmlReview.confirmPending}
                 onCancel={htmlReview.cancelPending}
