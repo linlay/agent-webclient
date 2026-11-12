@@ -213,13 +213,13 @@ it("keeps the sender line when the detail fetch fails but the timeline named the
         // One line only: no alert block below the header.
         expect(host.querySelector(".ant-alert")).toBeNull();
         expect(host.querySelector("form")).toBeNull();
-        // No body yet: the identity line centers like the inbound mail line.
+        // No body yet: the identity line stands alone.
         expect(host.querySelector("[data-header-only]")).not.toBeNull();
     } finally { await act(async () => root.unmount()); host.remove(); }
 });
 
 
-it("centers a resolved ask that has no body left to answer", async () => {
+it("renders a resolved ask whose body is gone as a header-only line", async () => {
     detail.mockResolvedValue({ code: 0, data: { ...mail, status: "done" } } as any);
     const host = document.createElement("div"); document.body.append(host);
     const root = createRoot(host);
@@ -230,7 +230,7 @@ it("centers a resolved ask that has no body left to answer", async () => {
     } finally { await act(async () => root.unmount()); host.remove(); }
 });
 
-it("keeps an actionable ask left aligned for its form box", async () => {
+it("opens the answer box for an actionable ask", async () => {
     detail.mockResolvedValue({ code: 0, data: mail } as any);
     const host = document.createElement("div"); document.body.append(host);
     const root = createRoot(host);

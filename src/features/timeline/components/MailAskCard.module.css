@@ -1,6 +1,10 @@
 /* The card only groups the ask; its box belongs to the answer area below. */
 .card {
   box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
   min-width: 0;
   max-width: 100%;
   font-family: var(--font-sans, system-ui, sans-serif);
@@ -21,17 +25,6 @@
   min-width: 0;
 }
 
-/* Header-only asks read as one centered mail line, like the inbound row.
-   The card must span the column so the line centers on the timeline, not on its
-   own content width. */
-.card[data-header-only] {
-  width: 100%;
-}
-
-.card[data-header-only] .header {
-  justify-content: center;
-}
-
 .header a {
   font-size: 12px;
 }
@@ -49,15 +42,18 @@
   overflow-wrap: anywhere;
 }
 
-.notice {
-  margin-top: 12px;
-}
-
+/* The answer area draws no box of its own: every branch (single operation,
+   approval list, native HTML form) brings its own border and background. */
 .content {
-  margin-top: 12px;
   min-width: 0;
   max-width: 100%;
-  padding: 12px;
+}
+
+/* One answer area = one surface, matching the native HTML form panel. */
+.panel {
+  min-width: 0;
+  max-width: 100%;
+  padding: 10px 12px;
   border: 1px solid var(--line-soft, var(--ant-color-border, #85858544));
   border-radius: 10px;
   background: var(--bg-card, var(--ant-color-bg-container, transparent));

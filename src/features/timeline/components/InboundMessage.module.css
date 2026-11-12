@@ -6,12 +6,12 @@
    margin: 2px 0 6px;
 }
 
-/* One centered run: time, sender (avatar + name) and the body toggle all sit in the same
-   flex line, so the whole line is centered as a single group. */
+/* One run: time, sender (avatar + name) and the body toggle all sit in the same
+   flex line, left aligned like the rest of the timeline. */
 .row .line {
    display: flex;
    flex-wrap: wrap;
-   justify-content: center;
+   justify-content: flex-start;
    align-items: center;
    gap: 4px 6px;
    min-width: 0;
@@ -34,7 +34,7 @@
 .row .center {
    display: flex;
    align-items: center;
-   justify-content: center;
+   justify-content: flex-start;
    gap: 2px;
    min-width: 0;
    max-width: 100%;
@@ -42,7 +42,7 @@
 
 .row .label {
    min-width: 0;
-   text-align: center;
+   text-align: left;
    overflow-wrap: anywhere;
 }
 

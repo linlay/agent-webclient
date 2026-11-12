@@ -247,8 +247,7 @@ function MailAskContent({
       ? t("mailbox.ask.submitted")
       : t(`mailbox.status.${mail.status}`);
 
-  // Without a body the ask is one identity line, so it centers like the inbound
-  // mail line instead of opening a left-aligned block.
+  // Without a body the ask is one identity line and opens no answer area.
   const showBody = active && snapshot && canSubmit;
   const showNotice = active && (!snapshot || !canSubmit);
 
@@ -265,16 +264,12 @@ function MailAskContent({
         error={error || loadError || undefined}
       />
       {showNotice && (
-        <Alert
-          className={styles.notice}
-          type="info"
-          message={t("mailbox.unavailable")}
-        />
+        <Alert type="info" message={t("mailbox.unavailable")} />
       )}
       {showBody && (
         <div className={styles.content}>
           {singleApproval ? (
-            <div className={styles.operation}>
+            <div className={styles.panel}>
               {singleApproval.toolName && (
                 <strong>{singleApproval.toolName}</strong>
               )}
@@ -316,7 +311,7 @@ function MailAskContent({
               </div>
             </div>
           ) : singleField ? (
-            <div className={styles.operation}>
+            <div className={styles.panel}>
               <pre className={styles.command}>
                 {singleField.label || t("mailbox.ask.field", { number: 1 })}
               </pre>
@@ -351,6 +346,7 @@ function MailAskContent({
               {mail.awaitingMode === "question" && (
                 <Form<Answers>
                   {...formFeedback}
+                  className={styles.panel}
                   layout="vertical"
                   disabled={disabled}
                   onFinish={(values) =>
@@ -400,6 +396,7 @@ function MailAskContent({
               {mail.awaitingMode === "approval" && (
                 <Form<Answers>
                   {...formFeedback}
+                  className={styles.panel}
                   layout="vertical"
                   disabled={disabled}
                   onFinish={(values) =>
@@ -459,6 +456,7 @@ function MailAskContent({
               {mail.awaitingMode === "form" && (
                 <Form<Answers>
                   {...formFeedback}
+                  className={styles.panel}
                   layout="vertical"
                   disabled={disabled}
                   onFinish={(values) =>
