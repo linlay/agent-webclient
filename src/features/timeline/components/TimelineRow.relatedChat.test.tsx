@@ -42,17 +42,18 @@ it("renders the chat card in the tool row beside its existing timeline marker", 
 });
 
 
-it.each([undefined, "steer"] as const)("keeps interactive mail cards outside the metadata label (%s)", messageVariant => {
-  const html = renderToStaticMarkup(<TimelineInteractionProvider value={{ renderMailAsk: () => <section data-mail-card="ask" /> }}><TimelineRow node={{
+it.each([undefined, "steer"] as const)("renders one interactive mail card without a duplicate badge (%s)", messageVariant => {
+  const renderMailAsk = jest.fn(() => <section data-mail-card="ask" />);
+  const html = renderToStaticMarkup(<TimelineInteractionProvider value={{ renderMailAsk }}><TimelineRow node={{
     id: "ask", kind: "message", role: "user", messageVariant, ts: 100,
     text: "internal forwarding prompt",
     mail: { id: "mail", kind: "ask", fromAgentKey: "worker", fromChatId: "child" },
   }} /></TimelineInteractionProvider>);
   expect(html).toContain('data-mail-card="ask"');
   expect(html).not.toContain("internal forwarding prompt");
-  if (messageVariant === "steer") {
-    expect(html).toMatch(/timeline-command-label[^]*?<\/div><section data-mail-card="ask"/);
-  }
+  // The card header owns kind/sender now, so the row must not repeat the badge.
+  expect(html).not.toContain('data-mail-kind="ask"');
+  expect(renderMailAsk).toHaveBeenCalledWith("mail", expect.objectContaining({ id: "mail", kind: "ask" }));
 });
 
 it("does not render an actionable mail card in a read-only host", () => {
@@ -63,6 +64,8 @@ it("does not render an actionable mail card in a read-only host", () => {
   </TimelineInteractionProvider>);
   expect(renderMailAsk).not.toHaveBeenCalled();
   expect(html).not.toContain("Approve");
+  // Read-only hosts keep the metadata line as the only sender hint.
+  expect(html).toContain('data-mail-kind="ask"');
 });
 
 

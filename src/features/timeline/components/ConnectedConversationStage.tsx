@@ -1886,6 +1886,7 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
 
   const waitTransport = useRunTransport();
   const interaction = useMemo<TimelineInteractionValue>(() => ({
+    agents: state.agents,
     activityAppearance: resolveRunActivityAppearance(state.agents.find(agent => agent.key === resolvePreferredAgentKey(state))),
     // "Continue now" is a blank steer, which Platform treats as "continue"; a
     // request.steer without content renders no user message.
@@ -1936,7 +1937,7 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
     renderContentView: (segment, chatId, binding, runId, sourceId) =>
       <ViewEmbed allowSidebar={surfaceMode === "main"} chatId={chatId} view={binding.view} viewError={binding.viewError} payloadRaw={segment.payloadRaw || "{}"} rawData={segment.payloadRaw} runId={runId} sourceId={sourceId} viewIndex={String(segment.index)} />,
     renderMarkdown: (props) => <MarkdownContent {...props} htmlPreview />,
-    renderMailAsk: (mailId) => <MailAskCard mailId={mailId} />,
+    renderMailAsk: (mailId, metadata) => <MailAskCard mailId={mailId} metadata={metadata} />,
     renderAttachment: (attachment, options) => <TimelineAttachmentView
       attachment={attachment}
       surfaceContext={{ chatId: state.chatId, agentKey: resolvePreferredAgentKey(state),
