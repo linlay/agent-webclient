@@ -45,6 +45,8 @@ export interface ConversationStageProps {
   onToggleTask: (key: string) => void;
   /** 生效过程档位，仅用于展示：simple 不渲染节点图标与时间线竖线。 */
   detailLevel?: EventDetailLevel;
+  /** 主对话舞台：舞台整块作为 Agent 头像的指针跟随范围；预览、导出等复用方不开启。 */
+  pointerSurface?: boolean;
   queryMeta?: (item: Extract<TimelineDisplayItem, { kind: "query" }>) => React.ReactNode;
   runMeta?: (item: Extract<TimelineDisplayItem, { kind: "run" }>, duration: string) => React.ReactNode;
   runHeader?: (item: Extract<TimelineDisplayItem, { kind: "run" }>) => React.ReactNode;
@@ -72,6 +74,7 @@ const ConversationItem = ({ item, children, ...rest }: React.HTMLAttributes<HTML
 export function ConversationStage({
   items, agents, skills, fallbackAgentKey, tasks, expandedRuns, onToggleRun,
   expandedTasks, onToggleTask, detailLevel, queryMeta, runMeta, runHeader, viewport, keepUserInteractionsVisible = false,
+  pointerSurface = false,
 }: ConversationStageProps): React.ReactElement {
   const { t } = useI18n();
   const renderEntry = (entry: TimelineRenderEntry) => <TimelineRenderEntryView
@@ -101,6 +104,8 @@ export function ConversationStage({
     id={viewport?.scrollerId || "messages"}
     data-desktop-workspace-arrow-keys="allow"
     data-detail-level={detailLevel}
+    // Agent avatars in the chat follow the pointer anywhere in the stage, not just their own row.
+    data-agent-pointer-surface={pointerSurface ? "" : undefined}
     components={{ Footer: viewport?.Footer, Item: ConversationItem }}
     itemContent={(_index, listItem) => {
       if (listItem.kind === "query") return <div id={listItem.anchorId}

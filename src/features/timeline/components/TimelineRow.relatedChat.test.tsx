@@ -94,8 +94,10 @@ it.each(["letter", "reply", "notify"] as const)("collapses another Agent's %s be
   const toggle = html.match(/<button[^>]*aria-expanded="false"[^>]*>([\s\S]*?)<\/button>/);
   expect(toggle).not.toBeNull();
   expect(toggle![0]).toContain("aria-label=");
+  // The MaterialIcon chevron is the button; its label comes from aria-label, not text.
   expect(toggle![1]).toContain('data-material-icon="keyboard_arrow_down"');
   expect(toggle![1].replace(/<[^>]+>/g, "")).toBe("");
+  expect(html).toContain('data-expandable="true"');
   expect(html).not.toContain("·");
   expect(html).not.toContain("internal mail body");
   expect(html).not.toContain("timeline-user-bubble");
@@ -112,4 +114,36 @@ it.each(["reply", "notify"] as const)("hides a child %s even when it carries a t
     </TimelineInteractionProvider>,
   );
   expect(html).toBe("");
+});
+
+it("shows the sender avatar to the left of the linked name", () => {
+  const html = renderToStaticMarkup(
+    <TimelineInteractionProvider value={{ openChat: jest.fn(), getChatHref: chat => `/?chatId=${chat.chatId}` }}>
+      <TimelineRow agents={[{ key: "peer", name: "Peer Bot", mode: "BOT", icon: { name: "coder" }, primaryChat: { chatId: "peer-main" } } as never]} node={{
+        id: "other", kind: "message", role: "user", ts: 100, text: "body",
+        inbound: { kind: "letter", fromAgentKey: "peer", fromChatId: "peer-worker", child: false, outcome: "completed" },
+      }} />
+    </TimelineInteractionProvider>,
+  );
+  expect(html).toContain('data-agent-avatar=""');
+  // The avatar is part of the sender link, left of the name.
+  expect(html.indexOf("<a ")).toBeLessThan(html.indexOf("data-agent-avatar"));
+  expect(html.indexOf("data-agent-avatar")).toBeLessThan(html.indexOf("Peer Bot</a>"));
+  expect(html).toContain('data-agent-icon-name="coder"');
+});
+
+it("omits the avatar when the sender is not in the Agent directory", () => {
+  const html = renderToStaticMarkup(
+    <TimelineInteractionProvider value={{}}>
+      <TimelineRow agents={[]} node={{
+        id: "other", kind: "message", role: "user", ts: 100, text: "",
+        inbound: { kind: "notify", fromAgentKey: "ghost", child: false },
+      }} />
+    </TimelineInteractionProvider>,
+  );
+  expect(html).toContain("ghost");
+  expect(html).not.toContain("data-agent-avatar");
+  // Nothing to expand: no stretched toggle and no clickable line.
+  expect(html).not.toContain("data-expandable");
+  expect(html).not.toContain("<button");
 });

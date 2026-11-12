@@ -2012,6 +2012,7 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
             expandedTasks={expandedTaskGroups}
             onToggleTask={toggleTaskGroup}
             detailLevel={detailLevel}
+            pointerSurface
             queryMeta={renderQueryMeta}
             runMeta={renderRunMeta}
             viewport={{
