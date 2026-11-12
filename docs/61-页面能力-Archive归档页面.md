@@ -7,9 +7,20 @@ Archive 是独立 `features/archive` 领域，不归 Settings。现有组件/run
 
 ## 核心职责
 - 展示归档对话列表，并支持按 agentKey 过滤和加载更多。
-- 支持归档搜索、详情读取、事件摘要预览和原始消息开关。
+- 详情按对话时间线呈现归档内容，不提供原始事件视图。
 - 支持恢复归档对话、恢复后打开对话、删除归档记录。
 - 支持按天数批量归档当前候选对话。
+
+## 详情渲染
+归档只持久化协议事件，不保存渲染结果。`ArchiveDetailPane` 不再自己拼装事件卡片，而是把 `detail.events` 交给 `buildArchiveConversationData`（`lib/archiveConversation.ts`）用 `buildChatReplayProjection` 走一次与 `/api/chat` 回放相同的投影，再以 `ConversationPreview`（内部即 `ConversationStage`）渲染：用户气泡、Run 分组、“已处理 N”折叠、工具胶囊、Markdown 正文、时间与耗时 meta 都与主对话一致，只是 `TimelineInteractionValue.readOnly` 为 `true`、`conversationActive` 为 `false`，历史 HITL 卡片不可提交，也不会出现流式状态。详情不再提供原始事件视图。
+
+`buildChatReplayProjection` 只在事件带合法 `timestamp` 时才产出节点，因此：
+
+- 有可用事件：按对话时间线渲染。
+- 无事件或事件不可回放：回退到 `detail.runs` 的 `initialMessage` / `assistantText`，仍然渲染成用户气泡与助手正文（不带工具、推理与耗时明细）。
+- 两者都没有可读内容：显示 `archive.empty.detail`。
+
+详情面板是「头部 + 可选警告 + 内容」的 flex 列，`archive-detail-content` 占满剩余高度并自行滚动，`ConversationStage` 以容器模式（非 window scroll）挂载，列表区域沿用 `Timeline.module.css` 的 840px 居中约束。加载中只显示内容区内的遮罩与 Spin，不先闪一条空态。附件清单不可用时头部下方只插一条 `role="note"` 警告，不阻断正文。
 
 ## 核心流程
 进入 `/archives` 后，`ArchivesPage` 将路由参数映射为当前选中的 archived chat。`ArchiveConsole` 调用 archives list/search/detail 接口加载数据；恢复或删除后失效 chats 相关缓存并刷新列表。恢复并打开时会跳转回对应 agent 对话路由。
@@ -28,7 +39,10 @@ Archive 是独立 `features/archive` 领域，不归 Settings。现有组件/run
 - `../src/features/archive/components/ArchiveListPane.tsx`
 - `../src/features/archive/components/ArchiveDetailPane.tsx`
 - `../src/features/archive/hooks/useArchiveRuntime.ts`
+- `../src/features/archive/lib/archiveConversation.ts`
 - `../src/features/archive/lib/archiveViewModel.ts`
+- `../src/features/conversation/components/ConversationPreview.tsx`
+- `../src/features/timeline/components/ConversationStage.tsx`
 - `../src/shared/data/api/http.ts`
 - `../src/shared/data/api/routedClient.ts`
 - `../src/shared/data/api/endpoints.ts`

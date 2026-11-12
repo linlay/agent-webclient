@@ -25,7 +25,11 @@ it("refreshes an ask card after mail.updated and disables resolved actions", asy
     document.body.append(host);
     const root = createRoot(host);
     const openChat = jest.fn();
-    const interaction = { getChatHref: ({ chatId }: { chatId: string }) => `/agent/worker?chatId=${chatId}`, openChat };
+    const interaction = {
+        getChatHref: ({ chatId }: { chatId: string }) => `/agent/worker?chatId=${chatId}`,
+        openChat,
+        agents: [{ key: "worker", name: "Worker", mode: "GENERAL", icon: { name: "general" } }] as never,
+    };
     await act(async () => { root.render(<TimelineInteractionProvider value={interaction}><MailAskCard mailId="m"/></TimelineInteractionProvider>); });
     expect(host.textContent).toContain("worker");
     expect(host.querySelector("form")).not.toBeNull();
@@ -106,7 +110,9 @@ it("keeps the approval actionable when submission fails so the user can retry", 
     await act(async () => root.render(<MailAskCard mailId="m" />));
     try {
         await act(async () => [...host.querySelectorAll("button")].find(button => button.textContent === "approvalDialog.option.approve")!.click());
-        expect(host.textContent).toContain("network unavailable");
+        // The failure stays on the identity line instead of adding an alert block.
+        expect(host.querySelector("header")!.textContent).toContain("network unavailable");
+        expect(host.querySelector(".ant-alert")).toBeNull();
         expect(host.textContent).toContain("read-only inspection");
         expect([...host.querySelectorAll("button")].find(button => button.textContent === "approvalDialog.option.approve")!.disabled).toBe(false);
     } finally { await act(async () => root.unmount()); host.remove(); }
@@ -159,5 +165,78 @@ it("submits a single declared tool approval choice without asking for an interna
         expect(submit).toHaveBeenCalledWith(expect.objectContaining({
             param: { decision: "approve", data: { call_internal: "approve" } }, runId: "run", owner, awaitingId: "await",
         }));
+    } finally { await act(async () => root.unmount()); host.remove(); }
+});
+
+it("names the sender and links the asking Chat before the body loads", async () => {
+    detail.mockReturnValue(new Promise(() => {}) as any);
+    const host = document.createElement("div"); document.body.append(host);
+    const root = createRoot(host);
+    const openChat = jest.fn();
+    const interaction = {
+        getChatHref: ({ chatId }: { chatId: string }) => `/agent/worker?chatId=${chatId}`,
+        openChat,
+        agents: [{ key: "worker", name: "Worker", mode: "GENERAL", icon: { name: "general" } }] as never,
+    };
+    await act(async () => {
+        root.render(<TimelineInteractionProvider value={interaction}>
+            <MailAskCard mailId="m" metadata={{ id: "m", kind: "ask", fromAgentKey: "worker", fromChatId: "child" }} />
+        </TimelineInteractionProvider>);
+    });
+    try {
+        expect(host.textContent).toContain("mailbox.kind.ask");
+        expect(host.textContent).toContain("worker");
+        expect(host.querySelector("form")).toBeNull();
+        expect(host.querySelector("[data-header-only]")).not.toBeNull();
+        const link = host.querySelector("a")!;
+        expect(link.getAttribute("href")).toBe("/agent/worker?chatId=child");
+        const avatar = link.querySelector("[data-agent-avatar]")!;
+        expect(avatar).not.toBeNull();
+        expect(link.textContent).toContain("worker");
+        await act(async () => { link.click(); });
+        expect(openChat).toHaveBeenCalledWith({ chatId: "child", agentKey: "worker" });
+    } finally { await act(async () => root.unmount()); host.remove(); }
+});
+
+it("keeps the sender line when the detail fetch fails but the timeline named the ask", async () => {
+    detail.mockRejectedValue(new Error("network unavailable"));
+    const host = document.createElement("div"); document.body.append(host);
+    const root = createRoot(host);
+    await act(async () => {
+        root.render(<MailAskCard mailId="m" metadata={{ id: "m", kind: "ask", fromAgentKey: "worker", fromChatId: "child" }} />);
+    });
+    try {
+        const header = host.querySelector("header")!;
+        expect(header.textContent).toContain("worker");
+        expect(header.textContent).toContain("mailbox.unavailable");
+        expect(host.querySelector('[role="alert"]')!.textContent).toBe("mailbox.unavailable");
+        // One line only: no alert block below the header.
+        expect(host.querySelector(".ant-alert")).toBeNull();
+        expect(host.querySelector("form")).toBeNull();
+        // No body yet: the identity line stands alone.
+        expect(host.querySelector("[data-header-only]")).not.toBeNull();
+    } finally { await act(async () => root.unmount()); host.remove(); }
+});
+
+
+it("renders a resolved ask whose body is gone as a header-only line", async () => {
+    detail.mockResolvedValue({ code: 0, data: { ...mail, status: "done" } } as any);
+    const host = document.createElement("div"); document.body.append(host);
+    const root = createRoot(host);
+    await act(async () => root.render(<MailAskCard mailId="m" />));
+    try {
+        expect(host.querySelector("form")).toBeNull();
+        expect(host.querySelector("[data-header-only]")).not.toBeNull();
+    } finally { await act(async () => root.unmount()); host.remove(); }
+});
+
+it("opens the answer box for an actionable ask", async () => {
+    detail.mockResolvedValue({ code: 0, data: mail } as any);
+    const host = document.createElement("div"); document.body.append(host);
+    const root = createRoot(host);
+    await act(async () => root.render(<MailAskCard mailId="m" />));
+    try {
+        expect(host.querySelector("form")).not.toBeNull();
+        expect(host.querySelector("[data-header-only]")).toBeNull();
     } finally { await act(async () => root.unmount()); host.remove(); }
 });

@@ -60,9 +60,13 @@ const EMPTY_AGENT_SKILLS: readonly AgentSkill[] = [];
 
 const TIMELINE_ROW_BASE_CLASS_NAME = presentationClasses("timeline-row tw:relative");
 const TIMELINE_ROW_USER_CLASS_NAME = `${TIMELINE_ROW_BASE_CLASS_NAME} timeline-row-user tw:ml-auto tw:max-w-[87%] tw:pl-5`;
+// 交互请示不是用户气泡：卡片自带操作面，整行与左侧流程内容同起点。
+const TIMELINE_ROW_ASK_CLASS_NAME = `${TIMELINE_ROW_BASE_CLASS_NAME} timeline-row-ask`;
 const TIMELINE_ROW_FLOW_CLASS_NAME = `${TIMELINE_ROW_BASE_CLASS_NAME} timeline-row-flow tw:grid tw:grid-cols-[18px_minmax(0,1fr)] tw:items-start tw:gap-2.5 tw:mb-[2px]`;
 const TIMELINE_USER_STACK_CLASS_NAME =
   "timeline-user-stack tw:flex tw:min-w-0 tw:flex-col tw:items-end tw:gap-2";
+const TIMELINE_ASK_STACK_CLASS_NAME =
+  "timeline-user-stack tw:flex tw:min-w-0 tw:flex-col tw:items-start tw:gap-2";
 const TIMELINE_USER_ATTACHMENTS_BASE_CLASS_NAME =
   "timeline-user-attachments tw:w-full tw:justify-end";
 const TIMELINE_USER_ATTACHMENTS_SINGLE_CLASS_NAME = "tw:flex tw:gap-2.5 tw:flex-wrap";
@@ -324,13 +328,23 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
     today: t("timeline.time.today"),
     yesterday: t("timeline.time.yesterday"),
   });
-  const timeNode =
-    metaNode ||
-    (showTime && time.short ? (
-      <div className={TIMELINE_ROW_TIME_CLASS_NAME} title={time.full}>
-        {time.short}
-      </div>
-    ) : null);
+  // 交互请示行自己带可操作的邮件卡片，复制/重发等 meta 行在那里没有意义，
+  // 时间也一并省略，避免请示卡片旁边挂一排无主操作。
+  const hideMetaRow = node?.mail?.kind === "ask";
+  const timeNode = hideMetaRow
+    ? null
+    : metaNode ||
+      (showTime && time.short ? (
+        <div className={TIMELINE_ROW_TIME_CLASS_NAME} title={time.full}>
+          {time.short}
+        </div>
+      ) : null);
+
+  // 交互请示只渲染一张卡片：卡片 header 已经带了来源与跳转，行内不再重复徽标。
+  const mailAskNode =
+    node?.mail?.kind === "ask" && !interaction?.readOnly
+      ? interaction?.renderMailAsk?.(node.mail.id, node.mail)
+      : null;
 
   /* Input another Agent delivered: a muted line, never a user bubble */
   if (node && node.kind === "message" && node.role === "user" && node.inbound) {
@@ -358,18 +372,30 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
     );
     const hasText = Boolean(String(node.text || "").trim());
     const hasMultipleAttachments = visibleAttachmentItems.length > 1;
+    const isMailAskRow = node.mail?.kind === "ask";
 
     return (
       <div
-        className={TIMELINE_ROW_USER_CLASS_NAME}
+        className={
+          isMailAskRow ? TIMELINE_ROW_ASK_CLASS_NAME : TIMELINE_ROW_USER_CLASS_NAME
+        }
         data-kind="message"
         data-role="user"
         data-node-id={anchorNodeId}
         data-task-id={taskID || undefined}
       >
-        <div className={TIMELINE_USER_STACK_CLASS_NAME}>
-          {node.mail && <MailBadge mail={node.mail} />}
-          {node.mail?.kind === "ask" && !interaction?.readOnly && interaction?.renderMailAsk?.(node.mail.id)}
+        <div
+          className={
+            isMailAskRow
+              ? TIMELINE_ASK_STACK_CLASS_NAME
+              : TIMELINE_USER_STACK_CLASS_NAME
+          }
+        >
+          {/* 卡片自带来源与跳转，徽标只在宿主无法渲染卡片时兜底。 */}
+          {node.mail && !mailAskNode && (
+            <MailBadge mail={node.mail} agents={agents} />
+          )}
+          {mailAskNode}
           {/* 消息发出后引用只是记录：可以回看文本与批注，但不再提供"跳回原文"的定位，避免把已读的这一行再滚走。 */}
           <SelectedTextFragmentsPill
             fragments={selectedTextFragments}
@@ -428,9 +454,13 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
         </div>
         <div className={TIMELINE_FLOW_CONTENT_CLASS_NAME}>
           <div className={TIMELINE_COMMAND_LABEL_CLASS_NAME}>
-            {node.mail ? <MailBadge mail={node.mail} /> : getCommandMessageLabel(node.messageVariant)}
+            {node.mail
+              ? mailAskNode
+                ? null
+                : <MailBadge mail={node.mail} agents={agents} />
+              : getCommandMessageLabel(node.messageVariant)}
           </div>
-          {node.mail?.kind === "ask" && !interaction?.readOnly && interaction?.renderMailAsk?.(node.mail.id)}
+          {mailAskNode}
           <div className="tw:flex tw:flex-wrap tw:gap-1">
             {(node.attachments || []).map((attachment, index) => (
               <React.Fragment key={attachment.id || index}>

@@ -1842,37 +1842,51 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
     const isDownvoted = Boolean(runId && state.downvotedRunKeys.has(runId));
     const copyKey = `${item.key}:copy`;
     const copyStatus = actionStatus[copyKey] || t("timeline.toolPill.copy.action");
+    const timeNode = time.short
+      ? <div className={TIMELINE_RUN_TIME_CLASS_NAME} title={time.full}>{time.short}</div>
+      : null;
+    const durationNode = item.terminalType === "run.complete" && duration
+      ? <span className="timeline-run-duration tw:inline-flex tw:shrink-0 tw:items-center tw:gap-1 tw:text-xs tw:leading-none tw:text-ink-muted" title={t("timeline.run.responseDuration", { duration })}>{duration}</span>
+      : null;
+    const actionsNode = <div className={`${TIMELINE_META_ACTIONS_CLASS_NAME}`}>
+      <UiButton className={TIMELINE_RUN_ACTION_BUTTON_CLASS_NAME} variant="ghost" size="sm" iconOnly title={copyStatus} aria-label={copyStatus}
+        onClick={() => handleCopy(copyKey, serializeRunTranscript(item.queryNode, item.nodes))}>
+        <MaterialIcon name="content_copy" />
+      </UiButton>
+      {isDownvoted ? <UiButton className={`${TIMELINE_RUN_ACTION_BUTTON_CLASS_NAME} ${TIMELINE_META_BUTTON_DOWNVOTED_CLASS_NAME}`}
+        variant="ghost" size="sm" iconOnly active title={t("timeline.feedback.clearDownvote")}
+        aria-label={t("timeline.feedback.clearDownvote")} disabled={!runId}
+        onClick={() => onFeedback(runId, false)}><MaterialIcon name="thumb_down" /></UiButton>
+        : <Popover destroyOnHidden trigger={["click"]} content={<FeedbackModal onFinish={({ reason }) => { void onFeedback(runId, true, reason); }} />}>
+          <UiButton className={TIMELINE_RUN_ACTION_BUTTON_CLASS_NAME} variant="ghost" size="sm" iconOnly
+            title={t("timeline.feedback.downvote")} aria-label={t("timeline.feedback.downvote")} disabled={!runId}>
+            <MaterialIcon name="thumb_down" />
+          </UiButton>
+        </Popover>}
+      <UiButton className={TIMELINE_RUN_ACTION_BUTTON_CLASS_NAME} variant="ghost" size="sm" iconOnly
+        loading={derivingRunId === runId} title={t("timeline.run.deriveChat")}
+        aria-label={t("timeline.run.deriveChat")} disabled={deriveChatAction.isDisabled(runId)}
+        onClick={() => handleDeriveChat(runId)}><MaterialIcon name="fork_chat" /></UiButton>
+    </div>;
+    // 精简过程不显示结束图标，操作按钮在前，时间与耗时排在按钮右侧；
+    // 整行默认透明，由样式在悬停或键盘聚焦该 Run 时显示。
+    if (detailLevel === "simple") {
+      return <div className={TIMELINE_RUN_META_CLASS_NAME} data-meta-variant="simple">
+        {actionsNode}{timeNode}{durationNode}
+      </div>;
+    }
     return <div className={TIMELINE_RUN_META_CLASS_NAME}>
       <div className={TIMELINE_RUN_INFO_CLASS_NAME}>
         <MaterialIcon name="stop_circle" aria-hidden="true" className="tw:shrink-0 tw:leading-none tw:text-ink-muted" />
-        {time.short && <div className={TIMELINE_RUN_TIME_CLASS_NAME} title={time.full}>{time.short}</div>}
-        {item.terminalType === "run.complete" && duration && <span className="timeline-run-duration tw:inline-flex tw:shrink-0 tw:items-center tw:gap-1 tw:text-xs tw:leading-none tw:text-ink-muted" title={t("timeline.run.responseDuration", { duration })}>{duration}</span>}
+        {timeNode}{durationNode}
       </div>
-      <div className={`${TIMELINE_META_ACTIONS_CLASS_NAME}`}>
-        <UiButton className={TIMELINE_RUN_ACTION_BUTTON_CLASS_NAME} variant="ghost" size="sm" iconOnly title={copyStatus} aria-label={copyStatus}
-          onClick={() => handleCopy(copyKey, serializeRunTranscript(item.queryNode, item.nodes))}>
-          <MaterialIcon name="content_copy" />
-        </UiButton>
-        {isDownvoted ? <UiButton className={`${TIMELINE_RUN_ACTION_BUTTON_CLASS_NAME} ${TIMELINE_META_BUTTON_DOWNVOTED_CLASS_NAME}`}
-          variant="ghost" size="sm" iconOnly active title={t("timeline.feedback.clearDownvote")}
-          aria-label={t("timeline.feedback.clearDownvote")} disabled={!runId}
-          onClick={() => onFeedback(runId, false)}><MaterialIcon name="thumb_down" /></UiButton>
-          : <Popover destroyOnHidden trigger={["click"]} content={<FeedbackModal onFinish={({ reason }) => { void onFeedback(runId, true, reason); }} />}>
-            <UiButton className={TIMELINE_RUN_ACTION_BUTTON_CLASS_NAME} variant="ghost" size="sm" iconOnly
-              title={t("timeline.feedback.downvote")} aria-label={t("timeline.feedback.downvote")} disabled={!runId}>
-              <MaterialIcon name="thumb_down" />
-            </UiButton>
-          </Popover>}
-        <UiButton className={TIMELINE_RUN_ACTION_BUTTON_CLASS_NAME} variant="ghost" size="sm" iconOnly
-          loading={derivingRunId === runId} title={t("timeline.run.deriveChat")}
-          aria-label={t("timeline.run.deriveChat")} disabled={deriveChatAction.isDisabled(runId)}
-          onClick={() => handleDeriveChat(runId)}><MaterialIcon name="fork_chat" /></UiButton>
-      </div>
+      {actionsNode}
     </div>;
   };
 
   const waitTransport = useRunTransport();
   const interaction = useMemo<TimelineInteractionValue>(() => ({
+    agents: state.agents,
     activityAppearance: resolveRunActivityAppearance(state.agents.find(agent => agent.key === resolvePreferredAgentKey(state))),
     // "Continue now" is a blank steer, which Platform treats as "continue"; a
     // request.steer without content renders no user message.
@@ -1923,7 +1937,7 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
     renderContentView: (segment, chatId, binding, runId, sourceId) =>
       <ViewEmbed allowSidebar={surfaceMode === "main"} chatId={chatId} view={binding.view} viewError={binding.viewError} payloadRaw={segment.payloadRaw || "{}"} rawData={segment.payloadRaw} runId={runId} sourceId={sourceId} viewIndex={String(segment.index)} />,
     renderMarkdown: (props) => <MarkdownContent {...props} htmlPreview />,
-    renderMailAsk: (mailId) => <MailAskCard mailId={mailId} />,
+    renderMailAsk: (mailId, metadata) => <MailAskCard mailId={mailId} metadata={metadata} />,
     renderAttachment: (attachment, options) => <TimelineAttachmentView
       attachment={attachment}
       surfaceContext={{ chatId: state.chatId, agentKey: resolvePreferredAgentKey(state),
@@ -1998,6 +2012,8 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
             onToggleRun={toggleRunCollapse}
             expandedTasks={expandedTaskGroups}
             onToggleTask={toggleTaskGroup}
+            detailLevel={detailLevel}
+            pointerSurface
             queryMeta={renderQueryMeta}
             runMeta={renderRunMeta}
             viewport={{

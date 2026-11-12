@@ -9,13 +9,10 @@ import { usePanelResize } from "@/shared/ui/usePanelResize";
 import { t } from "@/shared/i18n";
 import "./ArchiveConsole.module.css";
 export type { RestoredArchiveChatSummary } from "@/features/archive/hooks/useArchiveRuntime";
-export {
-  buildArchiveBulkCandidates,
-  extractArchivePreviewLines,
-} from "@/features/archive/lib/archiveViewModel";
+export { buildArchiveBulkCandidates } from "@/features/archive/lib/archiveViewModel";
 
 const ARCHIVE_CONSOLE_CLASS =
-  "archive-console archive-console-page tw:grid tw:h-full tw:min-h-0 tw:max-h-none tw:grid-cols-[var(--archive-list-col,280px)_minmax(0,1fr)] tw:[&_.archive-detail-content]:max-h-none tw:[&_.archive-list]:max-h-none";
+  "archive-console archive-console-page tw:grid tw:h-full tw:min-h-0 tw:max-h-none tw:grid-cols-[var(--archive-list-col,280px)_minmax(0,1fr)] tw:[&_.archive-list]:max-h-none";
 const ARCHIVE_LIST_PANE_CLASS_NAME =
   "archive-console-list-pane tw:relative tw:flex tw:min-h-0 tw:min-w-0 tw:flex-col tw:overflow-hidden";
 const ARCHIVE_RESIZE_HANDLE_CLASS_NAME = "archive-console-resize-handle";
@@ -103,8 +100,9 @@ export const ArchiveConsole: React.FC<ArchiveConsoleProps> = ({
         selectedItem={runtime.selectedItem}
         detail={runtime.detail}
         loading={runtime.loadingDetail}
-        previewLines={runtime.previewLines}
+        conversation={runtime.conversation}
         usageSummary={runtime.usageSummary}
+        agents={runtime.agents}
       />
     </div>
   );

@@ -13,6 +13,22 @@ const toolCatalog = [
 ].map(([key, label]) => ({ key, name: key, label, description: 'Available to the agent through its configured capabilities.', kind: 'builtin', sourceCategory: 'platform', sourceType: 'builtin' }));
 const toolBindings = toolCatalog.map(tool => ({ name: tool.key, source: tool.key === 'datetime' ? 'preset' : tool.key === 'run_env' ? 'runtime' : tool.key === 'file_read' ? 'agent' : 'connector', active: true, excluded: false, removable: tool.key === 'file_read' }));
 const archive = { chatId: 'demo', chatName: '周末山湖旅行计划', agentKey: 'demo', createdAt: when, lastRunAt: when, archivedAt: when, updatedAt: when, hasAttachments: false };
+const archiveList = [
+  archive,
+  { ...archive, chatId: 'second', chatName: '行前准备清单' },
+  // Legacy archive: no protocol events, only the summarized runs payload.
+  { ...archive, chatId: 'legacy', chatName: '旧归档（仅 runs）' },
+];
+// Archived chats only persist protocol events; the detail pane replays them the
+// same way the live conversation does, so the fixture supplies real events.
+const archivedConversationEvents = chatId => [
+  { seq: 1, type: 'request.query', chatId, requestId: 'req_' + chatId, agentKey: 'demo', message: '帮我安排两天的山湖旅行。', timestamp: when },
+  { seq: 2, type: 'run.start', chatId, runId: 'run_' + chatId, agentKey: 'demo', timestamp: when + 1000 },
+  { seq: 3, type: 'tool.snapshot', chatId, runId: 'run_' + chatId, toolId: 'tool_weather_' + chatId, toolName: 'web_fetch', toolLabel: '查询天气', arguments: '{"url":"https://weather.example.com/hills-lake"}', timestamp: when + 2000 },
+  { seq: 4, type: 'tool.result', chatId, runId: 'run_' + chatId, toolId: 'tool_weather_' + chatId, toolName: 'web_fetch', toolLabel: '查询天气', result: '晴，18-26℃，午后有微风。', timestamp: when + 3000 },
+  { seq: 5, type: 'content.snapshot', chatId, runId: 'run_' + chatId, contentId: 'content_' + chatId, agentKey: 'demo', text: '第一天：沿湖散步，欣赏森林和山景。\n第二天：选择一条适合体力的徒步路线，留出返程时间。\n\n携带饮水、防晒用品，并提前确认天气。', timestamp: when + 4000 },
+  { seq: 6, type: 'run.complete', chatId, runId: 'run_' + chatId, agentKey: 'demo', timestamp: when + 5000 },
+];
 module.exports = function fixture(path, query) {
   if (path.endsWith('/order')) return { order: [] };
   if (path === '/api/admin/agents' || path === '/api/agents') return [agent, { ...agent, key: 'second', name: '文档助手' }];
@@ -26,7 +42,16 @@ module.exports = function fixture(path, query) {
   if (path === '/api/admin/agents/connectors') return { agentKey: query.agentKey, presetConnectorIds: ['builtin.web-control'], declaredConnectorIds: ['builtin.task-control', 'demo'], connectorIds: ['builtin.web-control', 'builtin.task-control', 'demo'], activeConnectorIds: ['builtin.web-control', 'builtin.task-control', 'demo'], reloadPending: false };
   if (path === '/api/admin/connectors') return { connectors: [{...webConnector, tools: toolCatalog.filter(tool => webConnector.nativeTools.includes(tool.key))}, {...taskConnector, tools: toolCatalog.filter(tool => taskConnector.nativeTools.includes(tool.key))}, connector, { ...connector, id: 'second', name: '文档工具' }] };
   if (path === '/api/admin/connectors/detail') return { id: query.id, file: query.file, sha256: 'demo-sha', content: JSON.stringify(query.file === 'connector.json' ? connector : { command: 'travel', description: '查询目的地信息', args: ['--format', 'json'], timeout: 30000 }, null, 2) };
-  if (path === '/api/archives') return { items: [archive, { ...archive, chatId: 'second', chatName: '行前准备清单' }], total: 2 };
-  if (path === '/api/archive') return { ...archive, runs: [{ initialMessage: '帮我安排两天的山湖旅行。', assistantText: '第一天：沿湖散步，欣赏森林和山景。\n第二天：选择一条适合体力的徒步路线，留出返程时间。\n\n携带饮水、防晒用品，并提前确认天气。' }] };
+  if (path === '/api/archives') return { items: archiveList, total: archiveList.length };
+  if (path === '/api/archive') {
+    const chatId = String(query.chatId || archive.chatId);
+    const item = archiveList.find(entry => entry.chatId === chatId) || archive;
+    return {
+      ...item,
+      events: item.chatId === 'legacy' ? undefined : archivedConversationEvents(item.chatId),
+      runs: [{ initialMessage: '帮我安排两天的山湖旅行。', assistantText: '第一天：沿湖散步，欣赏森林和山景。\n第二天：选择一条适合体力的徒步路线，留出返程时间。\n\n携带饮水、防晒用品，并提前确认天气。' }],
+      ...(item.chatId === 'second' ? { artifactManifestUnavailable: true } : {}),
+    };
+  }
   return {};
 };

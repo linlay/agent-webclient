@@ -324,6 +324,53 @@
     bottom: -12px;
 }
 
+/* 精简过程：普通行整列图标撤掉，正文与状态左对齐、不再缩进，也不画节点间的
+   时间线竖线。活动行是唯一例外——TimelineActivityRow 的 RunActivityIcon 要继续
+   显示，所以只有它保留自己的 18px 图标列（图标是那一行的标识，正文紧随其后）。
+   档位标记由 ConversationStage 按后端 effectiveDetail 写入，这里只做展示收敛，
+   不过滤节点。 */
+:global(.conversation-stage-virtuoso[data-detail-level="simple"]) :global(.timeline-marker)::after {
+    display: none;
+}
+
+:global(.conversation-stage-virtuoso[data-detail-level="simple"]) :global(.timeline-row-flow) {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+:global(.conversation-stage-virtuoso[data-detail-level="simple"]) :global(.timeline-marker) {
+    display: none;
+}
+
+:global(.conversation-stage-virtuoso[data-detail-level="simple"]) :global(.timeline-row-flow[data-kind="activity"]) {
+    grid-template-columns: 18px minmax(0, 1fr);
+}
+
+:global(.conversation-stage-virtuoso[data-detail-level="simple"]) :global(.timeline-row-flow[data-kind="activity"]) :global(.timeline-marker) {
+    display: flex;
+}
+
+/* 精简过程的 Run 元信息（操作按钮、时间、耗时）默认完全透明，悬停该 Run 或键盘焦点
+   进入时才显示；隐藏态不接收指针事件，避免误点到不可见的复制/反馈按钮。 */
+:global(.conversation-stage-virtuoso[data-detail-level="simple"]) :global(.timeline-run-meta) {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 120ms ease;
+}
+
+:global(.conversation-stage-virtuoso[data-detail-level="simple"]) :global(.timeline-run-block):hover :global(.timeline-run-meta),
+:global(.conversation-stage-virtuoso[data-detail-level="simple"]) :global(.timeline-run-block):focus-within :global(.timeline-run-meta) {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* 无悬停能力的设备（触屏）没有可用的显示入口，保持元信息常显。 */
+@media (hover: none) {
+    :global(.conversation-stage-virtuoso[data-detail-level="simple"]) :global(.timeline-run-meta) {
+        opacity: 1;
+        pointer-events: auto;
+    }
+}
+
 :global(.timeline-run-collapse):global(.ant-collapse)>:global(.ant-collapse-item)>:global(.ant-collapse-header) {
     padding: 0 0 0 2px;
     color: var(--text-muted);
