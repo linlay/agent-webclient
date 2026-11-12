@@ -672,7 +672,7 @@ export const zhCNMessages = {
   "connectors.auth.description.delegated":
     "账号认证由此连接器的技能或 CLI 自行处理，请按连接器技能说明完成。",
   "connectors.auth.oneid":
-    "此连接器复用 Desktop 登录身份。请在 Desktop 中登录或退出后，重新检查状态。",
+    "此连接器复用 Desktop 登录身份。请在 Desktop 中登录或退出，此处会自动更新状态。",
   "connectors.auth.description.setup_required":
     "登录前需要准备运行依赖。点击登录后将先显式准备，准备就绪后再发起账号授权。",
   "connectors.auth.description.unauthorized":
@@ -816,12 +816,12 @@ export const zhCNMessages = {
   "connectors.auth.confirmConnection": "确认连接",
   "connectors.auth.confirmConnectionSuccess": "连接已确认",
   "connectors.auth.status.pending_verification": "新配置待验证",
-  "connectors.auth.description.pending_verification": "新凭据仍在验证，请重新检查状态。",
+  "connectors.auth.description.pending_verification": "新凭据仍在验证，请等待状态更新。",
   "connectors.credentials.configure": "配置连接凭据",
   "connectors.credentials.rebind": "重新绑定",
   "connectors.credentials.clearConfirm": "将清除该连接器的旧凭据和待验证信息。使用此账号的智能体需重新绑定后才能继续访问；安装包和智能体挂载配置会保留。清除成功后将打开新的凭据表单。",
   "connectors.credentials.clearAndContinue": "清除并继续",
-  "connectors.credentials.clearFailed": "未能确认旧凭据已清除，尚未开始重新绑定。请重新检查状态后重试。",
+  "connectors.credentials.clearFailed": "未能确认旧凭据已清除，尚未开始重新绑定。请稍后重试。",
   "connectors.credentials.title": "连接 {name}",
   "connectors.credentials.hint": "填写此连接器声明的连接凭据。凭据单独存入 Platform，不会写入连接器源码或聊天。",
   "connectors.credentials.schemaInvalid": "此连接器缺少有效的凭据字段声明，请先完善连接器包中的 token-schema.json。不要将实际凭据写入 JSON 配置。",

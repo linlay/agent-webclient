@@ -115,15 +115,14 @@ function ConnectorAuthPanelContent({ item, disabled, onConfigure, onCredentialsC
         </div>
         <p className={styles.hint}>{t(auth.session?.authBrowser === "embedded" ? "connectors.auth.embedHint" : "connectors.auth.openHint")}</p>
       </div>}
-      <div className={styles.authActions}>
+      {interactive && !readOnly && <div className={styles.authActions}>
         {interactive && !readOnly && !active && ["unauthorized", "setup_required", "failed", "canceled", "expired"].includes(status) && <UiButton size="sm" variant="primary" disabled={busy} loading={auth.operation === "start"} onClick={() => void auth.start()}>{t(["failed", "canceled", "expired"].includes(status) ? "connectors.auth.retry" : "connectors.auth.login")}</UiButton>}
         {interactive && !readOnly && active && status === "expired" && <UiButton size="sm" variant="primary" disabled={busy} onClick={() => void auth.start()}>{t("connectors.auth.retry")}</UiButton>}
         {auth.operation === "start" && <UiButton size="sm" loading disabled>{t("connectors.auth.starting")}</UiButton>}
         {auth.preparingDependency && <UiButton size="sm" disabled={disabled || auth.operation === "cancel"} onClick={() => void auth.cancel()}>{t("connectors.auth.cancelPreparation")}</UiButton>}
         {interactive && !readOnly && active && <UiButton size="sm" disabled={busy} loading={auth.operation === "cancel"} onClick={() => void auth.cancel()}>{t("connectors.auth.cancel")}</UiButton>}
         {interactive && !readOnly && status === "authorized" && !confirmLogout && <UiButton size="sm" disabled={busy} onClick={() => setConfirmLogout(true)}>{t("connectors.auth.logout")}</UiButton>}
-        <UiButton size="sm" variant="secondary" disabled={busy || auth.checking} onClick={() => void auth.refresh()}>{t(auth.checking ? "connectors.auth.checking" : "connectors.auth.refresh")}</UiButton>
-      </div>
+      </div>}
       {confirmable && configured !== true && <div className={styles.authActions}>
         <UiButton size="sm" loading={confirmingConnection} disabled={busy || confirmingConnection} onClick={() => {
           if (connectionScope.current) return;
