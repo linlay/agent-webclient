@@ -155,3 +155,9 @@ v6 宿主通过 `workpanel.document.open-draft-html` 显式声明支持临时 HT
 同正文重复打开复用标签，正文变化打开新标签。来源 WebClient 顶层文档刷新或销毁后，Desktop 撤销相应预览、批注与 pending claim，不恢复、不跨代接管。批注交接只追加所属 Composer 的草稿，不自动发送，要求智能体在回复中给出修订代码块，用户再次点击预览。
 
 Standalone、缺少 canonical Chat/Agent 和旧宿主未声明能力时沿用 blob 侧栏预览；明确不支持原生类型也可回落。正文超 4 MiB、授权、摘要与其他宿主失败停止并提示，不回落绕过校验。请求进行中禁重复提交，组件卸载或来源上下文变化后的结果不改新页面。
+
+## 产物文件拖出
+
+Main Chat 的正式产物卡片消费独立 v1 Artifact Drag bridge，hover 或按下时以 Chat、Run、Artifact 身份准备临时副本，真实 dragstart 时仅交付不透明租约。页面不接收或提交本地路径，不在拖动手势中等待下载。准备中与失败由卡片提示，尚未准备好时需稍后再次拖动；普通浏览器及旧宿主保持现有预览和下载。
+
+Desktop 根据真实顶层 sender、当前 Main Chat 注册代次与 owner Chat 校验请求，并从 Platform 权威清单解析文件名及 Run，使用现有 artifacts/read 取得并校验文件，系统拖拽仅交付临时副本。Chat 切换、归档、删除或连接轮换使旧租约失效。macOS Finder 与 Windows 资源管理器共用身份契约，原生适配由 Desktop 分平台处理。本能力与生成契约镜像须随 Desktop 与 WebClient 同批发布，不涉及 Platform API 变更。

@@ -1,6 +1,6 @@
 // Generated from src/shared/contracts/agent-webclient-bridge.ts.
 // Do not edit this mirror directly.
-// sha256:279ab00b4b959f50815b71a0b0f8df245a1af71fd7ce385058f4095648c18ad9
+// sha256:91d8535d6766b1d5a7fdd7b493716dd6bfa5278bd3c7eb7228ee7232170fba71
 
 /**
  * Canonical Desktop <-> Agent WebClient bridge contract.
@@ -846,4 +846,16 @@ export function readAgentWebclientHeaderLayoutBootstrap(search: string): AgentWe
   const snapshot = parseAgentWebclientHeaderLayoutSnapshot({ schemaVersion: "1.0", revision: 0,
     sidebarCollapsed: collapsed === "1", headerLeftInset: Number(inset) });
   return snapshot ? { sidebarCollapsed: snapshot.sidebarCollapsed, headerLeftInset: snapshot.headerLeftInset } : null;
+}
+
+// Independent native export capability; pages exchange identities and opaque leases, never paths.
+export const ARTIFACT_DRAG_GLOBAL = "__AGENT_WEBCLIENT_ARTIFACT_DRAG__" as const;
+export const ARTIFACT_DRAG_PREPARE_CHANNEL = "artifacts.drag.prepare" as const;
+export const ARTIFACT_DRAG_START_CHANNEL = "artifacts.drag.start" as const;
+export type ArtifactDragIdentity = { chatId: string; artifactId: string; runId?: string };
+export type ArtifactDragPreparation = { ok: true; token: string; expiresAt: number } | { ok: false };
+export interface ArtifactDragBridge {
+  readonly version: 1;
+  prepare(input: ArtifactDragIdentity): Promise<ArtifactDragPreparation>;
+  start(token: string): void;
 }

@@ -2959,6 +2959,10 @@ export const zhCNMessages = {
   "attachments.error.uploadFailed": "上传失败",
   "attachments.kind.file": "文件",
   "attachments.action.view": "查看附件",
+  "attachments.exportDrag.idle": "拖到 Finder 或资源管理器，导出文件副本",
+  "attachments.exportDrag.preparing": "正在准备文件，请稍后再次拖拽",
+  "attachments.exportDrag.ready": "拖到 Finder 或资源管理器，导出文件副本",
+  "attachments.exportDrag.failed": "文件准备失败，请重新移入卡片重试",
   "attachments.error.resourceUnavailable":
     "该附件缺少可用的资源地址，请重新上传后查看。",
   "attachments.kind.image": "图片",
