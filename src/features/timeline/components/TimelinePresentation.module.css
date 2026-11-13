@@ -72,15 +72,12 @@ html[data-theme="dark"] .send-btn {
     box-shadow: 0 6px 16px rgba(10, 24, 56, 0.34);
 }
 
-html[data-theme="dark"] .timeline-markdown table,
 html[data-theme="dark"] .timeline-markdown pre,
 html[data-theme="dark"] .timeline-markdown blockquote {
     background: color-mix(in srgb, var(--bg-elev-1) 94%, var(--bg-elev-2));
     border-color: color-mix(in srgb, var(--line-soft) 100%, transparent);
 }
 
-html[data-theme="dark"] .timeline-markdown th,
-html[data-theme="dark"] .timeline-markdown td,
 html[data-theme="dark"] .timeline-markdown img,
 html[data-theme="dark"] .timeline-markdown video:global(.markdown-video) {
     border-color: color-mix(in srgb, var(--line-soft) 100%, transparent);
@@ -89,10 +86,6 @@ html[data-theme="dark"] .timeline-markdown video:global(.markdown-video) {
 html[data-theme="dark"] .timeline-markdown :global(.markdown-echarts) {
     border-color: color-mix(in srgb, var(--line-soft) 100%, transparent);
     background: rgba(255, 255, 255, 0.035);
-}
-
-html[data-theme="dark"] .timeline-markdown thead th {
-    background: color-mix(in srgb, var(--bg-elev-1) 100%, var(--bg-elev-2));
 }
 
 html[data-theme="dark"] .timeline-markdown code:not(pre code) {

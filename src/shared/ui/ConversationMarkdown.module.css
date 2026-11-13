@@ -17,6 +17,47 @@
   overflow-y: hidden;
 }
 
+/* 表格：x-markdown 默认只给 th 加 600 字重，单元格的底色和边框与 td 完全一样，
+   宽表里几乎看不出表头。表头底色与行列分隔在这里统一定义，时间线、文档预览和
+   导出共用同一套外观，不再由各处局部样式各写一份。 */
+.root:global(.x-markdown) {
+  /* 单元格内边距和表格外边距由 x-markdown 用变量下发，这里改变量，避开它那串
+     :not() 选择器，避免两份声明同时命中。 */
+  --td-th-padding: 8px 12px;
+  --table-margin: 0 0 12px;
+}
+
+.root table {
+  border: 1px solid var(--line-soft);
+  border-radius: 10px;
+  background: var(--bg-elev-2);
+}
+
+.root :is(th, td) {
+  border-bottom: 1px solid var(--line-soft);
+  vertical-align: top;
+}
+
+.root :is(th, td) + :is(th, td) {
+  border-left: 1px solid var(--line-soft);
+}
+
+.root tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.root thead th {
+  background: color-mix(in srgb, var(--ink-1) 4%, var(--bg-elev-2));
+  color: var(--ink-1);
+  letter-spacing: 0.01em;
+}
+
+/* th 的浏览器默认居中，这里恢复默认左对齐；GFM 的 :--/--:/:-: 会渲染成 align
+   属性，带 align 的单元格保持作者指定的对齐。 */
+.root thead th:not([align]) {
+  text-align: start;
+}
+
 .root :global(.markdown-video) {
   display: block;
   width: 100%;

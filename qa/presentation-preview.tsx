@@ -6,6 +6,7 @@ import { I18nProvider } from "@/shared/i18n";
 import { UiButton } from "@/shared/ui/UiButton";
 import { ComposerPopover } from "@/features/composer/components/ComposerPopover";
 import { SystemAlert } from "@/features/timeline/components/SystemAlert";
+import { ConversationMarkdown } from "@/shared/ui/ConversationMarkdown";
 import { hitlDialogClassNames } from "@/features/tools/components/buildin/dialogClassNames";
 import { bindCssModuleClasses } from "@/shared/utils/cssModuleClasses";
 import composer from "@/features/composer/components/ComposerPresentation.module.css";
@@ -18,6 +19,8 @@ import "@/shared/styles/globals.css";
 import "@/features/timeline/components/Timeline.module.css";
 
 const classes = bindCssModuleClasses({ ...composer, ...timeline, ...shell, ...settings, ...model, ...shared });
+
+const PreviewCode = ({ children }: { children?: React.ReactNode }) => <code>{children}</code>;
 
 function Preview() {
   const appearance = useAppearance();
@@ -52,7 +55,20 @@ function Preview() {
       </Radio>)}
     </Radio.Group>
     <div className={classes("timeline-row")} data-kind="content">
-      <div className={classes("timeline-markdown")}><p>时间线段落、表格与代码。</p><pre>const result = await task();</pre><table><thead><tr><th>项目</th><th>状态</th></tr></thead><tbody><tr><td>布局</td><td>待验证</td></tr></tbody></table></div>
+      <div className={classes("timeline-markdown")}>
+        <ConversationMarkdown codeComponent={PreviewCode} content={[
+          "时间线段落、表格与代码。",
+          "",
+          "| 项目 | 状态 | 耗时 |",
+          "| --- | :-: | --: |",
+          "| 布局 | 待验证 | 1.2s |",
+          "| 表头 | 已区分 | 86ms |",
+          "",
+          "```ts",
+          "const result = await task();",
+          "```",
+        ].join("\n")} />
+      </div>
     </div>
     <div className={classes("status-line")}>运行状态：等待用户确认</div>
     <ComposerPopover width={320} panels={[{ open: popover, content: skill }]}><Button onClick={() => setPopover(!popover)}>技能浮层</Button></ComposerPopover>

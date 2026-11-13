@@ -492,28 +492,7 @@
     margin: 0 0 9px;
 }
 
-:global(.timeline-markdown) table {
-    display: block;
-    width: 100%;
-    max-width: 100%;
-    overflow-x: auto;
-    border-collapse: collapse;
-    margin: 0 0 12px;
-    background: color-mix(in srgb, var(--bg-elev-2) 92%, transparent);
-}
-
-:global(.timeline-markdown) th,
-:global(.timeline-markdown) td {
-    border: 1px solid color-mix(in srgb, var(--line-soft) 88%, transparent);
-    padding: 8px 10px;
-    vertical-align: top;
-    text-align: left;
-}
-
-:global(.timeline-markdown) thead th {
-    font-weight: 600;
-    background: color-mix(in srgb, var(--bg-input) 84%, var(--bg-elev-2));
-}
+/* 表格外观由 ConversationMarkdown 的共享样式统一提供。 */
 
 :global(.timeline-markdown) ul,
 :global(.timeline-markdown) ol {
