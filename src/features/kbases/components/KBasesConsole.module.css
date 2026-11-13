@@ -76,7 +76,7 @@
 .root button:focus-visible { outline: 2px solid var(--accent-electric); outline-offset: -2px; }
 .editorScroll { max-height: min(65dvh, 600px); overflow-y: auto; overscroll-behavior: contain; padding: 2px 4px; }
 .collectionLabels { display: grid; grid-template-columns: minmax(100px, 1fr) minmax(180px, 2fr) 32px; gap: 10px; margin-bottom: 6px; font-size: 12px; color: var(--ink-muted); }
-.collectionRow { display: grid; grid-template-columns: minmax(100px, 1fr) minmax(180px, 2fr) 32px; align-items: start; gap: 10px; }
+.collectionRow { display: grid; grid-template-columns: minmax(100px, 1fr) minmax(180px, 2fr) auto; align-items: start; gap: 10px; }
 .collectionRow :global(.ant-form-item) { min-width: 0; margin-bottom: 10px; }
 .editor :global(.ant-typography) { font-size: 12px; }
 .editHint { margin: 12px 0 0; line-height: 1.6; }

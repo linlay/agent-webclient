@@ -9,6 +9,7 @@ import type { AgentCreationGroupOption, AgentCreationTypeKey } from "@/shared/da
 import { useI18n } from "@/shared/i18n";
 import { resolveModelPresentation } from "@/shared/icons/model";
 import { MaterialIcon, type MaterialIconName } from "@/shared/ui/MaterialIcon";
+import { DirectoryPickerModal } from "@/shared/ui/DirectoryPickerModal";
 import styles from "./AgentProjectCreateDialog.module.css";
 
 const projectTypes: Partial<Record<AgentCreationTypeKey, { icon: MaterialIconName }>> = {
@@ -253,69 +254,18 @@ export const AgentProjectCreateDialog: React.FC<{
         {runtime.error ? <Alert type="error" showIcon message={runtime.error} /> : null}
       </Flex>
     </Modal>
-    <HostDirectoryBrowser runtime={runtime} />
-    </>
-  );
-};
-
-/** Lists directories on the Agent Platform host; it never shows files. */
-const HostDirectoryBrowser: React.FC<{ runtime: AgentProjectCreateRuntime }> = ({ runtime }) => {
-  const { t } = useI18n();
-  const listing = runtime.browserListing;
-  return (
-    <Modal
-      className={styles.directoryDialog}
-      title={t("leftSidebar.createProject.selectDirectory")}
+    <DirectoryPickerModal
       open={runtime.open && runtime.browserOpen}
+      title={t("leftSidebar.createProject.selectDirectory")}
+      hint={t("leftSidebar.createProject.directoryHostHint")}
+      listing={runtime.browserListing}
+      loading={runtime.browserLoading}
+      error={runtime.browserError}
+      canChoose={runtime.browserCanChoose}
+      onBrowse={runtime.browseTo}
+      onChoose={runtime.chooseBrowsedDirectory}
       onCancel={runtime.closeBrowser}
-      width="min(560px, calc(100vw - 32px))"
-      centered
-      footer={[
-        <Button key="cancel" onClick={runtime.closeBrowser}>
-          {t("leftSidebar.createProject.cancel")}
-        </Button>,
-        <Button key="choose" type="primary" disabled={!runtime.browserCanChoose} onClick={runtime.chooseBrowsedDirectory}>
-          {t("leftSidebar.createProject.browseChoose")}
-        </Button>,
-      ]}
-      destroyOnHidden
-    >
-      <div className={styles.directoryContent}>
-        <p className={styles.directoryHint}>{t("leftSidebar.createProject.directoryHostHint")}</p>
-        <div className={styles.directoryToolbar}>
-          <Button
-            icon={<MaterialIcon name="arrow_upward" />}
-            disabled={runtime.browserLoading || !listing?.parent}
-            onClick={() => listing?.parent && runtime.browseTo(listing.parent)}
-            aria-label={t("leftSidebar.createProject.browseUp")}
-            title={t("leftSidebar.createProject.browseUp")}
-          />
-          <span className={styles.directoryPath} title={listing?.path}>{listing?.path ?? ""}</span>
-        </div>
-        {runtime.browserError ? <Alert type="error" showIcon message={runtime.browserError} /> : null}
-        <Spin spinning={runtime.browserLoading}>
-          <div className={styles.directoryList}>
-            {listing && listing.entries.length === 0 ? (
-              <div className={styles.directoryEmpty}>{t("leftSidebar.createProject.browseEmpty")}</div>
-            ) : null}
-            {listing?.entries.map((entry) => (
-              <Button
-                key={entry.path}
-                type="text"
-                block
-                className={styles.directoryRow}
-                disabled={runtime.browserLoading}
-                onClick={() => runtime.browseTo(entry.path)}
-              >
-                <MaterialIcon name="folder_open" className={styles.directoryFolder} />
-                <span className={styles.directoryName} title={entry.name}>{entry.name}</span>
-                <MaterialIcon name="chevron_right" className={styles.directoryChevron} />
-              </Button>
-            ))}
-            {listing?.truncated ? <div className={styles.directoryHint}>{t("leftSidebar.createProject.browseTruncated")}</div> : null}
-          </div>
-        </Spin>
-      </div>
-    </Modal>
+    />
+    </>
   );
 };

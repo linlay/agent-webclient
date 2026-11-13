@@ -1,8 +1,9 @@
+import { pathNameFromPath } from "@/shared/utils/pathName";
+
 export type AgentProjectType = "coder" | "kbase";
 
 export function workspaceNameFromPath(path: string): string {
-  const normalized = String(path || "").trim();
-  return normalized.split(/[\\/]+/).filter(Boolean).pop() || "project";
+  return pathNameFromPath(path) || "project";
 }
 
 export function buildCoderAgentCreateRequest(

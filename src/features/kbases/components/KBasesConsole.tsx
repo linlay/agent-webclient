@@ -1,11 +1,12 @@
-import React, { useRef, useState } from "react";
-import { Alert, Empty, Spin } from "antd";
+import React, { useEffect, useRef, useState } from "react";
+import { Empty, Spin } from "antd";
 import { t } from "@/shared/i18n";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { SearchFilterBar } from "@/shared/ui/SearchFilterBar";
 import { ModalTitleBar } from "@/shared/ui/ModalTitleBar";
 import { UiButton } from "@/shared/ui/UiButton";
 import { usePanelResize } from "@/shared/ui/usePanelResize";
+import { useAppMessage } from "@/shared/ui/useAppMessage";
 import type { KnowledgeBase } from "@/shared/data/api/dto/kbases";
 import { useKBases } from "../hooks/useKBases";
 import { libraryCollections } from "../lib/documentSource";
@@ -22,6 +23,12 @@ interface KBasesConsoleProps {
 
 export function KBasesConsole({ embedded = false, onClose, titleBarVariant = "default" }: KBasesConsoleProps = {}) {
   const { items, loading, error, reload } = useKBases();
+  const message = useAppMessage();
+  // The toolbar refresh is the only retry entry, so a failed load is reported
+  // as a toast instead of an inline alert.
+  useEffect(() => {
+    if (error) message.error(error);
+  }, [error, message]);
   const [selected, select] = useState("");
   const [filter, setFilter] = useState("");
   const [editor, setEditor] = useState<KnowledgeBase | "new" | null>(null);
@@ -46,7 +53,6 @@ export function KBasesConsole({ embedded = false, onClose, titleBarVariant = "de
           <UiButton size="sm" variant="primary" iconOnly aria-label={t("kbases.create")} title={t("kbases.create")} onClick={() => setEditor("new")}><MaterialIcon name="add" /></UiButton>
         </div>
         <div className={styles.listCount}>{t("kbases.libraryCount", { count: visible.length })}</div>
-        {error && <Alert type="error" showIcon message={error} action={<UiButton size="mini" variant="ghost" onClick={() => void reload()}>{t("kbases.reload")}</UiButton>} />}
         <div className={styles.listScroll}>
           <Spin spinning={loading}>
             {visible.length === 0 && !loading ? <div className={styles.listEmpty}>{t(items.length ? "kbases.noLibraries" : "kbases.empty")}{!items.length && <UiButton size="sm" variant="primary" onClick={() => setEditor("new")}>{t("kbases.create")}</UiButton>}</div> : visible.map(item => <button type="button" className={`${styles.library} ${active?.id === item.id ? styles.selected : ""}`} key={item.id} aria-pressed={active?.id === item.id} onClick={() => select(item.id)}>

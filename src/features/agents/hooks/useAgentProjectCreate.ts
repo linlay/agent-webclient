@@ -14,13 +14,11 @@ import {
 import {
   createAgent,
   loadAgentCreationOptions,
-  listHostDirectories,
   type AgentCreationOptionsResponse,
   type AgentCreationTypeKey,
-  type HostDirectoryListResponse,
 } from "@/shared/data";
 import { useI18n } from "@/shared/i18n";
-import { canUseDesktopFileSystemBridge, selectWorkspaceDirectory } from "@/shared/data/desktop/desktopFileSystem";
+import { useDirectoryPicker } from "@/shared/ui/useDirectoryPicker";
 
 const PROBLEM_MESSAGES: Record<ProjectCreationProblem, string> = {
   typeUnavailable: "leftSidebar.createProject.typeUnavailable",
@@ -55,14 +53,7 @@ export function useAgentProjectCreate(options: {
   const [libraries, setLibraries] = useState<KnowledgeBase[]>([]);
   const [libraryChoice, setLibraryChoice] = useState("");
 
-  const [browserOpen, setBrowserOpen] = useState(false);
-  const [browserLoading, setBrowserLoading] = useState(false);
-  const [browserError, setBrowserError] = useState("");
-  const [browserListing, setBrowserListing] = useState<HostDirectoryListResponse | null>(null);
-  // Only the latest directory request may update the browser; a slower earlier
-  // response, or one that arrives after the browser was closed, is dropped.
-  const browseSeq = useRef(0);
-  const nativeDirectoryPickerAvailable = canUseDesktopFileSystemBridge();
+  const directory = useDirectoryPicker();
 
   const loadOptions = async () => {
     const seq = ++loadSeq.current;
@@ -94,8 +85,7 @@ export function useAgentProjectCreate(options: {
     setProjectName("");
     setProjectNameTouched(false);
     setError("");
-    closeBrowser();
-    setBrowserListing(null);
+    directory.close();
     setLibraryChoice("");
     const seq = ++librarySeq.current;
     setLibraries([]);
@@ -123,59 +113,20 @@ export function useAgentProjectCreate(options: {
     setError("");
   };
 
-  // Browser clients browse the Platform host; Desktop uses its native picker.
-  const browseTo = async (path: string) => {
-    const seq = ++browseSeq.current;
-    setBrowserLoading(true);
-    setBrowserError("");
-    try {
-      const response = await listHostDirectories(path);
-      if (seq !== browseSeq.current) return;
-      setBrowserListing(response.data);
-    } catch (browseError) {
-      if (seq !== browseSeq.current) return;
-      // The previous listing stays visible so the user can navigate elsewhere,
-      // but it can no longer be confirmed: the error is about another directory.
-      setBrowserError(errorMessage(browseError));
-    } finally {
-      if (seq === browseSeq.current) setBrowserLoading(false);
-    }
-  };
-
-  const closeBrowser = () => {
-    browseSeq.current += 1;
-    setBrowserLoading(false);
-    setBrowserError("");
-    setBrowserOpen(false);
-  };
-
+  // Desktop shows its native picker; browser clients browse the Platform host.
   const openDirectoryBrowser = async () => {
-    if (submitting || browserLoading) return;
-    if (!nativeDirectoryPickerAvailable) {
-      setBrowserOpen(true);
-      void browseTo(workspaceDir.trim());
-      return;
-    }
-    const seq = ++browseSeq.current;
-    setBrowserOpen(false);
-    setBrowserListing(null);
-    setBrowserError("");
-    setBrowserLoading(true);
+    if (submitting || directory.loading || directory.open) return;
     setError("");
     try {
-      const path = await selectWorkspaceDirectory();
-      if (seq === browseSeq.current && path) setWorkspaceDir(path);
+      const path = await directory.pick(workspaceDir.trim());
+      if (path) setWorkspaceDir(path);
     } catch (selectionError) {
-      if (seq === browseSeq.current) setError(errorMessage(selectionError));
-    } finally {
-      if (seq === browseSeq.current) setBrowserLoading(false);
+      setError(errorMessage(selectionError));
     }
   };
 
   // The listing is the directory the user is looking at only when no request
   // is pending and the last one succeeded.
-  const browserCanChoose = Boolean(browserListing) && !browserLoading && !browserError;
-
   const problem = creationOptions && selection
     ? projectCreationProblem(creationOptions, selection, workspaceDir)
     : null;
@@ -223,14 +174,14 @@ export function useAgentProjectCreate(options: {
     optionsError,
     selection,
     problem,
-    browserOpen,
-    browserLoading,
-    browserError,
-    browserListing,
-    browserCanChoose,
-    nativeDirectoryPickerAvailable,
+    browserOpen: directory.open,
+    browserLoading: directory.loading,
+    browserError: directory.error,
+    browserListing: directory.listing,
+    browserCanChoose: directory.canChoose,
+    nativeDirectoryPickerAvailable: directory.nativeAvailable,
     begin,
-    close: () => { ++librarySeq.current; ++loadSeq.current; closeBrowser(); setOpen(false); },
+    close: () => { ++librarySeq.current; ++loadSeq.current; directory.close(); setOpen(false); },
     submit,
     reloadOptions: () => void loadOptions(),
     setProjectName,
@@ -245,12 +196,11 @@ export function useAgentProjectCreate(options: {
     setAcpBridgeId: (acpBridgeId: string) =>
       updateSelection((current) => ({ ...current, acpBridgeId })),
     openBrowser: () => void openDirectoryBrowser(),
-    closeBrowser,
-    browseTo: (path: string) => void browseTo(path),
+    closeBrowser: directory.close,
+    browseTo: directory.browseTo,
     chooseBrowsedDirectory: () => {
-      if (!browserCanChoose || !browserListing) return;
-      setWorkspaceDir(browserListing.path);
-      closeBrowser();
+      const path = directory.choose();
+      if (path) setWorkspaceDir(path);
     },
   };
 }
