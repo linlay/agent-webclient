@@ -3,7 +3,12 @@
 import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import type { ToolOutputState } from "@/features/timeline/lib/timelineState";
-import { ToolOutputTerminal } from "@/features/terminal/components/ToolOutputTerminal";
+import {
+  TOOL_OUTPUT_TERMINAL_FONT_FAMILY,
+  TOOL_OUTPUT_TERMINAL_FONT_SIZE,
+  TOOL_OUTPUT_TERMINAL_LINE_HEIGHT,
+  ToolOutputTerminal,
+} from "@/features/terminal/components/ToolOutputTerminal";
 
 const mockTerminalInstances: Array<{
   addons: unknown[];
@@ -149,9 +154,14 @@ describe("ToolOutputTerminal", () => {
     expect(terminal.options).toMatchObject({
       allowTransparency: true,
       customGlyphs: true,
-      fontSize: 11,
-      lineHeight: 1,
+      fontFamily: TOOL_OUTPUT_TERMINAL_FONT_FAMILY,
+      fontSize: TOOL_OUTPUT_TERMINAL_FONT_SIZE,
+      fontWeight: "400",
+      lineHeight: TOOL_OUTPUT_TERMINAL_LINE_HEIGHT,
     });
+    expect(TOOL_OUTPUT_TERMINAL_FONT_FAMILY).toContain("PingFang SC");
+    expect(TOOL_OUTPUT_TERMINAL_FONT_SIZE).toBeGreaterThanOrEqual(12);
+    expect(TOOL_OUTPUT_TERMINAL_LINE_HEIGHT).toBeGreaterThan(1);
     expect(
       (terminal.options.theme as { background?: string }).background,
     ).toBe("rgba(0, 0, 0, 0)");

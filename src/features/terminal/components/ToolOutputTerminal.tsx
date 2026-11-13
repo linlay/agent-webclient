@@ -17,7 +17,14 @@ import "@xterm/xterm/css/xterm.css";
 
 const DEFAULT_COLUMNS = 80;
 const INITIAL_ROWS = 1;
-const FALLBACK_ROW_HEIGHT_PX = 13;
+const FALLBACK_ROW_HEIGHT_PX = 17;
+// 工具过程输出常混有 CJK 注释和脚本回显：11px + lineHeight 1 会让字形超出单元格，
+// 上下行互相挤压后看起来发虚、重影，中文尤其明显。字号与行高一起放大到可读区间，
+// 并显式补上中日韩回退字体，避免落到不可预期的系统默认字体。
+export const TOOL_OUTPUT_TERMINAL_FONT_FAMILY =
+  'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans Mono CJK SC", monospace';
+export const TOOL_OUTPUT_TERMINAL_FONT_SIZE = 12;
+export const TOOL_OUTPUT_TERMINAL_LINE_HEIGHT = 1.4;
 
 function resolveToolOutputTerminalTheme(themeMode: string) {
   return {
@@ -68,10 +75,10 @@ export const ToolOutputTerminal: React.FC<ToolOutputTerminalProps> = ({
       cursorInactiveStyle: "none",
       disableStdin: true,
       customGlyphs: true,
-      fontFamily:
-        'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace',
-      fontSize: 11,
-      lineHeight: 1,
+      fontFamily: TOOL_OUTPUT_TERMINAL_FONT_FAMILY,
+      fontSize: TOOL_OUTPUT_TERMINAL_FONT_SIZE,
+      lineHeight: TOOL_OUTPUT_TERMINAL_LINE_HEIGHT,
+      fontWeight: "400",
       scrollback: TOOL_OUTPUT_MAX_BYTES,
       theme: resolveToolOutputTerminalTheme(themeMode),
     });
