@@ -9,6 +9,7 @@ import { ArtifactPanel } from "@/features/artifacts/components/ArtifactPanel";
 import { areConversationInteractionsBlocked } from "@/features/conversation/lib/chatTransition";
 import { useConversationSurface } from "@/shared/ui/ConversationSurfaceContext";
 import { ConversationRegionSkeleton } from "@/features/conversation/components/ConversationRegionSkeleton";
+import { PendingMailMessages } from "@/features/mailbox/components/PendingMailMessages";
 const presentationClasses = bindCssModuleClasses({ ...appPresentation });
 
 
@@ -58,6 +59,7 @@ export const BottomDock: React.FC<BottomDockProps> = ({ mode = "desktop" }) => {
 							<FrontendToolContainer />
 						</div>
 					)}
+					{!transitionBlocking && <PendingMailMessages />}
 					<fieldset className={presentationClasses("bottom-dock-composer-rail")} disabled={transitionBlocking}
 						aria-disabled={transitionBlocking} {...(transitionBlocking ? { inert: "" } : {})}
 						style={{ border: 0, margin: 0, padding: 0, minWidth: 0 }}>
