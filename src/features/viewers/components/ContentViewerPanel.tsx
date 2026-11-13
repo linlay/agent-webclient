@@ -1,6 +1,7 @@
 import { bindCssModuleClasses } from "@/shared/utils/cssModuleClasses";
 import sharedPresentation from "@/shared/ui/Presentation.module.css";
 import React from "react";
+import { useDesktopArtifactDrag } from "@/shared/ui/useDesktopArtifactDrag";
 import {
   commitDocument,
   getAgentFile,
@@ -343,6 +344,10 @@ export const ContentViewerPanel: React.FC<ContentViewerPanelProps> = ({
   const appState = useAppState();
   const message = useAppMessage();
   const chatId = String(surfaceContext?.chatId ?? (target.type === "resource" ? target.source?.chatId : undefined) ?? appState.chatId ?? "").trim();
+  const artifactDrag = useDesktopArtifactDrag(chatId,
+    target.type === "resource" && target.source?.kind === "artifact" ? target.source.resourceId : undefined,
+    target.type === "resource" && target.source?.kind !== "reference" ? target.url : "", true,
+    status => { void message.info(t(`attachments.exportDrag.${status}`)); });
   const currentChat = appState.chats?.find((chat) => chat.chatId === chatId);
   const teamChat = surfaceContext?.teamChat ?? Boolean(
     String("").trim(),
@@ -913,8 +918,9 @@ export const ContentViewerPanel: React.FC<ContentViewerPanelProps> = ({
             onStateChange={setBrowserImageState}
           />
         ) : contentKind === "image" && mediaUrl ? (
-          <div className="content-viewer-image-review-host tw:inline-block tw:max-w-full tw:self-start">
+          <div {...artifactDrag.props} className="content-viewer-image-review-host tw:inline-block tw:max-w-full tw:self-start">
             <Image
+              draggable={artifactDrag.available ? false : undefined}
               className="content-viewer-image"
               src={mediaUrl}
               alt={viewerName}
@@ -944,6 +950,7 @@ export const ContentViewerPanel: React.FC<ContentViewerPanelProps> = ({
             onDownload={handleDownload}
           /> :
           <DocumentMetadataPanel
+            dragProps={artifactDrag.props}
             compact={isDesktopLocalOpenDocument(viewerName)}
             name={viewerName}
             mimeType={workspaceFileResponse?.mimeType || resourceMimeType || (target.type === "resource" ? target.mimeType : "") || "application/octet-stream"}

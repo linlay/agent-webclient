@@ -21,7 +21,7 @@ afterEach(() => { act(() => root.unmount()); container.remove(); Reflect.deleteP
 async function hover() { await act(async () => { container.firstChild!.dispatchEvent(new Event("pointerover", { bubbles: true })); }); }
 async function drag() { const event = new Event("dragstart", { bubbles: true, cancelable: true }); await act(async () => { container.firstChild!.dispatchEvent(event); }); return event; }
 it("prepares an identity before dragstart and starts synchronously with an opaque token", async () => {
-  await hover(); expect(prepare).toHaveBeenCalledWith({ chatId: "chat", artifactId: "artifact", runId: "run" });
+  await hover(); expect(prepare).toHaveBeenCalledWith({ chatId: "chat", artifactId: "artifact", runId: "run", relativePath: "artifacts/run/a.txt" });
   expect((await drag()).defaultPrevented).toBe(true); expect(start).toHaveBeenCalledWith("lease");
   expect(container.firstElementChild!.getAttribute("data-state")).toBe("idle");
 });
@@ -39,8 +39,8 @@ it("ignores late preparation results after Chat switching", async () => {
   await act(async () => resolve({ ok: true, token: "stale", expiresAt: Date.now() + 10000 }));
   await drag(); expect(start).not.toHaveBeenCalled();
 });
-it("keeps browser and non-artifact attachments out of native export", async () => {
-  act(() => root.render(<Probe artifact="" />)); await hover(); await drag(); expect(prepare).not.toHaveBeenCalled(); expect(start).not.toHaveBeenCalled();
+it("supports path-bound artifacts without IDs and leaves standalone browser unchanged", async () => {
+  act(() => root.render(<Probe artifact="" />)); await hover(); await drag(); expect(prepare).toHaveBeenCalledWith({ chatId: "chat", runId: "run", relativePath: "artifacts/run/a.txt" });
   Reflect.deleteProperty(window, ARTIFACT_DRAG_GLOBAL);
   act(() => root.render(<Probe />)); expect(container.firstElementChild!.hasAttribute("draggable")).toBe(false);
 });

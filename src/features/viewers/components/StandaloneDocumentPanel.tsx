@@ -19,6 +19,7 @@ function formatFileSize(sizeBytes: number | undefined, locale: string): string {
 }
 
 interface DocumentMetadataPanelProps {
+  dragProps?: React.HTMLAttributes<HTMLElement>;
   name: string;
   mimeType: string;
   sizeBytes?: number;
@@ -32,7 +33,7 @@ interface DocumentMetadataPanelProps {
 }
 
 export const DocumentMetadataPanel: React.FC<DocumentMetadataPanelProps> = ({
-  name, mimeType, sizeBytes, note, previewAction, onDownload, localActions, primaryAction, previewStatus, compact = false,
+  dragProps, name, mimeType, sizeBytes, note, previewAction, onDownload, localActions, primaryAction, previewStatus, compact = false,
 }) => {
   const { t, locale } = useI18n();
   const [downloading, setDownloading] = React.useState(false);
@@ -47,7 +48,7 @@ export const DocumentMetadataPanel: React.FC<DocumentMetadataPanelProps> = ({
 
   return (
     <div className={styles.surface}>
-      <section className={`${styles.card}${compact ? ` ${styles.compactCard}` : ""}`} aria-label={name}>
+      <section {...dragProps} className={`${styles.card}${compact ? ` ${styles.compactCard}` : ""}`} aria-label={name}>
         <div className={styles.header}>
           <div className={styles.fileIcon} aria-hidden="true"><MaterialIcon name={fileIcon} /></div>
           <div className={styles.heading}>

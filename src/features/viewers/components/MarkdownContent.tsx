@@ -1,3 +1,4 @@
+import { useDesktopArtifactDrag } from "@/shared/ui/useDesktopArtifactDrag";
 import React, {
   useMemo,
   useCallback,
@@ -165,6 +166,7 @@ const AuthAnchor: React.FC<AuthAnchorProps> = (props) => {
   const message = useAppMessage();
   // The Markdown renderer passes file targets literally.
   const href = String(markdownHref || "").trim();
+  const artifactDrag = useDesktopArtifactDrag(chatId, undefined, href, true, status => { void message.info(t(`attachments.exportDrag.${status}`)); });
   const [downloading, setDownloading] = useState(false);
   const contextTargetId = React.useId();
   const classified = useMemo(
@@ -315,6 +317,7 @@ const AuthAnchor: React.FC<AuthAnchorProps> = (props) => {
     <a
       ref={contextTargetRef}
       {...rest}
+      {...artifactDrag.props}
       href={unavailableReason ? undefined : href}
       {...(unavailableReason ? { title: unavailableReason, "aria-disabled": true } : {})}
       onClick={handleClick}
@@ -333,6 +336,8 @@ type AuthImageProps = MarkdownImageProps & {
 const AuthImage: React.FC<AuthImageProps> = (props) => {
   const { src, chatId, agentKey, teamChat, alt, ...rendererProps } = props;
   const { t } = useI18n();
+  const message = useAppMessage();
+  const artifactDrag = useDesktopArtifactDrag(chatId, undefined, src || "", true, status => { void message.info(t(`attachments.exportDrag.${status}`)); });
   const resolved = useAuthenticatedResourceUrl(src, chatId, { teamChat, ...(agentKey ? { agentKey } : {}) });
   const contextTargetId = React.useId();
   const authenticatedResource = useMemo(
@@ -366,9 +371,10 @@ const AuthImage: React.FC<AuthImageProps> = (props) => {
   // antd Image 把点击收在包裹层用于打开预览，markdown 透传的 img onClick 不再适用。
   const { onClick: _rendererOnClick, ...imageProps } = sanitizeMarkdownImageProps(rendererProps);
   return (
-    <div ref={contextTargetRef} className="tw:inline-block">
+    <div {...artifactDrag.props} ref={contextTargetRef} className="tw:inline-block">
       <Image
         {...imageProps}
+        draggable={artifactDrag.available ? false : undefined}
         src={resolved.url}
         alt={alt || ""}
         // 预览必须用鉴权后的 Blob URL，直接用 markdown src 会 401。

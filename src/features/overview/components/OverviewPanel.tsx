@@ -1,5 +1,6 @@
 import libraryPresentation from "@/shared/ui/Presentation.module.css";
 import React from "react";
+import { OverviewArtifactRow } from "./OverviewArtifactRow";
 import { useOpenTarget } from "@/features/surfaces/hooks/useOpenTarget";
 import { useAppState } from "@/app/state/AppContext";
 import { formatAttachmentSize, getAttachmentKind } from "@/features/artifacts/lib/attachmentUtils";
@@ -845,7 +846,8 @@ export const OverviewContentView: React.FC<OverviewContentViewProps> = ({
                 const sizeLabel = formatAttachmentSize(item.artifact.sizeBytes);
                 return (
                   <li key={item.artifactId}>
-                    <button
+                    <OverviewArtifactRow
+                      chatId={state.chatId} artifactId={item.artifactId} source={item.artifact.url}
                       type="button"
                       className={ARTIFACT_ITEM_CLASS_NAME}
                       onClick={() => handleArtifactClick(item)}
@@ -869,7 +871,7 @@ export const OverviewContentView: React.FC<OverviewContentViewProps> = ({
                           {timeLabel}
                         </span>
                       ) : null}
-                    </button>
+                    </OverviewArtifactRow>
                   </li>
                 );
               })}

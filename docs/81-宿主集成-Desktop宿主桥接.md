@@ -158,6 +158,6 @@ Standalone、缺少 canonical Chat/Agent 和旧宿主未声明能力时沿用 bl
 
 ## 产物文件拖出
 
-Main Chat 的正式产物卡片消费独立 v1 Artifact Drag bridge，hover 或按下时以 Chat、Run、Artifact 身份准备临时副本，真实 dragstart 时仅交付不透明租约。页面不接收或提交本地路径，不在拖动手势中等待下载。准备中与失败由卡片提示，尚未准备好时需稍后再次拖动；普通浏览器及旧宿主保持现有预览和下载。
+Main Chat 的正式产物卡片、正文已发布产物链接／图片、WorkPanel 概览产物列表和文件预览消费独立 v1 Artifact Drag bridge，hover 或按下时以 Chat、Run、真实 Artifact ID 或规范产物路径准备临时副本，真实 dragstart 时仅交付不透明租约。页面不接收或提交本地路径，不在拖动手势中等待下载。准备中与失败由卡片提示，尚未准备好时需稍后再次拖动；普通浏览器及旧宿主保持现有预览和下载。
 
-Desktop 根据真实顶层 sender、当前 Main Chat 注册代次与 owner Chat 校验请求，并从 Platform 权威清单解析文件名及 Run，使用现有 artifacts/read 取得并校验文件，系统拖拽仅交付临时副本。Chat 切换、归档、删除或连接轮换使旧租约失效。macOS Finder 与 Windows 资源管理器共用身份契约，原生适配由 Desktop 分平台处理。本能力与生成契约镜像须随 Desktop 与 WebClient 同批发布，不涉及 Platform API 变更。
+Desktop 根据真实顶层 sender、当前 Main Chat／Overview／Artifact 注册代次与 owner Chat 校验请求，Artifact 页面还须匹配所绑定文件；从 Platform 权威清单解析唯一正式发布身份、文件名及 Run，使用现有 artifacts/read 取得并校验文件，系统拖拽仅交付临时副本。Chat 切换、归档、删除或连接轮换使旧租约失效。macOS Finder 与 Windows 资源管理器共用身份契约，原生适配由 Desktop 分平台处理。本能力与生成契约镜像须随 Desktop 与 WebClient 同批发布，不涉及 Platform API 变更。
