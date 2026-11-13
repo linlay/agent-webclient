@@ -249,6 +249,31 @@ describe("ConversationStage", () => {
     expect(shouldEnableQueryAnchors(998)).toBe(true);
   });
 
+  // Virtuoso 只按条目 offsetHeight 记账；条目根内容的 margin 必须留在条目盒子里，
+  // 否则 scrollToIndex(LAST, end) 贴底会停在真实底部之上（滚到底又往上跳）。
+  it("wraps every virtual item in its own formatting context", () => {
+    const row = createAgentWorkerRow();
+    mockCurrentWorker = { ...row, raw: null, row, relatedChats: [] };
+    const query: TimelineNode = {
+      id: "user_1", kind: "message", role: "user", text: "hi", ts: 100,
+    };
+    useAppState.mockReturnValue({
+      ...createInitialState(),
+      chatId: "chat_1",
+      workerSelectionKey: row.key,
+      timelineNodes: createTimelineMap([query]),
+      timelineOrder: [query.id],
+    });
+
+    const html = renderToStaticMarkup(
+      React.createElement(ConnectedConversationStage, {
+        onFeedback: mockOnFeedback, deriveChatAction: mockDeriveChatAction, surfaceMode: "main",
+      }),
+    );
+
+    expect(html).toContain('class="conversation-stage-item"');
+  });
+
   describe("query resend actions", () => {
     const references = [
       { type: "file", id: "file_1", name: "note.txt", url: "@chat/docs/note.txt" },

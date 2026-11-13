@@ -68,8 +68,13 @@ export interface ConversationStageProps {
   };
 }
 
+// Virtuoso 用条目的 offsetHeight 计算高度与偏移，条目根节点及其子节点的 margin
+// 若塌陷到条目框之外就不计入；滚到底后再按 scrollToIndex(LAST, end) 贴底会停在
+// 真实底部之上，表现为“滚到底又往上跳一点”。用 flow-root 让条目自成 BFC，
+// 把内容 margin 收进条目自身的盒子。见 Timeline.module.css。
+const CONVERSATION_ITEM_CLASS_NAME = "conversation-stage-item";
 const ConversationItem = ({ item, children, ...rest }: React.HTMLAttributes<HTMLDivElement> & { item: ConversationListItem }) =>
-  <div {...rest} data-conversation-item-key={item.key}>{children}</div>;
+  <div {...rest} className={CONVERSATION_ITEM_CLASS_NAME} data-conversation-item-key={item.key}>{children}</div>;
 
 export function ConversationStage({
   items, agents, skills, fallbackAgentKey, tasks, expandedRuns, onToggleRun,

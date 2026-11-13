@@ -170,6 +170,13 @@
     }
 }
 
+/* Virtuoso 只按条目自身的 offsetHeight 记账，条目内容的外侧 margin 会塌陷到条目框
+   之外、不计入高度与偏移；stop-at-bottom 的 scrollToIndex(LAST, end) 于是停在真实
+   底部之上，滚到底后又被拽回去。flow-root 让条目自成 BFC，把 margin 收进条目盒子。 */
+:global(.conversation-stage-item) {
+    display: flow-root;
+}
+
 /* 列表末尾留白：主对话的“滚动到底部”按钮浮动在这段空白里，不遮挡最后一条消息。 */
 :global(.conversation-stage-bottom-spacer) {
     height: 60px;
