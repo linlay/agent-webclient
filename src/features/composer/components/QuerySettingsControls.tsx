@@ -962,7 +962,6 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
           variant="ghost"
           size="sm"
           iconOnly={compact}
-          color="var(--accent)"
           title={accessButtonTitle}
           aria-label={compact ? accessButtonTitle : undefined}
           onClick={(event) => event.preventDefault()}

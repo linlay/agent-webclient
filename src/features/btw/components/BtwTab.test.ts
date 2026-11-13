@@ -184,7 +184,7 @@ describe("BtwTab composer controls", () => {
     expect(html.indexOf("<textarea")).toBeLessThan(
       html.indexOf('aria-label="btw.stop"'),
     );
-    expect(button).toContain("ui-btn-danger");
+    expect(button).toContain("ui-btn-color-danger");
     expect(button).toContain("disabled");
     expect(button).not.toContain("is-loading");
     expect(html).not.toContain('aria-label="btw.send"');
@@ -197,7 +197,7 @@ describe("BtwTab composer controls", () => {
     });
     const button = findButton(html, "btw.stop");
 
-    expect(button).toContain("ui-btn-danger");
+    expect(button).toContain("ui-btn-color-danger");
     expect(button).not.toContain("disabled");
     expect(button).not.toContain("is-loading");
   });
@@ -210,7 +210,7 @@ describe("BtwTab composer controls", () => {
     });
     const button = findButton(html, "btw.stop");
 
-    expect(button).toContain("ui-btn-danger");
+    expect(button).toContain("ui-btn-color-danger");
     expect(button).toContain("is-loading");
     expect(button).toContain("disabled");
     expect(html).toContain("tw:animate-ui-spin");

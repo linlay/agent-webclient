@@ -426,7 +426,8 @@ const ComposerActionsPure: React.FC<
             <UiButton
               className={INTERRUPT_BUTTON_CLASS}
               id="interrupt-btn"
-              variant="danger"
+              variant="ghost"
+              color="danger"
               size="sm"
               iconOnly
               disabled={interruptDisabled}

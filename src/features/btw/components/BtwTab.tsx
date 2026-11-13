@@ -313,7 +313,8 @@ export const BtwTabView: React.FC<BtwTabViewProps> = ({
             />
             {running ? (
               <UiButton
-                variant="danger"
+                variant="ghost"
+                color="danger"
                 size="sm"
                 iconOnly
                 disabled={!interruptReady || interruptPending}

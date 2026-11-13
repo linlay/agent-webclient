@@ -145,7 +145,7 @@ function ConnectorAuthPanelContent({ item, disabled, onConfigure, onCredentialsC
       {interactive && confirmLogout && status === "authorized" && <div className={styles.notice}>
         <p>{t("connectors.auth.logoutConfirm")}</p>
         <div className={styles.actions}>
-          <UiButton size="sm" variant="danger" disabled={busy} loading={auth.operation === "logout"} onClick={() => { setConfirmLogout(false); void auth.logout(); }}>{t("connectors.auth.logoutConfirmAction")}</UiButton>
+          <UiButton size="sm" variant="secondary" color="danger" disabled={busy} loading={auth.operation === "logout"} onClick={() => { setConfirmLogout(false); void auth.logout(); }}>{t("connectors.auth.logoutConfirmAction")}</UiButton>
           <UiButton size="sm" variant="ghost" disabled={busy} onClick={() => setConfirmLogout(false)}>{t("connectors.auth.keepLogin")}</UiButton>
         </div>
       </div>}
@@ -154,7 +154,7 @@ function ConnectorAuthPanelContent({ item, disabled, onConfigure, onCredentialsC
     {item.authMode === "token" && !readOnly && (confirmCredentialReset && credentialSchema ? <div className={styles.notice}>
       <p>{t("connectors.credentials.clearConfirm")}</p>
       <div className={styles.actions}>
-        <UiButton size="sm" variant="danger" disabled={busy} loading={auth.operation === "logout"} onClick={() => void resetCredentials()}>{t("connectors.credentials.clearAndContinue")}</UiButton>
+        <UiButton size="sm" variant="secondary" color="danger" disabled={busy} loading={auth.operation === "logout"} onClick={() => void resetCredentials()}>{t("connectors.credentials.clearAndContinue")}</UiButton>
         <UiButton size="sm" variant="ghost" disabled={busy} onClick={() => setConfirmCredentialReset(false)}>{t("connectors.import.cancel")}</UiButton>
       </div>
     </div> : <div><UiButton size="sm" disabled={busy || auth.checking || !credentialSchema} onClick={() => setConfirmCredentialReset(true)}>{t("connectors.credentials.rebind")}</UiButton></div>)}
