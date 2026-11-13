@@ -161,7 +161,20 @@
     }
 }
 
+/* 滚动时 muted 灰字“变色”不是 CSS 在改颜色：滚动会让 scroller 内容被提升为合成层，
+   合成层上的文字只能用灰度抗锯齿绘制（LCD 次像素抗锯齿要求文字落在不透明、未提升
+   的层里），停住后层被回收，文字又切回次像素绘制。同一个 `#86909c` 在两种栅格化下
+   渲染出来的“墨量”差两成左右，低对比的 muted 文字会把这个差值放大成肉眼可见的深浅
+   变化；正文和标题是深色，所以现象几乎只出现在 collapse header 这类 muted 文本上。
+   弱机帧率低、滚动帧停留久，看上去就像文字在变色。
+   这里把舞台内文字固定成灰度抗锯齿，滚动前后只有一种绘制结果。
+   验证方式：DevTools › Rendering › 勾选 "Disable LCD text" 后滚动，色差应消失。
+   如果不想改变整屏正文的字重，可以把这两行下移到 .timeline-run-collapse 的 header
+   规则里，只固定那一段；代价是其它 muted 文本仍会在滚动时轻微变浅。 */
 :global(.conversation-stage-virtuoso) {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+
     >div {
         max-width: 840px;
         left: 50%;
@@ -381,6 +394,10 @@
 :global(.timeline-run-collapse):global(.ant-collapse)>:global(.ant-collapse-item)>:global(.ant-collapse-header) {
     padding: 0 0 0 2px;
     color: var(--text-muted);
+    /* antd 给 header 挂了 transition: all 0.3s，任何落到 header 上的样式变化（含主题
+       或栅格化引起的颜色差异）都会被拉成一段肉眼可见的渐变，弱机掉帧时尤其明显。
+       header 本身没有需要过渡的属性——展开箭头有自己独立的 transform 过渡。 */
+    transition: none;
 }
 
 :global(.timeline-run-collapse):global(.ant-collapse)>:global(.ant-collapse-item)>:global(.ant-collapse-content)>:global(.ant-collapse-content-box) {
