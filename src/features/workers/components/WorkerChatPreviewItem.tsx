@@ -10,20 +10,10 @@ import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { AgentIcon } from "@/shared/icons/agent";
 import type { Agent } from "@/features/agents/lib/agentState";
 import { isChatActiveRun } from "@/features/chats/lib/chatRunState";
+import { AwaitingStatusChip } from "@/shared/ui/AwaitingStatusChip";
 import { SidebarOverflowText } from "./SidebarOverflowText";
 import styles from "./WorkerChatPreviewItem.module.css";
 import type { SidebarDragProps } from "./SidebarSortableList";
-
-function getAwaitingStatusKey(mode?: string): string {
-  switch (mode) {
-    case 'plan':
-    case 'planning': return 'leftSidebar.awaitingStatus.plan';
-    case 'question': return 'leftSidebar.awaitingStatus.question';
-    case 'approval': return 'leftSidebar.awaitingStatus.approval';
-    case 'form': return 'leftSidebar.awaitingStatus.form';
-    default: return 'leftSidebar.awaitingApproval';
-  }
-}
 
 export const WorkerChatPreviewItem: React.FC<{
   chat: WorkerConversationRow;
@@ -77,7 +67,7 @@ export const WorkerChatPreviewItem: React.FC<{
                 <circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" />
               </svg>
             </span>}
-            {chat.hasPendingAwaiting ? <span className={`${styles.awaiting} chat-awaiting-status`}>{t(getAwaitingStatusKey(chat.awaitingMode))}</span>
+            {chat.hasPendingAwaiting ? <AwaitingStatusChip mode={chat.awaitingMode} />
               : isBusy ? <MaterialIcon name="progress_activity" className={`${styles.loading} worker-chat-loading`} /> : isChatUnread(chat) &&
               <span className={`${styles.unread} worker-chat-unread`}><UnreadDot chat={chat} /></span>}
           </span>}

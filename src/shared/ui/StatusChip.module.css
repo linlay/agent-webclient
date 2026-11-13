@@ -1,0 +1,102 @@
+/*
+ * One status chip shared by the right sidebar run info, the left sidebar chat
+ * rows, the worker panel header and the history list.
+ *
+ * Metrics, tint recipe and shimmer mirror the desktop shell's
+ * `.chat-awaiting-status` (zenmind-desktop renderer/styles/navigation.css) so
+ * both surfaces read as one component. Geometry never varies by tone; only
+ * `--chip-color` / `--chip-bg` change, so a run switching from running to
+ * awaiting never resizes the chip.
+ */
+.chip {
+  flex: none;
+  position: relative;
+  overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 6px;
+  border-radius: 20px;
+  font-size: 10px;
+  font-weight: inherit;
+  line-height: 1.4;
+  white-space: nowrap;
+  color: var(--chip-color, var(--ink-2));
+  background: var(--chip-bg, color-mix(in srgb, var(--chip-color, var(--ink-2)) 12%, transparent));
+}
+
+html[data-theme="dark"] .chip {
+  --chip-bg: color-mix(in srgb, var(--chip-color, var(--ink-2)) 24%, transparent);
+}
+
+.chip[data-tone="active"] {
+  --chip-color: var(--accent-electric-strong);
+}
+
+.chip[data-tone="success"] {
+  --chip-color: var(--ok);
+}
+
+.chip[data-tone="danger"] {
+  --chip-color: var(--danger);
+}
+
+.chip[data-tone="muted"] {
+  --chip-color: var(--ink-muted);
+}
+
+/* Awaiting states read the pending skin tokens the desktop host already
+   injects into this document, so a skin recolor lands on both surfaces. */
+.chip[data-tone="pending"] {
+  --chip-color: var(--skin-pending-text, #b45309);
+  --chip-bg: var(--skin-pending, rgba(245, 158, 11, 0.12));
+}
+
+html[data-theme="dark"] .chip[data-tone="pending"] {
+  --chip-color: var(--skin-pending-text, #facc15);
+  --chip-bg: var(--skin-pending, rgba(180, 83, 9, 0.24));
+}
+
+.dot {
+  width: 6px;
+  height: 6px;
+  flex: none;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .chip[data-pulse] .dot {
+    animation: chipPulse 1.2s ease-in-out infinite;
+  }
+
+  .chip[data-shimmer]::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(110deg, transparent 20%, rgba(255, 255, 255, 0.35) 50%, transparent 80%);
+    transform: translateX(-120%);
+    animation: chipShimmer 3s ease-in-out infinite;
+  }
+}
+
+@keyframes chipShimmer {
+  0% {
+    transform: translateX(-120%);
+  }
+  30%, 100% {
+    transform: translateX(120%);
+  }
+}
+
+@keyframes chipPulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.4;
+    transform: scale(0.7);
+  }
+}

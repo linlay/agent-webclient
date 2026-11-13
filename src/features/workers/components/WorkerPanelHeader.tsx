@@ -6,22 +6,8 @@ import { AgentIcon } from "@/shared/icons/agent";
 import { useI18n } from "@/shared/i18n";
 import type { WorkerConversationRow, WorkerRow } from "@/features/workers/lib/workerState";
 import { UiButton } from "@/shared/ui/UiButton";
+import { AwaitingStatusChip } from "@/shared/ui/AwaitingStatusChip";
 import { WorkerActionsMenu, type WorkerActionHandlers } from "./WorkerActionsMenu";
-
-function getAwaitingStatusKey(mode?: string): string {
-  switch (mode) {
-    case "planning":
-      return "leftSidebar.awaitingStatus.plan";
-    case "question":
-      return "leftSidebar.awaitingStatus.question";
-    case "approval":
-      return "leftSidebar.awaitingStatus.approval";
-    case "form":
-      return "leftSidebar.awaitingStatus.form";
-    default:
-      return "leftSidebar.awaitingApproval";
-  }
-}
 
 type AgentIconConfig =
   | string
@@ -31,7 +17,7 @@ type AgentIconConfig =
     };
 
 const WORKER_PANEL_HEADER_CLASS =
-  "worker-panel-header tw:flex tw:min-w-0 tw:items-center tw:gap-2 tw:[&_.chat-awaiting-status]:mr-[5px] tw:[&_.chat-awaiting-status]:whitespace-nowrap tw:[&_.chat-awaiting-status]:rounded-pill tw:[&_.chat-awaiting-status]:bg-[color-mix(in_srgb,var(--accent-warn)_10%,transparent)] tw:[&_.chat-awaiting-status]:px-1.5 tw:[&_.chat-awaiting-status]:py-0.5 tw:[&_.chat-awaiting-status]:text-[11px] tw:[&_.chat-awaiting-status]:text-accent-warn tw:[&_.worker-chat-loading]:mr-0.5 tw:[&_.worker-chat-loading]:animate-ui-spin tw:[&_.worker-chat-loading]:text-base tw:[&_.worker-chat-loading]:text-text-sub tw:[&_.worker-panel-preview]:h-5 tw:[&_.worker-panel-preview]:overflow-hidden tw:[&_.worker-panel-preview]:text-ellipsis tw:[&_.worker-panel-preview]:whitespace-nowrap tw:[&_.worker-panel-preview]:text-xs tw:[&_.worker-panel-preview]:text-text-muted tw:[&_.worker-panel-preview]:transition-[height] tw:[&_.worker-panel-preview]:duration-200 tw:[&_.worker-panel-preview]:ease-in-out";
+  "worker-panel-header tw:flex tw:min-w-0 tw:items-center tw:gap-2 tw:[&_.worker-chat-loading]:mr-0.5 tw:[&_.worker-chat-loading]:animate-ui-spin tw:[&_.worker-chat-loading]:text-base tw:[&_.worker-chat-loading]:text-text-sub tw:[&_.worker-panel-preview]:h-5 tw:[&_.worker-panel-preview]:overflow-hidden tw:[&_.worker-panel-preview]:text-ellipsis tw:[&_.worker-panel-preview]:whitespace-nowrap tw:[&_.worker-panel-preview]:text-xs tw:[&_.worker-panel-preview]:text-text-muted tw:[&_.worker-panel-preview]:transition-[height] tw:[&_.worker-panel-preview]:duration-200 tw:[&_.worker-panel-preview]:ease-in-out";
 
 const WORKER_PANEL_ICON_CLASS =
   "worker-panel-icon tw:transition-transform tw:duration-200 tw:ease-in-out";
@@ -46,9 +32,6 @@ const WORKER_PANEL_NEW_CLASS = "worker-panel-new";
 
 const WORKER_CHAT_LOADING_CLASS =
   "worker-chat-loading tw:mr-0.5 tw:text-base tw:text-text-sub tw:animate-ui-spin";
-
-const CHAT_AWAITING_STATUS_CLASS =
-  "chat-awaiting-status tw:mr-[5px] tw:whitespace-nowrap tw:rounded-pill tw:bg-[color-mix(in_srgb,var(--accent-warn)_10%,transparent)] tw:px-1.5 tw:py-0.5 tw:text-[11px] tw:text-accent-warn";
 
 const WORKER_TERMINAL_ACTIVE_CLASS =
   "worker-terminal-active tw:inline-flex tw:size-[18px] tw:flex-none tw:items-center tw:justify-center tw:rounded-md tw:bg-[color-mix(in_srgb,var(--accent-soft)_72%,transparent)] tw:text-accent-electric-strong tw:[&_.material-icon]:text-base";
@@ -195,9 +178,7 @@ export const WorkerPanelHeader: React.FC<WorkerActionHandlers & {
             {preview}
           </Typography.Text>
           {previewStatus === "awaiting" && (
-            <span className={CHAT_AWAITING_STATUS_CLASS}>
-              {t(getAwaitingStatusKey(previewChat?.awaitingMode))}
-            </span>
+            <AwaitingStatusChip mode={previewChat?.awaitingMode} />
           )}
           {previewStatus === "running" && (
             <MaterialIcon
