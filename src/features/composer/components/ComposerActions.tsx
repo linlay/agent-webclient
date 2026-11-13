@@ -214,6 +214,19 @@ const ComposerActionsPure: React.FC<
 
   const [connectorPickerOpen, setConnectorPickerOpen] = useState(false);
   const [connectorSearch, setConnectorSearch] = useState("");
+  // Desktop 的侧栏与 Composer 分处宿主和 guest 两个文档，切换对话的点击
+  // 不会进入 guest，antd Popover 收不到 outside-click；而会话切换一开始
+  // composer 就整体进入不可用，这里同时收起，避免浮层跨会话残留。
+  useEffect(() => {
+    if (interactionDisabled) {
+      setConnectorPickerOpen(false);
+    }
+  }, [interactionDisabled]);
+  // 目录、堆叠与搜索都按原 chat/agent 请求，切换后旧浮层没有意义。
+  useEffect(() => {
+    setConnectorPickerOpen(false);
+    setConnectorSearch("");
+  }, [currentChatId, currentAgentKey]);
   // 堆叠只取前几个已启用连接器，索引用于绝对定位的层叠与展开顺序
   const connectorStackItems = enabledConnectors.slice(
     0,

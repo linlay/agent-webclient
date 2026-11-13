@@ -528,6 +528,8 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
   const [loadAttempt, setLoadAttempt] = useState(0);
   const [modelConfigSaving, setModelConfigSaving] = useState(false);
   const [modelRefreshFailed, setModelRefreshFailed] = useState(false);
+  const [accessMenuOpen, setAccessMenuOpen] = useState(false);
+  const [modelMenuOpen, setModelMenuOpen] = useState(false);
   const appliedDefaultRef = useRef<AppliedDefaultModelOverride | null>(null);
   const forceRefreshRef = useRef(false);
   const manualRefreshAgentKeyRef = useRef<string | null>(null);
@@ -621,6 +623,20 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
       cancelled = true;
     };
   }, [agentKey, embeddedModelOptions, shouldShowModelControls, loadAttempt]);
+
+  // Desktop 的侧栏与 Composer 分处宿主和 guest 两个文档，切换对话的点击
+  // 不会进入 guest，Dropdown 收不到 outside-click；会话切换一开始 composer
+  // 就整体进入不可用，这里同时收起两个菜单，避免浮层跨会话残留。
+  useEffect(() => {
+    if (!disabled) return;
+    setAccessMenuOpen(false);
+    setModelMenuOpen(false);
+  }, [disabled]);
+  // 权限与模型都按原 chat/agent 的状态展示，切换后旧菜单没有意义。
+  useEffect(() => {
+    setAccessMenuOpen(false);
+    setModelMenuOpen(false);
+  }, [agentKey, state.chatId]);
 
   const accessLabel = t(`composer.query.access.${accessLevel}`);
   const accessButtonTitle = compact
@@ -948,6 +964,8 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
   return (
     <div className={QUERY_SETTINGS_CONTROLS_CLASS}>
       {(interactionConfig?.accessLevel ?? true) && <Dropdown
+        open={accessMenuOpen}
+        onOpenChange={setAccessMenuOpen}
         menu={{
           className: presentationClasses("query-settings-menu"),
           items: accessItems,
@@ -984,13 +1002,17 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
             aria-label={compact && modelButtonDisabled ? modelButtonTitle : undefined}
           >
             <Dropdown
+              open={modelMenuOpen}
+              onOpenChange={(nextOpen) => {
+                setModelMenuOpen(nextOpen);
+                onModelMenuOpenChange(nextOpen);
+              }}
               disabled={modelButtonDisabled}
               menu={{
                 className: presentationClasses("query-settings-menu"),
                 items: modelItems,
                 onClick: onModelMenuClick,
               }}
-              onOpenChange={onModelMenuOpenChange}
               placement="topRight"
               trigger={["click"]}
             >
