@@ -5,7 +5,6 @@ import { fetchConnectorIcon, getConnectors, getConnectorAuthStatus, startConnect
 import type { ConnectorSummary, ConnectorAuthMode } from "@/shared/data";
 import { ConnectorPicker } from "./ConnectorPicker";
 import { AgentConnectorPicker } from "./AgentConnectorPicker";
-import { useAgentConnectors } from "../hooks/useAgentConnectors";
 import { ConnectorChatError } from "../lib/connectorChat";
 import { decodePlatformApiError } from "@/features/transport/lib/platformFrameCodec";
 
@@ -16,7 +15,6 @@ jest.mock("@/shared/data", () => ({
 }));
 const push = { subscribe: jest.fn(() => jest.fn()) };
 jest.mock("@/features/transport/hooks/useRealtimeTransport", () => ({ usePushTransport: () => push, useOptionalRealtimeTransport: () => undefined }));
-jest.mock("../hooks/useAgentConnectors", () => ({ useAgentConnectors: jest.fn() }));
 jest.mock("@/shared/i18n", () => ({ t: (key: string) => key, useI18n: () => ({ t: (key: string, params?: Record<string, string>) => params && key === "composer.addMenu.connectors.selectionConflict" ? `${key}: ${params.name}: ${params.conflicts}` : key }) }));
 jest.mock("@/shared/ui/MaterialIcon", () => ({ MaterialIcon: () => null }));
 jest.mock("@/shared/ui/UiButton", () => ({ UiButton: ({ children, variant: _variant, size: _size, ...props }: any) => React.createElement("button", props, children) }));
@@ -175,13 +173,12 @@ it("keeps unrelated Agent switches stable and blocks pointer and keyboard edits 
   ] } });
   const selection = {
     data: { agentKey: "zenmi", connectorIds: ["docs", "login"] }, availableIds: ["docs", "login", "mail"],
-    loading: false, savingId: "", loadError: null, saveError: null, catalogRevision: 0,
+    loading: false, savingId: "", loadError: null, saveError: null, syncError: null, catalogRevision: 0,
     refresh: jest.fn(async () => undefined), setSelected: jest.fn(async (_id: string, _enabled: boolean) => undefined),
   };
   const renderPicker = async () => {
-    jest.mocked(useAgentConnectors).mockReturnValue(selection);
     await act(async () => root.render(React.createElement(AgentConnectorPicker, {
-      agentKey: "zenmi", search: "", onSearchChange: jest.fn(),
+      agentKey: "zenmi", selection, search: "", onSearchChange: jest.fn(),
     })));
   };
   await renderPicker();

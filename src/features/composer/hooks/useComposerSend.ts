@@ -103,6 +103,7 @@ interface UseComposerSendInput {
   isAwaitingActive: boolean;
   isVoiceMode: boolean;
   mainChatRunning: boolean;
+  connectorUpdatePending?: boolean;
   editingModeAvailable?: boolean;
   modelOverride: QueryModelOverride;
   skillReferenceAgentKey: string;
@@ -163,6 +164,7 @@ export function useComposerSend(input: UseComposerSendInput) {
     isAwaitingActive,
     isVoiceMode,
     mainChatRunning,
+    connectorUpdatePending = false,
     editingModeAvailable = false,
     modelOverride,
     skillReferenceAgentKey,
@@ -259,7 +261,7 @@ export function useComposerSend(input: UseComposerSendInput) {
     const previous = prevMainRuntimeRef.current;
     const runId = runtime.runId || currentState.runId;
     prevMainRuntimeRef.current = { chatId: currentState.chatId, runId, running: mainChatRunning };
-    // A temporary restore gate must not consume the running-to-idle edge.
+    // A temporary gate must not consume the running-to-idle edge.
     // Keep its identity until we can send, or a chat/run change invalidates it.
     if (previous.chatId !== currentState.chatId || mainChatRunning || runtime.running ||
       (runId && runId !== previous.runId)) {
@@ -275,7 +277,8 @@ export function useComposerSend(input: UseComposerSendInput) {
       pendingQueueContinuationRef.current = null;
       return;
     }
-    if ((currentState.chatTransition && currentState.chatTransition.phase !== "ready") ||
+    if (connectorUpdatePending ||
+      (currentState.chatTransition && currentState.chatTransition.phase !== "ready") ||
       currentState.chatSurfaceBlocked || isAgentExecutionBlocked(currentState)) return;
     // Claim before dispatching: synchronous updates and repeated effects must
     // never start two queries for the same completion.
@@ -296,7 +299,7 @@ export function useComposerSend(input: UseComposerSendInput) {
         detail: { message: firstQueued.message, chatId: currentState.chatId, ...(firstQueued.references?.length ? { references: firstQueued.references, attachments: normalizeTimelineAttachments(firstQueued.references) } : {}) },
       }),
     );
-  }, [mainChatRunning, state.pendingSteers, state.chatId, state.runId, state.chatTransition, state.chatSurfaceBlocked, state.agentAvailability, dispatch, stateRef, activeQuerySessionRequestIdRef, querySessionsRef, messageApi, t]);
+  }, [mainChatRunning, connectorUpdatePending, state.pendingSteers, state.chatId, state.runId, state.chatTransition, state.chatSurfaceBlocked, state.agentAvailability, dispatch, stateRef, activeQuerySessionRequestIdRef, querySessionsRef, messageApi, t]);
 
   const resolveCurrentRunId = useCallback(() => {
     const currentState = stateRef.current || state;
@@ -643,7 +646,7 @@ export function useComposerSend(input: UseComposerSendInput) {
         return;
       }
     }
-    if (!hasSendableQuery(message, sendReferences, hasQueryHistory(currentState), canContinueChat(currentState))) return;
+    if (connectorUpdatePending || !hasSendableQuery(message, sendReferences, hasQueryHistory(currentState), canContinueChat(currentState))) return;
     pendingSendRef.current = true;
     pendingSentMessageRef.current = message;
     pendingSentReferencesRef.current = referenceSignature;
@@ -718,6 +721,7 @@ export function useComposerSend(input: UseComposerSendInput) {
     accessLevel,
     clearComposerAttachments,
     closeMention,
+    connectorUpdatePending,
     controlParams,
     dispatch,
     executeSlashCommand,

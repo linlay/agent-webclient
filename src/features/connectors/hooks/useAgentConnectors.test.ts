@@ -1,7 +1,7 @@
 /** @jest-environment jsdom */
 import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
-import { getAgent, getConnectorConnection, getConnectorConnections, setAgentConnector, type ConnectorConnection } from "@/shared/data";
+import { getAgent, getConnectorConnection, getConnectorConnections, getConnectors, setAgentConnector, type ConnectorConnection, type ConnectorOption } from "@/shared/data";
 import { createInitialState } from "@/app/state/state";
 import { appReducer } from "@/app/state/reducer";
 import { useAgentConnectors } from "./useAgentConnectors";
@@ -9,7 +9,7 @@ import { useAgentAvailability } from "@/features/composer/hooks/useAgentAvailabi
 import { invalidateAgentDetail } from "@/shared/data/api/routedClient";
 import { requestDataThroughExecutor } from "@/shared/data/api/dataRequestExecutor";
 
-jest.mock("@/shared/data", () => ({ getAgent: jest.fn(), getConnectorConnection: jest.fn(), getConnectorConnections: jest.fn(), setAgentConnector: jest.fn() }));
+jest.mock("@/shared/data", () => ({ getAgent: jest.fn(), getConnectorConnection: jest.fn(), getConnectorConnections: jest.fn(), getConnectors: jest.fn(), setAgentConnector: jest.fn() }));
 const push = { subscribe: jest.fn(() => jest.fn()) };
 const mockStatusListeners = new Set<(status: string) => void>();
 const mockTransport = {
@@ -28,7 +28,10 @@ jest.mock("@/app/state/AppContext", () => ({ useAppContext: () => ({
   stateRef: mockStateRef, dispatch: mockDispatch,
 }) }));
 const response = (key: string, ids: string[]) => ({ code: 0, msg: "", data: { key, name: key, mode: "GENERAL", tools: [], skills: [], connectors: ids, controls: [], meta: {} } });
-const saved = (key: string, ids: string[]) => ({ code: 0, msg: "", data: { agentKey: key, connectorIds: ids, reloadPending: true } });
+const saved = (key: string, ids: string[]) => ({ code: 0, msg: "", data: { agentKey: key, connectorIds: ids, reloadPending: false } });
+const connectorCatalog = (connectors: ConnectorOption[], reloadPending = false) => ({
+  code: 0, msg: "", data: { agentKey: "zenmi", connectors, reloadPending },
+});
 const connection = (id: string, changes: Partial<ConnectorConnection> = {}): ConnectorConnection => ({
   connectorId: id, configured: true, configurationRequired: true, readiness: "ready",
   authentication: { connectorId: id, sessionId: "", status: "authorized", expiresAt: "" },
@@ -79,6 +82,64 @@ it("reuses Agent associations on opening and publishes one saved switch to share
   expect(runtime.savingId).toBe("");
   expect(runtime.catalogRevision).toBe(1);
   expect(getAgent).not.toHaveBeenCalled();
+});
+
+it("holds an enabled MCP switch through Agent publication and tool discovery", async () => {
+  const mcp = (status: "syncing" | "ready", toolCount: number) => ({
+    agentKey: "zenmi", serverKey: "mail", status, toolCount,
+  });
+  const mail = connection("mail");
+  jest.mocked(getConnectorConnection).mockResolvedValue({
+    code: 0, msg: "", data: { ...mail, capabilities: { ...mail.capabilities, hasMcp: true } },
+  });
+  jest.mocked(setAgentConnector).mockResolvedValue(saved("zenmi", ["docs", "meeting", "mail"]));
+  jest.mocked(getConnectors)
+    .mockResolvedValueOnce(connectorCatalog([{ id: "mail", name: "Mail" }], true))
+    .mockResolvedValueOnce(connectorCatalog([{ id: "mail", name: "Mail", mcp: [mcp("syncing", 0)] }]))
+    .mockResolvedValueOnce(connectorCatalog([{ id: "mail", name: "Mail", mcp: [mcp("ready", 1)] }]));
+  await mount();
+  await act(async () => { void runtime.setSelected("mail", true); });
+  expect(runtime.data?.connectorIds).toContain("mail");
+  expect(runtime.savingId).toBe("mail");
+  await act(async () => jest.advanceTimersByTimeAsync(2_000));
+  expect(runtime.savingId).toBe("mail");
+  await act(async () => jest.advanceTimersByTimeAsync(2_000));
+  expect(getConnectors).toHaveBeenCalledTimes(3);
+  expect(runtime.savingId).toBe("");
+  expect(runtime.syncError).toBeNull();
+  expect(setAgentConnector).toHaveBeenCalledTimes(1);
+});
+
+it("releases the wait and preserves the saved switch when tool discovery fails", async () => {
+  const mail = connection("mail");
+  jest.mocked(getConnectorConnection).mockResolvedValue({
+    code: 0, msg: "", data: { ...mail, capabilities: { ...mail.capabilities, hasMcp: true } },
+  });
+  jest.mocked(setAgentConnector).mockResolvedValue(saved("zenmi", ["docs", "meeting", "mail"]));
+  jest.mocked(getConnectors).mockResolvedValue(connectorCatalog([
+    { id: "mail", name: "Mail", mcp: [{ agentKey: "zenmi", serverKey: "mail", status: "unavailable", toolCount: 0 }] },
+  ]));
+  await mount();
+  await act(async () => runtime.setSelected("mail", true));
+  expect(runtime.data?.connectorIds).toContain("mail");
+  expect(runtime.savingId).toBe("");
+  expect(runtime.syncError?.reason).toBe("toolsUnavailable");
+  expect(runtime.saveError).toBeNull();
+  expect(setAgentConnector).toHaveBeenCalledTimes(1);
+});
+
+it("stops waiting after a bounded time if the Agent has not published the mount", async () => {
+  const mountResponse = saved("zenmi", ["docs", "meeting", "mail"]);
+  mountResponse.data.reloadPending = true;
+  jest.mocked(setAgentConnector).mockResolvedValue(mountResponse);
+  jest.mocked(getConnectors).mockResolvedValue(connectorCatalog([{ id: "mail", name: "Mail" }], true));
+  await mount();
+  await act(async () => { void runtime.setSelected("mail", true); });
+  expect(runtime.savingId).toBe("mail");
+  await act(async () => jest.advanceTimersByTimeAsync(60_000));
+  expect(runtime.savingId).toBe("");
+  expect(runtime.syncError?.reason).toBe("toolsSyncTimeout");
+  expect(runtime.data?.connectorIds).toContain("mail");
 });
 
 it("waits for Composer Agent hydration without creating a second reader", async () => {

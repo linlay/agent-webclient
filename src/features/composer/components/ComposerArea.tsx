@@ -1,5 +1,6 @@
 import { useEmbedComposer } from "../hooks/useEmbedComposer";
 import { usesMailboxSend } from "@/features/composer/lib/messageEntry";
+import { isEmbedMode } from "@/shared/config/embed";
 import { locateSelectedTextReference } from "@/shared/data/desktop/selectedTextLocate";
 import { bindCssModuleClasses } from "@/shared/utils/cssModuleClasses";
 import composerPresentation from "@/features/composer/components/ComposerPresentation.module.css";
@@ -102,6 +103,7 @@ import { selectedTextFragmentFromAttachment } from "@/features/selection/lib/sel
 
 import { FileDropOverlay, useFileDropTarget, useConversationFileDropReceiver } from "@/shared/ui/ConversationFileDrop";
 import { useAgentAvailability } from "@/features/composer/hooks/useAgentAvailability";
+import { useAgentConnectors } from "@/features/connectors/hooks/useAgentConnectors";
 const presentationClasses = bindCssModuleClasses({ ...composerPresentation });
 
 
@@ -192,6 +194,12 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
   }, [currentWorker]);
   const agentAvailability = useAgentAvailability(currentAgentKey, state.chatId);
   const agentExecutionBlocked = agentAvailability.status !== "available";
+  const connectorSelection = useAgentConnectors(isEmbedMode() ? "" : currentAgentKey);
+  const connectorUpdatePending = Boolean(connectorSelection.savingId);
+  const { syncError: connectorSyncError } = connectorSelection;
+  useEffect(() => {
+    if (connectorSyncError) void message.error(t(connectorSyncError.message));
+  }, [connectorSyncError, message, t]);
   const { activeRunId, activeRunOwner } = useActiveRunIdentity(state);
   const voiceModeAvailable = voiceEnabled && currentWorker?.type === "agent";
   const mainChatRuntime = resolveMainChatRuntime(
@@ -800,6 +808,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     interruptCurrentRun,
   } = useComposerSend({
     attachmentChatId,
+    connectorUpdatePending,
     accessLevel: interactionConfig.accessLevel ? accessOverride ?? "default" : "default",
     backgroundCommandText: {
       rememberPending: t("composer.background.remember.pending"),
@@ -887,14 +896,15 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
       !deferredSendRequestedRef.current ||
       !deferredSendReady ||
       hasStagedAttachments ||
-      hasUploadingAttachments
+      hasUploadingAttachments ||
+      (!deferredDirectSteerRef.current && connectorUpdatePending)
     ) return;
     deferredSendRequestedRef.current = false;
     setDeferredSendReady(false);
     if (chatTransitionBlocking || hasInvalidSelectedSkills) return;
     if (deferredDirectSteerRef.current) handleSubmitQueuedSteer();
     else handleSendImmediately();
-  }, [chatTransitionBlocking, handleSendImmediately, handleSubmitQueuedSteer, hasStagedAttachments, hasUploadingAttachments, hasInvalidSelectedSkills, deferredSendReady]);
+  }, [chatTransitionBlocking, handleSendImmediately, handleSubmitQueuedSteer, hasStagedAttachments, hasUploadingAttachments, hasInvalidSelectedSkills, deferredSendReady, connectorUpdatePending]);
 
   const handleSelectSlashItem = useCallback(
     (item: SlashPaletteItem) => {
@@ -946,12 +956,14 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     (!speechSupported ||
       speechState === "error" ||
       speechState === "unsupported");
+  const sendsThroughMailbox = usesMailboxSend(currentWorker?.type === "agent" ? currentWorker.raw?.mode : undefined);
   const sendDisabled =
     nativeShare.busy || nativeShare.blocked ||
     hasInvalidSelectedSkills ||
     chatTransitionBlocking ||
     // Only a BOT Chat accepts a new message while a question or tool waits.
-    (!usesMailboxSend(currentWorker?.type === "agent" ? currentWorker.raw?.mode : undefined) && (isFrontendActive || isAwaitingActive)) ||
+    (!sendsThroughMailbox && (isFrontendActive || isAwaitingActive)) ||
+    (connectorUpdatePending && (!isMainChatRunning || sendsThroughMailbox)) ||
     hasUploadingAttachments ||
     hasFailedAttachments ||
     !(isMainChatRunning ? hasSendableContent(inputValue, combinedSendReferences, true) : hasSendableQuery(inputValue, combinedSendReferences, hasQueryHistory(state), canContinueChat(state)));
@@ -1304,6 +1316,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
                   onEditingModeChange={handleEditingModeChange}
                   onAddReference={addContextReference}
                   currentAgentKey={currentAgentKey}
+                  connectorSelection={connectorSelection}
                   isMainChatRunning={isMainChatRunning}
                   referenceSelectionDisabled={referenceSelectionDisabled}
                   kbaseCatalog={kbaseMenuAvailable ? kbaseCatalog : undefined} selectedKbases={kbaseSelection} onSelectKbases={updateKbaseReferences}
@@ -1313,6 +1326,11 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
                   onSelectSkills={handleSelectPackageSkills}
                   lockedSkillIds={forcedSkills.map(skill => skill.id)}
                 />
+                {connectorUpdatePending && (
+                  <span role="status" className="tw:px-2 tw:text-xs tw:text-text-sub">
+                    {t("composer.addMenu.connectors.updating")}
+                  </span>
+                )}
                 {showSpeechHint && (
                   <div className={VOICE_HINT_CLASS}>{speechStatus}</div>
                 )}

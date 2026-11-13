@@ -6,6 +6,10 @@ const mockAgentAvailability = { status: "available", retry: jest.fn() };
 jest.mock("@/features/composer/hooks/useAgentAvailability", () => ({
   useAgentAvailability: () => mockAgentAvailability,
 }));
+const mockConnectorSelection = { savingId: "", syncError: null };
+jest.mock("@/features/connectors/hooks/useAgentConnectors", () => ({
+  useAgentConnectors: () => mockConnectorSelection,
+}));
 import { interactionDefaults } from "@/shared/contracts/interaction";
 import * as selectedTextHooks from "@/features/selection/hooks/useSelectedTextFragments";
 import { createSelectedTextFragment, selectedTextReferenceToAttachment } from "@/features/selection/lib/selectedTextReference";
@@ -330,6 +334,7 @@ describe("ComposerArea", () => {
 
   beforeEach(() => {
     mockAgentAvailability.status = "available";
+    mockConnectorSelection.savingId = "";
     mockHandleFileDrop.mockClear();
     globalWithStorage.localStorage = {
       getItem: jest.fn(() => null),

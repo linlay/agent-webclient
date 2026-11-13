@@ -843,6 +843,9 @@ export const zhCNMessages = {
   "connectors.chat.preparationFailed": "连接器运行依赖尚未准备完成，请检查连接器配置后重试。",
   "connectors.chat.preparationTimeout": "运行依赖准备尚未完成，已停止等待。可稍后重新检查；离开页面不会自动取消服务端准备。",
   "connectors.chat.reloadTimeout": "连接器已保存，但运行配置尚未生效。请等待当前任务结束后重新进入对话。",
+  "connectors.chat.toolsUnavailable": "连接器已保存，暂未发现可用工具。可在连接器菜单查看状态。",
+  "connectors.chat.toolsSyncFailed": "连接器已保存，暂时无法确认工具是否就绪。",
+  "connectors.chat.toolsSyncTimeout": "连接器已保存，等待工具就绪超时。可稍后在连接器菜单查看状态。",
   "connectors.chat.invalidResponse": "连接器或智能体状态不匹配，请刷新目录后重试。",
   "connectors.chat.draftChanged": "等待期间配置草稿发生了修改，已保留当前页面。请先保存或确认修改后再次进入对话。",
   "connectors.chat.waitInterrupted": "已停止等待并保留当前页面，请重新检查服务端状态后重试。",
@@ -1403,6 +1406,7 @@ export const zhCNMessages = {
   "composer.addMenu.connectors.configLoadFailed": "无法加载智能体的连接器配置",
   "composer.addMenu.connectors.selectionConflict": "无法选择“{name}”：已选择与其互斥的“{conflicts}”。请先取消原选择。",
   "composer.addMenu.connectors.saveFailed": "连接器配置保存失败",
+  "composer.addMenu.connectors.updating": "正在更新连接器，完成后可继续发送。",
   "composer.addMenu.connectors.preset": "预置",
   "composer.addMenu.connectors.reloadPending":
     "配置已保存，正在等待智能体重新加载。",

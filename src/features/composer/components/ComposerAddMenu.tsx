@@ -18,6 +18,7 @@ import { MaterialIcon, type MaterialIconName } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
 import { UiTag } from "@/shared/ui/UiTag";
 import { AgentConnectorPicker } from "@/features/connectors/components/AgentConnectorPicker";
+import type { AgentConnectorSelection } from "@/features/connectors/hooks/useAgentConnectors";
 import { SkillIcon } from "@/features/skills/components/SkillIcon";
 import { PackageSkillTree } from "./PackageSkillTree";
 import { packageMembers, skillIdentity } from "../lib/skillPackages";
@@ -37,6 +38,7 @@ export interface AddMenuTriggerProps {
   loading: boolean;
   currentChatId: string;
   currentAgentKey: string;
+  connectorSelection?: AgentConnectorSelection;
   planningMode: boolean;
   editingMode: boolean;
   canUsePlanningMode: boolean;
@@ -347,10 +349,11 @@ const AddMenuSectionDetail: React.FC<
           style={{ marginBottom: 10 }}
         />
       )}
-      {section === "connectors" && (
+      {section === "connectors" && props.connectorSelection && (
         <AgentConnectorPicker
           key={props.currentAgentKey}
           agentKey={props.currentAgentKey}
+          selection={props.connectorSelection}
           search={search}
           onSearchChange={onSearchChange}
           disabled={props.disabled}
@@ -524,7 +527,7 @@ const AddMenuPanel: React.FC<AddMenuTriggerProps & { onClose: () => void }> = (
       return false;
     if (
       entry === "connectors" &&
-      (!props.currentAgentKey || props.interactionConfig?.connectors === false)
+      (!props.currentAgentKey || !props.connectorSelection || props.interactionConfig?.connectors === false)
     )
       return false;
     if (entry === "kbases") return !!props.kbaseCatalog && !!props.onSelectKbases;
