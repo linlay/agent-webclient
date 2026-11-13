@@ -619,6 +619,81 @@ describe("createConversationPushHandler", () => {
 		expect(cursorRecovery.nudge).toHaveBeenCalledWith("chat_active");
 	});
 
+	it("asks for an authoritative reconcile when the current chat has no local awaiting yet", () => {
+		const state = createState({ accessToken: "token_local", chatId: "chat_active" });
+		const requestAwaitingReconcile = jest.fn();
+		const onPush = createConversationPushHandler({
+			dispatch,
+			stateRef: { current: state },
+			activeAttachRef: { current: null },
+			handleEvent,
+			requestAwaitingReconcile,
+		});
+		onPush(withPushContractTime({
+			frame: "push",
+			type: "awaiting.asking",
+			payload: {
+				chatId: "chat_active",
+				runId: "run_1",
+				awaitingId: "await_1",
+				mode: "approval",
+				createdAt: EPOCH_MS,
+			},
+		}) as WsPushFrame);
+		expect(requestAwaitingReconcile).toHaveBeenCalledWith("chat_active", "await_1");
+	});
+
+	it("does not request a reconcile when the pushed asking already has an actionable awaiting", () => {
+		const state = createState({
+			accessToken: "token_local",
+			chatId: "chat_active",
+			activeAwaiting: { awaitingId: "await_1", runId: "run_1", mode: "approval" } as never,
+		});
+		const requestAwaitingReconcile = jest.fn();
+		const onPush = createConversationPushHandler({
+			dispatch,
+			stateRef: { current: state },
+			activeAttachRef: { current: null },
+			handleEvent,
+			requestAwaitingReconcile,
+		});
+		onPush(withPushContractTime({
+			frame: "push",
+			type: "awaiting.asking",
+			payload: { chatId: "chat_active", runId: "run_1", awaitingId: "await_1", createdAt: EPOCH_MS },
+		}) as WsPushFrame);
+		expect(requestAwaitingReconcile).not.toHaveBeenCalled();
+	});
+
+	it("does not request a reconcile while attached to the asking run or viewing another chat", () => {
+		const requestAwaitingReconcile = jest.fn();
+		const attached = createConversationPushHandler({
+			dispatch,
+			stateRef: { current: createState({ accessToken: "token_local", chatId: "chat_active" }) },
+			activeAttachRef: { current: { chatId: "chat_active", runId: "run_1" } as never },
+			handleEvent,
+			requestAwaitingReconcile,
+		});
+		attached(withPushContractTime({
+			frame: "push",
+			type: "awaiting.asking",
+			payload: { chatId: "chat_active", runId: "run_1", awaitingId: "await_1", createdAt: EPOCH_MS },
+		}) as WsPushFrame);
+		const elsewhere = createConversationPushHandler({
+			dispatch,
+			stateRef: { current: createState({ accessToken: "token_local", chatId: "chat_active" }) },
+			activeAttachRef: { current: null },
+			handleEvent,
+			requestAwaitingReconcile,
+		});
+		elsewhere(withPushContractTime({
+			frame: "push",
+			type: "awaiting.asking",
+			payload: { chatId: "chat_remote", runId: "run_1", awaitingId: "await_1", createdAt: EPOCH_MS },
+		}) as WsPushFrame);
+		expect(requestAwaitingReconcile).not.toHaveBeenCalled();
+	});
+
 	it("upserts awaiting.asking push data into pending awaiting chat state", async () => {
 		const state = createState({ accessToken: "token_local", chatId: "chat_active" });
 
