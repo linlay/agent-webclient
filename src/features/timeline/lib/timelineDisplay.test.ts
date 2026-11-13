@@ -160,6 +160,48 @@ describe('buildTimelineDisplayItems', () => {
     ]);
   });
 
+  it('derives the run duration from the query event when the input has no query node', () => {
+    // 自动化来信（request.query hidden）不生成用户提问节点，耗时仍应以该 run 的
+    // query/run.start 事件为起点，而不是整段丢失。
+    const items = buildTimelineDisplayItems(
+      [
+        createNode({
+          id: 'content_1',
+          kind: 'content',
+          text: 'automation reply',
+          runId: 'mweeu09v',
+          ts: 1794540256815,
+        }),
+      ],
+      [
+        { type: 'request.query', runId: 'mweeu09v', timestamp: 1794540086014 },
+        { type: 'run.start', runId: 'mweeu09v', timestamp: 1794540086010 },
+        { type: 'content.snapshot', runId: 'mweeu09v', timestamp: 1794540256815 },
+        { type: 'run.complete', runId: 'mweeu09v', timestamp: 1794540256815 },
+      ],
+    );
+
+    expect(items).toHaveLength(1);
+    expect(items[0]).toMatchObject({
+      kind: 'run',
+      completedAt: 1794540256815,
+      responseDurationMs: 170801,
+      queryNode: null,
+    });
+  });
+
+  it('falls back to run.start when the query event has no timestamp', () => {
+    const items = buildTimelineDisplayItems(
+      [createNode({ id: 'content_1', kind: 'content', runId: 'run_1', ts: 1900 })],
+      [
+        { type: 'run.start', runId: 'run_1', timestamp: 900 },
+        { type: 'run.complete', runId: 'run_1', timestamp: 1900 },
+      ],
+    );
+
+    expect(items[0].kind === 'run' ? items[0].responseDurationMs : 'bad').toBe(1000);
+  });
+
   it('keeps request.steer-style nodes inside the current run group', () => {
     const items = buildTimelineDisplayItems(
       [
