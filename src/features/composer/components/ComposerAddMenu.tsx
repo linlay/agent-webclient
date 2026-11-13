@@ -5,7 +5,6 @@ import { skillDisplayName, skillPackageDisplayName } from "@/shared/utils/skillD
 import { SkinVisual } from "@/shared/ui/SkinVisual";
 import React, { useEffect, useRef, useState, type CSSProperties } from "react";
 import { Input, Popover } from "antd";
-import type { InputRef } from "antd";
 import { useChatReferenceCandidates } from "@/features/chats/hooks/useChatReferenceCandidates";
 import { CHAT_REFERENCE_LIMIT } from "@/features/chats/lib/chatReferenceCandidates";
 import { formatChatTimeLabel } from "@/features/chats/lib/chatListFormatter";
@@ -99,6 +98,10 @@ const sectionNav: NavEntry[] = [
   "chat",
 ];
 const DEFAULT_DETAIL_WIDTH = 200;
+// 一级导航宽度；二级面板沿用 sectionMeta.detailWidth。
+const NAV_WIDTH = 200;
+// 并排模式下两个浮层之间的最小间隙。
+const SPLIT_GAP = 8;
 const text = (value: unknown) =>
   typeof value === "string" ? value.trim() : "";
 const searchPlaceholderKey: Partial<Record<Section, string>> = {
@@ -158,16 +161,29 @@ const AddMenuSectionDetail: React.FC<
     onClose: () => void;
     search: string;
     onSearchChange: (value: string) => void;
-    onInteract?: () => void;
+    /** 二级面板是独立浮层时，用 Esc 收起它而不是关闭整个菜单。 */
+    onEscape?: () => void;
+    autoFocus?: boolean;
+    onAutoFocusConsumed?: () => void;
   }
 > = (props) => {
   const { t, locale } = useI18n();
   const { section, search, onSearchChange } = props;
+  const rootRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!props.autoFocus) return;
+    const root = rootRef.current;
+    if (!root) return;
+    const target =
+      root.querySelector<HTMLElement>("input") ||
+      root.querySelector<HTMLElement>(".composer-add-menu-detail-item");
+    target?.focus();
+    props.onAutoFocusConsumed?.();
+  }, [props.autoFocus]);
   const [kindFilter, setKindFilter] = useState<SkillKindFilter>(null);
   // Selection affects candidate order when opening, not while browsing this menu.
   const [selectedSkillIdsAtOpen] = useState(() => new Set(props.selectedSkillIds.map(skillIdentity)));
   const selectedSkillIds = new Set(props.selectedSkillIds.map(skillIdentity));
-  const searchRef = useRef<InputRef>(null);
   const [searchComposing, setSearchComposing] = useState(false);
   const chatCandidates = useChatReferenceCandidates({
     enabled: section === "chat",
@@ -207,14 +223,6 @@ const AddMenuSectionDetail: React.FC<
   ], pinnedSkillIds, locale)
     .sort((a, b) => Number(b.selectedAtOpen) - Number(a.selectedAtOpen))
     .filter(item => !kindFilter || item.kind === kindFilter);
-  useEffect(() => {
-    if (!searchable) return;
-    // 等待 Popover 动画后再聚焦，避免 autoFocus 在挂载时机下失效
-    const timer = window.setTimeout(() => {
-      searchRef.current?.focus();
-    }, 50);
-    return () => window.clearTimeout(timer);
-  }, [searchable]);
   const execute = (action: () => void) => {
     action();
     props.onClose();
@@ -313,24 +321,20 @@ const AddMenuSectionDetail: React.FC<
       </div>
     );
   };
-  const detailWidth = sectionMeta[section].detailWidth || DEFAULT_DETAIL_WIDTH;
   return (
     <div
+      ref={rootRef}
       className={presentationClasses("composer-add-menu-detail")}
       data-section={section}
-      onPointerDownCapture={section === "skills" || section === "kbases" ? props.onInteract : undefined}
-      onFocusCapture={section === "skills" || section === "kbases" ? props.onInteract : undefined}
-      onKeyDown={event => {
-        if ((section === "skills" || section === "kbases") && event.key === "Escape") {
-          event.stopPropagation();
-          props.onClose();
-        }
+      onKeyDown={(event) => {
+        if (event.key !== "Escape" || !props.onEscape) return;
+        event.preventDefault();
+        event.stopPropagation();
+        props.onEscape();
       }}
-      style={{ width: `min(${detailWidth}px, calc(100vw - 24px))` }}
     >
       {searchable && (
         <Input
-          ref={searchRef}
           className={pickerTypography.search}
           prefix={<MaterialIcon name="search" />}
           variant="filled"
@@ -433,7 +437,7 @@ const AddMenuSectionDetail: React.FC<
             )}
         </div>
       )}
-      {section === "kbases" && props.kbaseCatalog && props.onSelectKbases && <KBasePicker disabled={props.referenceSelectionDisabled} catalog={props.kbaseCatalog} selected={props.selectedKbases || []} onChange={items => { if (!props.referenceSelectionDisabled) execute(() => { props.onInteract?.(); props.onSelectKbases?.(items); }); }} />}
+      {section === "kbases" && props.kbaseCatalog && props.onSelectKbases && <KBasePicker disabled={props.referenceSelectionDisabled} catalog={props.kbaseCatalog} selected={props.selectedKbases || []} onChange={items => { if (!props.referenceSelectionDisabled) execute(() => { props.onSelectKbases?.(items); }); }} />}
       {section === "chat" && (
         <div className={presentationClasses("composer-add-menu-scroll")}>
           {chatCandidates.loading && (
@@ -484,26 +488,65 @@ const AddMenuSectionDetail: React.FC<
   );
 };
 
-const AddMenuPanel: React.FC<AddMenuTriggerProps & { onClose: () => void }> = (
-  props,
-) => {
+const AddMenuPanel: React.FC<
+  AddMenuTriggerProps & { onClose: () => void; maxWidth?: number }
+> = (props) => {
   const { t } = useI18n();
   const [section, setSection] = useState<Section | null>(null);
+  // 宽屏并排、窄屏逐级共用同一套面板内容。
+  const [motion, setMotion] = useState<"forward" | "back">("forward");
   const [search, setSearch] = useState("");
-  const skillPickerInteracting = useRef(false);
-  const [compact, setCompact] = useState(
-    () => typeof window !== "undefined" && window.innerWidth < 560,
+  const panelRef = useRef<HTMLDivElement>(null);
+  const navItemRefs = useRef(new Map<Section, HTMLButtonElement | null>());
+  const restoreFocusTo = useRef<Section | null>(null);
+  const focusDetailRequest = useRef(false);
+  const hoverTimer = useRef<number | undefined>(undefined);
+  // 并排布局要求最宽的二级面板也能放在导航右侧；否则退回单栏逐级。
+  const widestDetailWidth = sectionNav.reduce(
+    (widest, entry) =>
+      entry === "divider" || entry === "screenshot" || entry === "planning" || entry === "editing"
+        ? widest
+        : Math.max(widest, sectionMeta[entry].detailWidth || DEFAULT_DETAIL_WIDTH),
+    DEFAULT_DETAIL_WIDTH,
   );
-  useEffect(() => {
-    const updateCompact = () => setCompact(window.innerWidth < 560);
-    window.addEventListener("resize", updateCompact);
-    return () => window.removeEventListener("resize", updateCompact);
-  }, []);
+  const availableWidth =
+    props.maxWidth ?? (typeof window === "undefined" ? 0 : window.innerWidth);
+  // 二级面板是独立浮层，至少还要留出浮层之间的间距。
+  const split = availableWidth >= NAV_WIDTH + widestDetailWidth + SPLIT_GAP;
   // 切换面板时重置搜索词，与原先面板销毁重建的行为保持一致
   useEffect(() => {
     setSearch("");
-    skillPickerInteracting.current = false;
   }, [section]);
+  // 返回一级时把焦点交还给原来的入口；单栏模式进入二级时把焦点交给搜索框。
+  // 并排模式由二级面板自己处理自动聚焦，悬停预览不抢输入焦点。
+  useEffect(() => {
+    const panel = panelRef.current;
+    if (!panel) return;
+    if (!section) {
+      const target = restoreFocusTo.current
+        ? navItemRefs.current.get(restoreFocusTo.current)
+        : null;
+      restoreFocusTo.current = null;
+      if (!target) return;
+      const timer = window.setTimeout(() => target.focus(), 0);
+      return () => window.clearTimeout(timer);
+    }
+    if (split) return;
+    const detail = panel.querySelector<HTMLElement>(".composer-add-menu-detail");
+    const target =
+      detail?.querySelector<HTMLElement>("input") ||
+      detail?.querySelector<HTMLElement>(".composer-add-menu-detail-item") ||
+      panel.querySelector<HTMLElement>(".composer-add-menu-back");
+    if (!target) return;
+    const timer = window.setTimeout(() => target.focus(), 0);
+    return () => window.clearTimeout(timer);
+  }, [section, split]);
+  useEffect(
+    () => () => {
+      window.clearTimeout(hoverTimer.current);
+    },
+    [],
+  );
   // mode 在不可用时跳过，分割线条目保持原位
   const navEntries = sectionNav.filter((entry) => {
     if (
@@ -543,32 +586,123 @@ const AddMenuPanel: React.FC<AddMenuTriggerProps & { onClose: () => void }> = (
   useEffect(() => {
     if (section && !navEntries.includes(section)) setSection(null);
   }, [section, navEntries.join(",")]);
-  // A side-by-side submenu cannot fit narrow chat windows. Reuse the parent
-  // popover for this picker so the search and switches stay within the viewport.
-  if (compact && (section === "connectors" || section === "kbases")) {
-    return (
-      <div onKeyDown={event => { if (event.key === "Escape") props.onClose(); }}>
-        <UiButton
-          variant="ghost"
-          size="sm"
-          className={presentationClasses("composer-add-menu-detail-item")}
-          onClick={() => setSection(null)}
-        >
-          <MaterialIcon name="chevron_left" />
-          {t("composer.addMenu.connectors.back")}
-        </UiButton>
-        <AddMenuSectionDetail
-          {...props}
-          section={section}
-          onClose={props.onClose}
-          search={search}
-          onSearchChange={setSearch}
-        />
-      </div>
+  const openSection = (entry: Section) => {
+    window.clearTimeout(hoverTimer.current);
+    if (section === entry) {
+      closeSection(entry);
+      return;
+    }
+    focusDetailRequest.current = true;
+    setMotion("forward");
+    setSection(entry);
+  };
+  const closeSection = (entry: Section) => {
+    restoreFocusTo.current = entry;
+    focusDetailRequest.current = false;
+    window.clearTimeout(hoverTimer.current);
+    setMotion("back");
+    setSection(null);
+  };
+  // 宽屏悬停预览：延迟一小段再展开，避免鼠标扫过时连续切换；不抢输入焦点。
+  const previewSection = (entry: Section) => {
+    if (!split) return;
+    window.clearTimeout(hoverTimer.current);
+    hoverTimer.current = window.setTimeout(() => {
+      setMotion("forward");
+      setSection((current) => (current === entry ? current : entry));
+    }, 120);
+  };
+  const cancelPreview = () => window.clearTimeout(hoverTimer.current);
+  const backToNav = () => {
+    if (section) closeSection(section);
+    else props.onClose();
+  };
+  const panelWidth = section && !split
+    ? sectionMeta[section].detailWidth || DEFAULT_DETAIL_WIDTH
+    : NAV_WIDTH;
+  const detailFor = (entry: Section, autoFocus: boolean) => (
+    <AddMenuSectionDetail
+      {...props}
+      section={entry}
+      onClose={props.onClose}
+      search={search}
+      onSearchChange={setSearch}
+      onEscape={() => closeSection(entry)}
+      autoFocus={autoFocus}
+      onAutoFocusConsumed={() => {
+        focusDetailRequest.current = false;
+      }}
+    />
+  );
+  const sectionWidthFor = (entry: Section) => {
+    const preferred = sectionMeta[entry].detailWidth || DEFAULT_DETAIL_WIDTH;
+    // 独立浮层不能超出触发器右侧的可用空间。
+    return Math.max(DEFAULT_DETAIL_WIDTH, Math.min(preferred, availableWidth - NAV_WIDTH - SPLIT_GAP));
+  };
+  const navItem = (entry: Section) => {
+    const button = (
+      <UiButton
+        ref={(node) => {
+          navItemRefs.current.set(entry, node);
+        }}
+        variant="ghost"
+        size="sm"
+        role="menuitem"
+        aria-expanded={split ? section === entry : undefined}
+        className={presentationClasses(
+          `composer-add-menu-nav-item${split && section === entry ? " is-active" : ""}`,
+        )}
+        onMouseEnter={() => previewSection(entry)}
+        onMouseLeave={cancelPreview}
+        onFocus={cancelPreview}
+        onClick={split ? undefined : () => openSection(entry)}
+      >
+        <MaterialIcon name={sectionMeta[entry].icon} />
+        <span>{t(sectionMeta[entry].key)}</span>
+        <MaterialIcon name="keyboard_arrow_right" />
+      </UiButton>
     );
-  }
-  return (
-    <div className={presentationClasses("composer-add-menu-nav")} role="menu" onKeyDown={event => {if (event.key === "Escape") props.onClose();}}>
+    if (!split) return button;
+    return (
+      <Popover
+        key={entry}
+        open={section === entry}
+        onOpenChange={(next) => {
+          if (next) openSection(entry);
+          else if (section === entry) closeSection(entry);
+        }}
+        trigger="click"
+        placement="rightBottom"
+        arrow={false}
+        destroyOnHidden
+        classNames={{ root: presentationClasses("composer-add-menu-overlay") }}
+        align={{ overflow: { adjustX: true, adjustY: true } }}
+        content={
+          <div
+            className={presentationClasses("composer-add-menu-side")}
+            data-section={entry}
+            role="group"
+            aria-label={t(sectionMeta[entry].key)}
+            style={
+              {
+                "--composer-add-menu-side-width": `${sectionWidthFor(entry)}px`,
+              } as CSSProperties
+            }
+          >
+            {detailFor(entry, focusDetailRequest.current)}
+          </div>
+        }
+      >
+        {button}
+      </Popover>
+    );
+  };
+  const nav = (
+    <div
+      className={presentationClasses("composer-add-menu-nav")}
+      role="menu"
+      aria-label={t("composer.addMenu.open")}
+    >
       {visibleEntries.map((entry, index) =>
         entry === "divider" ? (
           <div
@@ -586,8 +720,6 @@ const AddMenuPanel: React.FC<AddMenuTriggerProps & { onClose: () => void }> = (
             disabled={props.disabled || props.isMainChatRunning || props.isCapturingDesktopScreenshot}
             loading={props.isCapturingDesktopScreenshot}
             title={props.screenshotDisabledReason}
-            onMouseEnter={() => setSection(null)}
-            onFocus={() => setSection(null)}
             onClick={() => {
               props.onCaptureScreenshot();
               props.onClose();
@@ -606,8 +738,6 @@ const AddMenuPanel: React.FC<AddMenuTriggerProps & { onClose: () => void }> = (
               entry === "planning" ? props.planningMode : props.editingMode
             }
             className={presentationClasses("composer-add-menu-nav-item")}
-            onMouseEnter={() => setSection(null)}
-            onFocus={() => setSection(null)}
             onClick={() => {
               if (entry === "planning") props.onTogglePlanningMode();
               else props.onEditingModeChange(!props.editingMode);
@@ -628,50 +758,61 @@ const AddMenuPanel: React.FC<AddMenuTriggerProps & { onClose: () => void }> = (
             />
           </UiButton>
         ) : (
-          <Popover
-            key={entry}
-            open={section === entry}
-            onOpenChange={(next) => {
-              // Keep an interactive picker open until selection, Escape, another
-              // section or the outer click-away closes it. Filtering must not
-              // turn popup realignment into a mouse-leave dismissal.
-              if (!next && (search.trim() || ((entry === "skills" || entry === "kbases") && skillPickerInteracting.current))) return;
-              setSection((prev) =>
-                next ? entry : prev === entry ? null : prev,
-              );
-            }}
-            trigger={["hover", "click"]}
-            placement="rightBottom"
-            arrow={false}
-            destroyOnHidden
-            mouseEnterDelay={0.05}
-            mouseLeaveDelay={0.15}
-            classNames={{ root: presentationClasses("composer-add-menu-overlay") }}
-            content={
-              <AddMenuSectionDetail
-                {...props}
-                section={entry}
-                onInteract={() => { skillPickerInteracting.current = true; }}
-                onClose={props.onClose}
-                search={search}
-                onSearchChange={setSearch}
-              />
-            }
-          >
+          navItem(entry)
+        ),
+      )}
+    </div>
+  );
+  return (
+    <div
+      ref={panelRef}
+      className={presentationClasses("composer-add-menu-panel")}
+      data-composer-add-menu=""
+      data-layout={split ? "split" : "stacked"}
+      data-view={section ? (split ? "split" : "detail") : "nav"}
+      data-section={section || undefined}
+      data-motion={motion}
+      style={
+        {
+          "--composer-add-menu-width": `${panelWidth}px`,
+          // 以触发器为锚点测量可用宽度，避免宽面板在窄窗里把浮层顶出视口。
+          "--composer-add-menu-max-width": props.maxWidth ? `${props.maxWidth}px` : "100vw",
+        } as CSSProperties
+      }
+      onKeyDown={(event) => {
+        if (event.key !== "Escape" || event.defaultPrevented) return;
+        if (!section) {
+          props.onClose();
+          return;
+        }
+        event.preventDefault();
+        event.stopPropagation();
+        closeSection(section);
+      }}
+    >
+      {section && !split ? (
+        <div
+          key={section}
+          className={presentationClasses("composer-add-menu-view")}
+          role="dialog"
+          aria-label={t(sectionMeta[section].key)}
+        >
+          <div className={presentationClasses("composer-add-menu-header")}>
             <UiButton
               variant="ghost"
               size="sm"
-              role="menuitem"
-              className={presentationClasses(`composer-add-menu-nav-item ${section === entry ? "is-active" : ""}`)}
-              onClick={() => setSection(entry)}
-              onFocus={() => setSection(entry)}
+              className={presentationClasses("composer-add-menu-back")}
+              aria-label={t("composer.addMenu.back")}
+              onClick={backToNav}
             >
-              <MaterialIcon name={sectionMeta[entry].icon} />
-              <span>{t(sectionMeta[entry].key)}</span>
-              <MaterialIcon name="keyboard_arrow_right" />
+              <MaterialIcon name="chevron_left" />
+              <span>{t(sectionMeta[section].key)}</span>
             </UiButton>
-          </Popover>
-        ),
+          </div>
+          {detailFor(section, false)}
+        </div>
+      ) : (
+        nav
       )}
     </div>
   );
@@ -680,6 +821,19 @@ const AddMenuPanel: React.FC<AddMenuTriggerProps & { onClose: () => void }> = (
 export const AddMenuTrigger: React.FC<AddMenuTriggerProps> = (props) => {
   const { t } = useI18n();
   const [open, setOpen] = useState(false);
+  const [menuMaxWidth, setMenuMaxWidth] = useState<number | undefined>();
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const measureMenuMaxWidth = () => {
+    const rect = triggerRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    setMenuMaxWidth(Math.max(180, Math.floor(window.innerWidth - rect.left - 12)));
+  };
+  useEffect(() => {
+    if (!open) return;
+    measureMenuMaxWidth();
+    window.addEventListener("resize", measureMenuMaxWidth);
+    return () => window.removeEventListener("resize", measureMenuMaxWidth);
+  }, [open]);
   // 切换 chat/agent 会改变整壳布局（空会话与会话的 grid 行结构不同），
   // 挂在 body 的 Popover 不会跟随 trigger 按钮重新对齐；且旧菜单数据
   // （chat 列表、技能、连接器）按原 chat/agent 请求，切换后直接关闭。
@@ -696,9 +850,11 @@ export const AddMenuTrigger: React.FC<AddMenuTriggerProps> = (props) => {
       arrow={false}
       destroyOnHidden
       classNames={{ root: presentationClasses("composer-add-menu-overlay") }}
-      content={<AddMenuPanel {...props} onClose={() => setOpen(false)} />}
+      content={<AddMenuPanel {...props} onClose={() => setOpen(false)} maxWidth={menuMaxWidth} />}
     >
       <UiButton
+        ref={triggerRef}
+        onClick={measureMenuMaxWidth}
         className={presentationClasses(`composer-plus-btn tw:!grid tw:!h-8 tw:!min-h-8 tw:!w-8 tw:!min-w-8 tw:!place-items-center tw:!rounded-lg tw:!border-0 tw:!p-0 tw:!text-ink-2 tw:hover:!bg-bg-hover ${open ? "is-open" : ""}`)}
         variant="ghost"
         size="sm"

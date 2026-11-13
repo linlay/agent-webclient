@@ -1,5 +1,7 @@
 /** @jest-environment jsdom */
 
+import fs from "node:fs";
+import path from "node:path";
 import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { Simulate } from "react-dom/test-utils";
@@ -105,6 +107,7 @@ describe("AddMenuTrigger", () => {
     act(() => root.unmount());
     container.remove();
     jest.useRealTimers();
+    Object.defineProperty(window, "innerWidth", { configurable: true, value: 1024 });
   });
 
   const render = () => act(() => root.render(React.createElement(AddMenuTrigger, props)));
@@ -164,7 +167,7 @@ describe("AddMenuTrigger", () => {
     expect(props.onAddReference).toHaveBeenCalledWith({
       type: "chat", id: "older", name: "Body match with unrelated title",
     });
-    expect(container.querySelector('[role="menu"]')).toBeNull();
+    expect(container.querySelector('[data-composer-add-menu]')).toBeNull();
   });
 
   it("pauses chat search during composition and restores the preview when cleared", async () => {
@@ -224,7 +227,7 @@ describe("AddMenuTrigger", () => {
 
     expect(props.onCaptureScreenshot).toHaveBeenCalledTimes(1);
     expect(props.onOpenFilePicker).not.toHaveBeenCalled();
-    expect(container.querySelector('[role="menu"]')).toBeNull();
+    expect(container.querySelector('[data-composer-add-menu]')).toBeNull();
   });
 
   it("hides the screenshot action when the desktop bridge is unavailable", () => {
@@ -271,16 +274,16 @@ describe("AddMenuTrigger", () => {
   it("closes the menu when the chat or agent changes so the popover cannot detach from the moved trigger", () => {
     render();
     openMenu();
-    expect(container.querySelector('[role="menu"]')).not.toBeNull();
+    expect(container.querySelector('[data-composer-add-menu]')).not.toBeNull();
 
     props.currentChatId = "chat-next";
     render();
-    expect(container.querySelector('[role="menu"]')).toBeNull();
+    expect(container.querySelector('[data-composer-add-menu]')).toBeNull();
 
     openMenu();
     props.currentAgentKey = "agent-b";
     render();
-    expect(container.querySelector('[role="menu"]')).toBeNull();
+    expect(container.querySelector('[data-composer-add-menu]')).toBeNull();
   });
 
   it("selects a library without checkboxes and closes the whole menu while preserving other choices", () => {
@@ -310,16 +313,15 @@ describe("AddMenuTrigger", () => {
       return section;
     };
     render();
-    const nav = openKbases();
+    openKbases();
     act(() => Simulate.focus(container.querySelector<HTMLInputElement>('input[aria-label="kbase.search"]')!));
-    act(() => Simulate.mouseLeave(nav.closest('[data-popover-trigger="hover,click"]')!));
     expect(container.querySelector('[data-section="kbases"]')).not.toBeNull();
     expect(container.querySelector('input[type="checkbox"]')).toBeNull();
     expect(container.querySelector('button[aria-label="Existing library"]')?.getAttribute("aria-pressed")).toBe("true");
     expect(container.querySelector<HTMLButtonElement>('button[aria-label="Unavailable library"]')?.disabled).toBe(true);
     click('button[aria-label="Unavailable library"]');
     expect(props.onSelectKbases).not.toHaveBeenCalled();
-    expect(container.querySelector('[role="menu"]')).not.toBeNull();
+    expect(container.querySelector('[data-composer-add-menu]')).not.toBeNull();
 
     click('button[aria-label="New library"]');
     expect(props.onSelectKbases).toHaveBeenLastCalledWith([
@@ -327,13 +329,13 @@ describe("AddMenuTrigger", () => {
       { id: "new", name: "New library" },
     ]);
     expect(container.querySelector('[data-section="kbases"]')).toBeNull();
-    expect(container.querySelector('[role="menu"]')).toBeNull();
+    expect(container.querySelector('[data-composer-add-menu]')).toBeNull();
 
     openKbases();
     expect(container.querySelector('button[aria-label="New library"]')?.getAttribute("aria-pressed")).toBe("true");
     click('button[aria-label="Existing library"]');
     expect(props.onSelectKbases).toHaveBeenLastCalledWith([{ id: "new", name: "New library" }]);
-    expect(container.querySelector('[role="menu"]')).toBeNull();
+    expect(container.querySelector('[data-composer-add-menu]')).toBeNull();
   });
 
   it("groups package members under a tree without duplicate standalone rows", () => {
@@ -433,7 +435,7 @@ describe("AddMenuTrigger", () => {
     expect(rows().map(row => row.querySelector('b')?.textContent)).toEqual(["Alpha", "Zulu"]);
     act(() => rows()[0].click());
     expect(props.onSelectSkill).toHaveBeenCalledWith(mockSkillData.skills[0]);
-    expect(container.querySelector('[role="menu"]')).toBeNull();
+    expect(container.querySelector('[data-composer-add-menu]')).toBeNull();
     props.selectedSkillIds = [];
     render(); openSkills();
     expect(rows().map(row => row.getAttribute('aria-pressed'))).toEqual(["false", "false"]);
@@ -495,15 +497,128 @@ describe("AddMenuTrigger", () => {
     const filter=container.querySelector<HTMLButtonElement>('button[aria-label="skillCatalog.kindFilter"]')!;
     act(()=>{ Simulate.pointerDown(filter); filter.click(); });
     act(()=>document.querySelector<HTMLElement>('.ant-dropdown:not(.ant-dropdown-hidden) [data-skill-kind="package"]')!.click());
-    const submenu=nav.closest('[data-popover-trigger="hover,click"]')!;
-    act(()=>Simulate.mouseLeave(submenu));
     expect(filter.getAttribute("data-active")).toBe("true");
     const summary=container.querySelector('summary')!;
     act(()=>summary.click());
     act(()=>container.querySelector<HTMLButtonElement>(`button[aria-label="${choice}"]`)!.click());
     expect(props.onSelectSkills).toHaveBeenCalledWith([mockSkillData.skills[0]],true,choice === "packageComposer.select" ? "office" : undefined);
     expect(container.querySelector('[data-skill-kind="package"]')).toBeNull();
-    expect(container.querySelector('[role="menu"]')).toBeNull();
+    expect(container.querySelector('[data-composer-add-menu]')).toBeNull();
   });
 
+  it("opens a second floating pane on wide screens without moving the nav", () => {
+    render();
+    openMenu();
+    const panel = () => container.querySelector<HTMLElement>("[data-composer-add-menu]")!;
+    expect(panel().getAttribute("data-layout")).toBe("split");
+    expect(panel().style.getPropertyValue("--composer-add-menu-width")).toBe("200px");
+
+    const skills = [...container.querySelectorAll<HTMLButtonElement>('[role="menuitem"]')]
+      .find((button) => button.textContent?.includes("composer.addMenu.section.skills"))!;
+    act(() => skills.click());
+
+    expect(panel().getAttribute("data-view")).toBe("split");
+    // 一级导航高度不变，宽度也不变：二级面板是另一个浮层。
+    expect(panel().style.getPropertyValue("--composer-add-menu-width")).toBe("200px");
+    expect(panel().querySelector('[role="menu"]')).not.toBeNull();
+    const side = panel().querySelector<HTMLElement>(".composer-add-menu-side")!;
+    expect(side.getAttribute("data-section")).toBe("skills");
+    expect(side.style.getPropertyValue("--composer-add-menu-side-width")).toBe("320px");
+    expect(skills.getAttribute("aria-expanded")).toBe("true");
+    expect(document.activeElement).toBe(container.querySelector('input[placeholder="composer.addMenu.search.skills"]'));
+
+    act(() => skills.click());
+    expect(panel().querySelector(".composer-add-menu-side")).toBeNull();
+    expect(panel().getAttribute("data-view")).toBe("nav");
+    expect(skills.getAttribute("aria-expanded")).toBe("false");
+  });
+
+  it("previews a section on hover without stealing focus", () => {
+    jest.useFakeTimers();
+    render();
+    openMenu();
+    const skills = [...container.querySelectorAll<HTMLButtonElement>('[role="menuitem"]')]
+      .find((button) => button.textContent?.includes("composer.addMenu.section.skills"))!;
+    act(() => Simulate.mouseEnter(skills));
+    act(() => jest.advanceTimersByTime(150));
+    const panel = container.querySelector<HTMLElement>("[data-composer-add-menu]")!;
+    expect(panel.getAttribute("data-view")).toBe("split");
+    expect(panel.querySelector(".composer-add-menu-side")).not.toBeNull();
+    expect(document.activeElement).not.toBe(container.querySelector('input[placeholder="composer.addMenu.search.skills"]'));
+  });
+
+  it("falls back to one pane at a time and returns focus to the entry", async () => {
+    Object.defineProperty(window, "innerWidth", { configurable: true, value: 420 });
+    render();
+    openMenu();
+    const panel = () => container.querySelector<HTMLElement>("[data-composer-add-menu]")!;
+    expect(panel().getAttribute("data-layout")).toBe("stacked");
+
+    const skills = [...container.querySelectorAll<HTMLButtonElement>('[role="menuitem"]')]
+      .find((button) => button.textContent?.includes("composer.addMenu.section.skills"))!;
+    act(() => skills.click());
+
+    expect(panel().getAttribute("data-view")).toBe("detail");
+    expect(panel().style.getPropertyValue("--composer-add-menu-width")).toBe("320px");
+    expect(panel().querySelector('[role="menu"]')).toBeNull();
+    await act(async () => { await new Promise((resolve) => setTimeout(resolve, 0)); });
+    expect(document.activeElement).toBe(container.querySelector('input[placeholder="composer.addMenu.search.skills"]'));
+
+    act(() => container.querySelector<HTMLButtonElement>('[aria-label="composer.addMenu.back"]')!.click());
+    expect(panel().getAttribute("data-view")).toBe("nav");
+    await act(async () => { await new Promise((resolve) => setTimeout(resolve, 0)); });
+    const restored = [...container.querySelectorAll<HTMLButtonElement>('[role="menuitem"]')]
+      .find((button) => button.textContent?.includes("composer.addMenu.section.skills"))!;
+    expect(document.activeElement).toBe(restored);
+  });
+
+  it("closes the floating pane before the menu on Escape", async () => {
+    render();
+    openChats();
+    await act(async () => {});
+    const panel = () => container.querySelector<HTMLElement>("[data-composer-add-menu]")!;
+    expect(panel().querySelector(".composer-add-menu-side")).not.toBeNull();
+    const input = container.querySelector<HTMLInputElement>('input[placeholder="composer.addMenu.chat.search"]')!;
+    act(() => Simulate.keyDown(input, { key: "Escape" }));
+    expect(container.querySelector("[data-composer-add-menu]")).not.toBeNull();
+    expect(panel().querySelector(".composer-add-menu-side")).toBeNull();
+    expect(panel().getAttribute("data-view")).toBe("nav");
+    act(() => Simulate.keyDown(panel(), { key: "Escape" }));
+    expect(container.querySelector("[data-composer-add-menu]")).toBeNull();
+  });
+
+});
+
+/** 读取本面板样式模块中的单条规则（与 ComposerSkillPins.test.ts 同法）。 */
+function readComposerStyleRule(selector: string): string {
+  const css = fs
+    .readFileSync(
+      path.join(process.cwd(), "src/features/composer/components/ComposerPresentation.module.css"),
+      "utf8",
+    )
+    .replace(/:global\(([^)]+)\)/g, "$1");
+  const start = css.indexOf(`${selector} {`);
+  if (start < 0) return "";
+  const end = css.indexOf("}", start);
+  return end < 0 ? "" : css.slice(start, end + 1);
+}
+
+describe("composer add menu floating pane layout", () => {
+  it("keeps the wide-screen pane on its own layer instead of stretching the nav card", () => {
+    // 导航浮层高度只由条目决定：并排模式不能有任何高度规则。
+    expect(readComposerStyleRule('.composer-add-menu-panel[data-layout="split"]')).toBe("");
+    expect(
+      readComposerStyleRule('.composer-add-menu-panel[data-layout="split"] > .composer-add-menu-side'),
+    ).toBe("");
+
+    // 技能面板的固定高度归二级浮层自己所有。
+    expect(
+      readComposerStyleRule('.composer-add-menu-side[data-section="skills"]'),
+    ).toMatch(/height:/);
+
+    // 单栏模式的固定高度只作用于 stacked，不能把一级导航一起撑高。
+    expect(
+      readComposerStyleRule('.composer-add-menu-panel[data-layout="stacked"][data-section="skills"]'),
+    ).toMatch(/height:/);
+  });
 });

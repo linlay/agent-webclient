@@ -23,12 +23,113 @@
     background: var(--bg-hover);
 }
 
+/* 一级与二级共用同一个 Popover：面板宽度随视图切换，内容只在面板内滑动。 */
+.composer-add-menu-panel {
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+    width: min(var(--composer-add-menu-width, 200px), var(--composer-add-menu-max-width, 100vw), calc(100vw - 24px));
+    overflow: hidden;
+    transition: width 180ms cubic-bezier(.2, .8, .2, 1);
+}
+
+.composer-add-menu-view {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+}
+
+/* 宽屏：导航与二级面板是两个独立浮层。导航高度只由条目决定，
+   二级面板挂在导航项上、有自己的高度，切换面板不会带走一级菜单。 */
+.composer-add-menu-panel[data-layout="split"] > .composer-add-menu-nav {
+    width: 200px;
+}
+
+.composer-add-menu-side {
+    display: flex;
+    flex-direction: column;
+    width: min(var(--composer-add-menu-side-width, 320px), calc(100vw - 24px));
+    min-width: 0;
+    min-height: 0;
+    animation: composer-add-menu-pane-enter 160ms cubic-bezier(.2, .8, .2, 1);
+}
+
+/* 技能面板在独立浮层里保持自己的固定高度，与一级导航高度无关。 */
+.composer-add-menu-side[data-section="skills"] {
+    height: min(420px, calc(100dvh - 48px));
+}
+
+.composer-add-menu-side[data-section="skills"] > .composer-add-menu-detail {
+    flex: 1;
+    min-height: 0;
+    gap: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .composer-add-menu-side {
+        animation: none;
+    }
+}
+
+.composer-add-menu-panel[data-layout="split"][data-motion="forward"] > .composer-add-menu-side {
+    animation: composer-add-menu-pane-enter 180ms cubic-bezier(.2, .8, .2, 1);
+}
+
+.composer-add-menu-panel[data-motion="forward"][data-view="detail"] > .composer-add-menu-view {
+    animation: composer-add-menu-pane-enter 180ms cubic-bezier(.2, .8, .2, 1);
+}
+
+.composer-add-menu-panel[data-motion="back"][data-view="nav"] > .composer-add-menu-view {
+    animation: composer-add-menu-pane-back 180ms cubic-bezier(.2, .8, .2, 1);
+}
+
+@keyframes composer-add-menu-pane-enter {
+    from {
+        opacity: 0;
+        transform: translateX(14px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes composer-add-menu-pane-back {
+    from {
+        opacity: 0;
+        transform: translateX(-14px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.composer-add-menu-header {
+    display: flex;
+    flex-shrink: 0;
+    padding: 4px 4px 0;
+}
+
+.composer-add-menu-back:global(.ui-btn) {
+    justify-content: flex-start;
+    min-height: 32px;
+    padding: 4px 6px;
+    color: var(--text-main);
+    font-weight: 600;
+}
+
+.composer-add-menu-back:global(.ui-btn) :global(.material-icon) {
+    color: var(--ink-muted);
+}
+
 .composer-add-menu-nav {
     display: flex;
     flex-direction: column;
     gap: 4px;
     padding: 8px;
-    min-width: 200px;
 }
 
 .composer-add-menu-nav-item:global(.ui-btn),
@@ -69,6 +170,7 @@
     display: flex;
     flex-direction: column;
     gap: 4px;
+    width: 100%;
     padding: 8px;
 }
 
@@ -78,7 +180,7 @@
 }
 
 .composer-add-menu-scroll {
-    max-height: 300px;
+    max-height: min(300px, 45dvh);
     overflow: auto;
 
     :global(.material-icon) {
@@ -502,10 +604,14 @@
 @media (hover: none) {
     .composer-skill-chip .composer-skill-chip-remove { opacity: 1; }
 }
-.composer-add-menu-detail[data-section="skills"] {
+/* 单栏模式：技能面板固定高度，保证搜索框与滚动区稳定；预算含返回头，并随视口收缩。 */
+.composer-add-menu-panel[data-layout="stacked"][data-section="skills"] {
+    height: min(460px, calc(100dvh - 160px));
+}
+.composer-add-menu-panel[data-layout="stacked"][data-section="skills"] .composer-add-menu-detail {
+    flex: 1;
+    min-height: 0;
     gap: 2px;
-    height: min(420px, calc(100dvh - 48px));
-    box-sizing: border-box;
 }
 .composer-add-menu-detail[data-section="skills"] > :global(.ant-input-affix-wrapper) {
     flex-shrink: 0;
@@ -515,6 +621,14 @@
     min-height: 0;
     max-height: none;
     scrollbar-gutter: stable;
+}
+@media (prefers-reduced-motion: reduce) {
+    .composer-add-menu-panel {
+        transition: none;
+    }
+    .composer-add-menu-panel > .composer-add-menu-view {
+        animation: none;
+    }
 }
 
 html[data-theme="dark"] .composer-pill,
