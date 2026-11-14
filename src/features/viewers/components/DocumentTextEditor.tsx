@@ -33,7 +33,7 @@ import { HtmlElementReviewToolbar } from "./HtmlElementReviewToolbar";
  */
 export type DocumentMarkdownLinks = Pick<
   MarkdownContentProps,
-  "agentKey" | "onWorkspaceFileLinkClick" | "onResourceFileLinkClick" | "onWebLinkClick"
+  "agentKey" | "linkBase" | "onWorkspaceFileLinkClick" | "onResourceFileLinkClick" | "onWebLinkClick"
 >;
 
 const MarkdownPreview: React.FC<{

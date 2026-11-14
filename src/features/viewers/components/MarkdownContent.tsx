@@ -12,6 +12,7 @@ import {
   hasFileAlias,
   type ResourceUrlClassification,
 } from "@/shared/data";
+import { resolveDocumentRelativeLink, type DocumentLinkBase } from "@/shared/utils/fileAddress";
 import { MarkdownCode, type ConversationMarkdownCodeProps } from "@/features/viewers/components/MarkdownCode";
 import {
   ConversationMarkdown,
@@ -56,6 +57,8 @@ export interface MarkdownContentProps {
   chatId: string;
   agentKey?: string;
   teamChat?: boolean;
+  /** Set only for a document with a trusted source; relative links resolve against it. */
+  linkBase?: DocumentLinkBase;
   onWorkspaceFileLinkClick?: (link: WorkspaceFileLink) => void;
   onResourceFileLinkClick?: (link: ResourceFileLink) => void;
   onWebLinkClick?: (link: MarkdownWebLink) => void;
@@ -124,6 +127,7 @@ function workspaceFileAddress(link: WorkspaceFileLink): string {
 type AuthAnchorProps = React.AnchorHTMLAttributes<HTMLAnchorElement> & {
   chatId: string;
   teamChat: boolean;
+  linkBase?: DocumentLinkBase;
   onWorkspaceFileLinkClick?: (link: WorkspaceFileLink) => void;
   onResourceFileLinkClick?: (link: ResourceFileLink) => void;
   onWebLinkClick?: (link: MarkdownWebLink) => void;
@@ -157,6 +161,7 @@ const AuthAnchor: React.FC<AuthAnchorProps> = (props) => {
     children,
     chatId,
     teamChat,
+    linkBase,
     onWorkspaceFileLinkClick,
     onResourceFileLinkClick,
     onWebLinkClick,
@@ -165,7 +170,8 @@ const AuthAnchor: React.FC<AuthAnchorProps> = (props) => {
   } = props;
   const message = useAppMessage();
   // The Markdown renderer passes file targets literally.
-  const href = String(markdownHref || "").trim();
+  const writtenHref = String(markdownHref || "").trim();
+  const href = resolveDocumentRelativeLink(writtenHref, linkBase) ?? writtenHref;
   const artifactDrag = useDesktopArtifactDrag(chatId, undefined, href, true, status => { void message.info(t(`attachments.exportDrag.${status}`)); });
   const [downloading, setDownloading] = useState(false);
   const contextTargetId = React.useId();
@@ -486,6 +492,7 @@ export const MarkdownContent: React.FC<MarkdownContentProps> = ({
   chatId,
   agentKey,
   teamChat = false,
+  linkBase,
   onWorkspaceFileLinkClick,
   onResourceFileLinkClick,
   onWebLinkClick,
@@ -497,21 +504,27 @@ export const MarkdownContent: React.FC<MarkdownContentProps> = ({
             {...anchorProps}
             chatId={chatId}
             teamChat={teamChat}
+            linkBase={linkBase}
             onWorkspaceFileLinkClick={onWorkspaceFileLinkClick}
             onResourceFileLinkClick={onResourceFileLinkClick}
             onWebLinkClick={onWebLinkClick}
           />
         ),
-        img: (imageProps: React.ImgHTMLAttributes<HTMLImageElement>) =>
-          isMarkdownVideoSource(imageProps.src) ? (
+        img: (rawImageProps: React.ImgHTMLAttributes<HTMLImageElement>) => {
+          const imageProps = {
+            ...rawImageProps,
+            src: resolveDocumentRelativeLink(rawImageProps.src, linkBase) ?? rawImageProps.src,
+          };
+          return isMarkdownVideoSource(imageProps.src) ? (
             <AuthMedia kind="video" {...imageProps} chatId={chatId} agentKey={agentKey} teamChat={teamChat} />
           ) : isMarkdownAudioSource(imageProps.src) ? (
             <AuthMedia kind="audio" {...imageProps} chatId={chatId} agentKey={agentKey} teamChat={teamChat} />
           ) : (
             <AuthImage {...imageProps} chatId={chatId} agentKey={agentKey} teamChat={teamChat} />
-          ),
+          );
+        },
       }),
-    [agentKey, chatId, onResourceFileLinkClick, onWebLinkClick, onWorkspaceFileLinkClick, teamChat],
+    [agentKey, chatId, linkBase, onResourceFileLinkClick, onWebLinkClick, onWorkspaceFileLinkClick, teamChat],
   );
 
   const previewContext = useMemo(() => ({ agentKey: agentKey || "", chatId }), [agentKey, chatId]);

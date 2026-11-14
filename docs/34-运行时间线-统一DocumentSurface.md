@@ -54,4 +54,6 @@ Desktop bridge v6 的 `openDocument` 只有在明确返回 `unsupported_native_t
 
 上传 Reference 的语义相对路径允许 Chat 根目录的单个文件名，也兼容 `references/` 下的资源；来源身份不依赖必须存在某个目录前缀。非 Reference 不接受根目录路径，所有来源仍须经过 owner Chat、路径规范化和 realpath 边界校验。根目录 HTML Reference 只可读取自身，不因此获得其他 Chat 文件或相邻资源的读取权限。
 
+文档预览中的 Markdown 相对链接和图片（如 `Agent配置合并.md`、`../README.md`）以该文档自身位置为基准解析：Workspace 文件按其路径、Artifact/Reference 按 `source.relativePath`（或 `@chat/` 地址）取目录，结果改写为 `@workspace/` 或 `@chat/` 地址后走既有打开流程。基准只由 `ContentViewerPanel` 在来源已知时经 `linkBase` 传入，链接段按标准 Markdown 百分号解码一次；`#锚点`、`?query`、绝对路径、带作用域地址和 URL 不处理，越出文档根目录、含编码分隔符或来源未知时仍报告缺少作用域。聊天消息、规划等没有可信来源的 Markdown 不传 `linkBase`，裸相对路径依旧不猜根目录。解析只是地址改写，读取权限仍由 Platform 校验。
+
 HTML 代码块的临时草稿是 Desktop 新增的独立来源，使用同一原生 HTML Surface 和单独能力探测；不进入本文正式文档的读取、外部打开与 document.commit 保存流程。没有能力时沿用 blob 侧栏，有能力后的身份、内容和授权失败仍 fail closed。临时预览刷新即清理，不恢复；交互与交付见宿主桥接专题。

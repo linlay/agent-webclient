@@ -47,6 +47,7 @@ import {
   type DesktopCurrentResourceIdentity,
 } from "@/shared/data/desktop/desktopCurrentResourceAction";
 import { DocumentTextEditor, type DocumentMarkdownLinks } from "@/features/viewers/components/DocumentTextEditor";
+import type { DocumentLinkBase } from "@/shared/utils/fileAddress";
 import type { OpenTargetIntent } from "@/features/surfaces/lib/openTarget";
 import { BrowserImageEditor } from "@/features/viewers/components/BrowserImageEditor";
 import { DocumentMetadataPanel, StandaloneDocumentPanel } from "@/features/viewers/components/StandaloneDocumentPanel";
@@ -388,8 +389,17 @@ export const ContentViewerPanel: React.FC<ContentViewerPanelProps> = ({
         currentChat?.firstAgentKey ||
         "",
   ).trim();
+  // Relative links inside a document resolve against the document's own
+  // location. Only a known source has one; an unknown source names no base.
+  const documentLinkBase = React.useMemo<DocumentLinkBase | undefined>(() => {
+    if (target.type === "file") return { scope: "workspace", path: target.path };
+    const chatPath = target.source?.relativePath ||
+      (/^@chat\//iu.test(target.url) ? target.url.slice("@chat/".length) : "");
+    return chatPath ? { scope: "chat", path: chatPath } : undefined;
+  }, [target]);
   const markdownLinks = React.useMemo<DocumentMarkdownLinks>(() => ({
     agentKey: documentAgentKey,
+    ...(documentLinkBase ? { linkBase: documentLinkBase } : {}),
     ...(onOpenTarget && documentAgentKey
       ? {
           onWorkspaceFileLinkClick: (link) => {
@@ -427,7 +437,7 @@ export const ContentViewerPanel: React.FC<ContentViewerPanelProps> = ({
           },
         }
       : {}),
-  }), [chatId, documentAgentKey, onOpenTarget]);
+  }), [chatId, documentAgentKey, documentLinkBase, onOpenTarget]);
   const fileRequest = React.useMemo(
     () => target.type === "file"
       ? { agentKey: target.agentKey, path: target.path }

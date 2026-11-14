@@ -75,6 +75,20 @@ it.each(["artifacts/run_01/report.html", "src/app.ts"])("does not guess the root
   expect(openTarget).not.toHaveBeenCalled();
 });
 
+it("resolves a relative link against the document base and opens that file", async () => {
+  await act(async () => root.render(<MarkdownContent
+    content="[link](Agent配置合并.md)"
+    chatId="chat_01"
+    agentKey="demo"
+    linkBase={{ scope: "workspace", path: "docs/README.md" }}
+    onWorkspaceFileLinkClick={link => openTarget({ kind: "file", path: link.filePath })}
+  />));
+  const anchor = container.querySelector("a")!;
+  expect(anchor.getAttribute("title")).toBeNull();
+  await act(async () => anchor.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, button: 0 })));
+  expect(openTarget).toHaveBeenCalledWith({ kind: "file", path: "docs/Agent配置合并.md" });
+});
+
 it("uses the updated operation and Agent identity after a genuine context change", async () => {
   const href = "/Users/demo/project/report.md";
   await act(async () => root.render(<FocusProbe href={href} />));
