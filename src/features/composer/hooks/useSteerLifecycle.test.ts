@@ -18,6 +18,7 @@ jest.mock('@/features/transport/hooks/useRealtimeTransport', () => ({
   useRunTransport: () => mockRuns,
 }));
 jest.mock('@/shared/data', () => ({
+  getAgent: jest.fn(async (key: string) => ({data: {key, name:key, mode:'CODER'}})),
   createRequestId: jest.fn(() => 'request'), compactChat: jest.fn(),
   learnChat: jest.fn(), rememberChat: jest.fn(), setAccessToken: jest.fn(),
 }));
@@ -48,6 +49,7 @@ afterEach(() => {
 
 function mount(sendOverrides: Record<string, unknown> = {}, connectQuery = false) {
   const state = createInitialState();
+  state.currentAgent = { key: 'agent-a', name: 'Agent A', mode: 'CODER' };
   state.chatId = 'chat-a';
   state.runId = 'run-a';
   state.streaming = true;
@@ -684,7 +686,7 @@ it('starts one real query per completed run while draining multiple queued messa
 it('sends Enter input in a running BOT Chat through the mailbox without staging a steer', () => {
   const spy = jest.spyOn(window, 'dispatchEvent');
   const h = mount({inputValue: 'two steps'});
-  h.setState({agents: [{key: 'agent-a', name: 'Bot', mode: 'BOT'} as any], pendingSteers: {}});
+  h.setState({currentAgent: {key: 'agent-a', name: 'Bot', mode: 'BOT'}, pendingSteers: {}});
   h.render();
   h.send();
   expect(mockSteer).not.toHaveBeenCalled();

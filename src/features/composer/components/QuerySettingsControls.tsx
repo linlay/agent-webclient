@@ -469,7 +469,7 @@ export function buildPersistedModelConfigOverride({
   };
 }
 
-export function agentSummaryFromModelConfig(
+export function currentAgentFromModelConfig(
   existing: Agent | undefined,
   response: AgentModelConfigResponse,
   modelOverride: QueryModelOverride,
@@ -808,12 +808,10 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
         agentKey,
         value: persistedOverride,
       };
-      const nextAgents = state.agents.map((agent) =>
-        toText(agent.key) === toText(detail.agentKey || agentKey)
-          ? agentSummaryFromModelConfig(agent, detail, persistedOverride)
-          : agent,
-      );
-      dispatch({ type: "SET_AGENTS", agents: nextAgents });
+      const updated = currentAgentFromModelConfig(state.currentAgent || undefined, detail, persistedOverride);
+      dispatch({ type: "PATCH_CURRENT_AGENT", agentKey: detail.agentKey || agentKey, patch: {
+        modelKey: updated.modelKey, reasoningEffort: updated.reasoningEffort, serviceTier: updated.serviceTier,
+      } });
     } catch (error) {
       void messageApi.error((error as Error).message);
     } finally {

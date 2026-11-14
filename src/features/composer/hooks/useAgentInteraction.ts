@@ -20,17 +20,7 @@ export function useAgentInteraction(worker: CurrentWorkerSummary | null): Intera
         // settled answer (everything off), distinct from still loading.
         const config = data.interactionConfig || {...pendingInteraction};
         setLoaded({key, config});
-        dispatch({type: "SET_AGENTS", agents: stateRef.current.agents.map(agent =>
-          agent.key === key ? {
-            ...agent,
-            interactionConfig: config,
-            modelKey: data.modelKey,
-            reasoningEffort: data.reasoningEffort,
-            serviceTier: data.serviceTier,
-            definition: data.definition ?? agent.definition,
-            skills: data.skills,
-            meta: data.meta ?? agent.meta,
-          } : agent)});
+        dispatch({ type: "SET_CURRENT_AGENT", agent: { ...data } as unknown as import("@/features/agents/lib/agentState").Agent });
       }
     }).catch(() => { if (!canceled) setLoaded(null); });
     return () => { canceled = true; };
@@ -43,10 +33,11 @@ export function useAgentInteraction(worker: CurrentWorkerSummary | null): Intera
       localFiles: resolved.attachment.localFiles && getEmbedOptions().features?.attachments === true },
   };
   const state = stateRef.current;
-  const agent = state.agents.find(item => item.key === key);
+  const agent = state.currentAgent?.key === key ? state.currentAgent : null;
   if (String(agent?.mode || worker?.raw?.mode || "").toUpperCase() !== "BOT") return config;
   const chat = state.chats.find(item => item.chatId === state.chatId);
-  const main = !state.chatId || agent?.primaryChat?.chatId === state.chatId || chat?.primary === true;
+  const navigationAgent = state.agents.find(item => item.key === key);
+  const main = !state.chatId || chat?.primary === true || navigationAgent?.primaryChat?.chatId === state.chatId;
   return { ...config, showPlanningMode: false, showTerminal: false,
     ...(main ? { model: false, showEditingMode: false } : {}) };
 

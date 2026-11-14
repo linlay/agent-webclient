@@ -17,7 +17,7 @@ let mockAccessMenu: any;
 let mockContext: { state: AppState; dispatch: React.Dispatch<AppAction> };
 jest.mock("@/app/state/AppContext", () => ({ useAppContext: () => mockContext }));
 jest.mock("@/features/workers/lib/currentWorker", () => ({ resolveCurrentWorkerSummary: () => ({
-  type: "agent", sourceId: "agent", raw: mockContext.state.agents[0],
+  type: "agent", sourceId: "agent", raw: mockContext.state.currentAgent,
 }) }));
 jest.mock("@/shared/i18n", () => ({ useI18n: () => ({ t: (key: string) => key }) }));
 jest.mock("@/shared/data", () => ({
@@ -36,6 +36,7 @@ jest.mock("antd", () => {
 function Harness({ access = "ask_for_approval", defaultLevel = "ask_for_approval" }: { access?: import("@/shared/data").QueryAccessLevel; defaultLevel?: import("@/shared/data").QueryAccessLevel } = {}) {
   const [state, dispatch] = useReducer(appReducer, undefined, () => ({ ...createInitialState(),
     agents: [{ key: "agent", name: "Agent", mode: "GENERAL", modelKey: "old-model", reasoningEffort: "LOW" as const }],
+    currentAgent: { key: "agent", name: "Agent", mode: "GENERAL", modelKey: "old-model", reasoningEffort: "LOW" as const },
   }));
   mockContext = { state, dispatch };
   const target = useMemo(() => ({ scope: resolveComposerAccessScope(state.accessToken), chatId: state.chatId, agentKey: "agent" }), [state.chatId, state.accessToken]);

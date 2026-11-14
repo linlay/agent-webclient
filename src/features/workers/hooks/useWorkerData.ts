@@ -19,7 +19,6 @@ import { buildSelectedWorkerConversationRows } from '@/features/workers/lib/work
 import {
   mergeFetchedChats,
 } from '@/features/chats/lib/chatSummary';
-import { upsertAgentSummary } from '@/features/workers/lib/agentSummary';
 import { readSidebarAgents } from '@/features/workers/lib/sidebarAgentData';
 import { readStoredGeneralAgentKey } from '../lib/generalAgentPreference';
 
@@ -121,11 +120,12 @@ export function useWorkerData(input: {
 
   const ensureWorkerSelection = useCallback((rows: WorkerRow[], preferredWorkerKey = ''): string => {
     const preferred = String(preferredWorkerKey || '').trim();
-    if (preferred && rows.some((row) => row.key === preferred)) {
+    const currentDetailKey = stateRef.current.currentAgent ? `agent:${stateRef.current.currentAgent.key}` : '';
+    if (preferred && (rows.some((row) => row.key === preferred) || preferred === currentDetailKey)) {
       return preferred;
     }
     const current = String(stateRef.current.workerSelectionKey || '').trim();
-    if (current && rows.some((row) => row.key === current)) {
+    if (current && (rows.some((row) => row.key === current) || current === currentDetailKey)) {
       return current;
     }
     if (isCopilotPath(currentPathname())) {
@@ -210,7 +210,7 @@ export function useWorkerData(input: {
         dispatch({ type: 'APPEND_DEBUG', line: `[loadAgents error] ${(error as Error).message}` });
       }
     });
-  }, [dispatch, fetchAgentsWithScopeFallback, rebuildWorkerRowsFromState, runWithSidebarLoading]);
+  }, [dispatch, fetchAgentsWithScopeFallback, rebuildWorkerRowsFromState, runWithSidebarLoading, stateRef]);
 
   const loadChats = useCallback(async () => {
     await runWithSidebarLoading(async () => {
@@ -286,20 +286,9 @@ export function useWorkerData(input: {
       const response = await getAgent(requestedAgentKey);
       const payload = (response.data || {}) as unknown as Partial<Agent>;
       const resolvedAgentKey = String(payload.key || requestedAgentKey).trim() || requestedAgentKey;
-      const mergedAgents = upsertAgentSummary(stateRef.current.agents, {
-        ...payload,
-        key: resolvedAgentKey,
-      });
-
       flushSync(() => {
-        dispatch({ type: 'SET_AGENTS', agents: mergedAgents });
-        const workerOrderKeys = stateRef.current.workerOrderKeys.includes(`agent:${resolvedAgentKey}`)
-          ? stateRef.current.workerOrderKeys
-          : [...stateRef.current.workerOrderKeys, `agent:${resolvedAgentKey}`];
-        dispatch({ type: 'SET_WORKER_ORDER_KEYS', workerOrderKeys });
+        dispatch({ type: 'SET_CURRENT_AGENT', agent: { ...payload, key: resolvedAgentKey, name: payload.name || resolvedAgentKey } as Agent });
         rebuildWorkerRowsFromState({
-          agents: mergedAgents,
-          workerOrderKeys,
           workerPriorityKey: `agent:${resolvedAgentKey}`,
           workerSelectionKey: `agent:${resolvedAgentKey}`,
         });

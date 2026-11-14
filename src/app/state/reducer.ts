@@ -19,7 +19,7 @@ function reduceAppState(state: AppState, action: AppAction): AppState {
 				preserveVoiceSession: action.preserveVoiceSession,
 			});
 		case "CLEAR_GATEWAY_IDENTITY_STATE":
-			return { ...state, composerUploadChatId: "", composerReferences: [], agents: [],  chats: [], chatPinnedOrder: null, chatPinningPending: false, automations: [] };
+			return { ...state, composerUploadChatId: "", composerReferences: [], currentAgent: null, agents: [],  chats: [], chatPinnedOrder: null, chatPinningPending: false, automations: [] };
 		case "APPLY_CONVERSATION_REPLAY":
 			return {
 				...initializeChatModel(state, resolveComposerAccessScope(state.accessToken), action.snapshot.chatId, action.snapshot.events),

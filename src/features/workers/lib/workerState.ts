@@ -1,8 +1,8 @@
-import type { Agent } from "@/features/agents/lib/agentState";
+import type { AgentSummary } from "@/features/agents/lib/agentState";
 import type { Chat, ChatReadState } from "@/features/chats/lib/chatState";
 
 
-export type WorkerListItem = Agent;
+export type WorkerListItem = AgentSummary;
 
 export interface WorkerRow {
   key: string;

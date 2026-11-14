@@ -47,7 +47,6 @@ import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
 import { TimelineTextSearchControl } from "@/features/timeline/components/TimelineTextSearchControl";
 import { getAgent } from "@/shared/data";
-import { upsertAgentSummary } from "@/features/workers/lib/agentSummary";
 import {
   HostRequiredSkillsProvider,
   readHostRequiredSkills,
@@ -251,7 +250,6 @@ const CopilotShellContent: React.FC = () => {
   const params = useParams<{ agentKey?: string }>();
   const [searchParams] = useSearchParams();
   const lastRouteTargetKeyRef = useRef("");
-  const agentsRef = useRef(state.agents);
   const [routeAgentHydratedKey, setRouteAgentHydratedKey] = useState("");
   const requestedAgentKey = useMemo(
     () => normalizeRouteValue(params.agentKey),
@@ -287,10 +285,6 @@ const CopilotShellContent: React.FC = () => {
   });
 
   useEffect(() => {
-    agentsRef.current = state.agents;
-  }, [state.agents]);
-
-  useEffect(() => {
     if (!requestedAgentKey) {
       return;
     }
@@ -305,11 +299,8 @@ const CopilotShellContent: React.FC = () => {
         const resolvedKey =
           normalizeRouteValue(payload.key) || requestedAgentKey;
         dispatch({
-          type: "SET_AGENTS",
-          agents: upsertAgentSummary(agentsRef.current, {
-            ...payload,
-            key: resolvedKey,
-          }),
+          type: "SET_CURRENT_AGENT",
+          agent: { ...payload, key: resolvedKey, name: payload.name || resolvedKey } as Agent,
         });
         setRouteAgentHydratedKey(requestedAgentKey);
       })

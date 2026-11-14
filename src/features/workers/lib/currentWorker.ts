@@ -121,6 +121,7 @@ export function resolveCurrentWorkerSummary(
     | 'workerRows'
     | 'workerRelatedChats'
     | 'agents'
+    | 'currentAgent'
   >,
 ): CurrentWorkerSummary | null {
   const workerKey = resolveWorkerKey(state);
@@ -129,11 +130,11 @@ export function resolveCurrentWorkerSummary(
   const row =
     state.workerIndexByKey.get(workerKey)
     || state.workerRows.find((candidate) => candidate.key === workerKey)
-    || createFallbackWorkerRow(workerKey, state.agents);
+    || createFallbackWorkerRow(workerKey, state.currentAgent ? [...state.agents, state.currentAgent] : state.agents);
   if (!row) return null;
 
   const raw =
-    ((findAgentByKey(state.agents, row.sourceId) as Record<string, unknown> | null));
+    (state.currentAgent?.key === row.sourceId ? state.currentAgent as Record<string, unknown> : null);
   const relatedChats =
     workerKey === toText(state.workerSelectionKey)
       ? state.workerRelatedChats
@@ -146,8 +147,8 @@ export function resolveCurrentWorkerSummary(
     key: row.key,
     type: row.type,
     sourceId: row.sourceId,
-    displayName: row.displayName,
-    role: toText(row.role || raw?.role) || '--',
+    displayName: toDisplayName(raw?.name, row.displayName),
+    role: toText(raw?.role || row.role) || '--',
     raw,
     row,
     relatedChats,

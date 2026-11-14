@@ -4,7 +4,7 @@ import type { ConversationState } from "@/features/conversation/lib/conversation
 import type { WorkersState } from "@/features/workers/lib/workerState";
 import { normalizeEventDetailLevel, type EventDetailLevel } from "@/shared/data/eventDetailLevel";
 
-type DetailState = Pick<ChatsState, "chats"> & Pick<AgentsState, "agents"> &
+type DetailState = Pick<ChatsState, "chats"> & Pick<AgentsState, "currentAgent"> &
   Pick<ConversationState, "chatId" | "chatAgentById"> &
   Pick<WorkersState, "pendingNewChatAgentKey" | "workerSelectionKey" | "workerIndexByKey">;
 
@@ -17,7 +17,7 @@ export function chatDetailLevel(state: DetailState): EventDetailLevel {
   const agentKey = chat?.agentKey || chat?.firstAgentKey ||
     (state.chatId ? state.chatAgentById.get(state.chatId) : "") ||
     state.pendingNewChatAgentKey || (worker?.type === "agent" ? worker.sourceId : "");
-  const agent = state.agents.find(item => item.key === agentKey);
+  const agent = state.currentAgent?.key === agentKey ? state.currentAgent : null;
   const config = agent?.interactionConfig as { defaultDetail?: unknown } | undefined;
   return normalizeEventDetailLevel(config?.defaultDetail);
 }

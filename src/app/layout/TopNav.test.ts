@@ -225,7 +225,8 @@ describe("TopNav", () => {
 
 	it.each(["GENERAL", "CODER", "KBASE", "TEAM"])("renders the project browser action for a %s agent with a Workspace", (mode) => {
 		const state = createInitialState();
-		state.agents = [{ key: "project-agent", name: "Project Agent", mode, workspaceDir: "/work/project" }];
+		state.currentAgent = { key: "project-agent", name: "Project Agent", mode, workspaceDir: "/work/project" };
+    state.agents = [{ key: "project-agent", name: "Project Agent", mode }];
 		state.workerSelectionKey = "agent:project-agent";
 		useAppState.mockReturnValue(state);
 
@@ -250,7 +251,7 @@ describe("TopNav", () => {
 
 		expect(mockUseTerminalAgentStatuses).toHaveBeenLastCalledWith(false);
 
-		state.agents = [{ key: "coder", name: "Coder", mode: "GENERAL", interactionConfig: { showTerminal: true } }];
+		state.currentAgent = { key: "coder", name: "Coder", mode: "GENERAL", interactionConfig: { showTerminal: true } };
 		renderToStaticMarkup(React.createElement(TopNav));
 
 		expect(mockUseTerminalAgentStatuses).toHaveBeenLastCalledWith(true);

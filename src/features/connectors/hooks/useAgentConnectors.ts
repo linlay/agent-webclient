@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import type { Agent } from "@/features/agents/lib/agentState";
 import { useAppContext } from "@/app/state/AppContext";
 import { getAgent, getConnectorConnection, getConnectorConnections, setAgentConnector, type ConnectorConnection } from "@/shared/data";
 import { invalidateAgentDetail } from "@/shared/data/api/routedClient";
@@ -16,7 +17,7 @@ const hasConnectionConfiguration = (connection: ConnectorConnection) => !connect
 export function useAgentConnectors(agentKey: string) {
   const { state, stateRef, dispatch } = useAppContext();
   const push = usePushTransport();
-  const agent = state.agents.find(item => item.key === agentKey);
+  const agent = state.currentAgent?.key === agentKey ? state.currentAgent : null;
   const ids = agent?.connectors;
   const availability = state.agentAvailability[agentKey];
   const [loading, setLoading] = useState(false);
@@ -75,10 +76,7 @@ export function useAgentConnectors(agentKey: string) {
       if (data.key !== agentKey || !Array.isArray(data.connectors) || !data.connectors.every(id => typeof id === "string")) {
         throw new Error("Agent connector associations are unavailable");
       }
-      const agents = stateRef.current.agents;
-      dispatch({ type: "SET_AGENTS", agents: agents.some(item => item.key === agentKey)
-        ? agents.map(item => item.key === agentKey ? { ...item, connectors: data.connectors } : item)
-        : [...agents, { key: data.key, name: data.name, connectors: data.connectors }] });
+      dispatch({ type: "SET_CURRENT_AGENT", agent: { ...data } as unknown as Agent });
       setLoadError(null);
     } catch (cause) {
       if (current === request.current) setLoadError(asError(cause));
@@ -167,8 +165,7 @@ export function useAgentConnectors(agentKey: string) {
       // Invalidate checks that started before/during this save before publishing.
       invalidateAgentDetail(agentKey);
       window.dispatchEvent(new CustomEvent("agent:availability-invalidate", { detail: { agentKey } }));
-      dispatch({ type: "SET_AGENTS", agents: stateRef.current.agents.map(item => item.key === agentKey
-        ? { ...item, connectors: data.connectorIds } : item) });
+      dispatch({ type: "PATCH_CURRENT_AGENT", agentKey, patch: { connectors: data.connectorIds } });
     } catch (cause) {
       failed = true;
       if (currentScope === scope.current) setSaveError(asError(cause));

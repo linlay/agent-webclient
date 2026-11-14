@@ -3,7 +3,7 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import type { Agent } from "@/features/agents/lib/agentState";
 import {
-  agentSummaryFromModelConfig,
+  currentAgentFromModelConfig,
   
   buildPersistedModelConfigOverride,
   clearCoderModelOptionsCacheForTest,
@@ -1031,9 +1031,9 @@ describe("QuerySettingsControls", () => {
 
   it("projects flat saved model settings without modifying metadata", () => {
     const existing = {key: "coder", name: "Coder", meta: {workspace: {root: "/workspace"}}};
-    const merged = agentSummaryFromModelConfig(existing, {agentKey: "coder", modelKey: "new", reasoningEffort: "NONE"}, {});
+    const merged = currentAgentFromModelConfig(existing, {agentKey: "coder", modelKey: "new", reasoningEffort: "NONE"}, {});
     expect(merged).toEqual({...existing, modelKey: "new", reasoningEffort: "NONE", serviceTier: undefined});
-    expect(agentSummaryFromModelConfig(merged, {agentKey: "coder", modelKey: "new", reasoningEffort: "HIGH", serviceTier: "FAST"}, {}).serviceTier).toBe("FAST");
+    expect(currentAgentFromModelConfig(merged, {agentKey: "coder", modelKey: "new", reasoningEffort: "HIGH", serviceTier: "FAST"}, {}).serviceTier).toBe("FAST");
   });
 
   it("resolves model option sources with manual refresh precedence", () => {

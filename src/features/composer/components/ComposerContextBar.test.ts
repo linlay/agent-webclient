@@ -32,7 +32,7 @@ describe("ComposerContextBar", () => {
   afterEach(() => { act(() => root.unmount()); container.remove(); });
   function render(isCoder: boolean, extra: Record<string, unknown> = {}) {
     act(() => root.render(React.createElement(I18nProvider, { locale: "zh-CN", persistLocale: false, children:
-      React.createElement(ComposerContextBar, { agents, currentAgentKey: isCoder ? "coder" : "general", isCoder, onSelectAgent, ...extra }),
+      React.createElement(ComposerContextBar, { agents, currentAgent: agents[isCoder ? 1 : 0], currentAgentKey: isCoder ? "coder" : "general", isCoder, onSelectAgent, ...extra }),
     })));
   }
   it.each([true, false])("shows the real branch for any mode (coder=%s)", (isCoder) => {

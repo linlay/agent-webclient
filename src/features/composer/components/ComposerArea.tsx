@@ -269,8 +269,8 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
   const kbaseCatalog = useKBaseOptions(kbaseTargetAgentKey, kbaseSelection.length > 0 || kbaseTargetAgentKey !== currentAgentKey);
   const updateKbaseReferences = (libraries: import("@/features/kbases/lib/kbasesState").SelectedKBase[]) => setContextReferences("kbase", libraries.map(item => ({type:"kbase", id:item.id, name:item.name})));
   const invalidKbaseIds = unavailableKbaseIds(kbaseCatalog.data, kbaseSelection.map(item => item.id));
-  const targetKbaseDefinition = (state.agents.find(agent => agent.key === kbaseTargetAgentKey)?.definition as Record<string, unknown> | undefined) ||
-    (kbaseTargetAgentKey === currentAgentKey ? currentWorker?.raw?.definition as Record<string, unknown> | undefined : undefined);
+  const targetKbaseDefinition = kbaseTargetAgentKey === currentAgentKey
+    ? currentWorker?.raw?.definition as Record<string, unknown> | undefined : undefined;
   const boundLibraryId = kbaseCatalog.data?.boundLibraryId || (targetKbaseDefinition?.kbaseConfig as {libraryId?: string} | undefined)?.libraryId;
   const boundLibrary = boundLibraryId ? {id: boundLibraryId, name: kbaseCatalog.data?.libraries.find(item => item.id === boundLibraryId)?.name || boundLibraryId} : undefined;
   const kbaseMenuAvailable = kbaseTargetAgentKey === currentAgentKey ? interactionConfig.attachment.kbases === true : kbaseCatalog.status === "success";
@@ -930,7 +930,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     sampledIntroduction,
     sampledWonders,
   } = useComposerWonders({
-    agents: state.agents,
+    currentAgent: state.currentAgent,
     currentAgentKey,
     isBlankConversation,
     showWonders,
@@ -1157,6 +1157,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
               {enableNewChatContext && isBlankConversation && !conversationBlocking && !isFrontendActive && (
                 <ComposerContextBar
                   agents={state.agents}
+                  currentAgent={state.currentAgent}
                   workerRows={state.workerRows}
                   currentAgentKey={currentAgentKey}
                   currentWorkerName={currentWorker?.displayName}

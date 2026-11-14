@@ -783,6 +783,7 @@ describe('useComposerSend active run gate', () => {
     state.streaming = false;
     // An active Chat always has a previous Run.
     state.chats = [{ chatId: 'chat-1', agentKey: 'agent-a', lastRunId: 'run-active' } as (typeof state.chats)[number]];
+    state.currentAgent = { key: 'agent-a', name: 'Agent A', mode: agentMode };
     state.agents = [{ key: 'agent-a', name: 'Agent A', mode: agentMode } as (typeof state.agents)[number]];
     const dispatch = jest.fn();
     const setInputValue = jest.fn();

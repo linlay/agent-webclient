@@ -23,6 +23,7 @@ import { AIRunEventTypeEnum } from "@/shared/contracts/agentEvents";
 import type { AgentEventSink } from "@/features/events/lib/eventSink";
 import {
   createRequestId,
+  getAgent,
   type QueryAccessLevel,
   type QueryModelOverride,
   setAccessToken,
@@ -314,7 +315,7 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
       // BOT Chats queue messages through /api/send; other Agents keep query/steer.
       const mailboxMessage = (Boolean(rawMessage) || normalizedReferences.length > 0) && Object.keys(params).length === 0;
       const guardOwner = resolvePreferredRunOwner(stateRef.current, { chatId: preferredChatId || stateRef.current.chatId, explicitAgentKey: preferredAgentKey });
-      let mailboxSend = mailboxMessage && usesMailboxSend(guardOwner?.kind === "agent" ? stateRef.current.agents.find(agent => agent.key === guardOwner.agentKey)?.mode : undefined);
+      let mailboxSend = mailboxMessage && usesMailboxSend(guardOwner?.kind === "agent" ? (stateRef.current.currentAgent?.key === guardOwner.agentKey ? stateRef.current.currentAgent : stateRef.current.agents.find(agent => agent.key === guardOwner.agentKey))?.mode : undefined);
       /* ── Parallel-query guard ── */
       const currentActiveReqId = String(
         activeQuerySessionRequestIdRef.current || "",
@@ -415,10 +416,11 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
         pathname: typeof window === "undefined" ? "" : window.location.pathname,
         search: typeof window === "undefined" ? "" : window.location.search,
         agentKey: selectedAgentKey,
-        agentMode: stateRef.current.agents.find(agent => agent.key === selectedAgentKey)?.mode,
+        agentMode: (stateRef.current.currentAgent?.key === selectedAgentKey ? stateRef.current.currentAgent : stateRef.current.agents.find(agent => agent.key === selectedAgentKey))?.mode,
         isNewChatQuery,
         primaryNavigation: stateRef.current.primaryNavigation === true,
-        hasPrimary: !stateRef.current.agents.some(agent => agent.key === selectedAgentKey && !agent.primaryChat?.chatId),
+        // The Primary Chat pointer is a navigation fact, separate from the Agent definition.
+        hasPrimary: Boolean(stateRef.current.agents.find(agent => agent.key === selectedAgentKey)?.primaryChat?.chatId),
       });
 
       const kbaseReferenceIds = referenceIds(normalizedReferences,"kbase");
@@ -450,9 +452,19 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
       }
       const cleanMessage = (mention.cleanMessage || rawMessage);
 
-      const selectedAgent = stateRef.current.agents.find(
-        (agent) => toText(agent?.key) === selectedAgentKey,
-      );
+      let selectedAgent = stateRef.current.currentAgent?.key === selectedAgentKey
+        ? stateRef.current.currentAgent : null;
+      if (!selectedAgent && selectedAgentKey) {
+        try {
+          const { data } = await getAgent(selectedAgentKey);
+          if (getDataSessionRevision() !== submissionSession || stateRef.current.chatId !== validationChatId || stateRef.current.chatTransition?.seq !== validationTransitionSeq) return;
+          if (data.key !== selectedAgentKey) throw new Error("Agent identity mismatch");
+          selectedAgent = data as unknown as import("@/features/agents/lib/agentState").Agent;
+        } catch (error) {
+          dispatch({ type: "APPEND_DEBUG", line: `[send] Agent detail unavailable: ${(error as Error).message}` });
+          return;
+        }
+      }
       const interaction = selectedAgent?.interactionConfig as import("@/shared/contracts/interaction").InteractionConfig | undefined;
       const bot = String(selectedAgent?.mode || "").toUpperCase() === "BOT";
       // A leading @mention can change the target Agent, and with it the entry.

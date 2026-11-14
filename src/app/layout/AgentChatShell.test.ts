@@ -15,7 +15,6 @@ import {
   isAgentRouteAuthenticationError,
   parseComposerPrefillPayload,
   parseNewChatTimestamp,
-  resetRouteAgentDetailFetched,
   resolveNewChatResendRouteAction,
 } from "@/app/layout/AgentChatShell";
 import { ApiError } from "@/shared/data/api/http";
@@ -345,7 +344,6 @@ describe("AgentChatShell", () => {
   beforeEach(() => {
     mockStageDeriveChatAction = undefined;
     mockStageOnFeedback = undefined;
-    resetRouteAgentDetailFetched();
     globalWithDom.window = {
       addEventListener: jest.fn(),
       dispatchEvent: jest.fn(() => true),
@@ -454,15 +452,13 @@ describe("AgentChatShell", () => {
     await flushPromises();
 
     expect(dispatch).toHaveBeenCalledWith({
-      type: "SET_AGENTS",
-      agents: [
-        {
+      type: "SET_CURRENT_AGENT",
+      agent: {
           key: "demo-agent",
           name: "Demo Agent",
           role: "Worker",
           mode: "CODER",
         },
-      ],
     });
 
     useEffectSpy.mockRestore();
@@ -511,16 +507,14 @@ describe("AgentChatShell", () => {
     await flushPromises();
 
     expect(dispatch).toHaveBeenCalledWith({
-      type: "SET_AGENTS",
-      agents: [
-        expect.objectContaining({
+      type: "SET_CURRENT_AGENT",
+      agent: expect.objectContaining({
           key: "demo-agent",
           mode: "CODER",
           meta: { acpBridgeId: "codex" },
           modelKey: "gpt-5.5",
           reasoningEffort: "HIGH",
         }),
-      ],
     });
 
     useEffectSpy.mockRestore();
@@ -545,13 +539,11 @@ describe("AgentChatShell", () => {
       line: "[loadAgent error] network down",
     });
     expect(dispatch).not.toHaveBeenCalledWith({
-      type: "SET_AGENTS",
-      agents: [
-        expect.objectContaining({
+      type: "SET_CURRENT_AGENT",
+      agent: expect.objectContaining({
           key: "demo-agent",
           mode: "CODER",
         }),
-      ],
     });
 
     useEffectSpy.mockRestore();
@@ -560,6 +552,7 @@ describe("AgentChatShell", () => {
   it("renders the desktop chat layout without the left sidebar once the route agent is ready", () => {
     useAppState.mockReturnValue({
       ...createInitialState(),
+      currentAgent: { key: "demo-agent", name: "Demo Agent", role: "Worker", mode: "REACT", ...routeReadyModelSelection },
       agents: [
         { key: "demo-agent", name: "Demo Agent", role: "Worker", mode: "REACT", ...routeReadyModelSelection },
       ],
@@ -598,6 +591,7 @@ describe("AgentChatShell", () => {
       });
     useAppState.mockReturnValue({
       ...createInitialState(),
+      currentAgent: { key: "demo-agent", name: "Demo Agent", role: "Worker", mode: "CODER", ...routeReadyModelSelection },
       agents: [
         { key: "demo-agent", name: "Demo Agent", role: "Worker", mode: "CODER", ...routeReadyModelSelection },
       ],
@@ -637,6 +631,7 @@ describe("AgentChatShell", () => {
     useSearchParams.mockReturnValue([new URLSearchParams("newChat=1783680000000")]);
     useAppState.mockReturnValue({
       ...createInitialState(),
+      currentAgent: { key: "demo-agent", name: "Demo Agent", role: "Worker", mode: "CODER", ...routeReadyModelSelection },
       agents: [
         { key: "demo-agent", name: "Demo Agent", role: "Worker", mode: "CODER", ...routeReadyModelSelection },
       ],
@@ -679,6 +674,7 @@ describe("AgentChatShell", () => {
     ]);
     useAppState.mockReturnValue({
       ...createInitialState(),
+      currentAgent: { key: "next-agent", name: "Next Agent", role: "Worker", mode: "CODER", ...routeReadyModelSelection },
       agents: [
         { key: "demo-agent", name: "Demo Agent", role: "Worker", mode: "CODER", ...routeReadyModelSelection },
         { key: "next-agent", name: "Next Agent", role: "Worker", mode: "CODER", ...routeReadyModelSelection },
@@ -714,6 +710,7 @@ describe("AgentChatShell", () => {
     useSearchParams.mockReturnValue([new URLSearchParams("newChat=1783680000000")]);
     useAppState.mockReturnValue({
       ...createInitialState(),
+      currentAgent: { key: "demo-agent", name: "Demo Agent", role: "Worker", mode: "CODER", ...routeReadyModelSelection },
       agents: [
         { key: "demo-agent", name: "Demo Agent", role: "Worker", mode: "CODER", ...routeReadyModelSelection },
       ],
@@ -748,6 +745,7 @@ describe("AgentChatShell", () => {
     ]);
     useAppState.mockReturnValue({
       ...createInitialState(),
+      currentAgent: { key: "demo-agent", name: "Demo Agent", role: "Worker", mode: "REACT", ...routeReadyModelSelection },
       agents: [
         { key: "demo-agent", name: "Demo Agent", role: "Worker", mode: "REACT", ...routeReadyModelSelection },
       ],
@@ -792,6 +790,7 @@ describe("AgentChatShell", () => {
     useSearchParams.mockReturnValue([searchParams]);
     useAppState.mockReturnValue({
       ...createInitialState(),
+      currentAgent: { key: "demo-agent", name: "Demo Agent", role: "Worker", mode: "REACT", ...routeReadyModelSelection },
       agents: [
         { key: "demo-agent", name: "Demo Agent", role: "Worker", mode: "REACT", ...routeReadyModelSelection },
       ],
@@ -835,6 +834,7 @@ describe("AgentChatShell", () => {
     useSearchParams.mockReturnValue([new URLSearchParams({ newChat: "1783680000000", composerDraft: "Use the connector" })]);
     useAppState.mockReturnValue({
       ...createInitialState(),
+      currentAgent: { key: "demo-agent", name: "Demo Agent", role: "Worker", mode: "REACT", ...routeReadyModelSelection },
       agents: [{ key: "demo-agent", name: "Demo Agent", role: "Worker", mode: "REACT", ...routeReadyModelSelection }],
       workerSelectionKey: "agent:demo-agent",
     });
@@ -862,6 +862,7 @@ describe("AgentChatShell", () => {
     useSearchParams.mockReturnValue([new URLSearchParams({ newChat, composerDraft: "" })]);
     useAppState.mockReturnValue({
       ...createInitialState(),
+      currentAgent: { key: "demo-agent", name: "Demo Agent", role: "Worker", mode: "REACT", ...routeReadyModelSelection },
       agents: [{ key: "demo-agent", name: "Demo Agent", role: "Worker", mode: "REACT", ...routeReadyModelSelection }],
       workerSelectionKey: "agent:demo-agent",
     });
@@ -1110,6 +1111,7 @@ describe("AgentChatShell", () => {
     ]);
     useAppState.mockReturnValue({
       ...createInitialState(),
+      currentAgent: { key: "demo-agent", name: "Demo Agent", role: "Worker", mode: "CODER", ...routeReadyModelSelection },
       agents: [
         { key: "demo-agent", name: "Demo Agent", role: "Worker", mode: "CODER", ...routeReadyModelSelection },
       ],
@@ -1294,6 +1296,7 @@ describe("AgentChatShell", () => {
     useSearchParams.mockReturnValue([new URLSearchParams("history=1")]);
     useAppState.mockReturnValue({
       ...state,
+      currentAgent: { key: "demo-agent", name: "Demo Agent", mode: "REACT", ...routeReadyModelSelection },
       agents: [{ key: "demo-agent", name: "Demo Agent", mode: "REACT", ...routeReadyModelSelection }],
       chats: [chat],
       workerSelectionKey: "agent:demo-agent",

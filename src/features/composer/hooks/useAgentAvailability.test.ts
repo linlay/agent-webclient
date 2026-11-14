@@ -110,7 +110,7 @@ describe("current Agent availability independent of history", () => {
     await act(async () => container.querySelector("button")!.click());
     expect(container.textContent).toBe("available");
     expect(isAgentExecutionBlocked(mockStateRef.current)).toBe(false);
-    expect(mockStateRef.current.agents[0].name).toBe("Repaired");
+    expect(mockStateRef.current.currentAgent!.name).toBe("Repaired");
     expect(mockStateRef.current.chatId).toBe("history");
   });
   it("rechecks after returning from configuration and rejects a stale success", async () => {
@@ -130,14 +130,14 @@ describe("current Agent availability independent of history", () => {
     await render();
     await act(async () => {
       window.dispatchEvent(new CustomEvent("agent:availability-invalidate", { detail: { agentKey: "old" } }));
-      mockDispatch({ type: "SET_AGENTS", agents: [{ key: "old", name: "Saved", connectors: ["saved"] }] });
+      mockDispatch({ type: "SET_CURRENT_AGENT", agent: { key: "old", name: "Saved", connectors: ["saved"] } });
       resolveOld({ data: { key: "old", name: "Stale", connectors: ["removed"] } });
     });
-    expect(mockStateRef.current.agents[0]).toMatchObject({ name: "Saved", connectors: ["saved"] });
+    expect(mockStateRef.current.currentAgent!).toMatchObject({ name: "Saved", connectors: ["saved"] });
     jest.mocked(getAgent).mockResolvedValue({ data: { key: "old", name: "Saved", connectors: ["saved"], tools: ["saved-tool"], skills: ["saved-skill"] } } as any);
     await act(async () => window.dispatchEvent(new CustomEvent("agent:availability-refresh", { detail: { agentKey: "old" } })));
     expect(container.textContent).toBe("available");
-    expect(mockStateRef.current.agents[0]).toMatchObject({ connectors: ["saved"], tools: ["saved-tool"], skills: ["saved-skill"] });
+    expect(mockStateRef.current.currentAgent!).toMatchObject({ connectors: ["saved"], tools: ["saved-tool"], skills: ["saved-skill"] });
   });
   it("bounds a hanging check and ignores a late response after switching Agent", async () => {
     let resolveOld!: (value: any) => void;
@@ -149,7 +149,8 @@ describe("current Agent availability independent of history", () => {
     await render("new");
     await act(async () => resolveOld({ data: { key: "old", name: "Stale" } }));
     expect(container.textContent).toBe("available");
-    expect(mockStateRef.current.agents.map(agent => agent.key)).toEqual(["new"]);
+    expect(mockStateRef.current.currentAgent?.key).toBe("new");
+    expect(mockStateRef.current.agents).toEqual([]);
   });
   it("keeps the configuration button mounted when the first click focuses the guest", async () => {
     jest.mocked(getAgent).mockRejectedValueOnce(new ApiError("missing", { status: 404 }));

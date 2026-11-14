@@ -38,6 +38,7 @@ export interface Agent {
     [key: string]: unknown;
   };
   role?: string;
+  meta?: Record<string, unknown>;
   skills?: string[];
   connectors?: string[];
   wonders?: string[];
@@ -54,18 +55,28 @@ export interface Agent {
   [key: string]: unknown;
 }
 
+/** /api/agents navigation data. It cannot carry Composer execution metadata. */
+export type AgentSummary = Pick<Agent,
+  "key" | "name" | "kind" | "type" | "mode" | "workspaceDir" | "workspaceName" |
+  "agentConfigDir" | "source" | "role" | "icon" | "stats" | "chats" | "primaryChat" |
+  "defaultAccessLevel" | "modelConfig" | "modelOptions">;
+
 export interface AgentsState {
-  agents: Agent[];
+  agents: AgentSummary[];
+  /** Authoritative current definition, written only by detail reads/confirmed mutations. */
+  currentAgent: Agent | null;
   agentAvailability: Record<string, AgentAvailability>;
 }
 
 export type AgentAvailability = "checking" | "available" | "unavailable" | "authentication_required" | "forbidden" | "error";
 
-export type AgentsAction = { type: "CLEAR_AGENT_AVAILABILITY" } | { type: "SET_AGENTS"; agents: Agent[] }
+export type AgentsAction = { type: "CLEAR_AGENT_AVAILABILITY" } | { type: "SET_AGENTS"; agents: AgentSummary[] }
+  | { type: "SET_CURRENT_AGENT"; agent: Agent | null }
+  | { type: "PATCH_CURRENT_AGENT"; agentKey: string; patch: Partial<Agent> }
   | { type: "SET_AGENT_AVAILABILITY"; agentKey: string; status: AgentAvailability };
 
 export function createInitialAgentsState(): AgentsState {
-  return { agents: [], agentAvailability: {} };
+  return { agents: [], currentAgent: null, agentAvailability: {} };
 }
 
 export function reduceAgentsState<S extends AgentsState>(state: S, action: AgentsAction): S;
@@ -73,11 +84,31 @@ export function reduceAgentsState<S extends AgentsState>(state: S, action: { typ
 export function reduceAgentsState<S extends AgentsState>(state: S, input: { type: string }): S | null {
   const action = input as AgentsAction;
   switch (action.type) {
-    case "CLEAR_AGENT_AVAILABILITY": return { ...state, agentAvailability: {} };
+    case "CLEAR_AGENT_AVAILABILITY": return { ...state, currentAgent: null, agentAvailability: {} };
     case "SET_AGENT_AVAILABILITY":
       return { ...state, agentAvailability: { ...state.agentAvailability, [action.agentKey]: action.status } };
+    case "SET_CURRENT_AGENT":
+      return { ...state, currentAgent: currentAgentDefinition(action.agent) };
+    case "PATCH_CURRENT_AGENT":
+      return state.currentAgent?.key === action.agentKey
+        ? { ...state, currentAgent: { ...state.currentAgent, ...action.patch, key: action.agentKey } }
+        : state;
     case "SET_AGENTS":
       return { ...state, agents: action.agents };
     default: return null;
   }
+}
+
+/** Never fall back to /api/agents for a current execution definition. */
+export function selectCurrentAgent(state: { currentAgent?: Agent | null }, agentKey: string): Agent | null {
+  return state.currentAgent?.key === agentKey ? state.currentAgent : null;
+}
+
+/** Workspace belongs to the detail contract's meta, independently of directory paths. */
+function currentAgentDefinition(agent: Agent | null): Agent | null {
+  const workspace = agent?.meta?.workspace;
+  if (!agent || !workspace || typeof workspace !== "object" || Array.isArray(workspace)) return agent;
+  const root = (workspace as Record<string, unknown>).root;
+  if (typeof root !== "string" || root.trim() === agent.workspaceDir) return agent;
+  return { ...agent, workspaceDir: root.trim() };
 }

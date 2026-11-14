@@ -79,7 +79,7 @@ export function EmbedConversation({ agentKey, children }: React.PropsWithChildre
       if (!active) return;
       const loaded = data as unknown as Agent;
       setAgent(loaded);
-      dispatch({ type: "SET_AGENTS", agents: [loaded] });
+      dispatch({ type: "SET_CURRENT_AGENT", agent: loaded });
       dispatch({ type: "SET_WORKER_SELECTION_KEY", workerKey: `agent:${agentKey}` });
       dispatch({ type: "SET_WORKER_PRIORITY_KEY", workerKey: `agent:${agentKey}` });
       dispatch({ type: "SET_PENDING_NEW_CHAT_AGENT_KEY", agentKey });
@@ -172,7 +172,7 @@ export function EmbedConversation({ agentKey, children }: React.PropsWithChildre
         if (current?.mode?.toUpperCase() === "BOT") {
           const updated = { ...current, primaryChat: { ...current.primaryChat, chatId: detail.chatId } } as Agent;
           setAgent(updated);
-          dispatch({ type: "SET_AGENTS", agents: [updated] });
+          dispatch({ type: "SET_CURRENT_AGENT", agent: updated });
         }
       }
     };
