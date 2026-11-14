@@ -1,3 +1,4 @@
+import { isEventDetailLevel } from "@/shared/data/eventDetailLevel";
 import { useCallback, useEffect, useRef } from 'react';
 import { flushSync } from 'react-dom';
 import { useAppContext } from '@/app/state/AppContext';
@@ -329,7 +330,7 @@ export function useWorkerData(input: {
       const focusComposerOnComplete = Boolean((e as CustomEvent).detail?.focusComposerOnComplete);
       const forceReload = (e as CustomEvent).detail?.forceReload === true;
       const detail = (e as CustomEvent).detail?.detail;
-      const level = detail === 'simple' || detail === 'detailed' ? detail : undefined;
+      const level = isEventDetailLevel(detail) ? detail : undefined;
       if (chatId) loadChat(chatId, { focusComposerOnComplete, ...(forceReload ? { forceReload } : {}), ...(level ? { detail: level } : {}) }).catch(() => undefined);
     };
     window.addEventListener('agent:load-chat', handler);

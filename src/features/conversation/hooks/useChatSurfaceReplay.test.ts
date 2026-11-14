@@ -166,3 +166,10 @@ describe("standalone Overview/Debug live replay policy", () => {
 }, null)).toEqual({kind: "agent", agentKey: "team-1"});
   });
 });
+
+
+test("summary filtered sequence gaps do not trigger a replay reload", () => {
+  const input = { event: {type: "content.delta", chatId: "chat", runId: "run", seq: 5}, chatId: "chat", runId: "run", lastSeq: 2 };
+  expect(classifyChatSurfaceEvent({...input, detailLevel: "summary"})).toEqual({action: "apply", nextSeq: 5});
+  expect(classifyChatSurfaceEvent({...input, detailLevel: "detailed"})).toEqual({action: "reload", nextSeq: 2});
+});

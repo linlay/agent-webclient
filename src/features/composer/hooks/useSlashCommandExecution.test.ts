@@ -74,6 +74,8 @@ describe("useSlashCommandExecution", () => {
   it.each([
     ["simple", false, true],
     ["detailed", false, false],
+    ["summary", false, true],
+    ["summary", true, false],
     [undefined, false, false],
     ["simple", true, false],
   ] as const)("expands history only when available (detail=%s, running=%s)", async (chatDetail, streaming, allowed) => {

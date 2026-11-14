@@ -33,3 +33,9 @@ it("keeps an existing Chat's owner separate from New Chat selection", () => {
 it("uses an explicit delivery override, in Desktop as well", () => {
  expect(chatDetailLevel({...initialState,chatId:"old",chats:[{chatId:"old",display:{defaultDetail:"simple",effectiveDetail:"detailed"}}]})).toBe("detailed");
 });
+
+
+it("keeps summary from both Agent defaults and delivered Chat metadata", () => {
+ expect(chatDetailLevel({...initialState,pendingNewChatAgentKey:"agent",currentAgent:{key:"agent",name:"Agent",interactionConfig:{defaultDetail:"summary"}}})).toBe("summary");
+ expect(chatDetailLevel({...initialState,chatId:"old",chats:[{chatId:"old",display:{defaultDetail:"summary",effectiveDetail:"summary"}}]})).toBe("summary");
+});

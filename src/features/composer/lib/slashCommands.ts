@@ -311,9 +311,9 @@ export function isSlashCommandDisabled(
     return !availability.canShowUsage;
   }
   if (commandId === 'detail') {
-    // Only loaded, idle simple history can be expanded.
+    // Only loaded, idle simple or summary history can be expanded.
     return !availability.hasActiveChat || availability.streaming || availability.commandOverlayOpen
-      || availability.chatDetail !== 'simple';
+      || (availability.chatDetail !== 'simple' && availability.chatDetail !== 'summary');
   }
   return false;
 }

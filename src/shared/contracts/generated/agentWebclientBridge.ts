@@ -1,6 +1,6 @@
 // Generated from src/shared/contracts/agent-webclient-bridge.ts.
 // Do not edit this mirror directly.
-// sha256:07a13856ed8df8471141ca3b9a4884be1b715d4fbfeacdc36aef145a2fb5c589
+// sha256:b565f179daaed47de06281fa975a6d3b2be185b2be37acff680bbfa531d950a5
 
 /**
  * Canonical Desktop <-> Agent WebClient bridge contract.
@@ -333,7 +333,7 @@ export type AgentPlatformRequestFrame = {
   /** History-read level of /api/chat; omitted reads at the Agent's default.
    * A Run is delivered at its Agent's configured level, so Platform rejects
    * detail on every other frame. */
-  detail?: "simple" | "detailed";
+  detail?: "simple" | "detailed" | "summary";
   payload?: unknown;
 };
 

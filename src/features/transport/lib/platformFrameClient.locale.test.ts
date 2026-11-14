@@ -38,3 +38,10 @@ test("locale endpoint retains explicit getter and setter semantics", async () =>
   await client.request({ type: "/api/locale", payload: { locale: "en-US" } });
   expect(client.frames[1].payload).toEqual({ locale: "en-US" });
 });
+
+
+test("preserves the summary history level in the frame envelope", async () => {
+  const client = new Client();
+  await client.request({ type: "/api/chat", payload: { chatId: "chat" }, detail: "summary" });
+  expect(client.frames[0]).toMatchObject({ type: "/api/chat", detail: "summary", payload: { chatId: "chat" } });
+});

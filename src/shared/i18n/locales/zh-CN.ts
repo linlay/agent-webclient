@@ -2193,7 +2193,8 @@ export const zhCNMessages = {
   "agents.interaction.defaultDetail": "过程展示",
   "agents.interaction.defaultDetail.inherit": "继承模式配置",
   "agents.interaction.defaultDetail.detailed": "详细过程",
-  "agents.interaction.defaultDetail.simple": "精简过程",
+  "agents.interaction.defaultDetail.simple": "简洁过程",
+  "agents.interaction.defaultDetail.summary": "概要过程",
   "settings.language.enUS": "英文（English）",
   "settings.language.hint":
     "选择默认界面语言。地址栏 lang 参数只临时覆盖当前页面。",
@@ -2819,6 +2820,7 @@ export const zhCNMessages = {
   "topNav.usage.compactTools": "压缩工具上下文（L1）",
   "topNav.usage.compactSummary": "生成历史摘要（L2）",
   "detailChooser.simple.description": "显示正文、计划、启动提示、行动公示和状态通知，隐藏推理及工具调用详情。",
+  "detailChooser.summary.description": "概要配置已支持，当前按简洁过程展示；思考与工具状态概要待接入。",
   "detailChooser.detailed.description": "显示正文、计划、推理、工具调用和实时用量，不模拟思考提示。",
   "contextCompact.chooser.title": "选择压缩层级",
   "contextCompact.chooser.subtitle": "整理当前对话，释放上下文空间。",

@@ -223,7 +223,7 @@ export function useComposerSend(input: UseComposerSendInput) {
     const current = stateRef.current;
     const chatId = String(current.chatId || "").trim();
     const detail = current.chats.find(chat => chat.chatId === chatId)?.display?.effectiveDetail;
-    if (chatId && detail === "simple") reloadChatDetails(chatId);
+    if (chatId && (detail === "simple" || detail === "summary")) reloadChatDetails(chatId);
   }, [stateRef]);
 
   useEffect(() => {
