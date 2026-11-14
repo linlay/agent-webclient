@@ -1,4 +1,4 @@
-import { initializeChatModel } from "@/features/composer/lib/composerModelSelection";
+import { initializeChatModel, removeChatModel } from "@/features/composer/lib/composerModelSelection";
 import { resolveComposerAccessScope } from "@/features/composer/lib/composerAccessLevel";
 import { reduceSubmissionDraft } from "@/features/composer/lib/submissionDraft";
 import type { ComposerAction } from "@/features/composer/lib/composerState";
@@ -60,7 +60,9 @@ function reduceAppState(state: AppState, action: AppAction): AppState {
 }
 
 export function appReducer(state: AppState, action: AppAction): AppState {
-  const next = reduceSubmissionDraft(state, action as ComposerAction) ?? reduceAppState(state, action);
+  const reduced = reduceSubmissionDraft(state, action as ComposerAction) ?? reduceAppState(state, action);
+  const next = action.type === "CHAT_DELETED"
+    ? removeChatModel(reduced, resolveComposerAccessScope(state.accessToken), action.chatId) : reduced;
   const edited = next.composerDraft !== state.composerDraft ||
     JSON.stringify(next.composerReferences) !== JSON.stringify(state.composerReferences) ||
     next.chatId !== state.chatId || next.workerSelectionKey !== state.workerSelectionKey ||

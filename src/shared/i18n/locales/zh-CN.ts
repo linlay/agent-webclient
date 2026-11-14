@@ -1518,6 +1518,7 @@ export const zhCNMessages = {
   "composer.query.model.loading": "正在加载模型...",
   "composer.query.model.refresh": "刷新模型列表",
   "composer.query.model.refreshFailed": "刷新模型列表失败",
+  "composer.query.model.savedAsDefault": "已保存为默认",
   "composer.query.model.saving": "保存中...",
   "composer.query.model.unavailable": "已配置的模型当前不可用，请重新选择。",
   "composer.query.model.title": "选择模型和思考深度",

@@ -1,4 +1,4 @@
-import { initializeChatModel, updateComposerModel } from "@/features/composer/lib/composerModelSelection";
+import { initializeChatModel, updateComposerModel, syncChatModel } from "@/features/composer/lib/composerModelSelection";
 import { resolveComposerAccessScope, updateComposerAccessLevel } from "@/features/composer/lib/composerAccessLevel";
 import type { AppAction } from "@/app/state/actions";
 import type { AppState } from "@/app/state/types";
@@ -290,9 +290,9 @@ export function reduceConversationState(
 		case "SET_MESSAGE_ORDER":
 			return { ...state, messageOrder: action.order };
 		case "SYNC_COMPOSER_MODEL":
-			return updateComposerModel(state, {
+			return syncChatModel(state, {
 				scope: resolveComposerAccessScope(state.accessToken), chatId: action.chatId, agentKey: "",
-			}, action.value, action.initializeOnly);
+			}, action.value);
 		case "SET_COMPOSER_MODEL":
 			return updateComposerModel(state, action.target, action.value, action.initializeOnly);
 		case "SET_COMPOSER_ACCESS_LEVEL":

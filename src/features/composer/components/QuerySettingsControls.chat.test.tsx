@@ -12,6 +12,9 @@ import { resolveComposerAccessScope } from "../lib/composerAccessLevel";
 import { interactionDefaults } from "@/shared/contracts/interaction";
 import { updateAgentModelConfig } from "@/shared/data";
 
+const mockSuccess = jest.fn();
+const mockError = jest.fn();
+jest.mock("@/shared/ui/useAppMessage", () => ({ useAppMessage: () => ({ success: mockSuccess, error: mockError }) }));
 let mockModelAllowed = true;
 let mockAccessMenu: any;
 let mockContext: { state: AppState; dispatch: React.Dispatch<AppAction> };
@@ -49,6 +52,7 @@ let root: Root;
 beforeAll(() => { (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true; });
 beforeEach(() => {
   mockModelAllowed = true;
+  mockSuccess.mockClear(); mockError.mockClear();
   sessionStorage.clear(); clearCoderModelOptionsCacheForTest();
   (updateAgentModelConfig as jest.Mock).mockReset().mockImplementation(async input => ({ data: { agentKey: "agent", ...input } }));
   container = document.createElement("div"); document.body.appendChild(container); root = createRoot(container);
@@ -123,4 +127,22 @@ it("uses server-confirmed New Chat settings without writing a Composer model cop
   });
   expect(mockContext.state.modelByChatId).toEqual({});
   expect(mockContext.state).not.toHaveProperty("newChatModelByAgentKey");
+});
+
+it("shows a saved-default hint only after a successful New Chat save", async () => {
+  await act(async () => root.render(<Harness />));
+  await click("model"); await click("reasoning");
+  expect(mockSuccess).toHaveBeenCalledTimes(2);
+  expect(mockSuccess).toHaveBeenLastCalledWith("composer.query.model.savedAsDefault");
+  await loadOld(); await click("reasoning");
+  expect(mockSuccess).toHaveBeenCalledTimes(2);
+});
+
+it("does not show a saved-default hint when saving fails", async () => {
+  (updateAgentModelConfig as jest.Mock).mockRejectedValueOnce(new Error("save failed"));
+  await act(async () => root.render(<Harness />));
+  await click("model");
+  expect(mockSuccess).not.toHaveBeenCalled();
+  expect(mockError).toHaveBeenCalledWith("save failed");
+  expect(container.textContent).toContain("Old Model");
 });

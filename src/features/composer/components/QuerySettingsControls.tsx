@@ -708,6 +708,7 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
       dispatch({ type: "PATCH_CURRENT_AGENT", agentKey: detail.agentKey || agentKey, patch: {
         modelKey: updated.modelKey, reasoningEffort: updated.reasoningEffort, serviceTier: updated.serviceTier,
       } });
+      void messageApi.success(t("composer.query.model.savedAsDefault"));
     } catch (error) {
       void messageApi.error((error as Error).message);
     } finally {
