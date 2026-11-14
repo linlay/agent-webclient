@@ -15,7 +15,6 @@ import {
   resolveCoderAgentDefaultModelOverride,
   resolveEmbeddedCoderModelOptions,
   resolveModelOptionsSource,
-  shouldApplyCoderDefaultModelOverride,
   shouldRetryModelOptionsOnOpen,
   toAgentConfigKey,
 } from "@/features/composer/components/QuerySettingsControls";
@@ -984,56 +983,11 @@ describe("QuerySettingsControls", () => {
     expect(failedHtml).toContain("模型加载失败，重新打开可重试");
   });
 
-  it("applies the default model when the target has no saved selection", () => {
-    expect(
-      shouldApplyCoderDefaultModelOverride({
-        shouldShowModelControls: true,
-        agentKey: "coder-agent",
-        modelOverride: {},
-        resolvedDefaultOverride: {
-          key: "default-coder-model",
-          reasoningEffort: "HIGH",
-        },
-        previousAppliedDefault: {
-          agentKey: "coder-agent",
-          value: {
-            key: "default-coder-model",
-            reasoningEffort: "HIGH",
-          },
-        },
-      }),
-    ).toBe(true);
-  });
-
-  it("does not overwrite a manual model override for the current CODER agent", () => {
-    expect(
-      shouldApplyCoderDefaultModelOverride({
-        shouldShowModelControls: true,
-        agentKey: "coder-agent",
-        modelOverride: {
-          key: "manual-model",
-          reasoningEffort: "LOW",
-        },
-        resolvedDefaultOverride: {
-          key: "default-coder-model",
-          reasoningEffort: "HIGH",
-        },
-        previousAppliedDefault: {
-          agentKey: "coder-agent",
-          value: {
-            key: "default-coder-model",
-            reasoningEffort: "HIGH",
-          },
-        },
-      }),
-    ).toBe(false);
-  });
-
   it("projects flat saved model settings without modifying metadata", () => {
     const existing = {key: "coder", name: "Coder", meta: {workspace: {root: "/workspace"}}};
-    const merged = currentAgentFromModelConfig(existing, {agentKey: "coder", modelKey: "new", reasoningEffort: "NONE"}, {});
+    const merged = currentAgentFromModelConfig(existing, {agentKey: "coder", modelKey: "new", reasoningEffort: "NONE"});
     expect(merged).toEqual({...existing, modelKey: "new", reasoningEffort: "NONE", serviceTier: undefined});
-    expect(currentAgentFromModelConfig(merged, {agentKey: "coder", modelKey: "new", reasoningEffort: "HIGH", serviceTier: "FAST"}, {}).serviceTier).toBe("FAST");
+    expect(currentAgentFromModelConfig(merged, {agentKey: "coder", modelKey: "new", reasoningEffort: "HIGH", serviceTier: "FAST"}).serviceTier).toBe("FAST");
   });
 
   it("resolves model option sources with manual refresh precedence", () => {

@@ -107,3 +107,20 @@ it("keeps the Chat preference while model capability is temporarily unavailable"
   expect(container.textContent).not.toContain("followLabel");
   expect(container.textContent).not.toContain("agent_default");
 });
+
+it("uses server-confirmed New Chat settings without writing a Composer model copy", async () => {
+  await act(async () => root.render(<Harness />));
+  expect(container.textContent).toContain("Old Model");
+  (updateAgentModelConfig as jest.Mock).mockResolvedValueOnce({ data: {
+    agentKey: "agent", modelKey: "new-model", reasoningEffort: "LOW", serviceTier: "FAST",
+  } });
+  await click("reasoning");
+  expect(updateAgentModelConfig).toHaveBeenCalledWith(expect.objectContaining({ agentKey: "agent", reasoningEffort: "HIGH" }));
+  expect(container.textContent).toContain("New Model");
+  expect(container.textContent).toContain("composer.query.reasoning.LOW");
+  expect(readComposerModel(mockContext.state, { scope: "", chatId: "", agentKey: "agent" })).toEqual({
+    key: "new-model", reasoningEffort: "LOW", serviceTier: "FAST",
+  });
+  expect(mockContext.state.modelByChatId).toEqual({});
+  expect(mockContext.state).not.toHaveProperty("newChatModelByAgentKey");
+});

@@ -13,7 +13,7 @@ beforeEach(() => sessionStorage.clear());
 
 it("restores old Chat history after changing New Chat, and keeps subsequent choices isolated", () => {
   let state = createInitialState();
-  state = appReducer(state, { type: "SET_COMPOSER_MODEL", target: target(), value: fresh });
+  state = { ...state, currentAgent: { key: "agent", name: "Agent", modelKey: fresh.key, reasoningEffort: fresh.reasoningEffort } };
   state = appReducer(state, { type: "APPLY_CONVERSATION_REPLAY", snapshot: {
     ...createInitialState(), chatId: "old", events: [event("request.query", { model: old })],
   } });
@@ -49,11 +49,10 @@ it("does not inherit a previous Run's reasoning or follow its late usage event",
 });
 
 it("preserves Chat choices through refresh, including explicit standard service tier", () => {
-  let state = updateComposerModel(createInitialState(), target(), fresh);
-  state = updateComposerModel(state, target("old"), old);
+  const state = updateComposerModel(createInitialState(), target("old"), old);
   persistComposerModels(state);
   expect(readComposerModel(restoreComposerModels(), target("old"))).toEqual(old);
-  expect(readComposerModel(createInitialState(), target())).toEqual(fresh);
+  expect(readComposerModel(createInitialState(), target())).toEqual({});
 });
 
 it("initializes accepted Chat once and ignores duplicate identity events after a manual change", () => {
@@ -69,7 +68,7 @@ it.each([
   ["b3594466-8d4e-4099-b502-1e79a21aac7d", "th-claude-haiku-5_5"],
 ])("restores %s from the wire model after a fresh Desktop session", (chatId, key) => {
   let state = createInitialState();
-  state = updateComposerModel(state, target(), { key: "th-minimax-m3" });
+  state = { ...state, currentAgent: { key: "agent", name: "Agent", modelKey: "th-minimax-m3" } };
   const history: AgentEvent[] = [{
     type: "request.query", chatId, runId: "latest-run",
     model: { key, reasoningEffort: "HIGH" },
@@ -85,4 +84,29 @@ it("reads only the top-level wire model, never a nested query", () => {
   expect(resolveChatModel([event("request.query", {
     query: { model: { key: "requested-model", reasoningEffort: "LOW" } },
   })], "old")).toBeUndefined();
+});
+
+it("reads New Chat defaults only from matching currentAgent and follows server updates", () => {
+  const state = { ...createInitialState(),
+    currentAgent: { key: "agent", name: "Agent", modelKey: fresh.key, reasoningEffort: fresh.reasoningEffort },
+    agents: [{ key: "other", name: "Other", modelKey: "list-model" }],
+  };
+  expect(readComposerModel(state, target())).toEqual(fresh);
+  expect(readComposerModel(state, target("", undefined, "other"))).toEqual({});
+  expect(readComposerModel({ ...state, currentAgent: null }, target())).toEqual({});
+  expect(readComposerModel({ ...state, currentAgent: { ...state.currentAgent, modelKey: "updated" } }, target()).key).toBe("updated");
+  expect(updateComposerModel(state, target(), old)).toBe(state);
+});
+
+it("drops legacy New Chat storage while preserving existing Chat selections", () => {
+  const storageKey = "agent-webclient.composer-model.v1";
+  sessionStorage.setItem(storageKey, JSON.stringify({
+    modelByChatId: { [JSON.stringify([target().scope, "old"])]: old },
+    newChatModelByAgentKey: { [JSON.stringify([target().scope, "agent"])]: fresh },
+  }));
+  const restored = restoreComposerModels();
+  expect(readComposerModel(restored, target())).toEqual({});
+  expect(readComposerModel(restored, target("old"))).toEqual(old);
+  persistComposerModels(restored);
+  expect(JSON.parse(sessionStorage.getItem(storageKey)!)).toEqual({ modelByChatId: restored.modelByChatId });
 });

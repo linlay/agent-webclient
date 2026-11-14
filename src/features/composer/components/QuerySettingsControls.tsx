@@ -113,11 +113,6 @@ type AgentModelDefaults = {
   defaultServiceTier?: QueryServiceTier;
 };
 
-type AppliedDefaultModelOverride = {
-  agentKey: string;
-  value: QueryModelOverride;
-};
-
 const globalCoderModelOptionsCacheKey = "__global__";
 const cachedCoderModelOptions = new Map<string, LoadedCoderModelOptions>();
 const pendingCoderModelOptionsPromises = new Map<
@@ -206,52 +201,6 @@ export function getModelIdentityMismatchWarning(
     .join(" / ")}" is ${technicalFamily}`;
 }
 
-
-export function shouldApplyCoderDefaultModelOverride({
-  shouldShowModelControls,
-  agentKey,
-  modelOverride,
-  resolvedDefaultOverride,
-  previousAppliedDefault,
-}: {
-  shouldShowModelControls: boolean;
-  agentKey: string;
-  modelOverride: QueryModelOverride;
-  resolvedDefaultOverride: QueryModelOverride;
-  previousAppliedDefault: AppliedDefaultModelOverride | null;
-}): boolean {
-  if (!shouldShowModelControls || !agentKey) return false;
-  if (
-    !resolvedDefaultOverride.key &&
-    !resolvedDefaultOverride.reasoningEffort &&
-    !resolvedDefaultOverride.serviceTier
-  ) {
-    return false;
-  }
-  if (
-    modelOverride.key === resolvedDefaultOverride.key &&
-    modelOverride.reasoningEffort === resolvedDefaultOverride.reasoningEffort &&
-    modelOverride.serviceTier === resolvedDefaultOverride.serviceTier
-  ) {
-    return false;
-  }
-
-  const hasCurrentOverride = Boolean(
-    modelOverride.key || modelOverride.reasoningEffort || modelOverride.serviceTier,
-  );
-  const currentMatchesPrevious =
-    previousAppliedDefault?.agentKey === agentKey &&
-    modelOverride.key === previousAppliedDefault.value.key &&
-    modelOverride.reasoningEffort ===
-      previousAppliedDefault.value.reasoningEffort &&
-    modelOverride.serviceTier === previousAppliedDefault.value.serviceTier;
-
-  return !(
-    previousAppliedDefault?.agentKey === agentKey &&
-    !currentMatchesPrevious &&
-    hasCurrentOverride
-  );
-}
 
 export function shouldRetryModelOptionsOnOpen({
   open,
@@ -472,7 +421,6 @@ export function buildPersistedModelConfigOverride({
 export function currentAgentFromModelConfig(
   existing: Agent | undefined,
   response: AgentModelConfigResponse,
-  modelOverride: QueryModelOverride,
 ): Agent {
   const key = response.agentKey || existing?.key || "";
   return {
@@ -530,7 +478,6 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
   const [modelRefreshFailed, setModelRefreshFailed] = useState(false);
   const [accessMenuOpen, setAccessMenuOpen] = useState(false);
   const [modelMenuOpen, setModelMenuOpen] = useState(false);
-  const appliedDefaultRef = useRef<AppliedDefaultModelOverride | null>(null);
   const forceRefreshRef = useRef(false);
   const manualRefreshAgentKeyRef = useRef<string | null>(null);
 
@@ -681,52 +628,6 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
     [currentWorker],
   );
 
-  useEffect(() => {
-    if (state.chatId) return;
-    if (
-      shouldShowModelControls &&
-      agentKey &&
-      (resolvedDefaultOverride.key ||
-        resolvedDefaultOverride.reasoningEffort ||
-        resolvedDefaultOverride.serviceTier) &&
-      modelOverride.key === resolvedDefaultOverride.key &&
-      modelOverride.reasoningEffort === resolvedDefaultOverride.reasoningEffort &&
-      modelOverride.serviceTier === resolvedDefaultOverride.serviceTier
-    ) {
-      appliedDefaultRef.current = {
-        agentKey,
-        value: resolvedDefaultOverride,
-      };
-      return;
-    }
-    if (
-      !shouldApplyCoderDefaultModelOverride({
-        shouldShowModelControls,
-        agentKey,
-        modelOverride,
-        resolvedDefaultOverride,
-        previousAppliedDefault: appliedDefaultRef.current,
-      })
-    ) {
-      return;
-    }
-
-    appliedDefaultRef.current = {
-      agentKey,
-      value: resolvedDefaultOverride,
-    };
-    onModelOverrideChange(resolvedDefaultOverride);
-  }, [
-    state.chatId,
-    agentKey,
-    modelOverride.key,
-    modelOverride.reasoningEffort,
-    modelOverride.serviceTier,
-    onModelOverrideChange,
-    resolvedDefaultOverride,
-    shouldShowModelControls,
-  ]);
-
   const modelKey =
     modelOverride.key ||
     resolvedDefaultOverride.key ||
@@ -803,12 +704,7 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
         serviceTier: nextOverride.serviceTier || null,
       });
       const detail = response.data;
-      onModelOverrideChange(persistedOverride);
-      appliedDefaultRef.current = {
-        agentKey,
-        value: persistedOverride,
-      };
-      const updated = currentAgentFromModelConfig(state.currentAgent || undefined, detail, persistedOverride);
+      const updated = currentAgentFromModelConfig(state.currentAgent || undefined, detail);
       dispatch({ type: "PATCH_CURRENT_AGENT", agentKey: detail.agentKey || agentKey, patch: {
         modelKey: updated.modelKey, reasoningEffort: updated.reasoningEffort, serviceTier: updated.serviceTier,
       } });

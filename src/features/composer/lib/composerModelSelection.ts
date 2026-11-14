@@ -1,4 +1,5 @@
 import { getClientStorage } from "@/shared/utils/clientStorage";
+import type { Agent } from "@/features/agents/lib/agentState";
 import type { QueryModelOverride } from "@/shared/data";
 import type { AgentEvent } from "@/shared/contracts/agentEvents";
 import { normalizeRunModel, resolveChatModel } from "@/features/runs/lib/modelSelection";
@@ -6,21 +7,23 @@ import { composerAccessKey, type ComposerAccessTarget } from "./composerAccessLe
 
 export interface ComposerModelState {
   modelByChatId: Record<string, QueryModelOverride>;
-  newChatModelByAgentKey: Record<string, QueryModelOverride>;
 }
 const STORAGE_KEY = "agent-webclient.composer-model.v1";
 
-export function readComposerModel(state: ComposerModelState, target: ComposerAccessTarget): QueryModelOverride {
-  const values = target.chatId ? state.modelByChatId : state.newChatModelByAgentKey;
-  return values?.[composerAccessKey(target)] || {};
+export function readComposerModel(state: ComposerModelState & { currentAgent?: Agent | null }, target: ComposerAccessTarget): QueryModelOverride {
+  if (target.chatId) return state.modelByChatId?.[composerAccessKey(target)] || {};
+  const agent = state.currentAgent;
+  if (!target.agentKey || agent?.key !== target.agentKey) return {};
+  const model = normalizeRunModel({ key: agent.modelKey, reasoningEffort: agent.reasoningEffort, serviceTier: agent.serviceTier });
+  if (model.serviceTier === "STANDARD") delete model.serviceTier;
+  return model;
 }
 export function updateComposerModel<S extends ComposerModelState>(state: S, target: ComposerAccessTarget,
   value: QueryModelOverride, initializeOnly = false): S {
-  if (!target.chatId && !target.agentKey) return state;
-  const field = target.chatId ? "modelByChatId" : "newChatModelByAgentKey";
+  if (!target.chatId) return state;
   const key = composerAccessKey(target);
-  if (initializeOnly && state[field]?.[key]?.key) return state;
-  return { ...state, [field]: { ...state[field], [key]: normalizeRunModel(value) } };
+  if (initializeOnly && state.modelByChatId?.[key]?.key) return state;
+  return { ...state, modelByChatId: { ...state.modelByChatId, [key]: normalizeRunModel(value) } };
 }
 
 export function initializeChatModel<S extends ComposerModelState>(state: S, scope: string, chatId: string, events: AgentEvent[]): S {
@@ -36,11 +39,11 @@ export function restoreComposerModels(): ComposerModelState {
   };
   try {
     const value = JSON.parse(getClientStorage("session").getItem(STORAGE_KEY) || "{}");
-    return { modelByChatId: normalizeMap(value?.modelByChatId), newChatModelByAgentKey: normalizeMap(value?.newChatModelByAgentKey) };
-  } catch { return { modelByChatId: {}, newChatModelByAgentKey: {} }; }
+    return { modelByChatId: normalizeMap(value?.modelByChatId) };
+  } catch { return { modelByChatId: {} }; }
 }
 export function persistComposerModels(state: ComposerModelState): void {
   try { getClientStorage("session").setItem(STORAGE_KEY, JSON.stringify({
-    modelByChatId: state.modelByChatId, newChatModelByAgentKey: state.newChatModelByAgentKey,
+    modelByChatId: state.modelByChatId,
   })); } catch { /* Keep in-memory choices if storage is unavailable. */ }
 }

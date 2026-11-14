@@ -67,7 +67,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
 	}, [state.accessLevelByChatId, state.newChatAccessLevelByAgentKey]);
 	useEffect(() => {
 		persistComposerModels(state);
-	}, [state.modelByChatId, state.newChatModelByAgentKey]);
+	}, [state.modelByChatId]);
 	const stateRef = useRef(state);
 	const querySessionsRef = useRef(new Map<string, LiveQuerySession>());
 	const chatQuerySessionIndexRef = useRef(new Map<string, string>());
