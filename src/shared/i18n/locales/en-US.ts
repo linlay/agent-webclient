@@ -2498,7 +2498,6 @@ export const enUSMessages = {
   "timeline.systemAlert.copy.action": "Copy",
   "timeline.systemAlert.copy.copied": "Copied",
   "timeline.systemAlert.copy.failed": "Copy failed",
-  "timeline.systemAlert.copy.tooltip": "Copy error details",
   "timeline.toolPill.duration.milliseconds": "{count}ms",
   "timeline.toolPill.duration.hours": "{hours}h {minutes}m {seconds}s",
   "timeline.toolPill.duration.minutes": "{minutes}m {seconds}s",

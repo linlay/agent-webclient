@@ -2636,7 +2636,6 @@ export const zhCNMessages = {
   "timeline.systemAlert.copy.action": "复制",
   "timeline.systemAlert.copy.copied": "已复制",
   "timeline.systemAlert.copy.failed": "复制失败",
-  "timeline.systemAlert.copy.tooltip": "复制错误信息",
   "timeline.toolPill.duration.milliseconds": "{count}毫秒",
   "timeline.toolPill.duration.hours": "{hours}小时{minutes}分{seconds}秒",
   "timeline.toolPill.duration.minutes": "{minutes}分{seconds}秒",
