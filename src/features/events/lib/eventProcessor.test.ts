@@ -299,6 +299,19 @@ describe('processStreamEvent', () => {
     );
   });
 
+  it.each(['live', 'replay'] as const)('shows the original compact failure cause in %s', (mode) => {
+    const state = createState();
+    processAndApply(state, {
+      type: 'context.compact.failed', compactId: 'persist-failure', level: 'summary',
+      detail: 'compact_persist_failed',
+      error: { code: 'compact_persist_failed', message: 'compact history changed' },
+    }, mode, false);
+    expect(state.timelineNodes.get('compact_failed_persist-failure')).toMatchObject({
+      text: '上下文压缩失败：compact history changed',
+      errorDetail: { code: 'compact_persist_failed', message: 'compact history changed' },
+    });
+  });
+
   it("keeps library references in replay/attach user messages", () => {
     const state = createState();
     processAndApply(state, {type: "request.query", requestId: "multi", message: "query", references: [{type:"kbase",id:"lib-a"},{type:"kbase",id:"lib-b"}], timestamp: 100}, "replay");

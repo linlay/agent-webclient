@@ -168,12 +168,14 @@ export function processRunEvent(
       nodeId,
       text: t("contextCompact.failed", {
         detail:
+          toText((event as AIContextCompactEvent).error?.message) ||
           (event.detail === "summary_input_too_large"
             ? t("contextCompact.summaryInputTooLargeDetail")
             : safeText((event as Record<string, unknown>).detail)) ||
           safeText((event as Record<string, unknown>).error) ||
           t("contextCompact.unknownError"),
       }),
+      errorDetail: event.error ? formatPlatformErrorForDisplay(event).error : undefined,
       ts: timestamp,
     });
     return commands;

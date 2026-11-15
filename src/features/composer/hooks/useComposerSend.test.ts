@@ -58,6 +58,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { createInitialState } from '@/app/state/state';
 import {
   buildCompactUsageSnapshot,
+  compactFailureText,
   latestUsageSnapshotFromEvents,
   runBackgroundCommand,
   useBackgroundCommandActions,
@@ -96,6 +97,13 @@ function testT(key: string, params?: Record<string, unknown>): string {
 }
 
 describe('compact usage snapshot helpers', () => {
+  it('shows the concrete cause from a manual compact response', () => {
+    expect(compactFailureText({
+      accepted: false, status: 'failed', chatId: 'chat-1', detail: 'compact_persist_failed',
+      error: { code: 'compact_persist_failed', message: 'compact history changed' },
+    }, testT)).toBe('Context compaction failed: compact history changed');
+  });
+
   it('updates context window size from compact response while preserving usage stats', () => {
     const previous: AIUsageSnapshotEvent = {
       type: 'usage.snapshot',
