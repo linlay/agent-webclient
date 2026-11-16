@@ -1,4 +1,4 @@
-import { ConversationFileDropProvider } from "@/shared/ui/ConversationFileDrop";
+import { ConversationFileDropProvider, useConversationFileDropTarget } from "@/shared/ui/ConversationFileDrop";
 import { bindCssModuleClasses } from "@/shared/utils/cssModuleClasses";
 import appPresentation from "@/app/layout/ShellPresentation.module.css";
 import { ConversationSurfaceProvider } from "@/features/conversation/components/ConversationSurfaceProvider";
@@ -49,6 +49,9 @@ export const AppShell: React.FC = () => (
 
 const AppShellContent: React.FC = () => {
   const state = useAppState();
+  // The composer owns the drop receiver; the whole center column accepts the
+  // drop so the hint drawn over it never lands on a navigation target.
+  const conversationFileDrop = useConversationFileDropTarget();
 
   /* Initialize business logic hooks */
   useAppRuntimes();
@@ -89,7 +92,7 @@ const AppShellContent: React.FC = () => {
             id="app"
           >
             <LeftSidebar />
-            <div data-agent-pointer-surface={!state.chatId ? "" : undefined} className={APP_SHELL_CENTER_CLASS}>
+            <div data-agent-pointer-surface={!state.chatId ? "" : undefined} className={APP_SHELL_CENTER_CLASS} {...conversationFileDrop.handlers}>
               <TopNav />
               <ConnectedConversationStage
                 surfaceMode="main"

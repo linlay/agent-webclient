@@ -1,7 +1,8 @@
 /** @jest-environment jsdom */
 import React, { act } from "react";
 import { createRoot, Root } from "react-dom/client";
-import { ConversationFileDropProvider, FileDropOverlay, useConversationFileDropReceiver, useConversationFileDropTarget, useFileDropTarget } from "./ConversationFileDrop";
+import { createPortal } from "react-dom";
+import { ConversationFileDropProvider, FileDropOverlay, useConversationFileDropReceiver, useConversationFileDropTarget, useFileDropTarget, useFileDropSurfaceHost } from "./ConversationFileDrop";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -103,5 +104,123 @@ describe("conversation file drop", () => {
       act(() => { window.dispatchEvent(new Event(type)); });
       expect(zone().getAttribute("data-active")).toBe("false");
     }
+  });
+});
+
+function SurfaceColumn({ center, enabled }: { center: boolean; enabled: boolean }) {
+  const anchorRef = React.useRef<HTMLDivElement>(null);
+  const receiver = React.useMemo(() => ({ enabled, resetKey: "chat-a", onDrop: () => {} }), [enabled]);
+  const target = useFileDropTarget(receiver);
+  const host = useFileDropSurfaceHost(anchorRef, target.active);
+  const hint = target.active
+    ? <FileDropOverlay variant={host ? "surface" : "field"} title="Drop files" hint="Multiple files" />
+    : null;
+  const anchor = <div ref={anchorRef} data-testid="anchor" {...target.handlers}>anchor</div>;
+  return center
+    ? <div className="app-shell-center" data-testid="center">
+      {anchor}
+      {host && hint ? createPortal(hint, host) : null}
+    </div>
+    : <div data-testid="plain">{anchor}{host ? null : hint}</div>;
+}
+
+describe("conversation file drop column hint", () => {
+  let container: HTMLDivElement;
+  let root: Root;
+  const render = (center = true, enabled = true) => act(() => {
+    root.render(<SurfaceColumn center={center} enabled={enabled} />);
+  });
+  const drag = (type: string) => {
+    const event = new Event(type, { bubbles: true, cancelable: true });
+    Object.defineProperty(event, "dataTransfer", { value: { types: ["Files"], files: [new File(["data"], "test.txt")], dropEffect: "" } });
+    act(() => { container.querySelector('[data-testid="anchor"]')!.dispatchEvent(event); });
+    return event;
+  };
+  const columnText = () => container.querySelector('[data-testid="center"]')?.textContent || "";
+  beforeEach(() => {
+    container = document.createElement("div");
+    document.body.appendChild(container);
+    root = createRoot(container);
+  });
+  afterEach(() => { act(() => root.unmount()); container.remove(); });
+
+  it("covers the whole conversation column while a file drag is active", () => {
+    render();
+    expect(columnText()).not.toContain("Drop files");
+    drag("dragenter");
+    expect(columnText()).toContain("Drop files");
+    expect(columnText()).toContain("Multiple files");
+    drag("dragleave");
+    expect(columnText()).not.toContain("Drop files");
+  });
+
+  it("keeps the hint on the composer frame without a conversation column", () => {
+    render(false);
+    drag("dragenter");
+    expect(container.querySelector('[data-testid="plain"]')?.textContent).toContain("Drop files");
+  });
+
+  it("shows no hint when the composer frame is disabled", () => {
+    render(true, false);
+    drag("dragenter");
+    expect(container.textContent).not.toContain("Drop files");
+  });
+});
+
+function NestedSurface() {
+  const target = useConversationFileDropTarget();
+  return <div data-testid="stage" {...target.handlers} />;
+}
+
+function ColumnWithStage({ onDrop }: { onDrop: React.DragEventHandler<HTMLElement> }) {
+  const receiver = React.useMemo(() => ({ enabled: true, resetKey: "chat-a", onDrop }), [onDrop]);
+  const anySurfaceActive = useConversationFileDropReceiver(receiver);
+  const target = useConversationFileDropTarget();
+  return <div data-testid="column" data-active={String(anySurfaceActive)} {...target.handlers}>
+    <NestedSurface />
+  </div>;
+}
+
+describe("conversation file drop nested surfaces", () => {
+  let container: HTMLDivElement;
+  let root: Root;
+  const onDrop = jest.fn();
+  const drag = (type: string, id = "stage") => {
+    const event = new Event(type, { bubbles: true, cancelable: true });
+    Object.defineProperty(event, "dataTransfer", { value: { types: ["Files"], files: [new File(["data"], "test.txt")], dropEffect: "" } });
+    act(() => { container.querySelector(`[data-testid="${id}"]`)!.dispatchEvent(event); });
+    return event;
+  };
+  const active = () => container.querySelector('[data-testid="column"]')!.getAttribute("data-active");
+  beforeEach(() => {
+    onDrop.mockClear();
+    container = document.createElement("div");
+    document.body.appendChild(container);
+    root = createRoot(container);
+    act(() => { root.render(<ConversationFileDropProvider><ColumnWithStage onDrop={onDrop} /></ConversationFileDropProvider>); });
+  });
+  afterEach(() => { act(() => root.unmount()); container.remove(); });
+
+  it("keeps the hint on while any nested surface is still dragged over", () => {
+    drag("dragenter", "stage");
+    drag("dragenter", "column");
+    drag("dragleave", "stage");
+    expect(active()).toBe("true");
+    drag("dragleave", "column");
+    expect(active()).toBe("false");
+  });
+
+  it("uploads once when the drop lands on a nested surface", () => {
+    drag("dragenter");
+    drag("drop");
+    expect(onDrop).toHaveBeenCalledTimes(1);
+    expect(active()).toBe("false");
+  });
+
+  it("uploads when the drop lands on the column itself", () => {
+    drag("dragenter");
+    drag("drop", "column");
+    expect(onDrop).toHaveBeenCalledTimes(1);
+    expect(active()).toBe("false");
   });
 });
