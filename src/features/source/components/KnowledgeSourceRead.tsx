@@ -1,6 +1,6 @@
 import React from "react";
 import { Alert, Button, Flex } from "antd";
-import { readPublishedKnowledge, downloadPublishedKnowledge } from "@/shared/data/api/requests/kbases";
+import { readPublishedKnowledge, savePublishedKnowledge } from "@/shared/data/api/requests/kbases";
 import { t } from "@/shared/i18n";
 
 /** Published references are resolved by library authorization, independently of Workspace. */
@@ -17,10 +17,7 @@ export function KnowledgeSourceRead({chatId, sourceId, name}: {chatId: string; s
   setBusy(true); setError("");
   try {
    if (download) {
-    const blob = await downloadPublishedKnowledge(chatId, sourceId, current.signal);
-    if (current.signal.aborted) return;
-    const url = URL.createObjectURL(blob); const link = document.createElement("a");
-    link.href = url; link.download = name; link.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
+    await savePublishedKnowledge(chatId, sourceId, name, current.signal);
    } else {
     const result = (await readPublishedKnowledge(chatId, sourceId, offset, current.signal)).data;
     if (current.signal.aborted || !result) return;

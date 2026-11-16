@@ -18,6 +18,8 @@ const mockDownloadChatExport = jest.fn();
 const mockDownloadConversationHtmlExport = jest.fn();
 const mockModalConfirm = jest.fn();
 const mockMessageError = jest.fn();
+const mockMessageSuccess = jest.fn();
+const mockMessageInfo = jest.fn();
 let mockMenuItems: Array<Record<string, any>> = [];
 let mockMenuGroups: Array<Record<string, any>> = [];
 
@@ -89,9 +91,9 @@ jest.mock("antd", () => {
 		},
 		message: {
 			error: (...args: unknown[]) => mockMessageError(...args),
-			success: jest.fn(),
+			success: (...args: unknown[]) => mockMessageSuccess(...args),
 			warning: jest.fn(),
-			info: jest.fn(),
+			info: (...args: unknown[]) => mockMessageInfo(...args),
 		},
 	};
 });
@@ -107,6 +109,8 @@ describe("ChatActionsMenu", () => {
 		mockDownloadConversationHtmlExport.mockReset();
 		mockModalConfirm.mockClear();
 		mockMessageError.mockClear();
+    mockMessageSuccess.mockClear();
+    mockMessageInfo.mockClear();
 		mockMenuItems = [];
 		mockMenuGroups = [];
 		mockRenameChat.mockResolvedValue({
@@ -339,7 +343,7 @@ describe("ChatActionsMenu", () => {
 	});
 
 	it("exports a static HTML snapshot through the dedicated data service", async () => {
-		mockDownloadConversationHtmlExport.mockResolvedValue(undefined);
+		mockDownloadConversationHtmlExport.mockResolvedValue({ status: "saved" });
 		renderToStaticMarkup(
 			React.createElement(ChatActionsMenu, { chatId: " chat_1 " }),
 		);
@@ -352,6 +356,16 @@ describe("ChatActionsMenu", () => {
 
 		expect(mockDownloadConversationHtmlExport).toHaveBeenCalledWith("chat_1");
 	});
+
+  it.each(["canceled", "started", "saved"])("reports %s export outcomes", async (status) => {
+    mockDownloadChatExport.mockResolvedValue({ status });
+    renderToStaticMarkup(React.createElement(ChatActionsMenu, { chatId: "chat_1" }));
+    mockMenuItems.find(item => item.key === "export")?.onClick();
+    await new Promise(resolve => setTimeout(resolve, 0));
+    expect(mockMessageSuccess).toHaveBeenCalledTimes(status === "saved" ? 1 : 0);
+    expect(mockMessageInfo).toHaveBeenCalledTimes(status === "started" ? 1 : 0);
+    expect(mockMessageError).not.toHaveBeenCalled();
+  });
 
 	it("loads chat details without raw messages from copy information", () => {
 		mockGetChat.mockReturnValue(new Promise(() => undefined));

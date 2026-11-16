@@ -120,15 +120,17 @@ export const ChatActionsMenu: React.FC<{
   const handleExport = async (format: "markdown" | "html") => {
     if (!normalizedChatId || pending) return;
     try {
-      await exportChat(normalizedChatId, format);
+      const outcome = await exportChat(normalizedChatId, format);
+      if (outcome.status === "canceled") return;
+      if (outcome.status === "started") { message.info(t("api.downloadStarted")); return; }
       message.success(
         t(format === "html"
           ? "chatActions.exportHtml.success"
           : "chatActions.export.success"),
       );
-    } catch {
+    } catch (error) {
       message.error(
-        t(format === "html"
+        error instanceof Error ? error.message : t(format === "html"
           ? "chatActions.exportHtml.failed"
           : "chatActions.export.failed"),
       );

@@ -1,3 +1,4 @@
+import { saveBlob, saveResponse, type SaveFileOutcome } from "@/shared/data/saveFile";
 import {
   getResourceRequestTarget,
 } from "@/shared/data/api/resources/urls";
@@ -182,45 +183,19 @@ export async function getChatLLMTraceRaw(
   return response.text();
 }
 
-function triggerBrowserDownload(blob: Blob, filename: string): void {
-  if (
-    typeof document === "undefined" ||
-    typeof URL === "undefined" ||
-    typeof URL.createObjectURL !== "function" ||
-    typeof URL.revokeObjectURL !== "function"
-  ) {
-    throw new Error(t("api.fileDownloadUnsupported"));
-  }
-
-  const objectUrl = URL.createObjectURL(blob);
-  const anchor = document.createElement("a");
-
-  anchor.href = objectUrl;
-  anchor.download = filename;
-  anchor.rel = "noopener";
-  document.body.appendChild(anchor);
-  anchor.click();
-  document.body.removeChild(anchor);
-
-  setTimeout(() => {
-    URL.revokeObjectURL(objectUrl);
-  }, 0);
-}
-
 export async function downloadResource(
   path: string,
   options: { filename?: string; signal?: AbortSignal; chatId?: string; teamChat?: boolean } = {},
-): Promise<void> {
+): Promise<SaveFileOutcome> {
   const response = await requestResource(path, options, t("contentViewer.error.download"));
 
   await requireResourceSuccess(response, "api.downloadFailedWithStatus");
 
-  const blob = await response.blob();
   const filename =
     String(options.filename || "").trim()
     || filenameFromContentDisposition(response.headers?.get("Content-Disposition") ?? null)
     || "download";
-  triggerBrowserDownload(blob, filename);
+  return saveResponse(response, { filename, signal: options.signal });
 }
 
 function filenameFromContentDisposition(value: string | null): string {
@@ -239,7 +214,7 @@ function filenameFromContentDisposition(value: string | null): string {
   return plainMatch?.[1] ? plainMatch[1].trim() : "";
 }
 
-export async function downloadChatExport(chatId: string): Promise<void> {
+export async function downloadChatExport(chatId: string): Promise<SaveFileOutcome> {
   const path = `${dataEndpoints.chatExport.path}?chatId=${encodeURIComponent(chatId)}`;
   const response = await requestWithAuth(path, {
     method: "GET",
@@ -247,16 +222,15 @@ export async function downloadChatExport(chatId: string): Promise<void> {
     authFailureSource: "download",
   });
   await requireResourceSuccess(response, "api.downloadFailedWithStatus");
-  const blob = await response.blob();
   const filename =
     filenameFromContentDisposition(response.headers.get("Content-Disposition"))
     || `${chatId || "chat"}.md`;
-  triggerBrowserDownload(blob, filename);
+  return saveResponse(response, { filename });
 }
 
 export async function downloadConversationHtmlExport(
   chatId: string,
-): Promise<void> {
+): Promise<SaveFileOutcome> {
   const normalizedChatId = chatId.trim();
   if (!normalizedChatId) throw new Error("chat_id_required");
 
@@ -339,7 +313,7 @@ export async function downloadConversationHtmlExport(
         filenameFromContentDisposition(snapshotResponse.headers.get("Content-Disposition")),
         normalizedChatId,
       );
-    triggerBrowserDownload(html, filename);
+    return saveBlob(html, { filename });
   } catch (error) {
     if (error instanceof RangeError) throw new Error(t("api.conversationExportResourceExhausted"));
     throw error;
@@ -388,23 +362,22 @@ export function buildAdminSkillDownloadUrl(id: string): string {
   return withQuery(dataEndpoints.adminSkillDownload.path, query);
 }
 
-async function readAdminSkillDownload(path: string, fallbackFilename: string, signal?: AbortSignal): Promise<void> {
+async function readAdminSkillDownload(path: string, fallbackFilename: string, signal?: AbortSignal): Promise<SaveFileOutcome> {
   const response = await requestWithAuth(path, {
     method: "GET",
     signal,
     jsonContentType: false,
   });
   await requireResourceSuccess(response, "api.downloadFailedWithStatus");
-  const blob = await response.blob();
   const filename = filenameFromContentDisposition(response.headers.get("Content-Disposition")) || fallbackFilename;
-  triggerBrowserDownload(blob, filename);
+  return saveResponse(response, { filename, signal });
 }
 
 export async function downloadAdminSkillFile(
   id: string,
   path: string,
   options: { signal?: AbortSignal } = {},
-): Promise<void> {
+): Promise<SaveFileOutcome> {
   const filename = path.split("/").filter(Boolean).at(-1) || "skill-file";
   return readAdminSkillDownload(buildAdminSkillFileDownloadUrl(id, path), filename, options.signal);
 }
@@ -412,7 +385,7 @@ export async function downloadAdminSkillFile(
 export async function downloadAdminSkill(
   id: string,
   options: { signal?: AbortSignal } = {},
-): Promise<void> {
+): Promise<SaveFileOutcome> {
   return readAdminSkillDownload(buildAdminSkillDownloadUrl(id), `${id || "skill"}.zip`, options.signal);
 }
 

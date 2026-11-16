@@ -1,4 +1,4 @@
-import { useState, type Dispatch } from "react";
+import { useState, useRef, type Dispatch } from "react";
 import type { AppAction } from "@/app/state/actions";
 import {
   archiveChats,
@@ -16,10 +16,13 @@ export function useChatOperations(
 ) {
   const [pending, setPending] = useState(false);
 
-  const run = async (label: string, operation: () => Promise<void>) => {
+  const busy = useRef(false);
+  const run = async <T,>(label: string, operation: () => Promise<T>): Promise<T> => {
+    if (busy.current) throw new Error("operation_pending");
+    busy.current = true;
     setPending(true);
     try {
-      await operation();
+      return await operation();
     } catch (error) {
       dispatch({
         type: "APPEND_DEBUG",
@@ -27,6 +30,7 @@ export function useChatOperations(
       });
       throw error;
     } finally {
+      busy.current = false;
       setPending(false);
     }
   };
@@ -73,9 +77,9 @@ export function useChatOperations(
   const exportChat = (chatId: string, format: "markdown" | "html") =>
     run(`export chat ${format}`, async () => {
       if (format === "html") {
-        await downloadConversationHtmlExport(chatId);
+        return downloadConversationHtmlExport(chatId);
       } else {
-        await downloadChatExport(chatId);
+        return downloadChatExport(chatId);
       }
     });
 

@@ -404,13 +404,15 @@ export const HistoryModal: React.FC<{
   const handleExport = async (chatId: string, format: "markdown" | "html") => {
     if (!chatId || pending) return;
     try {
-      await exportChat(chatId, format);
+      const outcome = await exportChat(chatId, format);
+      if (outcome.status === "canceled") return;
+      if (outcome.status === "started") { message.info(t("api.downloadStarted")); return; }
       message.success(
         t(format === "html" ? "history.exportedHtml" : "history.exported"),
       );
-    } catch {
+    } catch (error) {
       message.error(
-        t(
+        error instanceof Error ? error.message : t(
           format === "html"
             ? "history.exportHtmlFailed"
             : "history.exportFailed",

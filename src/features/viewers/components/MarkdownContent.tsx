@@ -226,6 +226,7 @@ const AuthAnchor: React.FC<AuthAnchorProps> = (props) => {
     setDownloading(true);
     const filename = extractFilenameFromResourceUrl(href);
     return downloadResource(href, { filename, chatId, teamChat })
+      .then(() => undefined)
       .catch((error: unknown) => {
         console.error("Resource download failed:", error);
       })
@@ -360,7 +361,7 @@ const AuthImage: React.FC<AuthImageProps> = (props) => {
           filename: extractFilenameFromResourceUrl(src),
           chatId,
           teamChat,
-        }),
+        }).then(() => undefined),
       },
     }) : null,
     [alt, authenticatedResource, chatId, contextTargetId, src, teamChat],
@@ -436,7 +437,7 @@ const AuthMedia: React.FC<AuthMediaProps> = (props) => {
           filename: extractFilenameFromResourceUrl(src),
           chatId,
           teamChat,
-        }),
+        }).then(() => undefined),
       },
     }) : null,
     [alt, authenticatedResource, chatId, contextTargetId, kind, src, teamChat],

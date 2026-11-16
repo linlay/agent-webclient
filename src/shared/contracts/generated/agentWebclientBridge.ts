@@ -1,6 +1,6 @@
 // Generated from src/shared/contracts/agent-webclient-bridge.ts.
 // Do not edit this mirror directly.
-// sha256:b565f179daaed47de06281fa975a6d3b2be185b2be37acff680bbfa531d950a5
+// sha256:ce6d044dc6a9f942f07878995fcedf6b3bb87a2bb06120f2ed1dc9c32e106158
 
 /**
  * Canonical Desktop <-> Agent WebClient bridge contract.
@@ -859,3 +859,20 @@ export interface ArtifactDragBridge {
   prepare(input: ArtifactDragIdentity): Promise<ArtifactDragPreparation>;
   start(token: string): void;
 }
+
+// File saving is a separate, sender-bound capability, not a Platform request.
+export const DESKTOP_FILE_SAVE_GLOBAL = "__DESKTOP_FILE_SAVE__" as const;
+export const DESKTOP_FILE_SAVE_CHANNEL = "desktop.fileSave" as const;
+export const DESKTOP_FILE_SAVE_CHUNK_BYTES = 256 * 1024;
+export type DesktopFileSaveRequest =
+  | { operation: "begin"; taskId: string; filename: string; sizeBytes?: number }
+  | { operation: "chunk"; taskId: string; sequence: number; dataBase64: string }
+  | { operation: "commit" | "cancel" | "status"; taskId: string };
+export type DesktopFileSaveResult = {
+  status: "ready" | "writing" | "committing" | "saved" | "canceled" | "failed";
+  message?: string;
+};
+export type DesktopFileSaveBridge = {
+  version: 1;
+  request(input: DesktopFileSaveRequest): Promise<DesktopFileSaveResult>;
+};

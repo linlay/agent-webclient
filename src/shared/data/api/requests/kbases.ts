@@ -1,3 +1,4 @@
+import { saveResponse } from "@/shared/data/saveFile";
 import { dataEndpoints } from "../endpoints";
 import { requestJson, requestWithAuth } from "../http";
 import type { KnowledgeBase, KnowledgeBaseInput, KnowledgeDocument, KnowledgeSearch, KnowledgeRead, KnowledgeBaseStatus, RetrievalMethod } from "../dto/kbases";
@@ -14,11 +15,18 @@ export const readKBase = (id: string, ref: string, signal?: AbortSignal) => requ
 
 export interface PublishedKnowledgeText { content?: string; hasMore?: boolean; startLine?: number; endLine?: number; }
 export const readPublishedKnowledge = (chatId: string, sourceId: string, offset: number, signal?: AbortSignal) => requestJson<PublishedKnowledgeText>(dataEndpoints.knowledgeSourceRead.path, { method: "POST", body: JSON.stringify({chatId, sourceId, offset, limit: 200}), signal });
-export async function downloadPublishedKnowledge(chatId: string, sourceId: string, signal?: AbortSignal): Promise<Blob> {
+async function requestPublishedKnowledge(chatId: string, sourceId: string, signal?: AbortSignal): Promise<Response> {
  const response = await requestWithAuth(dataEndpoints.knowledgeSourceFile.path, { method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({chatId,sourceId}), signal });
  if (!response.ok) throw new Error(await response.text());
- return response.blob();
+ return response;
 }
 
 export const getKBaseOptionsHttp = (agentKey: string, signal?: AbortSignal) =>
  requestJson<import("../dto/kbases").KBaseOptionsResponse>(`${dataEndpoints.kbases.path}?agentKey=${encodeURIComponent(agentKey)}`, { signal, cache: "no-store" });
+
+export async function downloadPublishedKnowledge(chatId: string, sourceId: string, signal?: AbortSignal): Promise<Blob> {
+ return (await requestPublishedKnowledge(chatId, sourceId, signal)).blob();
+}
+export async function savePublishedKnowledge(chatId: string, sourceId: string, filename: string, signal?: AbortSignal) {
+ return saveResponse(await requestPublishedKnowledge(chatId, sourceId, signal), {filename, signal});
+}

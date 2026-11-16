@@ -19,6 +19,7 @@ const mockDeleteChat = jest.fn();
 const mockExportMarkdown = jest.fn();
 const mockExportHtml = jest.fn();
 const mockSuccess = jest.fn();
+const mockInfo = jest.fn();
 const mockError = jest.fn();
 const mockButtons: Array<Record<string, any>> = [];
 const mockGetChats = jest.fn();
@@ -78,6 +79,7 @@ jest.mock("antd/es/app/useApp", () => ({
     message: {
       error: (...args: unknown[]) => mockError(...args),
       success: (...args: unknown[]) => mockSuccess(...args),
+      info: (...args: unknown[]) => mockInfo(...args),
     },
     modal: {
       confirm: (...args: unknown[]) => mockConfirm(...args),
@@ -183,8 +185,8 @@ describe("HistoryModal", () => {
     jest.clearAllMocks();
     mockArchiveChats.mockReset();
     mockDeleteChat.mockReset();
-    mockExportHtml.mockReset();
-    mockExportMarkdown.mockReset();
+    mockExportHtml.mockReset().mockResolvedValue({ status: "saved" });
+    mockExportMarkdown.mockReset().mockResolvedValue({ status: "saved" });
     mockButtons.length = 0;
     mockActiveChatId = "";
     mockGetChats.mockResolvedValue({ data: [] });
@@ -244,6 +246,17 @@ describe("HistoryModal", () => {
     expect(icon === "html" ? mockExportHtml : mockExportMarkdown).toHaveBeenCalledWith("chat-1");
     expect(mockSuccess).toHaveBeenCalled();
     expect(mockConfirm).not.toHaveBeenCalled();
+  });
+
+  it.each(["canceled", "started"])("reports %s exports without saved feedback", async (status) => {
+    mockExportMarkdown.mockResolvedValue({ status });
+    renderHistoryModal([createHistoryChat()]);
+    clickAction("export");
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(mockSuccess).not.toHaveBeenCalled();
+    expect(mockError).not.toHaveBeenCalled();
+    if (status === "started") expect(mockInfo).toHaveBeenCalled();
+    else expect(mockInfo).not.toHaveBeenCalled();
   });
 
   it("keeps the modal layout contract instead of using the page layout", () => {

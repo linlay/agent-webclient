@@ -161,3 +161,11 @@ Standalone、缺少 canonical Chat/Agent 和旧宿主未声明能力时沿用 bl
 Main Chat 的正式产物卡片、正文已发布产物链接／图片、WorkPanel 概览产物列表和文件预览消费独立 v1 Artifact Drag bridge，hover 或按下时以 Chat、Run、真实 Artifact ID 或规范产物路径准备临时副本，真实 dragstart 时仅交付不透明租约。页面不接收或提交本地路径，不在拖动手势中等待下载。准备中与失败由卡片提示，尚未准备好时需稍后再次拖动；普通浏览器及旧宿主保持现有预览和下载。
 
 Desktop 根据真实顶层 sender、当前 Main Chat／Overview／Artifact 注册代次与 owner Chat 校验请求，Artifact 页面还须匹配所绑定文件；从 Platform 权威清单解析唯一正式发布身份、文件名及 Run，使用现有 artifacts/read 取得并校验文件，系统拖拽仅交付临时副本。Chat 切换、归档、删除或连接轮换使旧租约失效。macOS Finder 与 Windows 资源管理器共用身份契约，原生适配由 Desktop 分平台处理。本能力与生成契约镜像须随 Desktop 与 WebClient 同批发布，不涉及 Platform API 变更。
+
+## 文件保存
+
+Desktop 保存使用独立、版本化、只读暴露的 File Save bridge。文件名只是建议；系统对话框决定目标路径，路径只保留在 Main。所有保存框排队，取消不写文件、不提示成功。页面按有界块传输，每块写入确认后继续，最终提交完成才返回 saved；附件尽量从鉴权 HTTP 响应流读取，不先汇总为 Blob。生成 HTML 等内容仍由原导出生成器负责其内存预算。
+
+任务绑定真实 sender、顶层文档和 Registry generation，不能跨页面复用。卸载、导航、取消和传输空闲过期清理未提交临时文件。提交开始后的取消以最终提交结果为准，不把已保存报告为取消；通信异常无法确认结果时提示用户检查文件，不能自动重试。用户可长时间停留在保存框，不将等待对话框的时间当作写盘失败。
+
+Standalone 继续浏览器下载，仅报告 started。Desktop 缺少保存能力必须提示升级，不因大小或版本静默降级浏览器下载。契约 mirror、vendored hash、Desktop 与 WebClient Program Bundle 必须同批发布。

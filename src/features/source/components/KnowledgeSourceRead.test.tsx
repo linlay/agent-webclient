@@ -10,7 +10,7 @@ jest.mock("antd", () => ({
  Alert: ({ message }: any) => <div role="alert">{message}</div>,
 }));
 jest.mock("@/shared/i18n", () => ({ t: (key: string) => key }));
-jest.mock("@/shared/data/api/requests/kbases", () => ({ readPublishedKnowledge: jest.fn(), downloadPublishedKnowledge: jest.fn() }));
+jest.mock("@/shared/data/api/requests/kbases", () => ({ readPublishedKnowledge: jest.fn(), savePublishedKnowledge: jest.fn() }));
 const read = readPublishedKnowledge as jest.Mock;
 let container: HTMLDivElement;
 let root: Root;
