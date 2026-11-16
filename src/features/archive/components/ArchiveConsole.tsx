@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { ArchiveDetailPane } from "@/features/archive/components/ArchiveDetailPane";
 import { ArchiveListPane } from "@/features/archive/components/ArchiveListPane";
 import {
@@ -11,8 +11,34 @@ import "./ArchiveConsole.module.css";
 export type { RestoredArchiveChatSummary } from "@/features/archive/hooks/useArchiveRuntime";
 export { buildArchiveBulkCandidates } from "@/features/archive/lib/archiveViewModel";
 
+const ARCHIVE_LIST_DEFAULT_WIDTH = 280;
+const ARCHIVE_LIST_MIN_WIDTH = 280;
+const ARCHIVE_LIST_SSR_VIEWPORT_WIDTH = 1440;
+
+/**
+ * Dragging the splitter past the middle of the viewport switches to the
+ * expanded list: the detail pane is hidden and the grouped list is centered.
+ * The split itself may grow up to just below that threshold.
+ */
+function getArchiveListAutoExpandWidth(): number {
+  const viewportWidth =
+    typeof window === "undefined"
+      ? ARCHIVE_LIST_SSR_VIEWPORT_WIDTH
+      : window.innerWidth;
+  return Math.max(
+    ARCHIVE_LIST_MIN_WIDTH + 1,
+    Math.floor(viewportWidth / 2),
+  );
+}
+
 const ARCHIVE_CONSOLE_CLASS =
-  "archive-console archive-console-page tw:grid tw:h-full tw:min-h-0 tw:max-h-none tw:grid-cols-[var(--archive-list-col,280px)_minmax(0,1fr)] tw:[&_.archive-list]:max-h-none";
+  "archive-console archive-console-page tw:grid tw:h-full tw:min-h-0 tw:max-h-none tw:grid-cols-[var(--archive-list-col,280px)_minmax(0,1fr)]";
+const ARCHIVE_CENTERED_CONSOLE_CLASS =
+  "archive-console archive-console-centered tw:flex tw:h-full tw:min-h-0 tw:flex-col tw:overflow-hidden tw:px-6 tw:py-6";
+const ARCHIVE_CENTERED_COLUMN_CLASS =
+  "archive-console-column tw:mx-auto tw:flex tw:h-full tw:w-full tw:min-h-0 tw:max-w-[1000px] tw:flex-col tw:gap-4 tw:overflow-hidden";
+const ARCHIVE_PAGE_TITLE_CLASS =
+  "archive-page-title tw:m-0 tw:px-[10px] tw:shrink-0 tw:text-[24px] tw:font-semibold tw:leading-7 tw:text-ink-1";
 const ARCHIVE_LIST_PANE_CLASS_NAME =
   "archive-console-list-pane tw:relative tw:flex tw:min-h-0 tw:min-w-0 tw:flex-col tw:overflow-hidden";
 const ARCHIVE_RESIZE_HANDLE_CLASS_NAME = "archive-console-resize-handle";
@@ -40,18 +66,82 @@ export const ArchiveConsole: React.FC<ArchiveConsoleProps> = ({
     showAgentFilter,
   });
 
-  const [listWidth, setListWidth] = useState(280);
-  const listStartWidthRef = useRef(280);
+  const [listWidth, setListWidth] = useState(ARCHIVE_LIST_DEFAULT_WIDTH);
+  const [listExpanded, setListExpanded] = useState(false);
+  const listStartWidthRef = useRef(ARCHIVE_LIST_DEFAULT_WIDTH);
   const { handlePointerDown: handleListResize } = usePanelResize({
     axis: "horizontal",
     onResizeStart: () => {
       listStartWidthRef.current = listWidth;
     },
-    onResize: (delta) =>
+    onResize: (delta) => {
+      const autoExpandAt = getArchiveListAutoExpandWidth();
+      const proposed = listStartWidthRef.current + delta;
+      if (proposed >= autoExpandAt) {
+        setListExpanded(true);
+        return;
+      }
       setListWidth(
-        Math.max(220, Math.min(520, listStartWidthRef.current + delta)),
-      ),
+        Math.max(
+          ARCHIVE_LIST_MIN_WIDTH,
+          Math.min(autoExpandAt - 1, proposed),
+        ),
+      );
+    },
   });
+
+  useEffect(() => {
+    if (!runtime.selected) setListExpanded(false);
+  }, [runtime.selected]);
+
+  const listPane = (
+    <ArchiveListPane
+      query={runtime.query}
+      onQueryChange={runtime.setQuery}
+      agents={runtime.agents}
+      showAgentFilter={showAgentFilter}
+      agentFilter={runtime.agentFilter}
+      onAgentFilterChange={runtime.setAgentFilter}
+      archivedRange={runtime.archivedRange}
+      onArchivedRangeChange={runtime.setArchivedRange}
+      createdRange={runtime.createdRange}
+      onCreatedRangeChange={runtime.setCreatedRange}
+      lastRunRange={runtime.lastRunRange}
+      onLastRunRangeChange={runtime.setLastRunRange}
+      filteredCount={runtime.items.length}
+      totalCount={runtime.totalCount}
+      onResetFilters={runtime.resetFilters}
+      resultText={runtime.resultText}
+      loading={runtime.loadingList}
+      items={runtime.items}
+      selectedChatId={runtime.selected}
+      onSelect={(chatId) => {
+        if (listExpanded) {
+          setListExpanded(false);
+          setListWidth(ARCHIVE_LIST_DEFAULT_WIDTH);
+        }
+        void runtime.loadArchiveDetail(chatId);
+      }}
+      canRestoreAndOpen={Boolean(onOpenRestoredChat)}
+      onRestore={(chatId, openAfterRestore) =>
+        runtime.restoreSelected(chatId, openAfterRestore)
+      }
+      onDelete={(chatId) => runtime.deleteSelected(chatId)}
+      onRestoreGroup={(agentKey) => runtime.restoreGroup(agentKey)}
+      onDeleteGroup={(agentKey) => runtime.deleteGroup(agentKey)}
+    />
+  );
+
+  if (!runtime.selected || listExpanded) {
+    return (
+      <div className={ARCHIVE_CENTERED_CONSOLE_CLASS}>
+        <div className={ARCHIVE_CENTERED_COLUMN_CLASS}>
+          <h1 className={ARCHIVE_PAGE_TITLE_CLASS}>{t("archive.page.title")}</h1>
+          {listPane}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -59,32 +149,7 @@ export const ArchiveConsole: React.FC<ArchiveConsoleProps> = ({
       style={{ "--archive-list-col": `${listWidth}px` } as React.CSSProperties}
     >
       <div className={ARCHIVE_LIST_PANE_CLASS_NAME}>
-        <ArchiveListPane
-          query={runtime.query}
-          onQueryChange={runtime.setQuery}
-          agents={runtime.agents}
-          agentFilter={runtime.agentFilter}
-          onAgentFilterChange={runtime.setAgentFilter}
-          archivedRange={runtime.archivedRange}
-          onArchivedRangeChange={runtime.setArchivedRange}
-          createdRange={runtime.createdRange}
-          onCreatedRangeChange={runtime.setCreatedRange}
-          lastRunRange={runtime.lastRunRange}
-          onLastRunRangeChange={runtime.setLastRunRange}
-          filteredCount={runtime.items.length}
-          totalCount={runtime.totalCount}
-          onResetFilters={runtime.resetFilters}
-          resultText={runtime.resultText}
-          loading={runtime.loadingList}
-          items={runtime.items}
-          selectedChatId={runtime.selected}
-          onSelect={(chatId) => void runtime.loadArchiveDetail(chatId)}
-          canRestoreAndOpen={Boolean(onOpenRestoredChat)}
-          onRestore={(chatId, openAfterRestore) =>
-            runtime.restoreSelected(chatId, openAfterRestore)
-          }
-          onDelete={(chatId) => runtime.deleteSelected(chatId)}
-        />
+        {listPane}
         <button
           type="button"
           role="separator"

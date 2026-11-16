@@ -133,6 +133,7 @@
     align-items: center;
     gap: 8px;
     min-width: 0;
+    max-width: 260px;
 }
 
 :global(.archive-filter-agent-icon) {
@@ -147,13 +148,140 @@
     white-space: nowrap;
 }
 
-:global(.archive-list-item-more) {
+:global(.archive-agent-filter-trigger) {
+    justify-content: center;
+    min-height: 32px;
+    padding: 4px 6px;
+    border-color: transparent;
+    background: transparent;
+}
+
+:global(.archive-agent-filter-trigger):hover,
+:global(.archive-agent-filter-trigger):focus-visible {
+    border-color: transparent;
+    background: var(--bg-hover);
+}
+
+:global(.archive-agent-filter-trigger.is-active) {
+    border-color: transparent;
+    background: var(--accent-soft);
+}
+
+:global(.archive-group-agent-icon) {
+    flex: 0 0 auto;
+    border-radius: 6px;
+}
+
+:global(.archive-group + .archive-group) {
+    border-top: 1px solid var(--line-soft);
+}
+
+/* The expanded (centered) list breathes more between the toolbar and rows. */
+:global(.archive-console-centered) :global(.archive-groups-scroll) {
+    margin-top: 16px;
+}
+
+/* Collapsed split list: the date filter matches the borderless agent filter. */
+:global(.archive-console-page) :global(.archive-filter-name),
+:global(.archive-console-page) :global(.archive-filter-count) {
+    display: none;
+}
+
+:global(.archive-console-page) :global(.archive-filter-trigger) {
+    gap: 0;
+    min-width: 32px;
+    justify-content: center;
+    padding: 4px 6px;
+    border-color: transparent;
+    background: transparent;
+}
+
+:global(.archive-console-page) :global(.archive-filter-trigger):hover,
+:global(.archive-console-page) :global(.archive-filter-trigger):focus-visible {
+    border-color: transparent;
+    background: var(--bg-hover);
+}
+
+:global(.archive-console-page) :global(.archive-filter-trigger.is-active) {
+    border-color: transparent;
+    background: var(--accent-soft);
+}
+
+:global(.archive-empty-state) {
+    display: flex;
+    min-height: 100%;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 48px 24px;
+    text-align: center;
+}
+
+:global(.archive-empty-state-icon) {
+    display: grid;
+    place-items: center;
+    width: 52px;
+    height: 52px;
+    margin-bottom: 4px;
+    border-radius: 16px;
+    background: color-mix(in srgb, var(--accent-soft) 60%, transparent);
+    color: var(--accent);
+}
+
+:global(.archive-empty-state-icon) :global(.material-icon) {
+    font-size: 26px;
+}
+
+:global(.archive-empty-state-title) {
+    color: var(--ink-1);
+    font-size: 14px;
+    font-weight: 500;
+}
+
+:global(.archive-empty-state-hint) {
+    max-width: 320px;
+    margin: 0;
+    color: var(--ink-muted);
+    font-size: 12px;
+    line-height: 1.6;
+}
+
+:global(.archive-list-item) {
+    position: relative;
+}
+
+:global(.archive-list-item-actions) {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    padding: 0 8px 0 24px;
+    background: linear-gradient(90deg, transparent, var(--bg-hover) 32%);
     opacity: 0;
+    pointer-events: none;
     transition: opacity 0.15s ease;
 }
 
-:global(.archive-list-item):hover :global(.archive-list-item-more),
-:global(.archive-list-item):focus-visible :global(.archive-list-item-more),
-:global(.archive-list-item):has(:focus-visible) :global(.archive-list-item-more) {
+:global(.archive-list-item):hover :global(.archive-list-item-actions),
+:global(.archive-list-item):focus-within :global(.archive-list-item-actions),
+:global(.archive-list-item):has(:focus-visible) :global(.archive-list-item-actions) {
     opacity: 1;
+    pointer-events: auto;
+}
+
+@media (hover: none) {
+    :global(.archive-list-item-actions) {
+        opacity: 1;
+        pointer-events: auto;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    :global(.archive-list-item-actions) {
+        transition: none;
+    }
 }

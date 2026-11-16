@@ -21,6 +21,7 @@ import {
 } from "@/shared/data";
 import { buildArchiveConversationData } from "@/features/archive/lib/archiveConversation";
 import {
+  archiveAgentKeyOf,
   asArchiveSummary,
   buildArchiveBulkCandidates,
   filterArchives,
@@ -259,16 +260,43 @@ export function useArchiveRuntime(options: UseArchiveRuntimeOptions) {
     void loadArchiveDetail(normalizedSelected, false);
   }, [loadArchiveDetail, options.active, selected]);
 
-  const removeArchiveItem = useCallback(
-    (chatId: string) => {
-      setItems((current) => current.filter((item) => item.chatId !== chatId));
-      setTotal((current) => Math.max(0, current - 1));
-      if (selected === chatId) {
+  const removeArchiveItems = useCallback(
+    (chatIds: string[]) => {
+      if (chatIds.length === 0) return;
+      const removed = new Set(chatIds);
+      setItems((current) => current.filter((item) => !removed.has(item.chatId)));
+      setTotal((current) => Math.max(0, current - removed.size));
+      if (selectedRef.current && removed.has(selectedRef.current)) {
         updateSelected("");
         setDetail(null);
       }
     },
-    [selected, updateSelected],
+    [updateSelected],
+  );
+
+  const removeArchiveItem = useCallback(
+    (chatId: string) => removeArchiveItems([chatId]),
+    [removeArchiveItems],
+  );
+
+  const groupTargets = useCallback(
+    (agentKey: string) => {
+      const normalized = String(agentKey || "").trim();
+      return items.filter((item) => archiveAgentKeyOf(item) === normalized);
+    },
+    [items],
+  );
+
+  const archiveAgentName = useCallback(
+    (agentKey: string) => {
+      const normalized = String(agentKey || "").trim();
+      if (!normalized) return t("archive.group.unknown");
+      const agent = agents.find(
+        (item) => String(item.key || "").trim() === normalized,
+      );
+      return String(agent?.name || "").trim() || normalized;
+    },
+    [agents],
   );
 
   const deleteSelected = (chatId: string) => {
@@ -315,6 +343,98 @@ export function useArchiveRuntime(options: UseArchiveRuntimeOptions) {
         setActionResult(t("archive.restore.result"));
         if (openAfterRestore && result.summary)
           options.onOpenRestoredChat?.(result.summary);
+      },
+    });
+  };
+
+  const restoreGroup = (agentKey: string) => {
+    const targets = groupTargets(agentKey);
+    if (targets.length === 0) return;
+    const agentName = archiveAgentName(agentKey);
+    Modal.confirm({
+      title: t("archive.group.restoreConfirm.title"),
+      content: t("archive.group.restoreConfirm.content", {
+        agent: agentName,
+        count: targets.length,
+      }),
+      okText: t("archive.group.restoreAll"),
+      cancelText: t("archive.action.cancel"),
+      onOk: async () => {
+        const response = await restoreArchives({
+          chatIds: targets.map((item) => item.chatId),
+        });
+        const results = response.data?.results || [];
+        const restoredIds: string[] = [];
+        results
+          .filter((result) => result.success)
+          .forEach((result) => {
+            const fallback = targets.find(
+              (item) => item.chatId === result.chatId,
+            );
+            const restored = normalizeRestoredChat(result.summary, fallback);
+            if (!restored.chatId) return;
+            restoredIds.push(restored.chatId);
+            dispatch({
+              type: "UPSERT_CHAT",
+              chat: restored as Partial<Chat> & Pick<Chat, "chatId">,
+            });
+          });
+        removeArchiveItems(restoredIds);
+        if (restoredIds.length > 0)
+          window.dispatchEvent(new CustomEvent("agent:refresh-worker-data"));
+        const failed = results.length - restoredIds.length;
+        setActionResult(
+          failed > 0
+            ? t("archive.group.restoreResultWithFailures", {
+                success: restoredIds.length,
+                failed,
+              })
+            : t("archive.group.restoreResult", {
+                success: restoredIds.length,
+              }),
+        );
+      },
+    });
+  };
+
+  const deleteGroup = (agentKey: string) => {
+    const targets = groupTargets(agentKey);
+    if (targets.length === 0) return;
+    const agentName = archiveAgentName(agentKey);
+    Modal.confirm({
+      title: t("archive.group.deleteConfirm.title"),
+      content: t("archive.group.deleteConfirm.content", {
+        agent: agentName,
+        count: targets.length,
+      }),
+      okText: t("archive.group.deleteAll"),
+      okButtonProps: { danger: true },
+      cancelText: t("archive.action.cancel"),
+      onOk: async () => {
+        const settled = await Promise.allSettled(
+          targets.map((item) => deleteArchive({ chatId: item.chatId })),
+        );
+        const deletedIds = targets
+          .filter((_item, index) => {
+            const result = settled[index];
+            return (
+              result.status === "fulfilled" &&
+              result.value.data?.deleted !== false
+            );
+          })
+          .map((item) => item.chatId);
+        removeArchiveItems(deletedIds);
+        const failed = targets.length - deletedIds.length;
+        setActionResult(
+          failed > 0
+            ? t("archive.group.deleteResultWithFailures", {
+                success: deletedIds.length,
+                failed,
+              })
+            : t("archive.group.deleteResult", {
+                success: deletedIds.length,
+              }),
+        );
       },
     });
   };
@@ -400,6 +520,8 @@ export function useArchiveRuntime(options: UseArchiveRuntimeOptions) {
     loadArchiveDetail,
     deleteSelected,
     restoreSelected,
+    restoreGroup,
+    deleteGroup,
     bulkArchive,
   };
 }

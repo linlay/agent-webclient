@@ -1,10 +1,8 @@
-import React, { useMemo, useState } from "react";
-import { DatePicker, Popover, Select } from "antd";
+import React, { useState } from "react";
+import { DatePicker, Popover } from "antd";
 import dayjs from "dayjs";
 import type { Dayjs } from "dayjs";
-import type { Agent } from "@/features/agents/lib/agentState";
 import type { ArchiveDateRange } from "@/features/archive/lib/archiveViewModel";
-import { AgentIcon } from "@/shared/icons/agent";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
 import { t } from "@/shared/i18n";
@@ -54,22 +52,7 @@ const DateRangeField: React.FC<DateRangeFieldProps> = ({ label, range, onChange 
   );
 };
 
-const AGENT_ICON_PROPS = {
-  icon: {
-    className: "archive-filter-agent-icon",
-    width: 18,
-    height: 18,
-  },
-  avatar: {
-    className: "archive-filter-agent-icon",
-    size: 18,
-  },
-};
-
 export interface ArchiveFilterProps {
-  agents: Agent[];
-  agentFilter: string;
-  onAgentFilterChange: (agentKey: string) => void;
   archivedRange: ArchiveDateRange;
   onArchivedRangeChange: (range: ArchiveDateRange) => void;
   createdRange: ArchiveDateRange;
@@ -82,9 +65,6 @@ export interface ArchiveFilterProps {
 }
 
 export const ArchiveFilter: React.FC<ArchiveFilterProps> = ({
-  agents,
-  agentFilter,
-  onAgentFilterChange,
   archivedRange,
   onArchivedRangeChange,
   createdRange,
@@ -96,42 +76,13 @@ export const ArchiveFilter: React.FC<ArchiveFilterProps> = ({
   onReset,
 }) => {
   const [open, setOpen] = useState(false);
-  const active = Boolean(agentFilter || archivedRange || createdRange || lastRunRange);
-
-  const agentOptions = useMemo(() => {
-    const options = agents.map((agent) => ({
-      value: String(agent.key || ""),
-      label: (
-        <span data-agent-identity="" className="archive-filter-agent-option">
-          <AgentIcon icon={agent.icon} mode={agent.mode} type="agent" props={AGENT_ICON_PROPS} />
-          <span
-            className="archive-filter-agent-name"
-            title={agent.name || agent.key}
-          >
-            {agent.name || agent.key}
-          </span>
-        </span>
-      ),
-    }));
-    return [{ value: "", label: t("archive.filter.agentAll") }, ...options];
-  }, [agents, t]);
+  const active = Boolean(archivedRange || createdRange || lastRunRange);
 
   const content = (
     <div
       className="archive-filter-popover"
       onClick={(event) => event.stopPropagation()}
     >
-      <div className="archive-filter-field">
-        <span className="archive-filter-label">{t("archive.filter.agent")}</span>
-        <Select
-          value={agentFilter || undefined}
-          placeholder={t("archive.filter.agentAll")}
-          options={agentOptions}
-          allowClear
-          aria-label={t("archive.filter.agent")}
-          onChange={(value) => onAgentFilterChange(value ?? "")}
-        />
-      </div>
       <DateRangeField
         label={t("archive.filter.archivedDate")}
         range={archivedRange}

@@ -15,9 +15,12 @@ const toolBindings = toolCatalog.map(tool => ({ name: tool.key, source: tool.key
 const archive = { chatId: 'demo', chatName: '周末山湖旅行计划', agentKey: 'demo', createdAt: when, lastRunAt: when, archivedAt: when, updatedAt: when, hasAttachments: false };
 const archiveList = [
   archive,
-  { ...archive, chatId: 'second', chatName: '行前准备清单' },
+  { ...archive, chatId: 'second', chatName: '行前准备清单', agentKey: 'second' },
+  { ...archive, chatId: 'last', chatName: '住宿与交通比价', agentKey: 'demo' },
   // Legacy archive: no protocol events, only the summarized runs payload.
-  { ...archive, chatId: 'legacy', chatName: '旧归档（仅 runs）' },
+  { ...archive, chatId: 'legacy', chatName: '旧归档（仅 runs）', agentKey: 'demo' },
+  // No agent key: grouped into the unassigned bucket.
+  { ...archive, chatId: 'orphan', chatName: '未关联智能体的归档', agentKey: undefined },
 ];
 // Archived chats only persist protocol events; the detail pane replays them the
 // same way the live conversation does, so the fixture supplies real events.

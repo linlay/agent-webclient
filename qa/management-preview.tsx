@@ -36,7 +36,9 @@ window.addEventListener("message", event => {
   if (event.source !== parent || event.origin !== location.origin || event.data?.type !== "qa-appearance") return;
   appearance(event.data.mode, event.data.skin, event.data.background);
 });
-const page = new URLSearchParams(location.search).get("page") || "registries";
+const params = new URLSearchParams(location.search);
+const page = params.get("page") || "registries";
+const archiveChatId = params.get("chat");
 const router = createMemoryRouter([
   { path: "/agents/:agentKey?", element: <AgentsPage /> },
   { path: "/skills/:skillKey?", element: <SkillsPage /> },
@@ -45,6 +47,6 @@ const router = createMemoryRouter([
   { path: "/archives/:chatId?", element: <ArchivesPage /> },
   { path: "/kbases", element: <KBasesPage /> },
   { path: "/memory", element: <MemoryPage /> },
-], { initialEntries: [page === "agents" ? "/agents/demo" : page === "skills" ? "/skills/demo" : page === "connectors" ? "/connectors/demo" : page === "archives" ? "/archives/demo" : `/${page}`] });
+], { initialEntries: [page === "agents" ? "/agents/demo" : page === "skills" ? "/skills/demo" : page === "connectors" ? "/connectors/demo" : page === "archives" ? (archiveChatId ? `/archives/${archiveChatId}` : "/archives") : `/${page}`] });
 const locale = new URLSearchParams(location.search).get("lang") === "en" ? "en-US" : "zh-CN";
 createRoot(document.getElementById("root")!).render(<I18nProvider locale={locale}><AppearanceProvider><AppProvider><RouterProvider router={router} /></AppProvider></AppearanceProvider></I18nProvider>);

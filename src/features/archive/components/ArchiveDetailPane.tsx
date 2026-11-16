@@ -28,7 +28,7 @@ const DETAIL_PANE_CLASS_NAME =
 /** Matches `Timeline.module.css` `.conversation-stage-virtuoso > div` so the head lines up with the transcript column. */
 const DETAIL_COLUMN_CLASS_NAME = "tw:mx-auto tw:w-full tw:max-w-[840px] tw:px-5";
 const DETAIL_HEAD_CLASS_NAME =
-  `archive-detail-head tw:flex tw:shrink-0 tw:items-start tw:justify-between tw:gap-3 ${DETAIL_COLUMN_CLASS_NAME} tw:[&_h3]:m-0 tw:[&_h3]:text-base tw:[&_p]:mb-0 tw:[&_p]:mt-1 tw:[&_p]:text-xs tw:[&_p]:text-ink-muted`;
+  `archive-detail-head tw:flex tw:shrink-0 tw:items-start ${DETAIL_COLUMN_CLASS_NAME} tw:[&_h3]:m-0 tw:[&_h3]:text-base tw:[&_p]:mb-0 tw:[&_p]:mt-1 tw:[&_p]:text-xs tw:[&_p]:text-ink-muted`;
 const DETAIL_NOTE_CLASS_NAME =
   `tw:shrink-0 tw:pb-1 tw:text-xs tw:text-amber-600 ${DETAIL_COLUMN_CLASS_NAME}`;
 const DETAIL_CONTENT_CLASS_NAME =
@@ -40,18 +40,10 @@ export const ArchiveDetailPane: React.FC<ArchiveDetailPaneProps> = (props) => {
   const agentKey = String(props.selectedItem?.agentKey || "").trim();
   const chatId = String(props.conversation?.chatId || props.selectedChatId || "").trim();
 
-  if (!props.selectedChatId) {
-    return (
-      <section className={DETAIL_PANE_CLASS_NAME}>
-        <div className="command-empty-state">{t("archive.empty.select")}</div>
-      </section>
-    );
-  }
-
   return (
     <section className={DETAIL_PANE_CLASS_NAME}>
       <div className={DETAIL_HEAD_CLASS_NAME}>
-        <div>
+        <div className="tw:min-w-0">
           <h3>{props.detail?.chatName || props.selectedItem?.chatName || props.selectedChatId}</h3>
           <p>
             {t("archive.detail.archivedAt", { time: formatChatTimeLabel(props.selectedItem?.archivedAt) })}
