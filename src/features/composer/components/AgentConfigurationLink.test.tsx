@@ -4,6 +4,7 @@ import { createRoot, Root } from "react-dom/client";
 import { AgentConfigurationLink } from "./AgentConfigurationLink";
 import { isDesktopAppMode } from "@/shared/utils/routing";
 import { openDesktopAgentConfiguration } from "@/shared/data/desktop/desktopAgentConfiguration";
+import { ClientNavigationContext } from "@/shared/ui/ClientNavigationContext";
 
 jest.mock("@/shared/utils/routing", () => ({ isDesktopAppMode: jest.fn() }));
 jest.mock("@/shared/data/desktop/desktopAgentConfiguration", () => ({ openDesktopAgentConfiguration: jest.fn() }));
@@ -27,6 +28,18 @@ it("standalone links to the encoded Agent configuration without host requests", 
   render();
   expect(container.querySelector("a")?.getAttribute("href")).toBe("/agents/worker%2Fa");
   expect(container.querySelector("button")).toBeNull();
+  expect(openConfiguration).not.toHaveBeenCalled();
+});
+it("mobile keeps an unavailable Agent's configuration link in the full client", () => {
+  desktopMode.mockReturnValue(false);
+  const navigate = jest.fn();
+  act(() => root.render(<ClientNavigationContext.Provider value={navigate}>
+    <AgentConfigurationLink agentKey="worker/a" />
+  </ClientNavigationContext.Provider>));
+  const link = container.querySelector("a")!;
+  expect(link.getAttribute("href")).toBe("/mobile/agents/worker%2Fa");
+  act(() => link.click());
+  expect(navigate).toHaveBeenCalledWith("/agents/worker%2Fa");
   expect(openConfiguration).not.toHaveBeenCalled();
 });
 it("Desktop sends a semantic request without navigating the guest and disables duplicate clicks", async () => {

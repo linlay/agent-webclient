@@ -3,3 +3,9 @@
 .before::before, .after::after { content: ""; position: absolute; z-index: 2; left: 4px; right: 4px; height: 2px; border-radius: 1px; background: var(--accent); pointer-events: none; }
 .before::before { top: 0; }
 .after::after { bottom: 0; }
+.touchRow { display: flex; align-items: flex-start; min-width: 0; }
+.touchContent { flex: 1; min-width: 0; }
+.touchActions { display: flex; flex-shrink: 0; }
+.touchActions button { width: 36px; min-height: 44px; padding: 0; border: 0; border-radius: 6px; background: transparent; color: var(--text-main); cursor: pointer; }
+.touchActions button:disabled { opacity: 0.3; cursor: default; }
+.touchActions button:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }

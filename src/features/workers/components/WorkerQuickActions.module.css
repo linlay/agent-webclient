@@ -39,3 +39,5 @@
   height: 16px;
   flex: 0 0 auto;
 }
+:global(.layout-mobile) .actions :global(.ui-btn.ui-btn-sm) { height: 44px; font-size: 15px; }
+:global(.layout-mobile) .actions :global(.material-icon) { width: 20px; height: 20px; font-size: 20px; }

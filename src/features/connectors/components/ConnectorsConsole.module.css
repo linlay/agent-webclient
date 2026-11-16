@@ -11,6 +11,14 @@
   overflow: hidden;
 }
 
+:global(.layout-mobile) .body {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(130px, 28%) minmax(0, 1fr);
+}
+:global(.layout-mobile) .list { border-right: 0; border-bottom: 1px solid var(--line-soft); }
+:global(.layout-mobile) .resizeHandle { display: none; }
+:global(.layout-mobile) .detail { min-width: 0; }
+
 .list {
   position: relative;
   display: flex;

@@ -1,0 +1,70 @@
+import React, { useEffect, useRef, useState } from "react";
+import { Drawer } from "antd";
+import { Outlet, useLocation, useNavigate } from "react-router-dom";
+import { useAppDispatch, useAppState } from "@/app/state/AppContext";
+import { useI18n } from "@/shared/i18n";
+import { LeftSidebar } from "./LeftSidebar";
+import { RightSidebar } from "./sidebar/right/RightSidebar";
+import { TopNav } from "./TopNav";
+import styles from "./MobileLayout.module.css";
+
+export function MobileLayout({ children, conversationSearch, overlays }: { children: React.ReactNode; conversationSearch: string; overlays: React.ReactNode }) {
+  const state = useAppState();
+  const dispatch = useAppDispatch();
+  const { t } = useI18n();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [navigationOpen, setNavigationOpen] = useState(false);
+  const root = useRef<HTMLDivElement>(null);
+  const pageOpen = location.pathname !== "/mobile";
+  useEffect(() => {
+    const close = () => setNavigationOpen(false);
+    const events = ["agent:load-chat", "agent:start-new-conversation", "agent:select-worker"];
+    events.forEach(type => window.addEventListener(type, close));
+    return () => events.forEach(type => window.removeEventListener(type, close));
+  }, []);
+  useEffect(() => { setNavigationOpen(false); }, [location.pathname]);
+
+  // Track the visible viewport as the software keyboard and browser chrome move.
+  useEffect(() => {
+    const viewport = window.visualViewport;
+    const update = () => {
+      root.current?.style.setProperty("--mobile-height", `${viewport?.height || window.innerHeight}px`);
+      root.current?.style.setProperty("--mobile-top", `${viewport?.offsetTop || 0}px`);
+    };
+    update();
+    viewport?.addEventListener("resize", update);
+    viewport?.addEventListener("scroll", update);
+    window.addEventListener("resize", update);
+    return () => {
+      viewport?.removeEventListener("resize", update);
+      viewport?.removeEventListener("scroll", update);
+      window.removeEventListener("resize", update);
+    };
+  }, []);
+  const returnToConversation = () => void navigate(`/mobile${conversationSearch}`);
+  return <div ref={root} id="app" className={`${styles.root} layout-mobile`}>
+    <div className={styles.conversation}>
+      <TopNav mobile onOpenNavigation={() => setNavigationOpen(true)} />
+      {children}
+    </div>
+    <Drawer rootClassName={`${styles.drawer} ${styles.navigation}`} title={null} closable={false}
+      placement="left" width="min(380px, calc(100vw - 16px))" open={navigationOpen}
+      onClose={() => setNavigationOpen(false)} forceRender getContainer={false}
+      styles={{ body: { padding: 0, display: "flex", overflow: "hidden" } }}>
+      <LeftSidebar mobile onClose={() => setNavigationOpen(false)} />
+    </Drawer>
+    <Drawer rootClassName={`${styles.drawer} ${styles.panel}`} title={t("mobile.content")}
+      placement="right" width="100%" open={state.rightSidebarOpen}
+      onClose={() => dispatch({ type: "CLOSE_RIGHT_SIDEBAR" })} forceRender getContainer={false}
+      styles={{ body: { padding: 0, display: "flex", overflow: "hidden" } }}>
+      <RightSidebar mobile />
+    </Drawer>
+    <Drawer rootClassName={`${styles.drawer} ${styles.page}`} title={t("mobile.backToChat")}
+      placement="right" width="100%" open={pageOpen} onClose={returnToConversation}
+      getContainer={false} styles={{ body: { padding: 0, overflow: "auto" } }}>
+      <Outlet />
+    </Drawer>
+    {overlays}
+  </div>;
+}

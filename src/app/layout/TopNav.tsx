@@ -27,7 +27,7 @@ import { useI18n } from "@/shared/i18n";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
 import { TimelineTextSearchControl } from "@/features/timeline/components/TimelineTextSearchControl";
-import { Divider } from "antd";
+import { Divider, Popover } from "antd";
 import { useSettingsOverlayState } from "@/features/settings/components/SettingsOverlayProvider";
 import { useMemoryOverlayState } from "@/features/memory/components/MemoryOverlayProvider";
 import { useCommandOverlayOpen } from "@/features/command-center/components/CommandOverlayProvider";
@@ -37,6 +37,7 @@ import { useTerminalAgentStatuses } from "@/features/terminal/hooks/useActiveTer
 import { resolveMainChatRuntime } from "@/features/runs/lib/runRuntimeState";
 import { useOpenTarget } from "@/features/surfaces/hooks/useOpenTarget";
 import { isDesktopAppMode } from "@/shared/utils/routing";
+import { supportsPrimaryChat } from "@/features/chats/lib/primaryChatIntent";
 const presentationClasses = bindCssModuleClasses({ ...appPresentation, ...sharedPresentation });
 
 
@@ -161,14 +162,22 @@ export function resolveTopNavStatus(
   };
 }
 
-export const TopNav: React.FC<{ surface?: "root" | "agent" }> = ({
-  surface = "root",
+export const TopNav: React.FC<{ surface?: "root" | "agent"; mobile?: boolean; onOpenNavigation?: () => void }> = ({
+  surface = "root", mobile = false, onOpenNavigation,
 }) => {
   const state = useAppState();
   const dispatch = useAppDispatch();
   const appContext = useOptionalAppContext();
   const { t } = useI18n();
   const openTarget = useOpenTarget();
+  const [toolsOpen, setToolsOpen] = React.useState(false);
+  const switchClientLayout = () => {
+    const params = new URLSearchParams(window.location.search);
+    for (const key of ["chatId", "agentKey", "newChat", "composerDraft", "composerSkill"]) params.delete(key);
+    if (state.chatId) params.set("chatId", state.chatId);
+    const query = params.toString();
+    window.location.assign(`${mobile ? "/" : "/mobile"}${query ? `?${query}` : ""}`);
+  };
   const { isAnyOverlayOpen } = useSettingsOverlayState();
   const { isMemoryOpen } = useMemoryOverlayState();
   const isCommandOverlayOpen = useCommandOverlayOpen();
@@ -257,7 +266,7 @@ export const TopNav: React.FC<{ surface?: "root" | "agent" }> = ({
       const target = event.target;
       if (
         target instanceof HTMLElement &&
-        target.closest(".modal, .ant-modal")
+        target.closest(mobile ? ".modal, .ant-modal, .ant-drawer" : ".modal, .ant-modal")
       ) {
         return;
       }
@@ -292,6 +301,7 @@ export const TopNav: React.FC<{ surface?: "root" | "agent" }> = ({
     isCommandOverlayOpen,
     isGlobalSearchOpen,
     isMacPlatform,
+    mobile,
   ]);
 
   const toggleRightSidebar = (tab: RightSidebarTabKey) => {
@@ -344,35 +354,26 @@ export const TopNav: React.FC<{ surface?: "root" | "agent" }> = ({
   const statusTitle = statusDetail
     ? `${statusLabel}: ${statusDetail}`
     : statusLabel;
-  return (
-    <nav className={TOP_NAV_CLASS}
-      data-desktop-sidebar-collapsed={desktopHeaderLayout.sidebarCollapsed ? "true" : undefined}
-      style={desktopHeaderLayout.headerLeftInset ? { paddingLeft: desktopHeaderLayout.headerLeftInset } : undefined}>
-      <div className={TOP_NAV_INNER_CLASS}>
-        <div className={NAV_LEFT_CLASS}>
-          {state.chatId && <TimelineTextSearchControl appearance="input" />}
-        </div>
-
-        <div className={NAV_CENTER_CLASS}>
-          {presentation?.blocked ? <ConversationRegionSkeleton region="header" phase={presentation.phase} /> :
-          <div className={CURRENT_WORKER_CARD_CLASS} aria-live="polite">
-            <strong className={CURRENT_WORKER_NAME_CLASS}>
-              {currentWorker?.displayName || t("topNav.noSelection")}
-            </strong>
-            <span
-              className={resolveStatusPillClassName(statusClass)}
-              id="api-status"
-              title={statusTitle}
-              aria-label={statusTitle}
-            >
-              {statusLabel}
-            </span>
-            <UsageContextControl />
-          </div>
-          }
-        </div>
-
-        {hideDesktopAgentActions ? (
+  const sidebarButton = (
+    <UiButton
+      className={mobile ? "mobile-header-action" : TOP_NAV_ICON_BUTTON_CLASS}
+      size="sm"
+      variant="ghost"
+      iconOnly
+      aria-label={mobile ? t(state.rightSidebarOpen ? "mobile.closeContent" : "mobile.openContent") : t("copilot.panel.overview")}
+      title={mobile ? t(state.rightSidebarOpen ? "mobile.closeContent" : "mobile.openContent") : t("copilot.panel.overview")}
+      aria-expanded={mobile ? state.rightSidebarOpen : undefined}
+      active={surface === "root" && state.rightSidebarOpen && (mobile || state.rightSidebarOpenTab !== "debug")}
+      onClick={() => {
+        if (mobile && state.rightSidebarOpen) dispatch({ type: "CLOSE_RIGHT_SIDEBAR" });
+        else toggleRightSidebar("overview");
+      }}
+    >
+      <MaterialIcon name={surface === "root" ? "dock_to_right" : "open_in_new"}
+        className="tw:text-[16px]" style={surface === "root" ? { transform: "scaleX(-1)" } : undefined} />
+    </UiButton>
+  );
+  const tools = hideDesktopAgentActions ? (
           <div className={NAV_GROUP_CLASS}>
             {debugButton}
           </div>
@@ -522,28 +523,54 @@ export const TopNav: React.FC<{ surface?: "root" | "agent" }> = ({
                 ) : null}
               </UiButton>
             ) : null}
-            <UiButton
-              className={TOP_NAV_ICON_BUTTON_CLASS}
-              size="sm"
-              variant="ghost"
-              iconOnly
-              aria-label={t("copilot.panel.overview")}
-              title={t("copilot.panel.overview")}
-              active={
-                surface === "root" &&
-                state.rightSidebarOpen &&
-                state.rightSidebarOpenTab !== "debug"
-              }
-              onClick={() => toggleRightSidebar("overview")}
-            >
-              <MaterialIcon
-                name={surface === "root" ? "dock_to_right" : "open_in_new"}
-                className="tw:text-[16px]"
-                style={surface === "root" ? { transform: "scaleX(-1)" } : undefined}
-              />
-            </UiButton>
+            {!mobile && sidebarButton}
           </div>
-        )}
+        );
+  return (
+    <nav className={TOP_NAV_CLASS}
+      data-desktop-sidebar-collapsed={desktopHeaderLayout.sidebarCollapsed ? "true" : undefined}
+      style={desktopHeaderLayout.headerLeftInset ? { paddingLeft: desktopHeaderLayout.headerLeftInset } : undefined}>
+      <div className={TOP_NAV_INNER_CLASS}>
+        <div className={NAV_LEFT_CLASS}>
+          {mobile ? <UiButton className="mobile-header-action" variant="ghost" size="sm" iconOnly aria-label={t("mobile.openNavigation")} onClick={onOpenNavigation}>
+            <MaterialIcon name="dock_to_right" />
+          </UiButton> : state.chatId && <TimelineTextSearchControl appearance="input" />}
+        </div>
+
+        <div className={NAV_CENTER_CLASS}>
+          {presentation?.blocked ? <ConversationRegionSkeleton region="header" phase={presentation.phase} /> :
+          <div className={CURRENT_WORKER_CARD_CLASS} aria-live="polite">
+            <strong className={CURRENT_WORKER_NAME_CLASS}>
+              {currentWorker?.displayName || t("topNav.noSelection")}
+            </strong>
+            <span
+              className={resolveStatusPillClassName(statusClass)}
+              id="api-status"
+              title={statusTitle}
+              aria-label={statusTitle}
+            >
+              {statusLabel}
+            </span>
+            <UsageContextControl presentation={mobile ? "drawer" : undefined} />
+          </div>
+          }
+        </div>
+
+        {mobile ? <Popover open={toolsOpen} onOpenChange={setToolsOpen} trigger="click" placement="bottomRight" content={<div className="mobile-topbar-tools"
+          onClick={event => { if ((event.target as HTMLElement).closest("button")) setToolsOpen(false); }}>
+          {currentWorker?.raw && !supportsPrimaryChat(String(currentWorker.raw.mode || "")) && <UiButton variant="ghost" size="sm" iconOnly aria-label={t("topNav.newConversation")}
+          onClick={() => window.dispatchEvent(new CustomEvent("agent:start-new-conversation", {
+            detail: { ...(currentWorker ? { agentKey: currentWorker.sourceId } : {}), preserveWorkerContext: true, focusComposerOnComplete: false },
+          }))}><MaterialIcon name="edit_square" /></UiButton>}
+          <TimelineTextSearchControl buttonClassName={TOP_NAV_ICON_BUTTON_CLASS} />
+          {tools}
+          <UiButton variant="ghost" size="sm" onClick={switchClientLayout}>
+            {t("mobile.desktop")}
+          </UiButton>
+        </div>}>
+          <UiButton className="mobile-header-action" variant="ghost" size="sm" iconOnly aria-label={t("leftSidebar.moreActions")}><MaterialIcon name="more_horiz" /></UiButton>
+        </Popover> : tools}
+        {mobile && sidebarButton}
       </div>
     </nav>
   );

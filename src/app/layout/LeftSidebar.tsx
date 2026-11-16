@@ -13,6 +13,7 @@ import { useSettingsOverlayActions } from "@/features/settings/components/Settin
 import { useMemoryOverlayActions } from "@/features/memory/components/MemoryOverlayProvider";
 import { WorkerNavigator } from "@/features/workers/components/WorkerNavigator";
 import { useGlobalSearchActions } from "@/features/search/components/GlobalSearchOverlayProvider";
+import { useClientPageNavigation } from "@/shared/ui/ClientNavigationContext";
 
 export {
   buildCoderAgentCreateRequest,
@@ -20,7 +21,8 @@ export {
 } from "@/features/agents/lib/agentCreate";
 export { handleCreateAgentSuccess } from "@/features/workers/lib/agentProjectCreated";
 
-export const LeftSidebar: React.FC = () => {
+export const LeftSidebar: React.FC<{ mobile?: boolean; onClose?: () => void }> = ({ mobile = false, onClose }) => {
+  const navigatePage = useClientPageNavigation();
   const pendingMailCount = useMailboxPendingCount();
   const openTarget = useOpenTarget();
   const { state } = useAppContext();
@@ -43,6 +45,7 @@ export const LeftSidebar: React.FC = () => {
       if (action.type === "open-webapps") standaloneRoute = "/webapps";
       if (action.type === "open-archive") standaloneRoute = "/archives";
       if (standaloneRoute) {
+        if (navigatePage) { onClose?.(); navigatePage(standaloneRoute); return; }
         window.open(
           `${standaloneRoute}${window.location.search || ""}`,
           "_blank",
@@ -52,19 +55,21 @@ export const LeftSidebar: React.FC = () => {
       }
       if (action.type === "open-settings") openOverlay("settings");
     },
-    [openOverlay],
+    [openOverlay, navigatePage, onClose],
   );
   return (
     <>
     <WorkerNavigator
-      onOpenProject={(agentKey) => openTarget({ version: 1, kind: "project", agentKey })}
-      onOpenSearch={openGlobalSearch}
-      onOpenCommand={(type) => openCommandOverlay({ type })}
-      onOpenMemory={openMemory}
+      mobile={mobile} onClose={onClose}
+      onOpenProject={(agentKey) => { onClose?.(); openTarget({ version: 1, kind: "project", agentKey }); }}
+      onOpenSearch={() => { onClose?.(); openGlobalSearch(); }}
+      onOpenCommand={(type) => { onClose?.(); openCommandOverlay({ type }); }}
+      onOpenMemory={() => { onClose?.(); openMemory(); }}
       renderSettingsMenu={(close) => (
         <SidebarSettingsMenu pendingMailCount={pendingMailCount}
           onAction={(action) => {
             handleSettingsMenuAction(action);
+            onClose?.();
             close();
           }}
         />

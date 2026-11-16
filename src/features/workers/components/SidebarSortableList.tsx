@@ -1,4 +1,7 @@
-import React, { Fragment, useRef, useState } from "react";
+import React, { Fragment, useContext, useRef, useState } from "react";
+import { SidebarTouchContext } from "./SidebarTouchContext";
+import { useI18n } from "@/shared/i18n";
+import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import styles from "./SidebarSortableList.module.css";
 
 export type SidebarDragProps = React.HTMLAttributes<HTMLElement>;
@@ -10,15 +13,17 @@ export function SidebarSortableList<T>({ items, getId, onMove, renderItem }: {
   onMove: (ids: string[], active: string, target: string, after: boolean) => void;
   renderItem: (item: T, drag: SidebarDragProps) => React.ReactNode;
 }) {
+  const touchSorting = useContext(SidebarTouchContext);
+  const { t } = useI18n();
   const active = useRef<string | null>(null);
   const suppressClick = useRef(false);
   const blockedDrag = useRef(false);
   const [dragging, setDragging] = useState<string | null>(null);
   const [target, setTarget] = useState<{ id: string; after: boolean } | null>(null);
   const clear = () => { active.current = null; setDragging(null); setTarget(null); };
-  return <>{items.map(item => {
+  return <>{items.map((item, index) => {
     const id = getId(item);
-    return <Fragment key={id}>{renderItem(item, {
+    const row = renderItem(item, {
       draggable: true,
       className: [styles.row, dragging === id ? styles.dragging : "", target?.id === id ? target.after ? styles.after : styles.before : ""].filter(Boolean).join(" "),
       onPointerDownCapture: event => {
@@ -67,6 +72,15 @@ export function SidebarSortableList<T>({ items, getId, onMove, renderItem }: {
         event.preventDefault(); event.stopPropagation();
         if (next) onMove(items.map(getId), id, getId(next), event.key === "ArrowDown");
       },
-    })}</Fragment>;
+    });
+    return <Fragment key={id}>{touchSorting ? <div className={styles.touchRow}>
+      <div className={styles.touchContent}>{row}</div>
+      <div className={styles.touchActions}>
+        <button type="button" disabled={index === 0} aria-label={t("mobile.moveUp")}
+          onClick={() => onMove(items.map(getId), id, getId(items[index - 1]), false)}><MaterialIcon name="arrow_upward" /></button>
+        <button type="button" disabled={index === items.length - 1} aria-label={t("mobile.moveDown")}
+          onClick={() => onMove(items.map(getId), id, getId(items[index + 1]), true)}><MaterialIcon name="arrow_downward" /></button>
+      </div>
+    </div> : row}</Fragment>;
   })}</>;
 }

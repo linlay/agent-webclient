@@ -14,7 +14,8 @@ export const TerminalDock: React.FC<{
   agentKey: string;
   workspaceKey?: string;
   worker?: CurrentWorkerSummary | null;
-}> = ({ agentKey, workspaceKey = "", worker = null }) => {
+  mobile?: boolean;
+}> = ({ agentKey, workspaceKey = "", worker = null, mobile = false }) => {
   const dispatch = useAppDispatch();
   const { t } = useI18n();
   const [height, setHeight] = useState(250);
@@ -36,11 +37,11 @@ export const TerminalDock: React.FC<{
   });
 
   return (
-    <section className={`terminal-dock ${styles["terminal-dock"]}`} aria-label={t("terminal.panelAria")} style={{ height }}>
-      <div
+    <section className={`terminal-dock ${styles["terminal-dock"]}${mobile ? " mobile-terminal" : ""}`} aria-label={t("terminal.panelAria")} style={mobile ? undefined : { height }}>
+      {!mobile && <div
         className={`terminal-dock-resize-handle ${styles["terminal-dock-resize-handle"]}`}
         onPointerDown={startResize}
-      />
+      />}
       <TerminalWorkspace
         agentKey={agentKey}
         workspaceKey={workspaceKey}

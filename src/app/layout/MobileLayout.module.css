@@ -1,0 +1,86 @@
+.root {
+  position: fixed;
+  inset: var(--mobile-top, 0px) 0 auto;
+  height: var(--mobile-height, 100dvh);
+  min-height: 0;
+  isolation: isolate;
+  overflow: hidden;
+  background: var(--main-chat-surface);
+  color: var(--text-main);
+}
+.conversation { display: flex; flex-direction: column; width: 100%; height: 100%; min-width: 0; min-height: 0; }
+.conversation > :global(.top-nav) { flex: none; height: auto; min-height: 52px; padding: env(safe-area-inset-top, 0px) 8px 0; background: var(--shell-page-bg); border-bottom: 1px solid var(--line-soft); }
+.conversation :global(.top-nav-inner) { min-height: 52px; gap: 4px; }
+.conversation :global(.nav-left) { flex: none; width: 44px; height: 44px; }
+.conversation :global(.nav-center) { flex: 1; min-width: 0; justify-content: flex-start; padding: 0; }
+.conversation :global(.current-worker-card) { min-width: 0; gap: 3px; justify-content: flex-start; padding: 0; }
+.conversation :global(.current-worker-name) { max-width: 36vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; }
+.conversation :global(.status-pill) { padding-left: 14px; padding-right: 3px; font-size: 10px; }
+.conversation :global(.status-pill)::before { left: 4px; width: 6px; height: 6px; }
+.conversation :global(.conversation-stage) { flex: 1; min-width: 0; min-height: 0; }
+.conversation :global(.messages-scroll) { padding: 12px 10px; }
+.conversation :global(.timeline-stack) { max-width: none; min-width: 0; }
+.conversation :global(.timeline-row-flow) { grid-template-columns: 16px minmax(0, 1fr); gap: 6px; }
+.conversation :global(.timeline-row-user) { max-width: 95%; padding-left: 4px; }
+.conversation :global(.timeline-task-group) { margin-left: 12px; }
+.conversation :global(.timeline-markdown) :is(pre, table) { max-width: 100%; overflow-x: auto; }
+.conversation :global(.bottom-dock) { flex: none; min-width: 0; max-height: 65%; overflow-y: auto; padding: 4px 8px max(4px, env(safe-area-inset-bottom, 0px)); }
+.conversation :global(.bottom-dock-inner) { max-width: none; }
+.conversation :global(.composer-stack), .conversation :global(.composer-layout) { gap: 6px; }
+.conversation :global(.composer-pill) { margin-bottom: 0; border-radius: 12px; }
+.conversation :global(.composer-actions) { flex-wrap: wrap; gap: 4px; }
+.conversation :global(.composer-wonders-grid) { grid-template-columns: 1fr; }
+.conversation :global(.composer-wonders-header) { display: none; }
+.conversation :global(.floating-plan):global(.is-expanded) :global(.plan-list) { max-height: min(200px, 25dvh); }
+.conversation :global(.frontend-tool-frame) { max-height: 45dvh; }
+.root :global(.ui-btn):global(.is-icon-only), .drawer :global(.ui-btn):global(.is-icon-only) { min-width: 40px; min-height: 40px; }
+.conversation :global(.mobile-header-action.ui-btn) { display: inline-flex; flex: 0 0 44px; align-items: center; justify-content: center; width: 44px; min-width: 44px; height: 44px; min-height: 44px; padding: 0; border-radius: 8px; }
+.conversation :global(.mobile-header-action) :global(.ui-btn-label) { display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; line-height: 1; }
+.conversation :global(.mobile-header-action) :global(.material-icon), .conversation :global(.mobile-header-action) :global(.material-icon-svg) { width: 20px; height: 20px; font-size: 20px; vertical-align: 0; }
+.root textarea { font-size: 16px; }
+.drawer :global(.ant-drawer-content) { background: var(--bg-base); }
+.drawer :global(.ant-drawer-header) { padding: max(8px, env(safe-area-inset-top, 0px)) 12px 8px; min-height: 48px; }
+.drawer :global(.ant-drawer-close) { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 44px; width: 44px; height: 44px; margin: 0; padding: 0; font-size: 20px; }
+.drawer :global(.ant-drawer-close) svg { width: 20px; height: 20px; }
+.drawer :global(.ant-drawer-header-title) { gap: 8px; }
+.drawer :global(.ant-drawer-body) { min-height: 0; overscroll-behavior: contain; padding-bottom: env(safe-area-inset-bottom, 0px) !important; }
+.navigation :global(.left-sidebar) { width: 100%; min-width: 0; height: 100%; transform: none; padding-top: env(safe-area-inset-top, 0px); font-size: 16px; }
+.navigation :global(.worker-navigation-header) { height: 56px; min-height: 56px; padding: 0 8px; gap: 4px; }
+.navigation :global(.worker-navigation-header) :global(.ui-btn.is-icon-only) { --ui-icon-hover-icon-size: 20px; --ui-icon-hover-bg-size: 44px; display: inline-flex; flex: none; align-items: center; justify-content: center; width: 44px; min-width: 44px; height: 44px; min-height: 44px; padding: 0; }
+.navigation :global(.worker-navigation-header) :global(.ui-btn-label) { display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; }
+.navigation :global(.worker-navigation-header) :global(.material-icon), .navigation :global(.worker-navigation-header) :global(.material-icon-svg) { width: 20px; height: 20px; font-size: 20px; vertical-align: 0; }
+.navigation :global(.brand-text) strong { font-size: 16px; line-height: 1.3; }
+.navigation :global(.brand-text) > span { font-size: 12px; line-height: 1.3; }
+.navigation :global(#settings-btn) { min-height: 48px; font-size: 16px; }
+.navigation :global(.left-sidebar) :global(.ui-list-item) { min-height: 44px; }
+.page { z-index: 1005; }
+.panel { z-index: 1010; }
+.panel :global(.right-sidebar) { width: 100%; min-width: 0; height: 100%; transform: none; border: 0; box-shadow: none; }
+.panel :global(.right-sidebar-tabs) { width: 100%; }
+.panel :global(.ant-tabs-tab-remove) { display: block; }
+.page :global(.ant-drawer-body) > :is(main, section, div) { height: 100%; min-height: 0; max-width: 100%; }
+.page :global(.agents-page), .page :global(.archives-page), .page :global(.skills-page),
+.page :global(.registries-page), .page :global(.connectors-page), .page :global(.automations-console-page) { height: 100%; min-height: 0; }
+.root :global(.agent-console-body), .root :global(.skill-console-body), .root :global(.archive-console),
+.root :global(.automation-console-body) { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(130px, 28%) minmax(0, 1fr); overflow: hidden; }
+.root :global(.agent-console-list-pane), .root :global(.skill-console-list), .root :global(.archive-console-list-pane),
+.root :global(.registry-console-list-pane), .root :global(.automation-console-list) { max-height: none; min-width: 0; overflow: hidden; }
+.root :global(.agent-console-resize-handle), .root :global(.skill-console-resize-handle),
+.root :global(.archive-console-resize-handle), .root :global(.registry-console-resize-handle) { display: none; }
+.root :global(.settings-grid), .root :global(.settings-preferences-grid), .root :global(.settings-numeric-grid),
+.root :global(.automation-form-grid), .root :global(.automation-basic-form-grid) { grid-template-columns: minmax(0, 1fr); }
+.root :global(.settings-card) { width: 100%; max-height: none; }
+.root :global(.settings-segmented), .root :global(.automation-save-actions) { flex-wrap: wrap; }
+.root :global(.copilot-drawer) :global(.ant-drawer-body) { padding: 8px; }
+.root :global(.copilot-drawer):global(.is-automation-console) :global(.ant-drawer-body) { display: flex; min-height: 0; overflow: hidden; padding: 0; }
+.root :global(.command-modal-card):global(.is-automation-console) { height: 100%; max-height: none; min-height: 0; }
+.root :global(.mobile-terminal) { position: absolute; inset: 0; height: 100%; z-index: 45; background: var(--bg-base); padding-top: env(safe-area-inset-top, 0px); }
+
+/* These popups are portaled. Their named roots scope the mobile treatment. */
+:global(.mobile-topbar-tools) { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; max-width: min(320px, calc(100vw - 32px)); }
+:global(.mobile-topbar-tools) :global(.nav-group) { flex-wrap: wrap; gap: 6px; }
+:global(.mobile-topbar-tools) :global(.ui-btn):global(.is-icon-only) { min-width: 44px; min-height: 44px; }
+@media (max-height: 500px) {
+  .conversation :global(.bottom-dock) { max-height: 75%; }
+  .conversation :global(.composer-wonders-grid) { display: none; }
+}

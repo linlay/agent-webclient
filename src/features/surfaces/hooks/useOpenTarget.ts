@@ -5,6 +5,8 @@ import { useAppDispatch, useAppState } from "@/app/state/AppContext";
 import { resolveCurrentWorkerSummary } from "@/features/workers/lib/currentWorker";
 import { useOptionalWorkPanelTransport } from "@/features/transport/components/RealtimeTransportProvider";
 import { isDesktopAppMode } from "@/shared/utils/routing";
+import { isFullClientPath } from "@/shared/utils/mobileRoutes";
+import { useClientPageNavigation } from "@/shared/ui/ClientNavigationContext";
 import { getViewerTargetKey } from "@/features/viewers/lib/viewerTarget";
 import { parseLocalAbsolutePath } from "@/shared/data";
 import { useI18n } from "@/shared/i18n";
@@ -12,6 +14,9 @@ import { useAppMessage } from "@/shared/ui/useAppMessage";
 import { clean, usesAgentIdentity, toSurfaceRouteIntent, viewerTargetFromIntent, resolvePublishedArtifactIntent, resolveWorkspaceFileIntent, openDesktopWorkPanelTarget, buildStandaloneOpenTargetUrl, type OpenTargetIntent } from "../lib/openTarget";
 
 export function useOpenTarget(): (intent: OpenTargetIntent) => boolean {
+  const navigatePage = useClientPageNavigation();
+  const navigationRef = useRef(navigatePage);
+  navigationRef.current = navigatePage;
   const dispatch = useAppDispatch();
   const state = useAppState();
   const workPanel = useOptionalWorkPanelTransport();
@@ -89,7 +94,7 @@ export function useOpenTarget(): (intent: OpenTargetIntent) => boolean {
       return true;
     }
 
-    if (!desktopMode && pathname === "/") {
+    if (!desktopMode && isFullClientPath(pathname)) {
       if (normalizedIntent.kind === "overview" || normalizedIntent.kind === "debug") {
         const tab = normalizedIntent.kind;
         if (normalizedIntent.toggle && state.rightSidebarOpen && state.rightSidebarOpenTab === tab) {
@@ -170,6 +175,7 @@ export function useOpenTarget(): (intent: OpenTargetIntent) => boolean {
       });
     }
     const url = buildStandaloneOpenTargetUrl(normalizedIntent, currentSearch);
+    if (url && navigationRef.current) { navigationRef.current(url); return true; }
     if (!url || typeof window === "undefined" || typeof window.open !== "function") return false;
     window.open(url, "_blank", "noopener,noreferrer");
     return true;

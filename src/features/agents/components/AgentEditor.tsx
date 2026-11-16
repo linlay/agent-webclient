@@ -37,6 +37,7 @@ import { AGENT_ICON_NAMES, AgentIcon } from "@/shared/icons/agent";
 import type { I18nContextValue } from "@/shared/i18n";
 import { MaterialIcon, type MaterialIconName } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
+import { ModelOptionsDropdown } from "@/features/model-config/components/ModelOptionsDropdown";
 const presentationClasses = bindCssModuleClasses({ ...modelPresentation });
 
 
@@ -476,7 +477,7 @@ export const AgentEditor: React.FC<AgentEditorProps> = (props) => {
       >
         <div className="agent-model-selector-card">
           <div className="agent-model-dropdown">
-            <Dropdown
+            <ModelOptionsDropdown
               menu={{
                 className: presentationClasses("query-settings-menu"),
                 items: modelItems,
@@ -501,7 +502,7 @@ export const AgentEditor: React.FC<AgentEditorProps> = (props) => {
                 <span>{selectedReasoningLabel}</span>
                 <MaterialIcon name="expand_more" />
               </UiButton>
-            </Dropdown>
+            </ModelOptionsDropdown>
           </div>
         </div>
         {form.mode !== "PROXY" && form.mode !== "CHANNEL" && (

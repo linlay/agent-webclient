@@ -4,6 +4,7 @@ import { createInitialState } from "@/app/state/AppContext";
 import { TopNav } from "@/app/layout/TopNav";
 
 const mockUseTerminalAgentStatuses = jest.fn(() => new Map());
+let mockMobileMenuOpen = false;
 
 jest.mock("@/features/terminal/hooks/useActiveTerminalAgents", () => ({
     useTerminalAgentStatuses: (enabled?: boolean) => mockUseTerminalAgentStatuses(enabled)
@@ -43,7 +44,8 @@ jest.mock("antd", () => {
         classNames?: {
             root?: string;
         };
-    }) => React.createElement("div", { className: classNames?.root }, children, open ? content : null)
+    }) => React.createElement("div", { className: classNames?.root }, children,
+      open || mockMobileMenuOpen && React.isValidElement(content) && (content.props as { className?: string }).className === "mobile-topbar-tools" ? content : null)
 	};
 });
 
@@ -79,6 +81,7 @@ describe("TopNav", () => {
   });
 
 	beforeEach(() => {
+    mockMobileMenuOpen = false;
 		globalWithStorage.localStorage = {
 			getItem: jest.fn(() => null),
 			setItem: jest.fn(),
@@ -114,6 +117,42 @@ describe("TopNav", () => {
 		expect(html).toContain("is-idle");
 		expect(html).not.toContain("WebSocket 握手失败");
 	});
+
+  it.each(["GENERAL", "BOT"])("mobile keeps BOT restart behind the guarded sidebar action (%s)", mode => {
+    mockMobileMenuOpen = true;
+    const state = createInitialState();
+    state.workerSelectionKey = "agent:demo";
+    state.currentAgent = { key: "demo", name: "Demo", mode };
+    useAppState.mockReturnValue(state);
+    const html = renderToStaticMarkup(React.createElement(TopNav, { mobile: true }));
+    expect(html).toContain('aria-label="打开导航"');
+    if (mode === "BOT") expect(html).not.toContain('aria-label="开始新对话"');
+    else expect(html).toContain('aria-label="开始新对话"');
+  });
+
+  it("keeps the mobile right sidebar directly reachable with the more menu closed", () => {
+    const state = createInitialState();
+    state.workerSelectionKey = "agent:demo";
+    state.currentAgent = { key: "demo", name: "Demo", mode: "GENERAL" };
+    useAppState.mockReturnValue(state);
+    const html = renderToStaticMarkup(React.createElement(TopNav, { mobile: true }));
+    expect(html).toContain('aria-label="打开右侧栏"');
+    expect(html).toContain('aria-expanded="false"');
+    expect(html).toContain('aria-label="更多操作"');
+    expect(html.indexOf('aria-label="更多操作"')).toBeLessThan(html.indexOf('aria-label="打开右侧栏"'));
+    expect(html.match(/mobile-header-action/g)).toHaveLength(3);
+    expect(html).not.toContain('aria-label="开始新对话"');
+  });
+
+  it("reflects an open mobile panel even when the active panel is debug", () => {
+    const state = createInitialState();
+    state.rightSidebarOpen = true;
+    state.rightSidebarOpenTab = "debug";
+    useAppState.mockReturnValue(state);
+    const html = renderToStaticMarkup(React.createElement(TopNav, { mobile: true }));
+    expect(html).toContain('aria-label="关闭右侧栏"');
+    expect(html).toContain('aria-expanded="true"');
+  });
 
 	it("renders run errors with detailed title", () => {
 		const state = createInitialState();

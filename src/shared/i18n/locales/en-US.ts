@@ -1,6 +1,18 @@
 import type { I18nMessages } from "@/shared/i18n/types";
 
 export const enUSMessages = {
+  "mobile.content": "Content",
+  "mobile.openContent": "Open right sidebar",
+  "mobile.closeContent": "Close right sidebar",
+  "mobile.backToChat": "Back to chat",
+  "mobile.openNavigation": "Open navigation",
+  "mobile.closeNavigation": "Close navigation",
+  "mobile.sort": "Reorder items",
+  "mobile.moveUp": "Move up",
+  "mobile.moveDown": "Move down",
+  "mobile.desktop": "Desktop view",
+  "mobile.mobile": "Mobile view",
+
   "agentConsole.mode.bot.label": "Bot",
   "agentConsole.mode.bot.description": "One dispatch chat with workers that execute tasks.",
   "bot.noMain": "Your next message creates the main chat",

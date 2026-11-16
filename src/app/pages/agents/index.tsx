@@ -1,8 +1,9 @@
-import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { useClientNavigate } from "@/shared/ui/useClientNavigate";
+import { useLocation, useParams } from "react-router-dom";
 import { AgentConsole } from "@/features/agents/components/AgentConsole";
 
 export const AgentsPage = () => {
-  const navigate = useNavigate();
+  const navigate = useClientNavigate();
   const location = useLocation();
   const params = useParams<{ agentKey?: string }>();
   const selectedAgentKey = String(params.agentKey || "").trim();

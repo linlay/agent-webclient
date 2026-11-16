@@ -4,6 +4,7 @@ import { readWaitDescription, readWaitResult } from "@/shared/contracts/waitResu
 import { useI18n } from "@/shared/i18n";
 import { useTimelineInteraction } from "./TimelineInteractionContext";
 import styles from "./WaitCard.module.css";
+import { isMobilePath } from "@/shared/utils/mobileRoutes";
 
 export function waitRemainingSeconds(deadlineAt: number, now: number): number {
   return Math.max(0, Math.ceil((deadlineAt - now) / 1000));
@@ -46,6 +47,7 @@ export function WaitCard({ node, now, active }: { node: TimelineNode; now?: numb
   // active task. Only a child Run's tool id is namespaced as `${taskId}:${id}`.
   const childWait = Boolean(node.taskId && node.toolId?.startsWith(`${node.taskId}:`));
   const canContinue = ticking && !childWait && !interaction?.readOnly && Boolean(interaction?.continueWait && node.runId);
+  const touchFocusable = canContinue && isMobilePath(typeof window === "undefined" ? undefined : window.location?.pathname);
   const continueNow = async (event: React.MouseEvent<HTMLButtonElement>) => {
     event.stopPropagation();
     if (pending || !canContinue) return;
@@ -61,7 +63,11 @@ export function WaitCard({ node, now, active }: { node: TimelineNode; now?: numb
     }
   };
   return (
-    <div className={styles.card} data-wait-state={state} data-continue-pending={pending || undefined}>
+    <div className={styles.card} data-wait-state={state} data-continue-pending={pending || undefined}
+      tabIndex={touchFocusable ? 0 : undefined}
+      onPointerDown={event => {
+        if (touchFocusable && event.pointerType === "touch") event.currentTarget.focus({ preventScroll: true });
+      }}>
       <div className={styles.body}>
         <div className={styles.copy} title={[description, conditionSummary].filter(Boolean).join(" · ")}>
           <span className={styles.description}>{description || t("timeline.wait.idle")}</span>

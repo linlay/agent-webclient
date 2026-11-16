@@ -1,8 +1,9 @@
-import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { useClientNavigate } from "@/shared/ui/useClientNavigate";
+import { useLocation, useParams } from "react-router-dom";
 import { SkillConsole } from "@/features/skills/components/SkillConsole";
 
 export const SkillsPage = () => {
-  const navigate = useNavigate();
+  const navigate = useClientNavigate();
   const location = useLocation();
   const params = useParams<{ skillId?: string }>();
   const selectedSkillId = String(params.skillId || "").trim();

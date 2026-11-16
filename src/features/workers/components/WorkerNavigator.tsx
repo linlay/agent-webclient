@@ -1,3 +1,5 @@
+import { useClientPageNavigation } from "@/shared/ui/ClientNavigationContext";
+import { SidebarTouchContext } from "./SidebarTouchContext";
 import { getClientStorage } from "@/shared/utils/clientStorage";
 import libraryPresentation from "@/shared/ui/Presentation.module.css";
 import { bindCssModuleClasses } from "@/shared/utils/cssModuleClasses";
@@ -81,7 +83,7 @@ const LEFT_SIDEBAR_WIDTH_CLASS = {
 } as const;
 
 const LEFT_SIDEBAR_TOP_ROW_CLASS =
-  "tw:flex tw:h-9 tw:min-h-9 tw:shrink-0 tw:items-center tw:justify-between tw:gap-3 tw:px-3 tw:py-0";
+  "worker-navigation-header tw:flex tw:h-9 tw:min-h-9 tw:shrink-0 tw:items-center tw:justify-between tw:gap-3 tw:px-3 tw:py-0";
 
 const CHAT_LIST_CLASS =
   "chat-list tw:min-h-0 tw:flex-1 tw:overflow-y-auto tw:[-ms-overflow-style:none] tw:[scrollbar-width:none] tw:[&::-webkit-scrollbar]:hidden";
@@ -167,6 +169,8 @@ function persistLeftSidebarWidth(width: number): void {
 }
 
 interface WorkerNavigatorProps {
+  mobile?: boolean;
+  onClose?: () => void;
   onOpenProject: (agentKey: string) => void;
   onOpenCommand: (type: "automation" | "agents" | "kbases") => void;
   onOpenMemory: () => void;
@@ -176,6 +180,8 @@ interface WorkerNavigatorProps {
 }
 
 export const WorkerNavigator: React.FC<WorkerNavigatorProps> = ({
+  mobile = false,
+  onClose,
   onOpenProject,
   onOpenCommand,
   onOpenMemory,
@@ -185,6 +191,9 @@ export const WorkerNavigator: React.FC<WorkerNavigatorProps> = ({
 }) => {
   const { modal } = AntdApp.useApp();
   const { state, stateRef, dispatch, querySessionsRef } = useAppContext();
+  const expanded = mobile || state.leftDrawerOpen;
+  const navigatePage = useClientPageNavigation();
+  const [sorting, setSorting] = useState(false);
   const { t } = useI18n();
   const message = useAppMessage();
   const primaryChatOperations = useChatOperations("", dispatch, t);
@@ -222,13 +231,15 @@ export const WorkerNavigator: React.FC<WorkerNavigatorProps> = ({
   const [sidebarMaxWidth, setSidebarMaxWidth] = useState(getLeftSidebarMaxWidth);
 
   useEffect(() => {
+    if (mobile) return;
     document.documentElement.style.setProperty(
       "--left-sidebar-width",
       `${sidebarWidth}px`,
     );
-  }, [sidebarWidth]);
+  }, [sidebarWidth, mobile]);
 
   useEffect(() => {
+    if (mobile) return;
     const handleWindowResize = () => {
       const nextMaxWidth = getLeftSidebarMaxWidth();
       setSidebarMaxWidth(nextMaxWidth);
@@ -237,7 +248,7 @@ export const WorkerNavigator: React.FC<WorkerNavigatorProps> = ({
 
     window.addEventListener("resize", handleWindowResize);
     return () => window.removeEventListener("resize", handleWindowResize);
-  }, []);
+  }, [mobile]);
 
   const updateSidebarWidth = useCallback((width: number) => {
     const nextMaxWidth = getLeftSidebarMaxWidth();
@@ -444,6 +455,11 @@ export const WorkerNavigator: React.FC<WorkerNavigatorProps> = ({
     const row =
       state.workerIndexByKey.get(workerKey) ||
       state.workerRows.find((item) => item.key === workerKey);
+    if (mobile && row) {
+      if (directoryType === "workspace") onOpenProject(row.sourceId);
+      else navigatePage?.(`/agents/${encodeURIComponent(row.sourceId)}`);
+      return;
+    }
     void openWorkerDirectory(row, directoryType, t, (line) => {
       dispatch({ type: "APPEND_DEBUG", line });
     });
@@ -497,8 +513,10 @@ export const WorkerNavigator: React.FC<WorkerNavigatorProps> = ({
 
   const handleEditAgent = (agentKey: string) => {
     const routeSearch = window.location.search || "";
+    const target = `/agents/${encodeURIComponent(agentKey)}${routeSearch}`;
+    if (navigatePage) { navigatePage(target); return; }
     window.open(
-      `/agents/${encodeURIComponent(agentKey)}${routeSearch}`,
+      target,
       "_blank",
     );
   };
@@ -642,16 +660,16 @@ export const WorkerNavigator: React.FC<WorkerNavigatorProps> = ({
   });
 
   return (
-    <>
+    <SidebarTouchContext.Provider value={mobile && sorting}>
       <aside
         className={`${LEFT_SIDEBAR_BASE_CLASS} ${
-          state.leftDrawerOpen
+          expanded
             ? LEFT_SIDEBAR_WIDTH_CLASS.open
             : LEFT_SIDEBAR_WIDTH_CLASS.closed
         }`}
         id="left-sidebar"
       >
-        {state.leftDrawerOpen && (
+        {expanded && !mobile && (
           <button
             type="button"
             className="left-sidebar-resize-handle"
@@ -667,7 +685,7 @@ export const WorkerNavigator: React.FC<WorkerNavigatorProps> = ({
             onKeyDown={handleResizeKeyDown}
           />
         )}
-        {state.leftDrawerOpen && (
+        {expanded && (
           <>
             <Flex
               align="center"
@@ -680,6 +698,10 @@ export const WorkerNavigator: React.FC<WorkerNavigatorProps> = ({
                 <span>Webclient</span>
               </div>
               <Flex gap={4}>
+                {mobile && <UiButton size="sm" variant="ghost" iconOnly active={sorting}
+                  aria-label={t("mobile.sort")} aria-pressed={sorting} onClick={() => setSorting(!sorting)}>
+                  <MaterialIcon name="list_arrow" />
+                </UiButton>}
                 <UiButton size="sm" variant="ghost" iconOnly className="ui-icon-hover-24"
                   aria-label={t("leftSidebar.navigation.search")} title={t("leftSidebar.navigation.search")}
                   onClick={onOpenSearch}><MaterialIcon name="search" /></UiButton>
@@ -694,12 +716,8 @@ export const WorkerNavigator: React.FC<WorkerNavigatorProps> = ({
                   variant="ghost"
                   className="ui-icon-hover-24"
                   iconOnly
-                  onClick={() =>
-                    dispatch({
-                      type: "SET_LEFT_DRAWER_OPEN",
-                      open: false,
-                    })
-                  }
+                  aria-label={t("mobile.closeNavigation")}
+                  onClick={() => mobile ? onClose?.() : dispatch({ type: "SET_LEFT_DRAWER_OPEN", open: false })}
                 >
                   <MaterialIcon name="dock_to_right" className="tw:text-[16px]" />
                 </UiButton>
@@ -709,14 +727,14 @@ export const WorkerNavigator: React.FC<WorkerNavigatorProps> = ({
         )}
 
         <div className={CHAT_LIST_CLASS} id="chat-list">
-          {state.leftDrawerOpen && quickActionsEnabled && (
+          {expanded && quickActionsEnabled && (
             <WorkerQuickActions onOpenCommand={onOpenCommand} onOpenMemory={onOpenMemory}
               hideNewChat={state.primaryNavigation && generalWorkers.length === 0}
               newChatDisabled={!currentGeneralKey}
               onNewChat={() => startNewConversationForWorker(currentGeneralKey, { focusComposerOnComplete: true })} />
           )}
           <Spin spinning={isSidebarLoading} tip={t("leftSidebar.loading")}>
-            {state.leftDrawerOpen ? (
+            {expanded ? (
               <>
                 <PinnedChatSection
                   collapsed={false}
@@ -876,7 +894,7 @@ export const WorkerNavigator: React.FC<WorkerNavigatorProps> = ({
         {settingsMenuEnabled ? (
           <Popover
             open={settingsMenuOpen}
-            trigger={state.leftDrawerOpen ? "click" : "hover"}
+            trigger={expanded ? "click" : "hover"}
             placement="top"
             arrow={false}
             classNames={{
@@ -897,7 +915,7 @@ export const WorkerNavigator: React.FC<WorkerNavigatorProps> = ({
                 name="settings"
                 className="ui-icon-hover-24-target"
               />
-              {state.leftDrawerOpen && (
+              {expanded && (
                 <>
                   <span>{t("leftSidebar.settings")}</span>
                   {settingsSummary}
@@ -936,6 +954,6 @@ export const WorkerNavigator: React.FC<WorkerNavigatorProps> = ({
       />
 
       <AgentProjectCreateDialog runtime={agentProjectCreate} />
-    </>
+    </SidebarTouchContext.Provider>
   );
 };

@@ -14,6 +14,7 @@ import {
   useAppState,
 } from "@/app/state/AppContext";
 import { AppShell } from "@/app/layout/AppShell";
+import { MobileShell } from "@/app/layout/MobileShell";
 import { CopilotShell } from "@/app/layout/CopilotShell";
 import { AgentChatShell } from "@/app/layout/AgentChatShell";
 import { isDesktopAppMode } from "@/shared/utils/routing";
@@ -185,43 +186,7 @@ const AppearanceStateBridge = () => {
   return null;
 };
 
-const router = createBrowserRouter(
-  [
-    {
-      path: "/",
-      element: <WebClientRenderErrorBoundary><BaseShell /></WebClientRenderErrorBoundary>,
-      errorElement: <WebClientRouteErrorPage />,
-      children: [
-        {
-          path: "/login",
-          element: (
-            <DocumentTitleRoute titleKey="route.title.login">
-              <LoginPage />
-            </DocumentTitleRoute>
-          ),
-        },
-        {
-          path: "/",
-          element: (
-            <DocumentTitleRoute>
-              <RootInteractiveRoute />
-            </DocumentTitleRoute>
-          ),
-        },
-        {
-          path: "/embed/:agentKey",
-          element: <DocumentTitleRoute><BtwProvider enabled={false}><EmbedShell /></BtwProvider></DocumentTitleRoute>,
-        },
-        {
-          path: "/copilot/:agentKey",
-          element: (
-            <DocumentTitleRoute>
-              <InteractiveRoute btwEnabled={false}>
-                <CopilotShell />
-              </InteractiveRoute>
-            </DocumentTitleRoute>
-          ),
-        },
+const standaloneRoutes = [
         {
           path: "/automations",
           element: (
@@ -460,6 +425,52 @@ const router = createBrowserRouter(
               </InteractiveRoute>
             </DocumentTitleRoute>
           ),
+        },
+];
+
+const router = createBrowserRouter(
+  [
+    {
+      path: "/",
+      element: <WebClientRenderErrorBoundary><BaseShell /></WebClientRenderErrorBoundary>,
+      errorElement: <WebClientRouteErrorPage />,
+      children: [
+        {
+          path: "/login",
+          element: (
+            <DocumentTitleRoute titleKey="route.title.login">
+              <LoginPage />
+            </DocumentTitleRoute>
+          ),
+        },
+        {
+          path: "/",
+          element: (
+            <DocumentTitleRoute>
+              <RootInteractiveRoute />
+            </DocumentTitleRoute>
+          ),
+        },
+        {
+          path: "/embed/:agentKey",
+          element: <DocumentTitleRoute><BtwProvider enabled={false}><EmbedShell /></BtwProvider></DocumentTitleRoute>,
+        },
+        {
+          path: "/copilot/:agentKey",
+          element: (
+            <DocumentTitleRoute>
+              <InteractiveRoute btwEnabled={false}>
+                <CopilotShell />
+              </InteractiveRoute>
+            </DocumentTitleRoute>
+          ),
+        },
+        ...standaloneRoutes,
+        {
+          path: "/mobile",
+          element: <InteractiveRoute><MobileShell /></InteractiveRoute>,
+          children: standaloneRoutes.filter(route => route.path !== SURFACE_ROUTE_PATHS.agent && route.path !== SURFACE_ROUTE_PATHS.selectionExplain)
+            .map(route => ({ ...route, path: route.path.slice(1) })),
         },
       ],
     },

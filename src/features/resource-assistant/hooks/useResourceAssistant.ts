@@ -4,8 +4,10 @@ import { useI18n } from "@/shared/i18n";
 import { isDesktopAppMode } from "@/shared/utils/routing";
 import { useAppMessage } from "@/shared/ui/useAppMessage";
 import { firstChatAgent, resourceAssistantUrl, resourceComposerPrefill, type ResourceAssistantRequest } from "../lib/resourceAssistant";
+import { useClientPageNavigation } from "@/shared/ui/ClientNavigationContext";
 
 export function useResourceAssistant({ navigate }: { navigate?: (target: string) => void | Promise<void> } = {}) {
+  const navigatePage = useClientPageNavigation();
   const { t } = useI18n();
   const message = useAppMessage();
   const [opening, setOpening] = useState(false);
@@ -31,7 +33,7 @@ export function useResourceAssistant({ navigate }: { navigate?: (target: string)
       // the destination Composer consumes its one-shot query parameters.
       const target = resourceAssistantUrl(agentKey, prefill);
       if (target.length > 8192) throw new Error(t("resourceAssistant.draftTooLong"));
-      if (!isDesktopAppMode() && navigate) await navigate(target);
+      if (!isDesktopAppMode() && (navigatePage || navigate)) await (navigatePage || navigate)!(target);
       else window.location.assign(target);
       onOpened?.();
     } catch (error) {
@@ -40,6 +42,6 @@ export function useResourceAssistant({ navigate }: { navigate?: (target: string)
       pending.current = false;
       if (mounted.current) setOpening(false);
     }
-  }, [message, t, navigate]);
+  }, [message, t, navigate, navigatePage]);
   return { open, opening };
 }

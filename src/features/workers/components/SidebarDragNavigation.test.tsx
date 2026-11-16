@@ -6,6 +6,7 @@ import { I18nProvider } from "@/shared/i18n";
 import { buildWorkerRows } from "../lib/workerListFormatter";
 import { SidebarAgentNavigation } from "./SidebarAgentNavigation";
 import { PrimaryChatNavigation } from "./PrimaryChatNavigation";
+import { SidebarTouchContext } from "./SidebarTouchContext";
 
 const mockState = createInitialState();
 jest.mock("@/app/state/AppContext", () => ({ useAppContext: () => ({ state: mockState }) }));
@@ -20,17 +21,21 @@ let host: HTMLDivElement;
 let root: Root;
 const select = jest.fn();
 const noOp = jest.fn();
+let touchSorting = false;
 const render = async () => {
   await act(async () => root.render(<I18nProvider locale="zh-CN" persistLocale={false}>
+    <SidebarTouchContext.Provider value={touchSorting}>
     <PrimaryChatNavigation onSelectChat={select} onStartPrimary={noOp} onOpenHistory={noOp} getChatLoading={() => false} />
     <SidebarAgentNavigation generalAgentKey="agent:general" onSelectGeneralAgent={noOp} onNewConversation={noOp}
       onNewProject={noOp} creatingProject={false} onSelectChat={select} onOpenHistory={noOp} getChatLoading={() => false}
       chatsByWorker={new Map(mockState.workerRows.map(row => [row.key, mockState.chats.filter(chat => chat.agentKey === row.sourceId).map(chat => ({ ...chat, updatedAt: Number(chat.updatedAt), chatName: chat.chatName || "", lastRunContent: "" }))]))}
       workerActions={{} as any} terminalStatuses={new Map()} excludeAgentKeys={new Set(["bot-a", "bot-b"])} />
+    </SidebarTouchContext.Provider>
   </I18nProvider>));
 };
 
 beforeEach(async () => {
+  touchSorting = false;
   localStorage.clear(); select.mockClear();
   mockState.accessToken = "identity-a";
   mockState.agents = [
@@ -47,6 +52,22 @@ beforeEach(async () => {
   mockState.workerRows = buildWorkerRows({ agents: mockState.agents, chats: mockState.chats });
   host = document.createElement("div"); document.body.append(host); root = createRoot(host);
   await render();
+});
+
+it("reorders with touch controls without opening chats or changing other groups", async () => {
+  touchSorting = true;
+  await render();
+  const general = host.querySelector('section[aria-label="对话"]')!;
+  const buttons = general.querySelectorAll<HTMLButtonElement>('button[aria-label="下移"]');
+  expect(buttons[buttons.length - 1].disabled).toBe(true);
+  await act(async () => buttons[0].click());
+  expect(chatIds(general)).toEqual(["general-1", "general-0"]);
+  expect(select).not.toHaveBeenCalled();
+  expect([...host.querySelectorAll('[aria-label^="Project "]')].map(item => item.getAttribute("aria-label"))).toEqual(["Project A", "Project B"]);
+  touchSorting = false;
+  await render();
+  expect(general.querySelector('button[aria-label="下移"]')).toBeNull();
+  expect(chatIds(general)).toEqual(["general-1", "general-0"]);
 });
 afterEach(async () => { await act(async () => root.unmount()); host.remove(); });
 

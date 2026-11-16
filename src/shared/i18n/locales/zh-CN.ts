@@ -1,6 +1,18 @@
 import type { I18nMessages } from "@/shared/i18n/types";
 
 export const zhCNMessages = {
+  "mobile.content": "内容面板",
+  "mobile.openContent": "打开右侧栏",
+  "mobile.closeContent": "关闭右侧栏",
+  "mobile.backToChat": "返回对话",
+  "mobile.openNavigation": "打开导航",
+  "mobile.closeNavigation": "关闭导航",
+  "mobile.sort": "整理顺序",
+  "mobile.moveUp": "上移",
+  "mobile.moveDown": "下移",
+  "mobile.desktop": "桌面版",
+  "mobile.mobile": "手机版",
+
   "agentConsole.mode.bot.label": "机器人",
   "agentConsole.mode.bot.description": "一个负责调度的主聊天，以及执行任务的分身。",
   "bot.noMain": "主聊天将在下一条消息时创建",

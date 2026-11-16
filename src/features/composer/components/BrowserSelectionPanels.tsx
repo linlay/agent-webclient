@@ -5,6 +5,7 @@ import { useAppDispatch, useAppState } from "@/app/state/AppContext";
 import { useOptionalBTW } from "@/features/btw/components/BtwProvider";
 import { useI18n } from "@/shared/i18n";
 import { isDesktopAppMode } from "@/shared/utils/routing";
+import { isFullClientPath } from "@/shared/utils/mobileRoutes";
 import styles from "./BrowserSelectionPanels.module.css";
 
 const BtwTab = lazy(() => import("@/features/btw/components/BtwTab").then((module) => ({ default: module.BtwTab })));
@@ -21,7 +22,7 @@ export function BrowserSelectionPanels() {
   // the same BtwProvider and BtwTab through a drawer instead of opening a tab.
   const sideVisible = state.rightSidebarOpen && state.rightSidebarOpenTab === "btw" &&
     Boolean(btw?.getSession(state.chatId));
-  const sideOpen = location.pathname !== "/" && sideVisible;
+  const sideOpen = !isFullClientPath(location.pathname) && sideVisible;
   return (
     <Drawer
       title={t("selection.sideChat.title")}

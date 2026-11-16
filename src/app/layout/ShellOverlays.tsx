@@ -8,8 +8,8 @@ import { GlobalSearchOverlay } from "@/features/search/components/GlobalSearchOv
 import { MemoryOverlayHost } from "@/features/memory/components/MemoryOverlayHost";
 
 export const ShellOverlays: React.FC<{
-	commandOverlayVariant?: "copilot";
-	settingsOverlayVariant?: "copilot";
+	commandOverlayVariant?: "copilot" | "mobile";
+	settingsOverlayVariant?: "copilot" | "mobile";
 }> = ({ commandOverlayVariant, settingsOverlayVariant }) => {
 	return (
 		<>

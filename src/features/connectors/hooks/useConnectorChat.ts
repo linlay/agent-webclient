@@ -1,5 +1,7 @@
+import { useClientNavigate } from "@/shared/ui/useClientNavigate";
+import { isMobilePath, toMobileRoute } from "@/shared/utils/mobileRoutes";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+
 import { getAgents, getAdminAgentConnectors, getConnectorConnection, prepareConnector, setAdminAgentConnector, type ConnectorSummary } from "@/shared/data";
 import { isDesktopAppMode } from "@/shared/utils/routing";
 import { firstChatAgent } from "@/features/resource-assistant/lib/resourceAssistant";
@@ -23,7 +25,7 @@ export function useConnectorChat({ item, draft, dirty, confirmLeave, confirmNavi
   confirmNavigation?: () => ConnectorNavigationApproval | null;
   onConfigurationRequired: () => void;
 }) {
-  const navigate = useNavigate();
+  const navigate = useClientNavigate();
   const latest = useRef({ item, draft, dirty, confirmLeave, confirmNavigation, onConfigurationRequired });
   latest.current = { item, draft, dirty, confirmLeave, confirmNavigation, onConfigurationRequired };
   const operation = useRef<{ id: string; controller: AbortController } | null>(null);
@@ -64,7 +66,8 @@ export function useConnectorChat({ item, draft, dirty, confirmLeave, confirmNavi
       });
       assertCurrent();
       if (latest.current.draft !== initial.draft) { setError("connectors.chat.draftChanged"); return; }
-      const target = connectorChatUrl(agentKey, composerDraft);
+      const chatTarget = connectorChatUrl(agentKey, composerDraft);
+      const target = isMobilePath(window.location.pathname) ? toMobileRoute(chatTarget) : chatTarget;
       if (approval) {
         const revoke = approval.permit(target);
         if (!revoke) { setError("connectors.chat.draftChanged"); return; }

@@ -114,6 +114,16 @@ describe("App routing", () => {
     ]));
   });
 
+  it("registers full mobile navigation using the shared management and viewer pages", async () => {
+    await import("./App");
+    const routes = createBrowserRouterMock.mock.calls[0][0] as Array<{ children: Array<{ path: string; children?: Array<{ path: string }> }> }>;
+    const mobile = routes[0].children.find(route => route.path === "/mobile")!;
+    expect(mobile.children?.map(route => route.path)).toEqual(expect.arrayContaining([
+      "agents", "agents/:agentKey", "skills", "connectors/:connectorId", "registries", "mailbox", "archives", "kbases", "webapps", "project/:agentKey", "terminal/:agentKey", "history",
+    ]));
+    expect(mobile.children?.map(route => route.path)).not.toEqual(expect.arrayContaining(["agent/:agentKey", "explain/:chatId"]));
+  });
+
   it.each([false, true])("registers only the current explanation route and restricts it to Desktop (%s)", async (desktopMode) => {
     mockDesktopMode = desktopMode;
     await import("./App");

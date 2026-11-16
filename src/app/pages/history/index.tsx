@@ -1,5 +1,6 @@
+import { useClientNavigate } from "@/shared/ui/useClientNavigate";
 import React from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import type { Chat } from "@/features/chats/lib/chatState";
 import { GlobalHistoryConsole } from "@/features/chats/components/GlobalHistoryConsole";
 import { readInitialHistoryOwnerKey } from "@/features/chats/lib/historyRoute";
@@ -9,7 +10,7 @@ import {
 } from "@/features/surfaces/lib/surfaceRoutes";
 
 export const HistoryPage: React.FC = () => {
-  const navigate = useNavigate();
+  const navigate = useClientNavigate();
   const [routeSearch] = useSearchParams();
   const initialOwnerKey = React.useMemo(
     () => readInitialHistoryOwnerKey(routeSearch),

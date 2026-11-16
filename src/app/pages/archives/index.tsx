@@ -1,10 +1,11 @@
-import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { useClientNavigate } from "@/shared/ui/useClientNavigate";
+import { useLocation, useParams } from "react-router-dom";
 import { ArchiveConsole } from "@/features/archive/components/ArchiveConsole";
 import type { RestoredArchiveChatSummary } from "@/features/archive/components/ArchiveConsole";
 import { buildSurfaceRoute, readSurfacePresentationContext } from "@/features/surfaces/lib/surfaceRoutes";
 
 export const ArchivesPage = () => {
-	const navigate = useNavigate();
+	const navigate = useClientNavigate();
 	const location = useLocation();
 	const params = useParams<{ chatId?: string }>();
 	const selectedChatId = String(params.chatId || "").trim();

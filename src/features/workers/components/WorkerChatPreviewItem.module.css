@@ -15,6 +15,11 @@
   font-weight: 400;
   cursor: pointer;
 }
+:global(.layout-mobile) .row.row { min-height: 48px; padding: 8px 48px 8px 10px; font-size: 16px; }
+:global(.layout-mobile) .row.row.pinned { padding: 8px 48px 8px 10px; }
+:global(.layout-mobile) .row .more { width: 40px; height: 40px; }
+:global(.layout-mobile) .owner { font-size: 12px; }
+:global(.layout-mobile) .time { font-size: 12px; }
 .row.row:hover, .row.row:focus-visible, .row.row:global(.is-active) {
   background: var(--bg-hover);
 }

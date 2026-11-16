@@ -25,6 +25,7 @@ function clampIndex(index: number, length: number): number {
 }
 
 interface CommandDrawerProps {
+  mobile?: boolean;
   modal: CommandOverlayState;
   onPatch: (patch: Partial<CommandOverlayState>) => void;
   onClose: (restoreComposerFocus?: boolean) => void;
@@ -34,6 +35,7 @@ export const CommandDrawer: React.FC<CommandDrawerProps> = ({
   modal,
   onPatch,
   onClose,
+  mobile = false,
 }) => {
   const state = useAppState();
   const { t } = useI18n();
@@ -135,6 +137,7 @@ export const CommandDrawer: React.FC<CommandDrawerProps> = ({
 
   return (
     <Drawer
+      getContainer={mobile ? false : undefined}
       open={modal.open}
       closable={false}
       destroyOnHidden

@@ -30,6 +30,7 @@ import type { MaterialIconName } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
 import { useAppMessage } from "@/shared/ui/useAppMessage";
 import { buildModelMenuItems } from "@/features/model-config/components/ModelMenuPresenter";
+import { ModelOptionsDropdown } from "@/features/model-config/components/ModelOptionsDropdown";
 import {
   filterModelOptions,
   filterReasoningOptions,
@@ -896,7 +897,7 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
             tabIndex={compact && modelButtonDisabled ? 0 : undefined}
             aria-label={compact && modelButtonDisabled ? modelButtonTitle : undefined}
           >
-            <Dropdown
+            <ModelOptionsDropdown
               open={modelMenuOpen}
               onOpenChange={(nextOpen) => {
                 setModelMenuOpen(nextOpen);
@@ -939,7 +940,7 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
                   </>
                 )}
               </UiButton>
-            </Dropdown>
+            </ModelOptionsDropdown>
           </span>
         </Tooltip>
       ) : null}

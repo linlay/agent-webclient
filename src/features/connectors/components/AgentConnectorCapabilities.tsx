@@ -9,6 +9,7 @@ import { connectorsRoutePath } from "../lib/connectorCatalog";
 import { filterConnectorOptions, findConnectorSelectionConflict, connectorSelectionConflictNames } from "../lib/connectorSelection";
 import { ConnectorIcon } from "./ConnectorIcon";
 import { ConnectorTools } from "./ConnectorComponents";
+import { useClientPageNavigation } from "@/shared/ui/ClientNavigationContext";
 import styles from "./AgentConnectorCapabilities.module.css";
 
 type Props = ReturnType<typeof useAgentConnectorCapabilities> & {
@@ -21,6 +22,7 @@ type Props = ReturnType<typeof useAgentConnectorCapabilities> & {
 export function AgentConnectorCapabilities({ items, catalog = [], ready, loading, error, refresh, reloadPending,
   agentKey = "", selectedIds = [], savedIds = [], onSelectionChange, disabled = false }: Props) {
   const { t } = useI18n();
+  const navigatePage = useClientPageNavigation();
   const managerId = useId();
   const [managerOpen, setManagerOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -58,7 +60,8 @@ export function AgentConnectorCapabilities({ items, catalog = [], ready, loading
       </label>)}
     </div>
     {selectionError && <p role="alert" className={styles.hint}>{selectionError}</p>}
-    <a href={connectorsRoutePath("", typeof window === "undefined" ? "" : window.location.search)} target="_blank" rel="noopener noreferrer">{t("agents.connectors.openCenter")} ↗</a>
+    <a href={connectorsRoutePath("", typeof window === "undefined" ? "" : window.location.search)} target={navigatePage ? undefined : "_blank"} rel="noopener noreferrer"
+      onClick={event => { if (navigatePage) { event.preventDefault(); navigatePage(event.currentTarget.getAttribute("href")!); } }}>{t("agents.connectors.openCenter")} ↗</a>
   </div> : null;
   return <section className={styles.section} aria-label={t("agents.connectors.title")}>
     <div className={styles.heading}><h4>{t("agents.connectors.title")}</h4><span>{displayItems.length}</span>

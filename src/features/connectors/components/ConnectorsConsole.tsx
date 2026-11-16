@@ -1,7 +1,8 @@
+import { useClientNavigate } from "@/shared/ui/useClientNavigate";
 import { CreateMenuButton } from "@/shared/ui/CreateMenuButton";
 import { useResourceAssistant } from "@/features/resource-assistant/hooks/useResourceAssistant";
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+
 import { message, Spin, Dropdown, Flex, Tooltip } from "antd";
 import type { MenuProps } from "antd";
 import { useOptionalAppContext } from "@/app/state/AppContext";
@@ -48,7 +49,7 @@ export function ConnectorsConsole({
   onRouteIdChange,
 }: ConnectorsConsoleProps) {
   const { t } = useI18n();
-  const navigate = useNavigate();
+  const navigate = useClientNavigate();
   const assistant = useResourceAssistant({ navigate });
   const editorRegion = useRef<HTMLDivElement>(null);
   const [messageApi, messageContextHolder] = message.useMessage();

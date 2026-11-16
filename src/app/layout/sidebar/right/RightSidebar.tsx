@@ -137,7 +137,7 @@ const ViewerTabTooltip: React.FC<{ target: ViewerTarget }> = ({ target }) => {
   );
 };
 
-export const RightSidebar: React.FC = () => {
+export const RightSidebar: React.FC<{ mobile?: boolean }> = ({ mobile = false }) => {
   const { t } = useI18n();
   const message = useAppMessage();
   const dispatch = useAppDispatch();
@@ -277,13 +277,15 @@ export const RightSidebar: React.FC = () => {
   }, [documentPreviewTabs]);
 
   React.useEffect(() => {
+    if (mobile) return;
     document.documentElement.style.setProperty(
       "--right-sidebar-width",
       `${sidebarWidth}px`,
     );
-  }, [sidebarWidth]);
+  }, [sidebarWidth, mobile]);
 
   React.useEffect(() => {
+    if (mobile) return;
     const handleWindowResize = () => {
       const nextMaxWidth = getRightSidebarMaxWidth();
       setSidebarMaxWidth(nextMaxWidth);
@@ -293,7 +295,7 @@ export const RightSidebar: React.FC = () => {
     handleWindowResize();
     window.addEventListener("resize", handleWindowResize);
     return () => window.removeEventListener("resize", handleWindowResize);
-  }, [state.leftDrawerOpen]);
+  }, [state.leftDrawerOpen, mobile]);
 
   const preferredSidebarWidthRef = React.useRef(sidebarWidth);
   const updateSidebarWidth = React.useCallback((width: number) => {
@@ -717,9 +719,9 @@ export const RightSidebar: React.FC = () => {
   return (
     <aside
       className={`sidebar right-sidebar ${desktopSidebarVisible ? "is-open" : ""}`}
-      data-main-chat-collapsed={desktopSidebarVisible && sidebarWidth >= sidebarMaxWidth ? "true" : undefined}
+      data-main-chat-collapsed={!mobile && desktopSidebarVisible && sidebarWidth >= sidebarMaxWidth ? "true" : undefined}
     >
-      <button
+      {!mobile && <button
         type="button"
         className="right-sidebar-resize-handle"
         aria-label={t("rightSidebar.resize.ariaLabel")}
@@ -732,7 +734,7 @@ export const RightSidebar: React.FC = () => {
         title={t("rightSidebar.resize.title")}
         onPointerDown={handleResizePointerDown}
         onKeyDown={handleResizeKeyDown}
-      />
+      />}
       {activePanel === "debug" && debugPanelEnabled ? (
         <DebugTab />
       ) : (

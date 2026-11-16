@@ -7,7 +7,7 @@ import {
 } from "@/features/command-center/components/CommandOverlayProvider";
 
 export const CommandOverlayHost: React.FC<{
-  variant?: "default" | "copilot";
+  variant?: "default" | "copilot" | "mobile";
 }> = ({ variant = "default" }) => {
   const commandOverlay = useCommandOverlayHostState();
   const { patchCommandOverlay, closeCommandOverlay } =
@@ -17,9 +17,10 @@ export const CommandOverlayHost: React.FC<{
     return null;
   }
 
-  if (variant === "copilot") {
+  if (variant === "copilot" || variant === "mobile") {
     return (
       <CommandDrawer
+        mobile={variant === "mobile"}
         modal={commandOverlay}
         onPatch={patchCommandOverlay}
         onClose={closeCommandOverlay}

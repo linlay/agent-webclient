@@ -7,13 +7,13 @@ import {
 } from "@/features/settings/components/SettingsOverlayProvider";
 
 export const SettingsOverlayHost: React.FC<{
-  variant?: "default" | "copilot";
+  variant?: "default" | "copilot" | "mobile";
 }> = ({ variant = "default" }) => {
   const { activeOverlay } = useSettingsOverlayState();
   const { closeOverlay } = useSettingsOverlayActions();
 
   if (activeOverlay === "settings") {
-    if (variant === "copilot") {
+    if (variant === "copilot" || variant === "mobile") {
       return (
         <SettingsDrawer
           open

@@ -21,6 +21,7 @@ import { useRunFeedbackAction } from "@/features/conversation/hooks/useRunFeedba
 import { TerminalDock, resolveTerminalDockWorkspaceKey } from "./TerminalDock";
 import { resolveCurrentWorkerSummary, workerShowsTerminal } from "@/features/workers/lib/currentWorker";
 import { GlobalShortcutLayer } from "@/features/shortcuts/components/GlobalShortcutLayer";
+import { MobileLayout } from "./MobileLayout";
 const presentationClasses = bindCssModuleClasses({ ...appPresentation });
 
 
@@ -39,22 +40,29 @@ const APP_SHELL_COLUMN_CLASS_BY_STATE = {
     "left-drawer-open desktop-debug-disabled tw:grid-cols-[var(--left-sidebar-width)_minmax(420px,1fr)_0] tw:[&_.left-sidebar]:w-[var(--left-sidebar-width)] tw:[&_.left-sidebar]:min-w-[var(--left-sidebar-width)] tw:[&_.left-sidebar]:pointer-events-auto tw:[&_.right-sidebar]:w-0 tw:[&_.right-sidebar]:min-w-0 tw:[&_.right-sidebar]:translate-x-full tw:[&_.right-sidebar]:border-l-0 tw:[&_.right-sidebar]:pointer-events-none",
 } as const;
 
-export const AppShell: React.FC = () => (
-  <ConversationSurfaceProvider>
+interface AppShellProps {
+  presentation?: "desktop" | "mobile";
+  targetChatId?: string;
+  conversationSearch?: string;
+}
+
+export const AppShell: React.FC<AppShellProps> = (props) => (
+  <ConversationSurfaceProvider expectedChatId={props.targetChatId}>
     <TimelineTextSearchProvider>
-      <ConversationFileDropProvider><AppShellContent /></ConversationFileDropProvider>
+      <ConversationFileDropProvider><AppShellContent {...props} /></ConversationFileDropProvider>
     </TimelineTextSearchProvider>
   </ConversationSurfaceProvider>
 );
 
-const AppShellContent: React.FC = () => {
+const AppShellContent: React.FC<AppShellProps> = ({ presentation = "desktop", targetChatId, conversationSearch = "" }) => {
+  const mobile = presentation === "mobile";
   const state = useAppState();
   // The composer owns the drop receiver; the whole center column accepts the
   // drop so the hint drawn over it never lands on a navigation target.
   const conversationFileDrop = useConversationFileDropTarget();
 
   /* Initialize business logic hooks */
-  useAppRuntimes();
+  useAppRuntimes({ targetChatId });
   const deriveChatAction = useDeriveChatAction();
   const onFeedback = useRunFeedbackAction();
 
@@ -74,13 +82,25 @@ const AppShellContent: React.FC = () => {
       ? APP_SHELL_COLUMN_CLASS_BY_STATE.openNoDebug
       : APP_SHELL_COLUMN_CLASS_BY_STATE.closedNoDebug;
 
+  const conversation = <>
+    <ConnectedConversationStage surfaceMode="main" deriveChatAction={deriveChatAction} onFeedback={onFeedback} />
+    <BottomDock />
+    {effectiveTerminalDockOpen && currentWorker ? (
+      <TerminalDock agentKey={currentWorker.sourceId}
+        workspaceKey={resolveTerminalDockWorkspaceKey(currentWorker)} worker={currentWorker} mobile={mobile} />
+    ) : null}
+  </>;
+
   return (
     <MemoryOverlayProvider>
     <SettingsOverlayProvider>
       <CommandOverlayProvider>
         <GlobalSearchOverlayProvider>
           <GlobalShortcutLayer />
-          <div
+          {mobile ? <MobileLayout conversationSearch={conversationSearch}
+            overlays={<ShellOverlays commandOverlayVariant="mobile" settingsOverlayVariant="mobile" />}>
+            {conversation}
+          </MobileLayout> : <div
             className={[
               APP_SHELL_BASE_CLASS,
               columnClass,
@@ -94,23 +114,11 @@ const AppShellContent: React.FC = () => {
             <LeftSidebar />
             <div data-agent-pointer-surface={!state.chatId ? "" : undefined} className={APP_SHELL_CENTER_CLASS} {...conversationFileDrop.handlers}>
               <TopNav />
-              <ConnectedConversationStage
-                surfaceMode="main"
-                deriveChatAction={deriveChatAction}
-                onFeedback={onFeedback}
-              />
-              <BottomDock />
-              {effectiveTerminalDockOpen && currentWorker ? (
-                <TerminalDock
-                  agentKey={currentWorker.sourceId}
-                  workspaceKey={resolveTerminalDockWorkspaceKey(currentWorker)}
-                  worker={currentWorker}
-                />
-              ) : null}
+              {conversation}
             </div>
             <RightSidebar />
             <ShellOverlays />
-          </div>
+          </div>}
         </GlobalSearchOverlayProvider>
       </CommandOverlayProvider>
     </SettingsOverlayProvider>
