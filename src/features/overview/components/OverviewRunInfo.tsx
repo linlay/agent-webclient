@@ -6,6 +6,7 @@ import { copyText } from "@/shared/utils/copy";
 import { formatResponseDuration } from "@/shared/utils/formatResponseDuration";
 import { formatCompactUsageNumber } from "@/features/usage/lib/usageMetrics";
 import { formatOverviewTime, type OverviewRunInfo } from "@/features/overview/lib/overviewRunInfo";
+import { StatusChip, type StatusChipTone } from "@/shared/ui/StatusChip";
 import styles from "./OverviewRunInfo.module.css";
 
 const awaitingStatusKeys: Partial<Record<OverviewRunInfo["status"], string>> = {
@@ -13,6 +14,21 @@ const awaitingStatusKeys: Partial<Record<OverviewRunInfo["status"], string>> = {
   approval: "leftSidebar.awaitingStatus.approval",
   form: "leftSidebar.awaitingStatus.form",
   plan: "leftSidebar.awaitingStatus.plan",
+};
+
+/** Statuses keep their meaning through color; the chip geometry stays fixed. */
+const statusTones: Record<OverviewRunInfo["status"], StatusChipTone> = {
+  idle: "neutral",
+  unknown: "neutral",
+  starting: "active",
+  running: "active",
+  completed: "success",
+  cancelled: "muted",
+  error: "danger",
+  question: "pending",
+  approval: "pending",
+  form: "pending",
+  plan: "pending",
 };
 
 function contextLevel(percent: number): "ok" | "warn" | "danger" {
@@ -68,10 +84,15 @@ export const OverviewRunInfoSection: React.FC<{
         aria-controls={detailsId} onClick={() => setManualExpanded(!expanded)}>
         <MaterialIcon name={expanded ? "expand_more" : "chevron_right"} aria-hidden="true" />
         <span className={styles.title}>{t("rightSidebar.overview.runInfo.title")}</span>
-        <span className={styles.status} data-status={info.status}>
-          <span className={styles.statusDot} data-status={info.status} aria-hidden="true" />
+        <StatusChip
+          tone={statusTones[info.status]}
+          dot={statusTones[info.status] === "active"}
+          pulse={statusTones[info.status] === "active"}
+          shimmer={statusTones[info.status] === "pending"}
+          data-status={info.status}
+        >
           {t(awaitingStatusKeys[info.status] ?? `rightSidebar.overview.runInfo.status.${info.status}`)}
-        </span>
+        </StatusChip>
         {duration ? <span className={styles.duration}>· {duration}</span> : null}
       </button>
       <div id={detailsId} hidden={!expanded} className={styles.details}>

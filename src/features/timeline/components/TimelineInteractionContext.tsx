@@ -9,6 +9,8 @@ import type { RunActivityAppearance } from "../lib/runActivityAppearance";
 
 export interface TimelineInteractionValue {
   activityAppearance?: RunActivityAppearance;
+  /** Agent directory used by inline identity lines (sender avatars). */
+  agents?: readonly import("@/features/agents/lib/agentState").Agent[];
   conversationActive?: boolean;
   copyText?: (text: string) => Promise<void>;
   getRunStatus?: (node: TimelineNode) => import("../lib/imageGenerationDisplay").ImageGenerationRuntime;
@@ -32,7 +34,8 @@ export interface TimelineInteractionValue {
   /** Renders a Markdown VIEW block after the platform bound it to a snapshot. */
   renderContentView?: (segment: ContentSegment, chatId: string, binding: ContentViewBinding, runId?: string, sourceId?: string) => React.ReactNode;
   renderMarkdown?: (props: MarkdownContentProps) => React.ReactNode;
-  renderMailAsk?: (mailId: string) => React.ReactNode;
+  /** Interactive ask card; metadata lets the header render before the body loads. */
+  renderMailAsk?: (mailId: string, metadata?: import("@/shared/data/api/dto/mailbox").MailMetadata) => React.ReactNode;
   renderAttachment?: (attachment: TimelineAttachment, options: {
     displayMode?: "auto" | "file" | "preview";
     subtitle?: string;

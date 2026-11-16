@@ -18,6 +18,14 @@ export const HTML_ELEMENT_TEXT_MAX = 240;
 export const HTML_ELEMENT_ATTRIBUTE_MAX = 160;
 export const HTML_ELEMENT_BRIDGE_TIMEOUT_MS = 3000;
 
+/**
+ * Width and spacing of the inline annotation editor. Its height is fixed by its
+ * own content, so the host measures it before choosing a placement.
+ */
+export const HTML_REVIEW_EDITOR_WIDTH = 320;
+export const HTML_REVIEW_EDITOR_GAP = 8;
+export const HTML_REVIEW_EDITOR_MARGIN = 8;
+
 export const HTML_ELEMENT_ATTRIBUTE_NAMES = [
   "role",
   "aria-label",
@@ -55,6 +63,12 @@ export type HtmlElementReviewAnnotation = HtmlElementSelection & {
 export type HtmlElementReviewPending = {
   selection: HtmlElementSelection;
   requirement: string;
+  /**
+   * Selected element in iframe viewport coordinates (negative values when the
+   * element is partly scrolled out). The host anchors the inline editor here,
+   * and the bridge refreshes it on scroll/resize while the editor is open.
+   */
+  viewportRect: HtmlElementReviewRect;
 };
 
 export type HtmlElementReviewState = {
@@ -68,7 +82,8 @@ export type HtmlElementReviewState = {
 export type HtmlElementReviewAction =
   | { type: "START" }
   | { type: "STOP" }
-  | { type: "SELECT"; selection: HtmlElementSelection }
+  | { type: "SELECT"; selection: HtmlElementSelection; viewportRect: HtmlElementReviewRect }
+  | { type: "PENDING_RECT"; rect: HtmlElementReviewRect }
   | { type: "PENDING_REQUIREMENT"; value: string }
   | { type: "CONFIRM_PENDING"; id: string }
   | { type: "CANCEL_PENDING" }
@@ -130,11 +145,26 @@ export function htmlElementReviewReducer(
       if (state.annotations.length >= HTML_ELEMENT_REVIEW_MAX) return state;
       return {
         ...state,
-        pending: { selection: action.selection, requirement: "" },
-        // The pending editor is its own surface; selecting an element must not
+        pending: {
+          selection: action.selection,
+          requirement: "",
+          viewportRect: action.viewportRect,
+        },
+        // The inline editor is its own surface; selecting an element must not
         // open (or keep open) the annotation list.
         listOpen: false,
       };
+    }
+    case "PENDING_RECT": {
+      if (!state.pending) return state;
+      const current = state.pending.viewportRect;
+      if (
+        current.x === action.rect.x &&
+        current.y === action.rect.y &&
+        current.width === action.rect.width &&
+        current.height === action.rect.height
+      ) return state;
+      return { ...state, pending: { ...state.pending, viewportRect: action.rect } };
     }
     case "PENDING_REQUIREMENT": {
       if (!state.pending) return state;
@@ -338,6 +368,87 @@ export function normalizeHtmlElementSelection(value: unknown): HtmlElementSelect
 }
 
 /**
+ * Element box in the iframe's own viewport. Unlike the document rect stored on
+ * an annotation this may carry negative coordinates while the element is
+ * partially scrolled out of view.
+ */
+export function normalizeHtmlElementViewportRect(value: unknown): HtmlElementReviewRect | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const record = value as Record<string, unknown>;
+  const x = Number(record.x);
+  const y = Number(record.y);
+  const width = Number(record.width);
+  const height = Number(record.height);
+  if (![x, y, width, height].every((part) => Number.isFinite(part))) return null;
+  if (width < 1 || height < 1) return null;
+  return {
+    x: Math.round(x),
+    y: Math.round(y),
+    width: Math.max(1, Math.round(width)),
+    height: Math.max(1, Math.round(height)),
+  };
+}
+
+export type HtmlReviewEditorPlacement = {
+  left: number;
+  top: number;
+  /** `clamped` means no side had room and the editor overlaps the element. */
+  side: "above" | "below" | "left" | "right" | "clamped";
+};
+
+/**
+ * Places the inline editor next to the selected element, starting at its
+ * top-left corner and moving around it until the editor fits the viewport. The
+ * editor never covers the element unless the element leaves no room at all.
+ */
+export function placeHtmlReviewEditor(input: {
+  target: HtmlElementReviewRect;
+  bounds: { width: number; height: number };
+  size: { width: number; height: number };
+  gap?: number;
+  margin?: number;
+}): HtmlReviewEditorPlacement {
+  const gap = input.gap ?? HTML_REVIEW_EDITOR_GAP;
+  const margin = input.margin ?? HTML_REVIEW_EDITOR_MARGIN;
+  const { target, bounds, size } = input;
+  const maxLeft = Math.max(margin, bounds.width - size.width - margin);
+  const maxTop = Math.max(margin, bounds.height - size.height - margin);
+  const clampLeft = (left: number) => Math.min(Math.max(left, margin), maxLeft);
+  const clampTop = (top: number) => Math.min(Math.max(top, margin), maxTop);
+  const fits = (left: number, top: number) =>
+    left >= margin && top >= margin && left <= maxLeft && top <= maxTop;
+  // Vertical candidates stay above/below the element, so clamping them
+  // horizontally can never cover it; side candidates are clamped vertically
+  // for the same reason. Above-left is always tried first.
+  const candidates: Array<HtmlReviewEditorPlacement> = [
+    { left: clampLeft(target.x), top: target.y - size.height - gap, side: "above" },
+    { left: clampLeft(target.x), top: target.y + target.height + gap, side: "below" },
+    {
+      left: clampLeft(target.x + target.width - size.width),
+      top: target.y - size.height - gap,
+      side: "above",
+    },
+    {
+      left: clampLeft(target.x + target.width - size.width),
+      top: target.y + target.height + gap,
+      side: "below",
+    },
+    { left: target.x + target.width + gap, top: clampTop(target.y), side: "right" },
+    { left: target.x - size.width - gap, top: clampTop(target.y), side: "left" },
+  ];
+  const fit = candidates.find((candidate) => fits(candidate.left, candidate.top));
+  if (fit) {
+    return { left: Math.round(fit.left), top: Math.round(fit.top), side: fit.side };
+  }
+  // No free side: keep the preferred top-left position but stay inside the view.
+  return {
+    left: Math.round(clampLeft(target.x)),
+    top: Math.round(clampTop(target.y - size.height - gap)),
+    side: "clamped",
+  };
+}
+
+/**
  * Injected into a sandboxed srcDoc iframe before the document's own CSP meta.
  * The page never receives requirement text; only annotations that it needs to
  * draw are posted to it.
@@ -360,6 +471,8 @@ export function buildHtmlElementReviewScript(token: string) {
   let enabled = false;
   let locked = false;
   let annotations = [];
+  let pendingPath = null;
+  let pendingViewportRect = null;
   let root = null;
   let hover = null;
   let pointer = null;
@@ -473,6 +586,17 @@ export function buildHtmlElementReviewScript(token: string) {
     };
   };
 
+  const viewportRect = (element) => {
+    const rect = element.getBoundingClientRect();
+    if (!(rect.width > 0) || !(rect.height > 0)) return null;
+    return {
+      x: Math.round(rect.left),
+      y: Math.round(rect.top),
+      width: Math.max(1, Math.round(rect.width)),
+      height: Math.max(1, Math.round(rect.height))
+    };
+  };
+
   const inspect = (element) => {
     const target = shadowHost(element);
     if (!target || target.nodeType !== 1) return null;
@@ -492,8 +616,29 @@ export function buildHtmlElementReviewScript(token: string) {
       tagName: target.tagName.toLowerCase().slice(0, 64),
       attributes,
       textExcerpt: isSensitive(target) ? "" : clean(target.textContent, MAX_TEXT),
-      rect
+      rect,
+      viewportRect: viewportRect(target)
     };
+  };
+
+  const resolvePending = () => {
+    if (!pendingPath) return null;
+    try {
+      const result = document.evaluate(pendingPath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null);
+      return result.singleNodeValue instanceof Element ? result.singleNodeValue : null;
+    } catch (_error) {
+      return null;
+    }
+  };
+
+  const syncPendingRect = (element) => {
+    const next = viewportRect(element);
+    if (!next) return;
+    const current = pendingViewportRect;
+    if (current && current.x === next.x && current.y === next.y &&
+        current.width === next.width && current.height === next.height) return;
+    pendingViewportRect = next;
+    emit({ event: "pending-rect", rect: next });
   };
 
   const isOverlayNode = (node) => Boolean(root && node && (node === root || (node instanceof Node && root.contains(node))));
@@ -560,6 +705,7 @@ export function buildHtmlElementReviewScript(token: string) {
   const render = () => {
     renderFrame = 0;
     if (!enabled) {
+      pendingViewportRect = null;
       if (root) root.replaceChildren();
       return;
     }
@@ -587,6 +733,16 @@ export function buildHtmlElementReviewScript(token: string) {
       }
       boxes.push({ rect, number: annotation.number });
     });
+    // The element being edited is drawn as a solid numbered box until the host
+    // confirms or cancels it; it is not part of the annotation list yet.
+    const pendingElement = resolvePending();
+    if (pendingElement && pendingElement.isConnected) {
+      const measured = pendingElement.getBoundingClientRect();
+      if (measured.width > 0 && measured.height > 0) {
+        boxes.push({ rect: measured, number: annotations.length + 1 });
+        syncPendingRect(pendingElement);
+      }
+    }
     if (hover && !locked) {
       const measured = hover.getBoundingClientRect();
       if (measured.width > 0 && measured.height > 0) boxes.push({ rect: measured, dashed: true });
@@ -736,10 +892,17 @@ export function buildHtmlElementReviewScript(token: string) {
     const data = event.data;
     if (event.source !== parent || !data || data.type !== ACTION || data.token !== TOKEN) return;
     enabled = data.enabled === true;
-    locked = data.locked === true;
+    pendingPath = enabled && data.pending && typeof data.pending.fullXPath === "string" &&
+      data.pending.fullXPath.length > 0 && data.pending.fullXPath.length <= MAX_XPATH
+      ? data.pending.fullXPath
+      : null;
+    if (!pendingPath) pendingViewportRect = null;
+    locked = data.locked === true || Boolean(pendingPath);
     if (!enabled) {
       hover = null;
       pointerDown = null;
+      pendingPath = null;
+      pendingViewportRect = null;
     }
     annotations = Array.isArray(data.annotations) ? data.annotations.slice(0, MAX_ANNOTATIONS).filter((item) =>
       item && typeof item.id === "string" && item.id.length <= 128 &&

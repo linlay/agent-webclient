@@ -1,4 +1,5 @@
 import React from "react";
+import { useDesktopArtifactDrag } from "@/features/artifacts/hooks/useDesktopArtifactDrag";
 import { useAppState } from "@/app/state/AppContext";
 import { buildResourceViewerTarget } from "@/features/viewers/lib/viewerTarget";
 import { downloadArtifactResource } from "@/features/artifacts/lib/artifactResourceRuntime";
@@ -123,6 +124,9 @@ export const AttachmentCard: React.FC<AttachmentCardProps> = ({
     status !== "uploading" &&
     status !== "error" &&
     !downloading;
+  const nativeDrag = useDesktopArtifactDrag(chatId, artifactId, sourceUrl, canActivate, status => {
+    void message.info(t(`attachments.exportDrag.${status}`));
+  });
   const semanticClasses = [
     "attachment-card",
     `attachment-card-${variant}`,
@@ -218,9 +222,10 @@ export const AttachmentCard: React.FC<AttachmentCardProps> = ({
   return (
     <div
       ref={contextTargetRef}
+      {...nativeDrag.props}
       className={classes}
       data-attachment-kind={attachmentKind}
-      title={canActivate ? t("attachments.action.view") : undefined}
+      title={nativeDrag.available ? t(`attachments.exportDrag.${nativeDrag.status}`) : canActivate ? t("attachments.action.view") : undefined}
       aria-label={canActivate ? `${t("attachments.action.view")} ${attachment.name}` : undefined}
       role={canActivate ? "button" : undefined}
       tabIndex={canActivate ? 0 : undefined}
@@ -234,6 +239,7 @@ export const AttachmentCard: React.FC<AttachmentCardProps> = ({
             className={withModuleClasses("attachment-card-image")}
             src={authenticatedSource.url}
             alt={attachment.name}
+            draggable={nativeDrag.available ? false : undefined}
             loading="lazy"
             onError={() => setImageFailed(true)}
           />
@@ -249,6 +255,7 @@ export const AttachmentCard: React.FC<AttachmentCardProps> = ({
                 className={withModuleClasses("attachment-card-file-thumb")}
                 src={authenticatedSource.url}
                 alt={attachment.name}
+                draggable={nativeDrag.available ? false : undefined}
                 loading="lazy"
                 onError={() => setImageFailed(true)}
               />

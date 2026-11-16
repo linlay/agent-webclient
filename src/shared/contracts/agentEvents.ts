@@ -483,6 +483,7 @@ export interface AIUsageSnapshotEvent extends AIBaseEvent {
 }
 
 export interface AIContextCompactEvent extends AIBaseEvent {
+  error?: { code?: string; message?: string };
   cycleId?: string;
   cycleComplete?: boolean;
   type: AIContextEventTypeEnum;

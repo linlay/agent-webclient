@@ -3,7 +3,7 @@ import { resolveChatModel } from "@/features/runs/lib/modelSelection";
 import { createInitialState } from "@/app/state/state";
 import { appReducer } from "@/app/state/reducer";
 import type { AgentEvent } from "@/shared/contracts/agentEvents";
-import { readComposerModel, updateComposerModel, persistComposerModels, restoreComposerModels } from "./composerModelSelection";
+import { readComposerModel, updateComposerModel, persistComposerModels, restoreComposerModels, initializeChatModel } from "./composerModelSelection";
 import { resolveComposerAccessScope } from "./composerAccessLevel";
 const old = { key: "old-model", reasoningEffort: "LOW" as const, serviceTier: "STANDARD" };
 const fresh = { key: "new-model", reasoningEffort: "HIGH" as const };
@@ -13,7 +13,7 @@ beforeEach(() => sessionStorage.clear());
 
 it("restores old Chat history after changing New Chat, and keeps subsequent choices isolated", () => {
   let state = createInitialState();
-  state = appReducer(state, { type: "SET_COMPOSER_MODEL", target: target(), value: fresh });
+  state = { ...state, currentAgent: { key: "agent", name: "Agent", modelKey: fresh.key, reasoningEffort: fresh.reasoningEffort } };
   state = appReducer(state, { type: "APPLY_CONVERSATION_REPLAY", snapshot: {
     ...createInitialState(), chatId: "old", events: [event("request.query", { model: old })],
   } });
@@ -49,11 +49,10 @@ it("does not inherit a previous Run's reasoning or follow its late usage event",
 });
 
 it("preserves Chat choices through refresh, including explicit standard service tier", () => {
-  let state = updateComposerModel(createInitialState(), target(), fresh);
-  state = updateComposerModel(state, target("old"), old);
+  const state = updateComposerModel(createInitialState(), target("old"), old);
   persistComposerModels(state);
   expect(readComposerModel(restoreComposerModels(), target("old"))).toEqual(old);
-  expect(readComposerModel(createInitialState(), target())).toEqual(fresh);
+  expect(readComposerModel(createInitialState(), target())).toEqual({});
 });
 
 it("initializes accepted Chat once and ignores duplicate identity events after a manual change", () => {
@@ -69,7 +68,7 @@ it.each([
   ["b3594466-8d4e-4099-b502-1e79a21aac7d", "th-claude-haiku-5_5"],
 ])("restores %s from the wire model after a fresh Desktop session", (chatId, key) => {
   let state = createInitialState();
-  state = updateComposerModel(state, target(), { key: "th-minimax-m3" });
+  state = { ...state, currentAgent: { key: "agent", name: "Agent", modelKey: "th-minimax-m3" } };
   const history: AgentEvent[] = [{
     type: "request.query", chatId, runId: "latest-run",
     model: { key, reasoningEffort: "HIGH" },
@@ -85,4 +84,89 @@ it("reads only the top-level wire model, never a nested query", () => {
   expect(resolveChatModel([event("request.query", {
     query: { model: { key: "requested-model", reasoningEffort: "LOW" } },
   })], "old")).toBeUndefined();
+});
+
+it("reads New Chat defaults only from matching currentAgent and follows server updates", () => {
+  const state = { ...createInitialState(),
+    currentAgent: { key: "agent", name: "Agent", modelKey: fresh.key, reasoningEffort: fresh.reasoningEffort },
+    agents: [{ key: "other", name: "Other", modelKey: "list-model" }],
+  };
+  expect(readComposerModel(state, target())).toEqual(fresh);
+  expect(readComposerModel(state, target("", undefined, "other"))).toEqual({});
+  expect(readComposerModel({ ...state, currentAgent: null }, target())).toEqual({});
+  expect(readComposerModel({ ...state, currentAgent: { ...state.currentAgent, modelKey: "updated" } }, target()).key).toBe("updated");
+  expect(updateComposerModel(state, target(), old)).toBe(state);
+});
+
+it("drops legacy model copies without expiration metadata", () => {
+  const storageKey = "agent-webclient.composer-model.v1";
+  sessionStorage.setItem(storageKey, JSON.stringify({
+    modelByChatId: { [JSON.stringify([target().scope, "old"])]: old },
+    newChatModelByAgentKey: { [JSON.stringify([target().scope, "agent"])]: fresh },
+  }));
+  const restored = restoreComposerModels();
+  expect(readComposerModel(restored, target())).toEqual({});
+  expect(readComposerModel(restored, target("old"))).toEqual({});
+  persistComposerModels(restored);
+  expect(JSON.parse(sessionStorage.getItem(storageKey)!)).toEqual({ modelOverridesByChatId: {} });
+});
+
+it("persists only manual choices and invalidates them on a new root Run", () => {
+  let state = initializeChatModel(createInitialState(), target().scope, "old", [event("request.query", { model: old })]);
+  persistComposerModels(state);
+  expect(restoreComposerModels().modelByChatId).toEqual({});
+  expect(restoreComposerModels().modelOverridesByChatId).toEqual({});
+  state = updateComposerModel(state, target("old"), fresh);
+  persistComposerModels(state);
+  state = initializeChatModel({ ...state, ...restoreComposerModels() }, target().scope, "old", [event("request.query", { model: old })]);
+  expect(readComposerModel(state, target("old"))).toEqual(fresh);
+  state = initializeChatModel(state, target().scope, "old", [event("request.query", { runId: "next", model: old })]);
+  expect(state.modelOverridesByChatId).toEqual({});
+  expect(readComposerModel(state, target("old"))).toEqual(old);
+});
+
+it("expires manual choices after seven days and falls back to history", () => {
+  const clock = jest.spyOn(Date, "now").mockReturnValue(1_000_000);
+  try {
+    let state = initializeChatModel(createInitialState(), target().scope, "old", [event("request.query", { model: old })]);
+    state = updateComposerModel(state, target("old"), fresh);
+    persistComposerModels(state);
+    clock.mockReturnValue(1_000_000 + 7 * 24 * 60 * 60 * 1000);
+    expect(readComposerModel(state, target("old"))).toEqual(old);
+    expect(restoreComposerModels().modelOverridesByChatId).toEqual({});
+    state = initializeChatModel(state, target().scope, "old", [event("request.query", { model: old })]);
+    expect(state.modelOverridesByChatId).toEqual({});
+  } finally { clock.mockRestore(); }
+});
+
+it("keeps at most 100 manual choices, evicting the oldest even for equal timestamps", () => {
+  const clock = jest.spyOn(Date, "now").mockReturnValue(1_000_000);
+  try {
+    let state = createInitialState();
+    for (let index = 0; index <= 100; index++) state = updateComposerModel(state, target(String(index)), fresh);
+    expect(Object.keys(state.modelOverridesByChatId)).toHaveLength(100);
+    expect(readComposerModel(state, target("0"))).toEqual({});
+    expect(readComposerModel(state, target("100"))).toEqual(fresh);
+    persistComposerModels(state);
+    expect(Object.keys(restoreComposerModels().modelOverridesByChatId)).toHaveLength(100);
+  } finally { clock.mockRestore(); }
+});
+
+it("clears a deleted Chat's history and manual preference without touching other Chats", () => {
+  let state = initializeChatModel(createInitialState(), target().scope, "old", [event("request.query", { model: old })]);
+  state = updateComposerModel(state, target("old"), fresh);
+  state = updateComposerModel(state, target("other"), fresh);
+  state = appReducer(state, { type: "CHAT_DELETED", chatId: "old" });
+  expect(readComposerModel(state, target("old"))).toEqual({});
+  expect(readComposerModel(state, target("other"))).toEqual(fresh);
+  expect(Object.values(state.modelRunIdByChatId)).not.toContain("run-old");
+});
+
+it("detail usage supplements history without persisting or overriding a manual selection", () => {
+  let state = initializeChatModel(createInitialState(), target().scope, "old", [event("request.query", { model: { key: old.key } })]);
+  state = appReducer(state, { type: "SYNC_COMPOSER_MODEL", chatId: "old", value: old, initializeOnly: true });
+  expect(readComposerModel(state, target("old"))).toEqual(old);
+  state = updateComposerModel(state, target("old"), fresh);
+  state = appReducer(state, { type: "SYNC_COMPOSER_MODEL", chatId: "old", value: old, initializeOnly: true });
+  expect(readComposerModel(state, target("old"))).toEqual(fresh);
 });

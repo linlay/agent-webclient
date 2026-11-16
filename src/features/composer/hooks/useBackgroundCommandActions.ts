@@ -67,6 +67,8 @@ export function compactFailureText(
   data: CompactChatResponse,
   t: (key: string, params?: Record<string, unknown>) => string,
 ): string {
+  const reason = data.error?.message?.trim();
+  if (reason) return t("contextCompact.failed", { detail: reason });
   if (data.detail === "history_changed") {
     return t("contextCompact.historyChanged");
   }

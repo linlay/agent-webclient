@@ -1,6 +1,7 @@
 import { bindCssModuleClasses } from "@/shared/utils/cssModuleClasses";
 import sharedPresentation from "@/shared/ui/Presentation.module.css";
 import React from "react";
+import { useDesktopArtifactDrag } from "@/shared/ui/useDesktopArtifactDrag";
 import {
   commitDocument,
   getAgentFile,
@@ -46,6 +47,7 @@ import {
   type DesktopCurrentResourceIdentity,
 } from "@/shared/data/desktop/desktopCurrentResourceAction";
 import { DocumentTextEditor, type DocumentMarkdownLinks } from "@/features/viewers/components/DocumentTextEditor";
+import type { DocumentLinkBase } from "@/shared/utils/fileAddress";
 import type { OpenTargetIntent } from "@/features/surfaces/lib/openTarget";
 import { BrowserImageEditor } from "@/features/viewers/components/BrowserImageEditor";
 import { DocumentMetadataPanel, StandaloneDocumentPanel } from "@/features/viewers/components/StandaloneDocumentPanel";
@@ -343,6 +345,10 @@ export const ContentViewerPanel: React.FC<ContentViewerPanelProps> = ({
   const appState = useAppState();
   const message = useAppMessage();
   const chatId = String(surfaceContext?.chatId ?? (target.type === "resource" ? target.source?.chatId : undefined) ?? appState.chatId ?? "").trim();
+  const artifactDrag = useDesktopArtifactDrag(chatId,
+    target.type === "resource" && target.source?.kind === "artifact" ? target.source.resourceId : undefined,
+    target.type === "resource" && target.source?.kind !== "reference" ? target.url : "", true,
+    status => { void message.info(t(`attachments.exportDrag.${status}`)); });
   const currentChat = appState.chats?.find((chat) => chat.chatId === chatId);
   const teamChat = surfaceContext?.teamChat ?? Boolean(
     String("").trim(),
@@ -383,8 +389,17 @@ export const ContentViewerPanel: React.FC<ContentViewerPanelProps> = ({
         currentChat?.firstAgentKey ||
         "",
   ).trim();
+  // Relative links inside a document resolve against the document's own
+  // location. Only a known source has one; an unknown source names no base.
+  const documentLinkBase = React.useMemo<DocumentLinkBase | undefined>(() => {
+    if (target.type === "file") return { scope: "workspace", path: target.path };
+    const chatPath = target.source?.relativePath ||
+      (/^@chat\//iu.test(target.url) ? target.url.slice("@chat/".length) : "");
+    return chatPath ? { scope: "chat", path: chatPath } : undefined;
+  }, [target]);
   const markdownLinks = React.useMemo<DocumentMarkdownLinks>(() => ({
     agentKey: documentAgentKey,
+    ...(documentLinkBase ? { linkBase: documentLinkBase } : {}),
     ...(onOpenTarget && documentAgentKey
       ? {
           onWorkspaceFileLinkClick: (link) => {
@@ -422,7 +437,7 @@ export const ContentViewerPanel: React.FC<ContentViewerPanelProps> = ({
           },
         }
       : {}),
-  }), [chatId, documentAgentKey, onOpenTarget]);
+  }), [chatId, documentAgentKey, documentLinkBase, onOpenTarget]);
   const fileRequest = React.useMemo(
     () => target.type === "file"
       ? { agentKey: target.agentKey, path: target.path }
@@ -913,8 +928,9 @@ export const ContentViewerPanel: React.FC<ContentViewerPanelProps> = ({
             onStateChange={setBrowserImageState}
           />
         ) : contentKind === "image" && mediaUrl ? (
-          <div className="content-viewer-image-review-host tw:inline-block tw:max-w-full tw:self-start">
+          <div {...artifactDrag.props} className="content-viewer-image-review-host tw:inline-block tw:max-w-full tw:self-start">
             <Image
+              draggable={artifactDrag.available ? false : undefined}
               className="content-viewer-image"
               src={mediaUrl}
               alt={viewerName}
@@ -944,6 +960,7 @@ export const ContentViewerPanel: React.FC<ContentViewerPanelProps> = ({
             onDownload={handleDownload}
           /> :
           <DocumentMetadataPanel
+            dragProps={artifactDrag.props}
             compact={isDesktopLocalOpenDocument(viewerName)}
             name={viewerName}
             mimeType={workspaceFileResponse?.mimeType || resourceMimeType || (target.type === "resource" ? target.mimeType : "") || "application/octet-stream"}

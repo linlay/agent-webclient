@@ -90,12 +90,14 @@ it("requires explicit deployment-wide logout confirmation and then displays sign
   expect(container.textContent).toContain("未登录");
 });
 
-it("shows request failures and can recover without remounting the panel", async () => {
+it("shows request failures and recovers after reopening the panel", async () => {
   jest.mocked(getConnectorAuthStatus).mockRejectedValueOnce(new ApiError("HTTP 404", { status: 404 }));
   await mount();
   expect(container.querySelector('[role="alert"]')?.textContent).toContain("Platform 已更新到支持连接器授权的版本");
   expect(button("登录")).toBeUndefined();
-  await click("重新检查状态");
+  expect(button("重新检查状态")).toBeUndefined();
+  await act(async () => root.render(null));
+  await mount();
   expect(container.querySelector('[role="alert"]')).toBeNull();
   expect(button("登录")).toBeDefined();
 });
@@ -161,7 +163,7 @@ it("waits for one successful clear response before opening an empty form", async
   expect(logoutConnectorAuth).toHaveBeenCalledTimes(1);
   expect(document.querySelector('[role="dialog"]')).toBeNull();
   expect(button("清除并继续").disabled).toBe(true);
-  expect(button("重新检查状态").disabled).toBe(true);
+  expect(button("重新检查状态")).toBeUndefined();
   await act(async () => finish({ code: 0, msg: "", data: { id: item.id, status: "unauthorized" } }));
   const field = document.querySelector<HTMLInputElement>('[role="dialog"] input[aria-label="API Key"]');
   expect(field).not.toBeNull();
@@ -231,19 +233,20 @@ it.each(["zh-CN", "en-US"] as const)("displays delegated authentication without 
   expect(container.textContent).toContain(locale === "zh-CN" ? "由连接器管理" : "Managed");
   expect(container.textContent).not.toContain(locale === "zh-CN" ? "检查中" : "Checking");
   expect(button(locale === "zh-CN" ? "登录" : "Sign in")).toBeUndefined();
-  expect(button(locale === "zh-CN" ? "重新检查状态" : "Check status again")).toBeDefined();
+  expect(button(locale === "zh-CN" ? "重新检查状态" : "Check status again")).toBeUndefined();
   expect(container.querySelector('[role="alert"]')).toBeNull();
 });
 
-it.each(["unauthorized", "authorized"] as const)("shows Desktop identity %s with refresh and Desktop guidance", async status => {
+it.each(["unauthorized", "authorized"] as const)("shows Desktop identity %s with automatic status guidance and no manual refresh", async status => {
   jest.mocked(getConnectorAuthStatus).mockResolvedValue(response(status));
   await mount({ ...item, authMode: "oneid" });
   expect(container.textContent).toContain(status === "authorized" ? "已授权" : "未登录");
   expect(container.textContent).toContain("请在 Desktop 中登录或退出");
   expect(button("登录")).toBeUndefined();
   expect(button("退出登录")).toBeUndefined();
-  await click("重新检查状态");
-  expect(getConnectorAuthStatus).toHaveBeenCalledTimes(2);
+  expect(container.textContent).toContain("此处会自动更新状态");
+  expect(button("重新检查状态")).toBeUndefined();
+  expect(getConnectorAuthStatus).toHaveBeenCalledTimes(1);
 });
 
 it.each(["self", "oneid"] as const)("restores confirmation from real configured state after disconnect without remounting authMode=%s", async mode => {
@@ -258,17 +261,19 @@ it.each(["self", "oneid"] as const)("restores confirmation from real configured 
   expect(button("确认连接")).toBeUndefined();
   expect(messageSuccess).toHaveBeenCalledWith("连接已确认");
   configured = false;
-  await click("重新检查状态");
+  await act(async () => document.dispatchEvent(new Event("visibilitychange")));
   expect(button("确认连接")).toBeDefined();
   await click("确认连接"); expect(connectConnector).toHaveBeenCalledTimes(2);
 });
 
-it.each(["self", "oneid"] as const)("shows and recovers from canonical authMode=%s check errors", async mode => {
+it.each(["self", "oneid"] as const)("shows canonical authMode=%s check errors and recovers after reopening", async mode => {
   jest.mocked(getConnectorAuthStatus).mockRejectedValueOnce(new ApiError("unauthorized", { status: 401 }));
   await mount({ ...item, authMode: mode });
   expect(container.querySelector('[role="alert"]')?.textContent).toContain("Platform 身份认证未通过");
   expect(container.textContent).not.toContain("正在获取授权状态");
-  await click("重新检查状态");
+  expect(button("重新检查状态")).toBeUndefined();
+  await act(async () => root.render(null));
+  await mount({ ...item, authMode: mode });
   expect(container.querySelector('[role="alert"]')).toBeNull();
   expect(container.textContent).toContain("未登录");
 });

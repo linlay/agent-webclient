@@ -10,6 +10,7 @@ import { SCROLLBAR_THIN_CLASS_NAME } from "@/shared/styles/scrollbarClassNames";
 import { TimelineRow } from "./TimelineRow";
 import { TimelineRenderEntryView } from "./TimelineRenderEntryView";
 import { RunTerminalNotice } from "./RunTerminalNotice";
+import type { EventDetailLevel } from "@/shared/data/eventDetailLevel";
 import { buildRunRenderEntries, type TimelineDisplayItem, type TimelineRenderEntry } from "../lib/timelineDisplay";
 import { isImageGenerationTool } from "../lib/imageGenerationDisplay";
 import { runPresentationSections } from "../lib/runPresentationSections";
@@ -42,6 +43,10 @@ export interface ConversationStageProps {
   onToggleRun: (key: string) => void;
   expandedTasks: Record<string, boolean>;
   onToggleTask: (key: string) => void;
+  /** 生效过程档位，仅用于展示：simple 不渲染节点图标与时间线竖线。 */
+  detailLevel?: EventDetailLevel;
+  /** 主对话舞台：舞台整块作为 Agent 头像的指针跟随范围；预览、导出等复用方不开启。 */
+  pointerSurface?: boolean;
   queryMeta?: (item: Extract<TimelineDisplayItem, { kind: "query" }>) => React.ReactNode;
   runMeta?: (item: Extract<TimelineDisplayItem, { kind: "run" }>, duration: string) => React.ReactNode;
   runHeader?: (item: Extract<TimelineDisplayItem, { kind: "run" }>) => React.ReactNode;
@@ -63,12 +68,18 @@ export interface ConversationStageProps {
   };
 }
 
+// Virtuoso 用条目的 offsetHeight 计算高度与偏移，条目根节点及其子节点的 margin
+// 若塌陷到条目框之外就不计入；滚到底后再按 scrollToIndex(LAST, end) 贴底会停在
+// 真实底部之上，表现为“滚到底又往上跳一点”。用 flow-root 让条目自成 BFC，
+// 把内容 margin 收进条目自身的盒子。见 Timeline.module.css。
+const CONVERSATION_ITEM_CLASS_NAME = "conversation-stage-item";
 const ConversationItem = ({ item, children, ...rest }: React.HTMLAttributes<HTMLDivElement> & { item: ConversationListItem }) =>
-  <div {...rest} data-conversation-item-key={item.key}>{children}</div>;
+  <div {...rest} className={CONVERSATION_ITEM_CLASS_NAME} data-conversation-item-key={item.key}>{children}</div>;
 
 export function ConversationStage({
   items, agents, skills, fallbackAgentKey, tasks, expandedRuns, onToggleRun,
-  expandedTasks, onToggleTask, queryMeta, runMeta, runHeader, viewport, keepUserInteractionsVisible = false,
+  expandedTasks, onToggleTask, detailLevel, queryMeta, runMeta, runHeader, viewport, keepUserInteractionsVisible = false,
+  pointerSurface = false,
 }: ConversationStageProps): React.ReactElement {
   const { t } = useI18n();
   const renderEntry = (entry: TimelineRenderEntry) => <TimelineRenderEntryView
@@ -97,6 +108,9 @@ export function ConversationStage({
     className={viewport?.mode === "document" ? "conversation-stage-virtuoso" : `conversation-stage-virtuoso tw:h-full ${SCROLLBAR_THIN_CLASS_NAME}`}
     id={viewport?.scrollerId || "messages"}
     data-desktop-workspace-arrow-keys="allow"
+    data-detail-level={detailLevel}
+    // Agent avatars in the chat follow the pointer anywhere in the stage, not just their own row.
+    data-agent-pointer-surface={pointerSurface ? "" : undefined}
     components={{ Footer: viewport?.Footer, Item: ConversationItem }}
     itemContent={(_index, listItem) => {
       if (listItem.kind === "query") return <div id={listItem.anchorId}
@@ -121,7 +135,7 @@ export function ConversationStage({
         const collapse = Boolean(item.completedAt)
           && item.nodes.length > 1 && process.length > 0
           && !item.nodes.some(isImageGenerationTool);
-        return <Flex vertical gap={8} data-run-id={item.runId || undefined}>
+        return <Flex vertical gap={8} data-run-id={item.runId || undefined} className="timeline-run-block tw:mb-4">
           {runHeader?.(item)}
           {keepUserInteractionsVisible ? runPresentationSections(item.nodes).map(section => {
             const key = `${item.key}:${section.key}`;
@@ -149,7 +163,7 @@ export function ConversationStage({
             </section>
           </>}
           {(keepUserInteractionsVisible || !collapse) && <RunTerminalNotice terminalType={item.terminalType} duration={duration} />}
-          {item.completedAt && runMeta?.(item, duration)}
+          {item.completedAt ? runMeta?.(item, duration) : null}
         </Flex>;
       }
       return renderEntry(listItem.item.renderEntry);

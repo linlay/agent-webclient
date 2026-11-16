@@ -65,13 +65,24 @@ test("editing an existing library saves additions and removals in one PUT payloa
   expect(onClose).toHaveBeenCalledTimes(1);
 });
 
+test("reports a failed library load as a message and leaves retrying to the toolbar refresh", async () => {
+  jest.mocked(listKBases).mockRejectedValueOnce(new Error("Platform unavailable"));
+  await mountConsole();
+  await act(async () => { await Promise.resolve(); });
+  expect(document.querySelector(".ant-message")?.textContent).toContain("Platform unavailable");
+  expect(container.querySelector(".ant-alert-error")).toBeNull();
+  expect(button("kbases.reload")).toBeTruthy();
+});
+
 test("a failed collection save preserves the draft and allows correcting it", async () => {
   jest.mocked(saveKBase).mockRejectedValueOnce(new Error("Source directory is unavailable"));
   await mountEditor();
   await change("kbases.source 2", "/demo/missing");
   await click("kbases.save");
   expect(document.querySelector<HTMLInputElement>('input[aria-label="kbases.source 2"]')?.value).toBe("/demo/missing");
-  expect(document.querySelector('[role="alert"]')?.textContent).toContain("Source directory is unavailable");
+  // The failure is reported as an antd message toast, not an inline alert.
+  expect(document.querySelector(".ant-message")?.textContent).toContain("Source directory is unavailable");
+  expect(document.querySelector('[role="alert"]')).toBeNull();
   expect(onClose).not.toHaveBeenCalled();
 });
 

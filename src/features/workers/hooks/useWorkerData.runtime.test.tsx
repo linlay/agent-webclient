@@ -75,6 +75,24 @@ describe("worker data initialization and refresh", () => {
     expect(requestPins).toHaveBeenCalledTimes(1);
   });
 
+  it.each(["loadAgents", "refreshWorkerData"] as const)("keeps the independent current definition through %s", async method => {
+    await act(async () => root.render(<Harness enabled={false} />));
+    const detail = { key: "zenmi", name: "Authoritative name", connectors: ["kanban", "kbase", "platform"],
+      skills: ["analysis"], controls: [], modelKey: "current-model", interactionConfig: { connectors: true } };
+    mockStateRef.current.currentAgent = detail;
+    requestAgents.mockImplementation(async options => ({ code: 0, msg: "", data: options?.hasWorkspace
+      ? [] : [{ key: "zenmi", name: "Stale catalog name", connectors: [], modelKey: "old-model" }],
+    }));
+    await act(async () => { await runtime[method](); });
+    expect(mockStateRef.current.currentAgent).toBe(detail);
+    expect(mockStateRef.current.agents).toEqual([expect.objectContaining({ name: "Stale catalog name" })]);
+    // Even removal from the navigation catalog cannot remove the active Chat definition.
+    requestAgents.mockResolvedValue({ code: 0, msg: "", data: [] });
+    await act(async () => { await runtime[method](); });
+    expect(mockStateRef.current.agents).toEqual([]);
+    expect(mockStateRef.current.currentAgent).toBe(detail);
+  });
+
   it("waits for the app token and enabled initialization before requesting", async () => {
     jest.mocked(isAppMode).mockReturnValue(true);
     await act(async () => root.render(<Harness enabled={false} />));

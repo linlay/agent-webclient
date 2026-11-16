@@ -49,69 +49,6 @@
   white-space: nowrap;
 }
 
-.status {
-  flex: none;
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 1px 8px;
-  border-radius: 999px;
-  font-size: 11px;
-  font-weight: 600;
-  line-height: 1.5;
-  white-space: nowrap;
-  color: var(--ink-2);
-  background: color-mix(in srgb, var(--ink-muted) 14%, transparent);
-}
-
-.status[data-status="running"], .status[data-status="starting"] {
-  color: var(--accent-electric-strong);
-  background: color-mix(in srgb, var(--accent-electric) 15%, transparent);
-}
-
-.status[data-status="completed"] {
-  color: var(--ok);
-  background: color-mix(in srgb, var(--ok) 15%, transparent);
-}
-
-.status[data-status="error"] {
-  color: var(--danger);
-  background: color-mix(in srgb, var(--danger) 15%, transparent);
-}
-
-.status[data-status="cancelled"] {
-  color: var(--ink-muted);
-  background: color-mix(in srgb, var(--ink-muted) 14%, transparent);
-}
-
-.status[data-status="question"], .status[data-status="approval"], .status[data-status="form"], .status[data-status="plan"] {
-  color: var(--warn);
-  background: color-mix(in srgb, var(--warn) 16%, transparent);
-}
-
-.statusDot {
-  width: 6px;
-  height: 6px;
-  flex: none;
-  border-radius: 50%;
-  background: currentColor;
-}
-
-.statusDot[data-status="running"], .statusDot[data-status="starting"] {
-  animation: statusDotPulse 1.2s ease-in-out infinite;
-}
-
-@keyframes statusDotPulse {
-  0%, 100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.4;
-    transform: scale(0.7);
-  }
-}
-
 .details {
   padding: 10px;
 }

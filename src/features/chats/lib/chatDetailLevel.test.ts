@@ -15,7 +15,7 @@ afterAll(() => {
 it("uses the selected Agent default and never infers detail from mode", () => {
   const state = { ...initialState, pendingNewChatAgentKey: "code", agents: [{key:"code", name:"Code", mode:"CODER"}] };
   expect(chatDetailLevel(state)).toBe("simple");
-  expect(chatDetailLevel({...state, agents:[{...state.agents[0], interactionConfig:{defaultDetail:"detailed"}}]})).toBe("detailed");
+  expect(chatDetailLevel({...state, currentAgent:{...state.agents[0], interactionConfig:{defaultDetail:"detailed"}}})).toBe("detailed");
 });
 it("uses loaded Chat metadata before Agent hydration, rendering what was delivered", () => {
   const state = {...initialState, chatId:"old", chats:[{chatId:"old", agentKey:"deleted", display:{defaultDetail:"simple" as const, effectiveDetail:"simple" as const}}], agents:[]};
@@ -32,4 +32,10 @@ it("keeps an existing Chat's owner separate from New Chat selection", () => {
 
 it("uses an explicit delivery override, in Desktop as well", () => {
  expect(chatDetailLevel({...initialState,chatId:"old",chats:[{chatId:"old",display:{defaultDetail:"simple",effectiveDetail:"detailed"}}]})).toBe("detailed");
+});
+
+
+it("keeps summary from both Agent defaults and delivered Chat metadata", () => {
+ expect(chatDetailLevel({...initialState,pendingNewChatAgentKey:"agent",currentAgent:{key:"agent",name:"Agent",interactionConfig:{defaultDetail:"summary"}}})).toBe("summary");
+ expect(chatDetailLevel({...initialState,chatId:"old",chats:[{chatId:"old",display:{defaultDetail:"summary",effectiveDetail:"summary"}}]})).toBe("summary");
 });

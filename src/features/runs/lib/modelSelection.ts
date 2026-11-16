@@ -18,13 +18,21 @@ export function normalizeRunModel(value: unknown): QueryModelOverride {
 
 // Only the latest root Run supplies history defaults. Child/BTW/other Chat
 // events must never replace the main conversation's model selection.
-export function resolveChatModel(events: AgentEvent[], chatId: string): QueryModelOverride | undefined {
-  const roots = events.filter(event =>
+function rootEvents(events: AgentEvent[], chatId: string): AgentEvent[] {
+  return events.filter(event =>
     (!event.chatId || event.chatId === chatId) && !event.taskId && !event.subAgentKey && !event.btwId &&
     !["btw", "explain"].includes(text(event.lane)) && !["btw", "explain"].includes(text(event.kind)));
-  const latest = [...roots].reverse();
-  const runId = text(latest.find(event => ["request.query", "run.start"].includes(event.type) && event.runId)?.runId) ||
+}
+
+export function resolveChatModelRunId(events: AgentEvent[], chatId: string): string {
+  const latest = rootEvents(events, chatId).reverse();
+  return text(latest.find(event => ["request.query", "run.start"].includes(event.type) && event.runId)?.runId) ||
     text(latest.find(event => event.type === "usage.snapshot" && event.runId)?.runId);
+}
+
+export function resolveChatModel(events: AgentEvent[], chatId: string): QueryModelOverride | undefined {
+  const roots = rootEvents(events, chatId);
+  const runId = resolveChatModelRunId(events, chatId);
   let requested: QueryModelOverride = {};
   let actual: QueryModelOverride = {};
   for (const event of roots) {

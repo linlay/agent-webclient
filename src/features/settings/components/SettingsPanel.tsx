@@ -145,7 +145,8 @@ export const SettingsPanel: React.FC<SettingsSurfaceProps & {
         </UiButton>
 
         <UiButton
-          variant="danger"
+          variant="secondary"
+          color="danger"
           size="sm"
           onClick={() => {
             dispatch({ type: "CLEAR_DEBUG" });

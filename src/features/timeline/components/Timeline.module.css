@@ -161,13 +161,33 @@
     }
 }
 
+/* 滚动时 muted 灰字“变色”不是 CSS 在改颜色：滚动会让 scroller 内容被提升为合成层，
+   合成层上的文字只能用灰度抗锯齿绘制（LCD 次像素抗锯齿要求文字落在不透明、未提升
+   的层里），停住后层被回收，文字又切回次像素绘制。同一个 `#86909c` 在两种栅格化下
+   渲染出来的“墨量”差两成左右，低对比的 muted 文字会把这个差值放大成肉眼可见的深浅
+   变化；正文和标题是深色，所以现象几乎只出现在 collapse header 这类 muted 文本上。
+   弱机帧率低、滚动帧停留久，看上去就像文字在变色。
+   这里把舞台内文字固定成灰度抗锯齿，滚动前后只有一种绘制结果。
+   验证方式：DevTools › Rendering › 勾选 "Disable LCD text" 后滚动，色差应消失。
+   如果不想改变整屏正文的字重，可以把这两行下移到 .timeline-run-collapse 的 header
+   规则里，只固定那一段；代价是其它 muted 文本仍会在滚动时轻微变浅。 */
 :global(.conversation-stage-virtuoso) {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+
     >div {
         max-width: 840px;
         left: 50%;
         transform: translateX(-50%);
         padding: 0 20px;
     }
+}
+
+/* Virtuoso 只按条目自身的 offsetHeight 记账，条目内容的外侧 margin 会塌陷到条目框
+   之外、不计入高度与偏移；stop-at-bottom 的 scrollToIndex(LAST, end) 于是停在真实
+   底部之上，滚到底后又被拽回去。flow-root 让条目自成 BFC，把 margin 收进条目盒子。 */
+:global(.conversation-stage-item) {
+    display: flow-root;
 }
 
 /* 列表末尾留白：主对话的“滚动到底部”按钮浮动在这段空白里，不遮挡最后一条消息。 */
@@ -324,9 +344,60 @@
     bottom: -12px;
 }
 
+/* 精简过程：普通行整列图标撤掉，正文与状态左对齐、不再缩进，也不画节点间的
+   时间线竖线。活动行是唯一例外——TimelineActivityRow 的 RunActivityIcon 要继续
+   显示，所以只有它保留自己的 18px 图标列（图标是那一行的标识，正文紧随其后）。
+   档位标记由 ConversationStage 按后端 effectiveDetail 写入，这里只做展示收敛，
+   不过滤节点。 */
+:global(.conversation-stage-virtuoso[data-detail-level="simple"]) :global(.timeline-marker)::after {
+    display: none;
+}
+
+:global(.conversation-stage-virtuoso[data-detail-level="simple"]) :global(.timeline-row-flow) {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+:global(.conversation-stage-virtuoso[data-detail-level="simple"]) :global(.timeline-marker) {
+    display: none;
+}
+
+:global(.conversation-stage-virtuoso[data-detail-level="simple"]) :global(.timeline-row-flow[data-kind="activity"]) {
+    grid-template-columns: 18px minmax(0, 1fr);
+}
+
+:global(.conversation-stage-virtuoso[data-detail-level="simple"]) :global(.timeline-row-flow[data-kind="activity"]) :global(.timeline-marker) {
+    display: flex;
+}
+
+/* 精简过程的 Run 元信息（操作按钮、时间、耗时）默认完全透明，悬停该 Run 或键盘焦点
+   进入时才显示；隐藏态不接收指针事件，避免误点到不可见的复制/反馈按钮。 */
+:global(.conversation-stage-virtuoso[data-detail-level="simple"]) :global(.timeline-run-meta) {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 120ms ease;
+}
+
+:global(.conversation-stage-virtuoso[data-detail-level="simple"]) :global(.timeline-run-block):hover :global(.timeline-run-meta),
+:global(.conversation-stage-virtuoso[data-detail-level="simple"]) :global(.timeline-run-block):focus-within :global(.timeline-run-meta) {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* 无悬停能力的设备（触屏）没有可用的显示入口，保持元信息常显。 */
+@media (hover: none) {
+    :global(.conversation-stage-virtuoso[data-detail-level="simple"]) :global(.timeline-run-meta) {
+        opacity: 1;
+        pointer-events: auto;
+    }
+}
+
 :global(.timeline-run-collapse):global(.ant-collapse)>:global(.ant-collapse-item)>:global(.ant-collapse-header) {
     padding: 0 0 0 2px;
     color: var(--text-muted);
+    /* antd 给 header 挂了 transition: all 0.3s，任何落到 header 上的样式变化（含主题
+       或栅格化引起的颜色差异）都会被拉成一段肉眼可见的渐变，弱机掉帧时尤其明显。
+       header 本身没有需要过渡的属性——展开箭头有自己独立的 transform 过渡。 */
+    transition: none;
 }
 
 :global(.timeline-run-collapse):global(.ant-collapse)>:global(.ant-collapse-item)>:global(.ant-collapse-content)>:global(.ant-collapse-content-box) {
@@ -421,28 +492,7 @@
     margin: 0 0 9px;
 }
 
-:global(.timeline-markdown) table {
-    display: block;
-    width: 100%;
-    max-width: 100%;
-    overflow-x: auto;
-    border-collapse: collapse;
-    margin: 0 0 12px;
-    background: color-mix(in srgb, var(--bg-elev-2) 92%, transparent);
-}
-
-:global(.timeline-markdown) th,
-:global(.timeline-markdown) td {
-    border: 1px solid color-mix(in srgb, var(--line-soft) 88%, transparent);
-    padding: 8px 10px;
-    vertical-align: top;
-    text-align: left;
-}
-
-:global(.timeline-markdown) thead th {
-    font-weight: 600;
-    background: color-mix(in srgb, var(--bg-input) 84%, var(--bg-elev-2));
-}
+/* 表格外观由 ConversationMarkdown 的共享样式统一提供。 */
 
 :global(.timeline-markdown) ul,
 :global(.timeline-markdown) ol {

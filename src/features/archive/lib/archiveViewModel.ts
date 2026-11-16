@@ -18,19 +18,6 @@ export function archiveLastRunAt(item: unknown): number {
   return toArchiveTimestamp(record.lastRunAt) || toArchiveTimestamp(record.updatedAt);
 }
 
-function toPreviewText(value: unknown): string {
-  if (typeof value === "string") return value.trim();
-  if (typeof value === "number" || typeof value === "boolean") return String(value);
-  if (value && typeof value === "object") {
-    const record = value as Record<string, unknown>;
-    for (const key of ["text", "content", "message", "delta", "assistantText", "initialMessage"]) {
-      const nested = toPreviewText(record[key]);
-      if (nested) return nested;
-    }
-  }
-  return "";
-}
-
 export function asArchiveSummary(
   item: ArchivedSummaryResponse | ArchiveSearchResult | WorkerConversationRow | Chat,
 ): ArchivedSummaryResponse {
@@ -64,31 +51,6 @@ export function buildArchiveBulkCandidates(input: {
     const lastRunAt = toArchiveTimestamp(item.lastRunAt);
     return Boolean(lastRunAt && lastRunAt < cutoff);
   });
-}
-
-export function extractArchivePreviewLines(
-  detail: ArchiveDetailResponse | null,
-): Array<{ key: string; label: string; text: string }> {
-  if (!detail) return [];
-  const lines: Array<{ key: string; label: string; text: string }> = [];
-  for (const event of Array.isArray(detail.events) ? detail.events : []) {
-    if (!event || typeof event !== "object") continue;
-    const record = event as Record<string, unknown>;
-    const type = String(record.type || "event");
-    const text = toPreviewText(record);
-    lines.push({ key: `${lines.length}-${type}`, label: type, text: text || "(no text)" });
-    if (lines.length >= 40) break;
-  }
-  if (lines.length > 0) return lines;
-  for (const run of Array.isArray(detail.runs) ? detail.runs : []) {
-    if (!run || typeof run !== "object") continue;
-    const record = run as Record<string, unknown>;
-    const initial = toPreviewText(record.initialMessage);
-    const assistant = toPreviewText(record.assistantText);
-    if (initial) lines.push({ key: `${lines.length}-user`, label: "user", text: initial });
-    if (assistant) lines.push({ key: `${lines.length}-assistant`, label: "assistant", text: assistant });
-  }
-  return lines;
 }
 
 export function normalizeRestoredChat(

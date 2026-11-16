@@ -4,6 +4,7 @@ import { BottomDock } from "./BottomDock";
 
 const mockComposer = jest.fn();
 jest.mock("@/app/state/AppContext", () => ({ useAppState: () => ({ plan: null, activeFrontendTool: null }) }));
+jest.mock("@/features/mailbox/components/PendingMailMessages", () => ({ PendingMailMessages: () => null }));
 jest.mock("@/features/composer/components/ComposerArea", () => ({
   ComposerArea: (props: unknown) => { mockComposer(props); return null; },
 }));

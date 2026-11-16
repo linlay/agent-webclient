@@ -28,6 +28,8 @@ Composer 单独检查当前 Agent，内存 `agentAvailability` 不进入 Chat �
 
 详情存在 `activeRun` 时，从其 `lastSeq` 接入 Run 事件流更新当前对话。等待模型首响应、推理、工具执行和 HITL 均可能没有正文，不以正文缺失为条件定时请求 `/api/chat`。会话切换、显式刷新和断线重连后的恢复仍可加载详情；一次加载只保留有上限的请求失败重试，成功响应不安排后续历史刷新。
 
+同一 Chat 的 `awaiting.asking` Push 只提示“当前 Run 已进入等待”，不直接生成 Composer 交互卡。当前 Chat 没有匹配该 `awaitingId`（或该 `runId`）的 `activeAwaiting`/`pendingAwaitings`，且没有 attach 在这个询问中的 Run 上时，按 `chatId + awaitingId` 去重后触发一次 `agent:load-chat`（`forceReload`），由详情快照与 replay 校准补出交互卡；已 attach、正在切换 Chat 或已有本地等待项时不打断会话。平台顶层 `/api/chats` 摘要与详情不一致时仍以详情校准为准，前端不自行合成空卡片。
+
 `useChatReadSync` 是单 Chat 自动已读的唯一业务入口，worker 选择逻辑位于 workers 模块。`loadChat()` 只在请求仍匹配 `chatLoadSeq + targetChatId` 时，把 `/api/chat` 顶层的 owner、`lastRunId/lastRunContent` 与完整 `read` summary 同 replay Timeline 放进一次 React 提交；因此由 Desktop Cmd+K、Sidebar 或外部路由打开、此前不在 `state.chats` 的 Chat 也具有权威 read 基线。Hook 只有在目标仍为当前 Chat、切换已经进入 `ready`（无切换事务的 active live Chat 视为已提交）且 `read.isRead === false` 时才发送 `/api/read`，并按 `chatId + lastRunId + readRunId` 去重。已读、请求失败、过期切换和内容尚未提交的路由变化都不写 read；当前可见 Chat 收到更新 Run 的 `chat.unread` 后，新 `lastRunId` 会形成新的唯一触发键。`/api/chat` 详情与 `chat.read/chat.unread` Push 通过 `readAt/readRunId` 和 Platform `RunIDAfter` 语义合并，较旧详情不得覆盖较新的 Push；`chat.read` 不把 `readAt` 写入 Chat `updatedAt`。
 
 `/agent/:agentKey?newChat=` 的首条 query 仅在收到稳定 `chatId` 后将路由 replace 为 `?chatId=`。promotion 标记只说明导航来源，不是数据已加载的证据。会话领域统一协调 Router、历史选择、恢复和重试；只有目标已提交，或确有目标原始 live query 时才可免历史请求。live 数据尚未绑定目标时仍保留有期限的事务；attach 不能充当原始 query。壳层不再通过“登记过路由”或自行消费标记来跳过加载，也不依赖整个 AppContext 重复派发选中态更新。

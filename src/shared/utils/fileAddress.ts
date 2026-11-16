@@ -105,6 +105,70 @@ export function splitFileLocation(value: string): { filePath: string; line?: num
 		: { filePath: match[1] };
 }
 
+/**
+ * The trusted location of the document that owns a Markdown preview. Only a
+ * document with a known source has one; chat messages never do, so a bare
+ * relative path there still names no file.
+ */
+export interface DocumentLinkBase {
+	scope: "workspace" | "chat";
+	/** Path of the document itself: Workspace path (relative or host absolute) or Chat-relative path. */
+	path: string;
+}
+
+function decodeLinkSegment(segment: string): string {
+	try {
+		return decodeURIComponent(segment);
+	} catch {
+		// A literal percent sign is an ordinary character.
+		return segment;
+	}
+}
+
+/**
+ * Resolves a relative link written inside a document against that document's
+ * own directory and returns a scoped file address. The link is standard
+ * Markdown (percent-encoded), so its segments are decoded once. Anything that
+ * is not a plain relative path, or that climbs out of the document's root, is
+ * not resolved; recognition is not permission and Platform still authorizes
+ * the read.
+ */
+export function resolveDocumentRelativeLink(
+	href: string | undefined,
+	base: DocumentLinkBase | undefined,
+): string | null {
+	const raw = String(href || "").trim();
+	if (!base || !raw) return null;
+	if (/^[#?/\\@]/u.test(raw) || /^[a-z][a-z\d+.-]*:/iu.test(raw)) return null;
+	// A link to another file cannot carry a heading anchor or query through.
+	const target = raw.split(/[?#]/u, 1)[0];
+	if (!target || target.endsWith("/")) return null;
+
+	const basePath = String(base.path || "").trim().replace(/\\/gu, "/");
+	const root = /^(?:[a-z]:)?\//iu.exec(basePath)?.[0] ?? "";
+	if (base.scope === "chat" && root) return null;
+	const segments = basePath.slice(root.length).split("/").filter(Boolean);
+	if (!segments.length) return null;
+	segments.pop();
+
+	for (const part of target.replace(/\\/gu, "/").split("/")) {
+		if (!part || part === ".") continue;
+		const segment = decodeLinkSegment(part);
+		if (segment === "..") {
+			if (!segments.length) return null;
+			segments.pop();
+			continue;
+		}
+		if (segment === "." || /[/\\\u0000-\u001f\u007f]/u.test(segment)) return null;
+		segments.push(segment);
+	}
+	if (!segments.length) return null;
+	const resolved = segments.join("/");
+	if (resolved.length > MAX_FILE_PATH_LENGTH) return null;
+	if (root) return `${root}${resolved}`;
+	return `${base.scope === "chat" ? CHAT_FILE_ALIAS : WORKSPACE_FILE_ALIAS}${resolved}`;
+}
+
 export function formatChatFileAddress(relativePath: string): string {
 	return `${CHAT_FILE_ALIAS}${relativePath}`;
 }

@@ -1,3 +1,4 @@
+import type { EventDetailLevel } from "@/shared/data/eventDetailLevel";
 import type { AgentEvent } from "@/shared/contracts/agentEvents";
 import type {
   AgentPlatformErrorFrame,
@@ -24,7 +25,7 @@ export type PlatformRequestOptions = {
   payload?: unknown;
   signal?: AbortSignal;
   /** Frame-level delivery level; omitted follows the Agent default. */
-  detail?: "simple" | "detailed";
+  detail?: EventDetailLevel;
 };
 
 export type PlatformStreamOptions = {

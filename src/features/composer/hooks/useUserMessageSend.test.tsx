@@ -21,6 +21,7 @@ function setup(mode = "BOT") {
   state.chatId = "chat-a";
   state.chats = [{chatId: "chat-a", agentKey: "agent-a", lastRunId: "run-a"}];
   state.agents = [{key: "agent-a", name: "Agent", mode}];
+  state.currentAgent = {key: "agent-a", name: "Agent", mode};
   state.currentChatActiveRun = {chatId: "chat-a", runId: "run-a", agentKey: "agent-a"};
   state.streaming = true;
   const stateRef = {current: state};
@@ -115,7 +116,7 @@ it.each([false, true])("routes a first BOT message through Platform with staged 
   mockSend.mockResolvedValue({data: {mailId: "bot-letter", chatId: "bot-main", delivery: "queued"}});
   const h = setup();
   h.stateRef.current = {...h.stateRef.current, streaming: false, currentChatActiveRun: null, chatId: "", chats: [],
-    agents: [{key:"bot", name:"Bot", mode:"BOT"}], workerSelectionKey:"agent:bot", planningMode:true};
+    currentAgent: {key:"bot", name:"Bot", mode:"BOT"}, agents: [{key:"bot", name:"Bot", mode:"BOT"}], workerSelectionKey:"agent:bot", planningMode:true};
   const refs = files ? [{type:"file",url:"@chat/note.txt",name:"note.txt"}] : [];
   await h.actions.sendMessage("hello bot", refs, [], {}, undefined, {key:"ignored"}, files ? "staged-chat" : "", "bot", false, "", "req-bot");
   expect(mockSend).toHaveBeenCalledWith(expect.objectContaining({agentKey:"bot",chatId:files ? "staged-chat" : undefined,model:undefined}));

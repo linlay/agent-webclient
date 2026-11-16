@@ -4,6 +4,8 @@ AGW Web Client 是面向智能体平台的前端展示框架。它把智能体�
 
 后端负责智能体如何运行；AGW Web Client 负责把运行过程展示清楚，并提供操作、调试和交付界面。
 
+过程展示配置支持 Simple、Detailed、Summary；Summary 本阶段完成配置和协议识别，自动状态概要及提示词差异尚待接入，详见[过程展示配置](docs/80-界面基础-样式主题基础UI与国际化.md#过程展示与-agent-配置)。
+
 独立 WebClient 侧栏支持跨普通 Agent、CODER、KBASE 与 Team 的统一 Pinned：菜单置顶/取消置顶，组内拖动或键盘排序，收起侧栏仍可打开置顶列表。状态复用 Platform 的 `chat-pinned.json`，不写浏览器独立副本；各 Worker 的 5 条预览在后端截取前排除置顶项，历史总数保持完整。
 
 Standalone 支持浅色/深色/跟随系统、内置薄雾、PNG/JPEG 背景与 Desktop v1 ZIP 皮肤。`DESKTOP_APP=true` 且宿主明确声明透明合成能力时，主聊天复用 Desktop 唯一壁纸；否则使用匹配明暗的实色。演示运行 `npm run preview:appearance`，详见[皮肤与背景协作](docs/82-界面基础-皮肤与背景协作.md)。

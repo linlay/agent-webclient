@@ -23,16 +23,16 @@ it.each(["REACT", "CODER"])("stores %s detail selection with interaction config"
   const root = createRoot(container);
   try {
     await act(async () => root.render(React.createElement(Harness)));
-    expect(mockDispatch).toHaveBeenCalledWith({type: "SET_AGENTS", agents: [expect.objectContaining({
+    expect(mockDispatch).toHaveBeenCalledWith({type: "SET_CURRENT_AGENT", agent: expect.objectContaining({
       key: "saved-agent", modelKey: "saved-model", reasoningEffort: "NONE", serviceTier: "STANDARD", interactionConfig: config,
-    })]});
+    })});
   } finally { act(() => root.unmount()); }
 });
 
 it.each(["main", "worker"])("uses BOT %s composer rules without changing Agent config", async chatId => {
   (globalThis as {IS_REACT_ACT_ENVIRONMENT?: boolean}).IS_REACT_ACT_ENVIRONMENT = true;
   const config = {...interactionDefaults("GENERAL"), model:true, showPlanningMode:true, showTerminal:true, showEditingMode:true};
-  Object.assign(mockStateRef.current, {chatId, chats:[{chatId, agentKey:"bot"}], agents:[{key:"bot",name:"Bot",mode:"BOT",primaryChat:{chatId:"main"}}]});
+  Object.assign(mockStateRef.current, {currentAgent:{key:"bot",name:"Bot",mode:"BOT",primaryChat:{chatId:"main"}},chatId, chats:[{chatId, agentKey:"bot"}], agents:[{key:"bot",name:"Bot",mode:"BOT",primaryChat:{chatId:"main"}}]});
   const worker = {type:"agent",sourceId:"bot",raw:{mode:"BOT",interactionConfig:config}} as unknown as CurrentWorkerSummary;
   let resolved: ReturnType<typeof useAgentInteraction> | undefined;
   function Harness(){resolved=useAgentInteraction(worker);return null;}

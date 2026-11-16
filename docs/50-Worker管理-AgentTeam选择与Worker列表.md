@@ -15,6 +15,10 @@ Worker 是对话选择和历史归属的内部模型，继续兼容 Agent 与 Te
 ## 核心流程
 应用启动、侧栏刷新和 Agent 创建完成后，`readSidebarAgents` 并行读取 `scope=nav&hasWorkspace=false` 的普通 Agent 和 `hasWorkspace=true` 的完整项目目录，均不包含 Team。项目请求不设置 nav scope，避免排除有工作目录的 KBASE Agent。两份目录各携带 `includeChats=5&chatsPinned=false`；协调层保留后端顺序、补齐嵌套摘要的 owner。Team 的模型和历史归属仍保留，Copilot scope 与回退规则继续按 Agent 数量判断。
 
+导航目录与当前智能体详情在数据结构上分离。`agents: AgentSummary[]` 保存 `/api/agents` 的导航快照，`currentAgent: Agent | null` 独立保存 `/api/agent` 的当前定义；列表刷新只替换导航集合，不合并、清空或覆盖当前定义，列表中的同名字段也不能覆盖当前定义。New Chat、导航刷新和创建 Agent 后的刷新均遵守此边界，不依赖请求到达顺序。
+
+当前智能体的名称、模式、模型、权限、连接器、技能、交互开关与 Workspace 等元数据只读匹配当前 owner key 的 `currentAgent`。详情未加载或 key 不匹配时保持待加载，不以导航条目补成详情。切换与历史归属仍以 Chat/显式选择为准；同 Agent 的 New Chat 保留独立详情。详情读取和经服务端确认的配置变更使用专门 action 更新当前定义，身份清理同时清理当前定义。导航成员删除本身不删除历史 Chat 当前定义，详情查询失败与可用性门禁负责表达真实不可用状态。
+
 `SidebarAgentNavigation` 默认以 `state.workerRows` 顺序展示项目。项目标题与普通对话行左侧对齐，项目内会话只增加 12px 缩进，各项目可独立展开。普通 Agent 通过“对话”标题内的选择器作为新对话目标；按时间/名称排序控制位于新对话图标前，只排序普通会话预览。
 
 Projects、各 Project 内的 Chats、普通 Chats 与 Bots 均支持直接拖动现有行进行组内排序，不增加拖拽按钮；项目只从标题行拖动，聊天行不会触发项目拖动。目标行上／下半部决定插入前／后，拖动显示插入线，取消时保留原顺序；聚焦行后也可用 `Alt+↑/↓` 调整。更多菜单和新建按钮保持原交互。手动顺序作为当前浏览器偏好存入 localStorage，按后端身份和列表（含 project Agent key）隔离，刷新与折叠后保留；新增项沿用默认顺序追加，分页或临时不可见项不丢失已存位置。普通 Chats 重新选择按时间／名称排序会清除其手动顺序。拖拽不跨组移动，不修改 Chat owner、Agent 管理顺序、后端置顶协议或 History。

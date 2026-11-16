@@ -61,6 +61,11 @@ export interface RunTerminalInfo {
   type: RunTerminalType;
   runId?: string;
   timestamp?: number;
+  /**
+   * Run 的起点时间（同一 runId 的 request.query 时间戳优先，其次 run.start）。
+   * 自动化来信等 hidden 输入不生成用户提问节点，耗时的起点只能从这里取。
+   */
+  startedAt?: number;
 }
 
 function readRunTerminalType(value: unknown): RunTerminalType | null {
@@ -242,6 +247,7 @@ interface RunTerminalIndex {
 }
 
 export function collectRunTerminals(events: AgentEvent[]): RunTerminalInfo[] {
+  const startedAtByRunId = collectRunStartedAt(events);
   const ordered: RunTerminalInfo[] = [];
   for (const event of events) {
     const type = readRunTerminalType(event.type);
@@ -252,10 +258,31 @@ export function collectRunTerminals(events: AgentEvent[]): RunTerminalInfo[] {
       runId,
       timestamp:
         typeof event.timestamp === "number" ? event.timestamp : undefined,
+      ...(runId && startedAtByRunId.has(runId)
+        ? { startedAt: startedAtByRunId.get(runId) }
+        : {}),
     };
     ordered.push(info);
   }
   return ordered;
+}
+
+/** runId 的首个 request.query / run.start 时间戳：hidden 输入没有提问节点时用它当耗时起点。 */
+function collectRunStartedAt(events: AgentEvent[]): Map<string, number> {
+  const queryAtByRunId = new Map<string, number>();
+  const runStartAtByRunId = new Map<string, number>();
+  for (const event of events) {
+    const runId = typeof event.runId === "string" ? event.runId : "";
+    if (!runId || typeof event.timestamp !== "number") continue;
+    if (event.type === "request.query") {
+      if (!queryAtByRunId.has(runId)) queryAtByRunId.set(runId, event.timestamp);
+    } else if (event.type === "run.start" && !runStartAtByRunId.has(runId)) {
+      runStartAtByRunId.set(runId, event.timestamp);
+    }
+  }
+  const startedAt = new Map<string, number>(runStartAtByRunId);
+  for (const [runId, timestamp] of queryAtByRunId) startedAt.set(runId, timestamp);
+  return startedAt;
 }
 
 export interface BuildTimelineDisplayItemsOptions {
@@ -353,10 +380,14 @@ export function buildTimelineDisplayItemsFromTerminals(
       if (terminal) {
         const completedAt =
           typeof terminal.timestamp === "number" ? terminal.timestamp : undefined;
-        const responseDurationMs =
-          typeof completedAt === "number" &&
+        // 提问节点缺失时（hidden 的自动化来信）退回到 run 起点，避免完全没有耗时。
+        const startedAt =
           typeof activeQueryNode.ts === "number"
-            ? Math.max(0, completedAt - activeQueryNode.ts)
+            ? activeQueryNode.ts
+            : terminal.startedAt;
+        const responseDurationMs =
+          typeof completedAt === "number" && typeof startedAt === "number"
+            ? Math.max(0, completedAt - startedAt)
             : undefined;
 
         items.push({
@@ -408,9 +439,12 @@ export function buildTimelineDisplayItemsFromTerminals(
       terminalType = undefined;
     }
 
+    // 提问节点缺失时（hidden 的自动化来信）退回到 run 起点，避免完全没有耗时。
+    const startedAt =
+      typeof queryNode?.ts === "number" ? queryNode.ts : terminal?.startedAt;
     const responseDurationMs =
-      typeof completedAt === "number" && typeof queryNode?.ts === "number"
-        ? Math.max(0, completedAt - queryNode.ts)
+      typeof completedAt === "number" && typeof startedAt === "number"
+        ? Math.max(0, completedAt - startedAt)
         : undefined;
 
     const runKeySource =

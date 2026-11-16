@@ -247,13 +247,6 @@ button:hover {
     color: var(--accent-on);
 }
 
-.ui-btn.ui-btn-danger {
-    border-color: color-mix(in srgb,
-            var(--accent-danger) 44%,
-            var(--line-soft));
-    color: var(--accent-danger);
-}
-
 .ui-btn.ui-btn-ghost {
     border: 0;
     background: transparent;
@@ -305,10 +298,6 @@ button:hover {
     border: 0;
     background: var(--control-primary-hover);
     color: var(--accent-on);
-}
-
-.ui-btn.ui-btn-danger:hover {
-    border-color: color-mix(in srgb, var(--accent-danger) 56%, #7a1f34);
 }
 
 .ui-btn:focus-visible,
@@ -652,11 +641,11 @@ select {
     border-radius: var(--overlay-radius);
 }
 
-.ui-btn.is-icon-only:not(.ui-btn-primary):not(.ui-btn-danger):not(:disabled) {
+.ui-btn.is-icon-only:not(.ui-btn-primary):not(:disabled) {
     color: var(--control-icon-color);
 }
 
-.ui-btn.is-icon-only:not(.ui-btn-primary):not(.ui-btn-danger):hover:not(:disabled) {
+.ui-btn.is-icon-only:not(.ui-btn-primary):hover:not(:disabled) {
     color: var(--control-icon-hover-color);
 }
 
@@ -671,6 +660,85 @@ select {
     border-radius: var(--overlay-radius);
 }
 
-.ui-btn.ui-btn-danger:hover:not(:disabled) {
-    color: var(--accent-danger);
+/* UiButton semantic tones. `color` only swaps the palette; `variant` keeps
+   owning the treatment (primary = filled, secondary = tinted surface,
+   ghost = tinted text). Buttons without a tone keep the skin-provided
+   neutral look, including the primary accent tokens. */
+.ui-btn.ui-btn-tone {
+    --ui-btn-tone-fill: color-mix(in srgb,
+            var(--ui-btn-tone) 78%,
+            #000);
+    --ui-btn-tone-fill-active: color-mix(in srgb,
+            var(--ui-btn-tone) 66%,
+            #000);
+    --ui-btn-tone-text: color-mix(in srgb,
+            var(--ui-btn-tone) 76%,
+            var(--ink));
+    --ui-btn-tone-soft: color-mix(in srgb,
+            var(--ui-btn-tone) 14%,
+            transparent);
+    --ui-btn-tone-soft-active: color-mix(in srgb,
+            var(--ui-btn-tone) 20%,
+            transparent);
+    --ui-btn-tone-border: color-mix(in srgb,
+            var(--ui-btn-tone) 46%,
+            var(--line-soft));
+    /* Icon-only buttons read their color from the icon tokens. */
+    --control-icon-color: var(--ui-btn-tone-text);
+    --control-icon-hover-color: var(--ui-btn-tone-text);
+}
+
+/* The accent tone is the theme primary, so it keeps the skin tokens. */
+.ui-btn.ui-btn-color-accent {
+    --ui-btn-tone: var(--accent);
+    --ui-btn-tone-fill: var(--control-primary-bg);
+    --ui-btn-tone-fill-active: var(--control-primary-hover);
+    --ui-btn-tone-text: var(--accent-electric-strong);
+}
+
+.ui-btn.ui-btn-color-success {
+    --ui-btn-tone: var(--accent-lime);
+}
+
+.ui-btn.ui-btn-color-warning {
+    --ui-btn-tone: var(--accent-warn);
+}
+
+.ui-btn.ui-btn-color-danger {
+    --ui-btn-tone: var(--accent-danger);
+}
+
+.ui-btn.ui-btn-tone.ui-btn-primary:not(:disabled) {
+    border-color: transparent;
+    background: var(--ui-btn-tone-fill);
+    color: var(--accent-on);
+}
+
+.ui-btn.ui-btn-tone.ui-btn-primary:is(:hover, :active):not(:disabled) {
+    border-color: transparent;
+    background: var(--ui-btn-tone-fill-active);
+    color: var(--accent-on);
+}
+
+.ui-btn.ui-btn-tone.ui-btn-secondary:not(:disabled) {
+    border-color: var(--ui-btn-tone-border);
+    background: var(--ui-btn-tone-soft);
+    color: var(--ui-btn-tone-text);
+}
+
+.ui-btn.ui-btn-tone.ui-btn-secondary:is(:hover, :active):not(:disabled),
+.ui-btn.ui-btn-tone.ui-btn-secondary.is-active {
+    border-color: var(--ui-btn-tone-border);
+    background: var(--ui-btn-tone-soft-active);
+    color: var(--ui-btn-tone-text);
+}
+
+.ui-btn.ui-btn-tone.ui-btn-ghost:not(:disabled) {
+    color: var(--ui-btn-tone-text);
+}
+
+.ui-btn.ui-btn-tone.ui-btn-ghost:is(:hover, :active):not(:disabled),
+.ui-btn.ui-btn-tone.ui-btn-ghost.is-active {
+    background: var(--ui-btn-tone-soft);
+    color: var(--ui-btn-tone-text);
 }

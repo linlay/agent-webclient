@@ -29,7 +29,7 @@ export function AppearanceProvider({ children }: { children: React.ReactNode }) 
   return <Context.Provider value={controller}>
     <ConfigProvider locale={locale === "en-US" ? enUS : zhCN} theme={componentTheme}>
       <CodeEditorThemeContext.Provider value={editorTheme}>
-        <AntdApp><VisualAppearance controller={controller} appearance={snapshot}>{children}</VisualAppearance></AntdApp>
+        <AntdApp message={{ top: "calc(var(--top-nav-height) + 12px)" }}><VisualAppearance controller={controller} appearance={snapshot}>{children}</VisualAppearance></AntdApp>
       </CodeEditorThemeContext.Provider>
     </ConfigProvider>
   </Context.Provider>;

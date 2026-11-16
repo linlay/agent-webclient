@@ -32,7 +32,6 @@ import { useRunFeedbackAction } from "@/features/conversation/hooks/useRunFeedba
 import { getAgent } from "@/shared/data";
 import { ApiError } from "@/shared/data/api/http";
 import { useI18n } from "@/shared/i18n";
-import { upsertAgentSummary } from "@/features/workers/lib/agentSummary";
 import { buildSurfaceRoute, readSurfacePresentationContext } from "@/features/surfaces/lib/surfaceRoutes";
 import {
   canPrepareDesktopNewChat,
@@ -69,35 +68,6 @@ export function parseComposerPrefillPayload(
     return null;
   }
   return { draft, ...(skillId ? { skillId } : {}) };
-}
-
-/**
- * Session-scoped record of route agents whose detail has been fetched once.
- * `modelKey` / `reasoningEffort` are optional in `AgentDetailResponse`, so a
- * completed detail fetch must unblock route readiness even when they are absent.
- */
-const routeAgentDetailFetchedKeys = new Set<string>();
-
-export function markRouteAgentDetailFetched(agentKey: string): void {
-  const normalized = String(agentKey || "").trim();
-  if (normalized) {
-    routeAgentDetailFetchedKeys.add(normalized);
-  }
-}
-
-export function isRouteAgentDetailFetched(agentKey: string): boolean {
-  const normalized = String(agentKey || "").trim();
-  return Boolean(normalized) && routeAgentDetailFetchedKeys.has(normalized);
-}
-
-/** Without an agentKey, clears the whole record (used by tests). */
-export function resetRouteAgentDetailFetched(agentKey = ""): void {
-  const normalized = String(agentKey || "").trim();
-  if (normalized) {
-    routeAgentDetailFetchedKeys.delete(normalized);
-  } else {
-    routeAgentDetailFetchedKeys.clear();
-  }
 }
 
 let lastCreatedNewChatTimestamp = 0;
@@ -260,24 +230,6 @@ const AGENT_ROUTE_ROW_CLASS_BY_STATE = {
   empty: "timeline-empty-layout tw:grid-rows-[auto_minmax(0,2fr)_minmax(0,3fr)_auto]",
 } as const;
 
-function hasRouteAgentDetailSignal(agent: Agent | undefined): boolean {
-  if (!agent) return false;
-  return Boolean(
-    String(agent.mode || "").trim() || String(agent.type || "").trim(),
-  );
-}
-
-function hasOwn(input: object, key: string): boolean {
-  return Object.prototype.hasOwnProperty.call(input, key);
-}
-
-function needsRouteAgentModelSelectionHydration(agent: Agent | undefined): boolean {
-  if (!agent) return false;
-  // Model selection comes from the Agent detail for every mode; an Agent that
-  // has none is settled by the fetched-detail marker, not by its mode.
-  return !hasOwn(agent, "modelKey") || !hasOwn(agent, "reasoningEffort");
-}
-
 const AgentRouteLoadingPage: React.FC<{ title: string; overlay?: boolean }> = ({ title, overlay = false }) => {
   const Component = overlay ? "div" : "main";
   return (
@@ -403,28 +355,11 @@ const AgentChatShellContent: React.FC = () => {
   );
   const routeAgent = useMemo(
     () =>
-      state.agents.find(
-        (agent) => String(agent?.key || "").trim() === agentKey,
-      ),
-    [agentKey, state.agents],
+      state.currentAgent?.key === agentKey ? state.currentAgent : undefined,
+    [agentKey, state.currentAgent],
   );
-  const routeAgentHasDetailSignal = hasRouteAgentDetailSignal(routeAgent);
-  const routeAgentNeedsModelOptionsHydration =
-    needsRouteAgentModelSelectionHydration(routeAgent);
-  const routeAgentHydrated =
-    !agentKey ||
-    Boolean(
-      routeAgent &&
-        ((routeAgentHasDetailSignal && !routeAgentNeedsModelOptionsHydration) ||
-          isRouteAgentDetailFetched(agentKey) ||
-          routeAgentHydrationFailedRef.current.has(agentKey)),
-    );
-  const routeAgentNeedsHydration =
-    Boolean(agentKey) &&
-    (!routeAgent ||
-      ((!routeAgentHasDetailSignal || routeAgentNeedsModelOptionsHydration) &&
-        !isRouteAgentDetailFetched(agentKey) &&
-        !routeAgentHydrationFailedRef.current.has(agentKey)));
+  const routeAgentHydrated = !agentKey || Boolean(routeAgent);
+  const routeAgentNeedsHydration = Boolean(agentKey) && !routeAgent && !routeAgentHydrationFailedRef.current.has(agentKey);
   const routeAgentReady =
     routeAgentHydrated &&
     (!agentKey || state.workerSelectionKey === routeWorkerKey);
@@ -699,7 +634,6 @@ const AgentChatShellContent: React.FC = () => {
 
   const handleRetryRouteAgent = useCallback(() => {
     routeAgentHydrationFailedRef.current.delete(agentKey);
-    resetRouteAgentDetailFetched(agentKey);
     setRouteAgentLoadError(null);
     setRouteAgentLoadErrorDescription("");
     setHydrationRetryCount((c) => c + 1);
@@ -752,15 +686,7 @@ const AgentChatShellContent: React.FC = () => {
           ...payload,
           key: resolvedAgentKey,
         };
-        // Optional model-selection fields may be absent from the detail
-        // response; the completed fetch itself must unblock route readiness.
-        markRouteAgentDetailFetched(resolvedAgentKey);
-
-        const mergedAgents = upsertAgentSummary(
-          stateRef.current.agents,
-          patch,
-        );
-        dispatch({ type: "SET_AGENTS", agents: mergedAgents });
+        dispatch({ type: "SET_CURRENT_AGENT", agent: { ...patch, name: payload.name || resolvedAgentKey } as Agent });
       })
       .catch((error) => {
         if (

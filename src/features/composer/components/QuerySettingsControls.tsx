@@ -113,11 +113,6 @@ type AgentModelDefaults = {
   defaultServiceTier?: QueryServiceTier;
 };
 
-type AppliedDefaultModelOverride = {
-  agentKey: string;
-  value: QueryModelOverride;
-};
-
 const globalCoderModelOptionsCacheKey = "__global__";
 const cachedCoderModelOptions = new Map<string, LoadedCoderModelOptions>();
 const pendingCoderModelOptionsPromises = new Map<
@@ -206,52 +201,6 @@ export function getModelIdentityMismatchWarning(
     .join(" / ")}" is ${technicalFamily}`;
 }
 
-
-export function shouldApplyCoderDefaultModelOverride({
-  shouldShowModelControls,
-  agentKey,
-  modelOverride,
-  resolvedDefaultOverride,
-  previousAppliedDefault,
-}: {
-  shouldShowModelControls: boolean;
-  agentKey: string;
-  modelOverride: QueryModelOverride;
-  resolvedDefaultOverride: QueryModelOverride;
-  previousAppliedDefault: AppliedDefaultModelOverride | null;
-}): boolean {
-  if (!shouldShowModelControls || !agentKey) return false;
-  if (
-    !resolvedDefaultOverride.key &&
-    !resolvedDefaultOverride.reasoningEffort &&
-    !resolvedDefaultOverride.serviceTier
-  ) {
-    return false;
-  }
-  if (
-    modelOverride.key === resolvedDefaultOverride.key &&
-    modelOverride.reasoningEffort === resolvedDefaultOverride.reasoningEffort &&
-    modelOverride.serviceTier === resolvedDefaultOverride.serviceTier
-  ) {
-    return false;
-  }
-
-  const hasCurrentOverride = Boolean(
-    modelOverride.key || modelOverride.reasoningEffort || modelOverride.serviceTier,
-  );
-  const currentMatchesPrevious =
-    previousAppliedDefault?.agentKey === agentKey &&
-    modelOverride.key === previousAppliedDefault.value.key &&
-    modelOverride.reasoningEffort ===
-      previousAppliedDefault.value.reasoningEffort &&
-    modelOverride.serviceTier === previousAppliedDefault.value.serviceTier;
-
-  return !(
-    previousAppliedDefault?.agentKey === agentKey &&
-    !currentMatchesPrevious &&
-    hasCurrentOverride
-  );
-}
 
 export function shouldRetryModelOptionsOnOpen({
   open,
@@ -469,10 +418,9 @@ export function buildPersistedModelConfigOverride({
   };
 }
 
-export function agentSummaryFromModelConfig(
+export function currentAgentFromModelConfig(
   existing: Agent | undefined,
   response: AgentModelConfigResponse,
-  modelOverride: QueryModelOverride,
 ): Agent {
   const key = response.agentKey || existing?.key || "";
   return {
@@ -528,7 +476,8 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
   const [loadAttempt, setLoadAttempt] = useState(0);
   const [modelConfigSaving, setModelConfigSaving] = useState(false);
   const [modelRefreshFailed, setModelRefreshFailed] = useState(false);
-  const appliedDefaultRef = useRef<AppliedDefaultModelOverride | null>(null);
+  const [accessMenuOpen, setAccessMenuOpen] = useState(false);
+  const [modelMenuOpen, setModelMenuOpen] = useState(false);
   const forceRefreshRef = useRef(false);
   const manualRefreshAgentKeyRef = useRef<string | null>(null);
 
@@ -622,6 +571,20 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
     };
   }, [agentKey, embeddedModelOptions, shouldShowModelControls, loadAttempt]);
 
+  // Desktop 的侧栏与 Composer 分处宿主和 guest 两个文档，切换对话的点击
+  // 不会进入 guest，Dropdown 收不到 outside-click；会话切换一开始 composer
+  // 就整体进入不可用，这里同时收起两个菜单，避免浮层跨会话残留。
+  useEffect(() => {
+    if (!disabled) return;
+    setAccessMenuOpen(false);
+    setModelMenuOpen(false);
+  }, [disabled]);
+  // 权限与模型都按原 chat/agent 的状态展示，切换后旧菜单没有意义。
+  useEffect(() => {
+    setAccessMenuOpen(false);
+    setModelMenuOpen(false);
+  }, [agentKey, state.chatId]);
+
   const accessLabel = t(`composer.query.access.${accessLevel}`);
   const accessButtonTitle = compact
     ? `${t("composer.query.access.title")} · ${accessLabel}`
@@ -664,52 +627,6 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
     () => resolveCoderAgentDefaultModelOverride(currentWorker),
     [currentWorker],
   );
-
-  useEffect(() => {
-    if (state.chatId) return;
-    if (
-      shouldShowModelControls &&
-      agentKey &&
-      (resolvedDefaultOverride.key ||
-        resolvedDefaultOverride.reasoningEffort ||
-        resolvedDefaultOverride.serviceTier) &&
-      modelOverride.key === resolvedDefaultOverride.key &&
-      modelOverride.reasoningEffort === resolvedDefaultOverride.reasoningEffort &&
-      modelOverride.serviceTier === resolvedDefaultOverride.serviceTier
-    ) {
-      appliedDefaultRef.current = {
-        agentKey,
-        value: resolvedDefaultOverride,
-      };
-      return;
-    }
-    if (
-      !shouldApplyCoderDefaultModelOverride({
-        shouldShowModelControls,
-        agentKey,
-        modelOverride,
-        resolvedDefaultOverride,
-        previousAppliedDefault: appliedDefaultRef.current,
-      })
-    ) {
-      return;
-    }
-
-    appliedDefaultRef.current = {
-      agentKey,
-      value: resolvedDefaultOverride,
-    };
-    onModelOverrideChange(resolvedDefaultOverride);
-  }, [
-    state.chatId,
-    agentKey,
-    modelOverride.key,
-    modelOverride.reasoningEffort,
-    modelOverride.serviceTier,
-    onModelOverrideChange,
-    resolvedDefaultOverride,
-    shouldShowModelControls,
-  ]);
 
   const modelKey =
     modelOverride.key ||
@@ -787,17 +704,11 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
         serviceTier: nextOverride.serviceTier || null,
       });
       const detail = response.data;
-      onModelOverrideChange(persistedOverride);
-      appliedDefaultRef.current = {
-        agentKey,
-        value: persistedOverride,
-      };
-      const nextAgents = state.agents.map((agent) =>
-        toText(agent.key) === toText(detail.agentKey || agentKey)
-          ? agentSummaryFromModelConfig(agent, detail, persistedOverride)
-          : agent,
-      );
-      dispatch({ type: "SET_AGENTS", agents: nextAgents });
+      const updated = currentAgentFromModelConfig(state.currentAgent || undefined, detail);
+      dispatch({ type: "PATCH_CURRENT_AGENT", agentKey: detail.agentKey || agentKey, patch: {
+        modelKey: updated.modelKey, reasoningEffort: updated.reasoningEffort, serviceTier: updated.serviceTier,
+      } });
+      void messageApi.success(t("composer.query.model.savedAsDefault"));
     } catch (error) {
       void messageApi.error((error as Error).message);
     } finally {
@@ -948,6 +859,8 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
   return (
     <div className={QUERY_SETTINGS_CONTROLS_CLASS}>
       {(interactionConfig?.accessLevel ?? true) && <Dropdown
+        open={accessMenuOpen}
+        onOpenChange={setAccessMenuOpen}
         menu={{
           className: presentationClasses("query-settings-menu"),
           items: accessItems,
@@ -962,7 +875,6 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
           variant="ghost"
           size="sm"
           iconOnly={compact}
-          color="var(--accent)"
           title={accessButtonTitle}
           aria-label={compact ? accessButtonTitle : undefined}
           onClick={(event) => event.preventDefault()}
@@ -985,13 +897,17 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
             aria-label={compact && modelButtonDisabled ? modelButtonTitle : undefined}
           >
             <Dropdown
+              open={modelMenuOpen}
+              onOpenChange={(nextOpen) => {
+                setModelMenuOpen(nextOpen);
+                onModelMenuOpenChange(nextOpen);
+              }}
               disabled={modelButtonDisabled}
               menu={{
                 className: presentationClasses("query-settings-menu"),
                 items: modelItems,
                 onClick: onModelMenuClick,
               }}
-              onOpenChange={onModelMenuOpenChange}
               placement="topRight"
               trigger={["click"]}
             >

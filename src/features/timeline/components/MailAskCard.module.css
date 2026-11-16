@@ -1,18 +1,130 @@
-.card { box-sizing: border-box; width: min(100%, 680px); min-width: 0; max-width: 100%; padding: 12px; border: 1px solid var(--line-soft, var(--ant-color-border, #85858544)); border-radius: 10px; background: var(--bg-card, var(--ant-color-bg-container, transparent)); font-family: var(--font-sans, system-ui, sans-serif); font-size: 13px; font-weight: normal; line-height: 1.5; letter-spacing: normal; text-transform: none; text-align: left; overflow-wrap: anywhere; }
-.header { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 12px; min-width: 0; }
-.header strong { overflow-wrap: anywhere; }
-.header a { margin-inline-start: auto; font-size: 12px; }
-.status { color: var(--text-muted, var(--ant-color-text-secondary, #94aa9a)); font-size: 12px; }
-.content { margin-top: 12px; min-width: 0; max-width: 100%; }
-.content > *, .content :global(.ant-form-item-control), .content :global(.ant-form-item-control-input), .content :global(.ant-form-item-control-input-content) { min-width: 0; max-width: 100%; }
-.content :global(.ant-form-item) { margin-bottom: 12px; }
-.content :global(.ant-select), .content :global(.ant-input-number) { width: 100%; }
-.command, .fieldLabel { margin: 4px 0 10px; max-width: 100%; white-space: pre-wrap; overflow-wrap: anywhere; word-break: break-word; }
-.command { max-height: 240px; overflow: auto; padding: 10px; border-radius: 6px; background: var(--bg-hover, var(--ant-color-fill-tertiary, #85858518)); font-size: 12px; }
-.choices { display: flex; flex-direction: column; gap: 8px; }
-.choices :global(.ant-radio-wrapper) { white-space: normal; overflow-wrap: anywhere; align-items: flex-start; }
-.operation { min-width: 0; max-width: 100%; }
-.actions { display: flex; flex-wrap: wrap; gap: 8px; }
-.card[data-resolved] { padding-block: 8px; }
+/* The card only groups the ask; its box belongs to the answer area below. */
+.card {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  font-family: var(--font-sans, system-ui, sans-serif);
+  font-size: 13px;
+  font-weight: normal;
+  line-height: 1.5;
+  letter-spacing: normal;
+  text-transform: none;
+  text-align: left;
+  overflow-wrap: anywhere;
+}
 
-.header a { color: var(--accent, var(--ant-color-primary, #83c99e)); }
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 12px;
+  min-width: 0;
+}
+
+.header a {
+  font-size: 12px;
+}
+
+.status {
+  color: var(--text-muted, var(--ant-color-text-secondary, #94aa9a));
+  font-size: 12px;
+}
+
+.error {
+  min-width: 0;
+  max-width: 100%;
+  color: var(--accent-danger, #d4380d);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+/* The answer area draws no box of its own: every branch (single operation,
+   approval list, native HTML form) brings its own border and background. */
+.content {
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* One answer area = one surface, matching the native HTML form panel. */
+.panel {
+  min-width: 0;
+  max-width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--line-soft, var(--ant-color-border, #85858544));
+  border-radius: 10px;
+  background: var(--bg-card, var(--ant-color-bg-container, transparent));
+}
+
+.content>*,
+.content :global(.ant-form-item-control),
+.content :global(.ant-form-item-control-input),
+.content :global(.ant-form-item-control-input-content) {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.content :global(.ant-form-item) {
+  margin-bottom: 12px;
+}
+
+.content :global(.ant-select),
+.content :global(.ant-input-number) {
+  width: 100%;
+}
+
+.command,
+.fieldLabel {
+  margin: 4px 0 10px;
+  max-width: 100%;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.command {
+  max-height: 240px;
+  overflow: auto;
+  padding: 10px;
+  border-radius: 6px;
+  background: var(--bg-hover, var(--ant-color-fill-tertiary, #85858518));
+  font-size: 12px;
+}
+
+.choices {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.choices :global(.ant-radio-wrapper) {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  align-items: flex-start;
+}
+
+.operation {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.header a {
+  color: inherit;
+  font-weight: 500;
+  text-decoration: underline;
+  text-decoration-color: var(--line-soft);
+  text-underline-offset: 2px;
+  &:hover{
+    color: var(--accent);
+    text-decoration-color: currentColor;
+  }
+}

@@ -1,3 +1,4 @@
+import type { EventDetailLevel } from "@/shared/data/eventDetailLevel";
 import { t } from "@/shared/i18n";
 import { getI18nRuntimeConfig } from "@/shared/i18n/runtime";
 import { createCompactId } from "@/shared/utils/compactId";
@@ -44,7 +45,7 @@ interface WsRequestFrame {
 	frame: "request";
 	type: string;
 	id: string;
-	detail?: "simple" | "detailed";
+	detail?: EventDetailLevel;
 	payload?: unknown;
 }
 

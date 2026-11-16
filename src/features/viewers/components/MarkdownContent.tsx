@@ -1,3 +1,4 @@
+import { useDesktopArtifactDrag } from "@/shared/ui/useDesktopArtifactDrag";
 import React, {
   useMemo,
   useCallback,
@@ -11,6 +12,7 @@ import {
   hasFileAlias,
   type ResourceUrlClassification,
 } from "@/shared/data";
+import { resolveDocumentRelativeLink, type DocumentLinkBase } from "@/shared/utils/fileAddress";
 import { MarkdownCode, type ConversationMarkdownCodeProps } from "@/features/viewers/components/MarkdownCode";
 import {
   ConversationMarkdown,
@@ -55,6 +57,8 @@ export interface MarkdownContentProps {
   chatId: string;
   agentKey?: string;
   teamChat?: boolean;
+  /** Set only for a document with a trusted source; relative links resolve against it. */
+  linkBase?: DocumentLinkBase;
   onWorkspaceFileLinkClick?: (link: WorkspaceFileLink) => void;
   onResourceFileLinkClick?: (link: ResourceFileLink) => void;
   onWebLinkClick?: (link: MarkdownWebLink) => void;
@@ -123,6 +127,7 @@ function workspaceFileAddress(link: WorkspaceFileLink): string {
 type AuthAnchorProps = React.AnchorHTMLAttributes<HTMLAnchorElement> & {
   chatId: string;
   teamChat: boolean;
+  linkBase?: DocumentLinkBase;
   onWorkspaceFileLinkClick?: (link: WorkspaceFileLink) => void;
   onResourceFileLinkClick?: (link: ResourceFileLink) => void;
   onWebLinkClick?: (link: MarkdownWebLink) => void;
@@ -156,6 +161,7 @@ const AuthAnchor: React.FC<AuthAnchorProps> = (props) => {
     children,
     chatId,
     teamChat,
+    linkBase,
     onWorkspaceFileLinkClick,
     onResourceFileLinkClick,
     onWebLinkClick,
@@ -164,7 +170,9 @@ const AuthAnchor: React.FC<AuthAnchorProps> = (props) => {
   } = props;
   const message = useAppMessage();
   // The Markdown renderer passes file targets literally.
-  const href = String(markdownHref || "").trim();
+  const writtenHref = String(markdownHref || "").trim();
+  const href = resolveDocumentRelativeLink(writtenHref, linkBase) ?? writtenHref;
+  const artifactDrag = useDesktopArtifactDrag(chatId, undefined, href, true, status => { void message.info(t(`attachments.exportDrag.${status}`)); });
   const [downloading, setDownloading] = useState(false);
   const contextTargetId = React.useId();
   const classified = useMemo(
@@ -315,6 +323,7 @@ const AuthAnchor: React.FC<AuthAnchorProps> = (props) => {
     <a
       ref={contextTargetRef}
       {...rest}
+      {...artifactDrag.props}
       href={unavailableReason ? undefined : href}
       {...(unavailableReason ? { title: unavailableReason, "aria-disabled": true } : {})}
       onClick={handleClick}
@@ -333,6 +342,8 @@ type AuthImageProps = MarkdownImageProps & {
 const AuthImage: React.FC<AuthImageProps> = (props) => {
   const { src, chatId, agentKey, teamChat, alt, ...rendererProps } = props;
   const { t } = useI18n();
+  const message = useAppMessage();
+  const artifactDrag = useDesktopArtifactDrag(chatId, undefined, src || "", true, status => { void message.info(t(`attachments.exportDrag.${status}`)); });
   const resolved = useAuthenticatedResourceUrl(src, chatId, { teamChat, ...(agentKey ? { agentKey } : {}) });
   const contextTargetId = React.useId();
   const authenticatedResource = useMemo(
@@ -366,9 +377,10 @@ const AuthImage: React.FC<AuthImageProps> = (props) => {
   // antd Image 把点击收在包裹层用于打开预览，markdown 透传的 img onClick 不再适用。
   const { onClick: _rendererOnClick, ...imageProps } = sanitizeMarkdownImageProps(rendererProps);
   return (
-    <div ref={contextTargetRef} className="tw:inline-block">
+    <div {...artifactDrag.props} ref={contextTargetRef} className="tw:inline-block">
       <Image
         {...imageProps}
+        draggable={artifactDrag.available ? false : undefined}
         src={resolved.url}
         alt={alt || ""}
         // 预览必须用鉴权后的 Blob URL，直接用 markdown src 会 401。
@@ -480,6 +492,7 @@ export const MarkdownContent: React.FC<MarkdownContentProps> = ({
   chatId,
   agentKey,
   teamChat = false,
+  linkBase,
   onWorkspaceFileLinkClick,
   onResourceFileLinkClick,
   onWebLinkClick,
@@ -491,21 +504,27 @@ export const MarkdownContent: React.FC<MarkdownContentProps> = ({
             {...anchorProps}
             chatId={chatId}
             teamChat={teamChat}
+            linkBase={linkBase}
             onWorkspaceFileLinkClick={onWorkspaceFileLinkClick}
             onResourceFileLinkClick={onResourceFileLinkClick}
             onWebLinkClick={onWebLinkClick}
           />
         ),
-        img: (imageProps: React.ImgHTMLAttributes<HTMLImageElement>) =>
-          isMarkdownVideoSource(imageProps.src) ? (
+        img: (rawImageProps: React.ImgHTMLAttributes<HTMLImageElement>) => {
+          const imageProps = {
+            ...rawImageProps,
+            src: resolveDocumentRelativeLink(rawImageProps.src, linkBase) ?? rawImageProps.src,
+          };
+          return isMarkdownVideoSource(imageProps.src) ? (
             <AuthMedia kind="video" {...imageProps} chatId={chatId} agentKey={agentKey} teamChat={teamChat} />
           ) : isMarkdownAudioSource(imageProps.src) ? (
             <AuthMedia kind="audio" {...imageProps} chatId={chatId} agentKey={agentKey} teamChat={teamChat} />
           ) : (
             <AuthImage {...imageProps} chatId={chatId} agentKey={agentKey} teamChat={teamChat} />
-          ),
+          );
+        },
       }),
-    [agentKey, chatId, onResourceFileLinkClick, onWebLinkClick, onWorkspaceFileLinkClick, teamChat],
+    [agentKey, chatId, linkBase, onResourceFileLinkClick, onWebLinkClick, onWorkspaceFileLinkClick, teamChat],
   );
 
   const previewContext = useMemo(() => ({ agentKey: agentKey || "", chatId }), [agentKey, chatId]);

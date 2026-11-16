@@ -7,6 +7,7 @@ import {
   openDesktopPath,
 } from "@/shared/data/desktop/desktopFileSystem";
 import { useOptionalAppContext } from "@/app/state/AppContext";
+import { parentDirectory } from "@/features/project/lib/filePathDirectory";
 import { UiButton } from "@/shared/ui/UiButton";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 
@@ -19,11 +20,6 @@ const FILE_DIFF_PATH_TEXT_CLASS_NAME =
 const FILE_DIFF_PATH_CLICKABLE_CLASS_NAME =
   "tw:hover:underline tw:cursor-pointer";
 
-function dirname(filePath: string): string {
-  const lastSlash = filePath.lastIndexOf("/");
-  return lastSlash > 0 ? filePath.slice(0, lastSlash) : "";
-}
-
 export const FileDiffView: React.FC<{
   filePath: string;
   original: string;
@@ -31,7 +27,7 @@ export const FileDiffView: React.FC<{
 }> = ({ filePath, original, current }) => {
   const appContext = useOptionalAppContext();
   const canOpen = canUseDesktopFileSystemBridge();
-  const dirPath = useMemo(() => dirname(filePath), [filePath]);
+  const dirPath = useMemo(() => parentDirectory(filePath), [filePath]);
 
   const appendDebug = useCallback(
     (line: string) => {

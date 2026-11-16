@@ -59,7 +59,12 @@ describe("HTML element review bridge", () => {
 
   function action(
     target: { parent: unknown; token: string },
-    input: Partial<{ enabled: boolean; locked: boolean; annotations: unknown[] }> = {},
+    input: Partial<{
+      enabled: boolean;
+      locked: boolean;
+      pending: { fullXPath: string } | null;
+      annotations: unknown[];
+    }> = {},
   ) {
     window.dispatchEvent(new MessageEvent("message", {
       data: {
@@ -67,6 +72,7 @@ describe("HTML element review bridge", () => {
         token: target.token,
         enabled: input.enabled ?? false,
         locked: input.locked ?? false,
+        pending: input.pending ?? null,
         annotations: input.annotations ?? [],
       },
       source: window,
@@ -158,6 +164,35 @@ describe("HTML element review bridge", () => {
       cancelable: true,
     }));
     expect(bridge.messages.some((message) => message.payload.event === "escape")).toBe(true);
+    action(bridge, { enabled: false });
+  });
+
+  it("draws the pending element as a solid numbered box and streams its viewport rect", async () => {
+    const bridge = boot();
+    action(bridge, { enabled: true });
+    pointer("pointerdown");
+    pointer("pointerup");
+    const selected = bridge.messages.find((message) => message.payload.event === "html-element-selected");
+    expect(selected?.payload.viewportRect).toEqual({ x: 10, y: 20, width: 200, height: 40 });
+
+    action(bridge, {
+      enabled: true,
+      locked: true,
+      pending: { fullXPath: "/html/body/main/h2" },
+    });
+    await nextFrame();
+
+    const overlay = document.getElementById("__agent_webclient_html_review_overlay__");
+    const boxes = Array.from(overlay?.children ?? []) as HTMLElement[];
+    const solid = boxes.find((node) => node.style.cssText.includes("solid"));
+    expect(solid).toBeDefined();
+    expect(solid?.textContent).toBe("1");
+    const rectMessage = bridge.messages.find((message) => message.payload.event === "pending-rect");
+    expect(rectMessage?.payload.rect).toEqual({ x: 10, y: 20, width: 200, height: 40 });
+
+    action(bridge, { enabled: true, locked: false, pending: null });
+    await nextFrame();
+    expect(overlay?.children).toHaveLength(0);
     action(bridge, { enabled: false });
   });
 

@@ -14,7 +14,7 @@ export function useCompactChooser(onSelect: (level: CompactLevel) => void | Prom
     const dialog = modal.confirm({
       title: t("contextCompact.chooser.title"),
       className: styles.dialog,
-      width: 480,
+      width: 440,
       centered: true,
       icon: null,
       closable: true,

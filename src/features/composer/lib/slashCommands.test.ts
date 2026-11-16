@@ -134,12 +134,13 @@ describe('slashCommands', () => {
     expect(parseDetailSlashInput('/details')).toBeNull();
   });
 
-  it('allows /detail only for loaded idle simple history', () => {
+  it('allows /detail only for loaded idle simple or summary history', () => {
     const idle = {
       streaming: false, chatDetail: "simple" as const, hasLatestQuery: true, isFrontendActive: false, canUsePlanningMode: false,
       canUseVoiceMode: false, hasActiveChat: true, hasCurrentWorker: true, commandOverlayOpen: false, canShowUsage: true,
     };
     expect(isSlashCommandDisabled('detail', idle)).toBe(false);
+    expect(isSlashCommandDisabled('detail', { ...idle, chatDetail: 'summary' })).toBe(false);
     expect(isSlashCommandDisabled('detail', { ...idle, chatDetail: 'detailed' })).toBe(true);
     expect(isSlashCommandDisabled('detail', { ...idle, chatDetail: undefined })).toBe(true);
     expect(isSlashCommandDisabled('detail', { ...idle, commandOverlayOpen: true })).toBe(true);

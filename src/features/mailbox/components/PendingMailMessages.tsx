@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from "react";
-import { Alert, Button, Space, Tag } from "antd";
+import React, { useEffect, useRef, useState } from "react";
+import { Alert, Button } from "antd";
 import { useAppDispatch, useAppState } from "@/app/state/AppContext";
 import { getBackendMode } from "@/shared/config/backendMode";
 import { resolveStorageIdentity } from "@/shared/data/auth/storageIdentity";
@@ -14,6 +14,7 @@ import {
 } from "../lib/userOutbox";
 import type { UserOutboxEntry } from "../lib/userOutbox";
 import styles from "./PendingMailMessages.module.css";
+import { UiButton } from "@/shared/ui/UiButton";
 
 interface MailUpdate {
   toChatId?: string;
@@ -31,6 +32,8 @@ export function PendingMailMessages() {
   const gateway = getBackendMode() === "gateway";
   const connected = state.wsStatus === "connected";
   const [entries, setEntries] = useState<UserOutboxEntry[]>(() => readUserOutbox(scope));
+  const [clipped, setClipped] = useState(false);
+  const listRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const update = () => setEntries(readUserOutbox(scope));
@@ -38,6 +41,22 @@ export function PendingMailMessages() {
     window.addEventListener(userOutboxChanged, update);
     return () => window.removeEventListener(userOutboxChanged, update);
   }, [scope]);
+
+  // The tray is height-capped: keep the newest failure in view and fade the top
+  // edge only while older entries are actually cut off.
+  useEffect(() => {
+    const list = listRef.current;
+    if (!list) return;
+    const sync = () => {
+      list.scrollTop = list.scrollHeight;
+      setClipped(list.scrollHeight - list.clientHeight > 1);
+    };
+    sync();
+    if (typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(sync);
+    observer.observe(list);
+    return () => observer.disconnect();
+  }, [entries, chatId]);
 
   useEffect(() => {
     if (!chatId || gateway) return;
@@ -125,26 +144,40 @@ export function PendingMailMessages() {
     removeUserOutbox(scope, request.requestId);
   };
   return (
-    <div className={styles.messages} aria-live="polite">
+    <div className={styles.messages} ref={listRef} data-clipped={clipped ? "true" : undefined}>
       {visible.map(entry => {
         const status = entry.undelivered ? "undelivered" : "uncertain";
+        const body = entry.request.message
+          || t("mailbox.outbox.referencesOnly", { count: entry.request.references?.length ?? 0 });
         return (
-          <article key={entry.request.requestId} className={styles.message}>
-            <div className={styles.body}>{entry.request.message || t("mailbox.outbox.referencesOnly", { count: entry.request.references?.length ?? 0 })}</div>
-            <Tag>{t(`mailbox.outbox.${status}`)}</Tag>
-            {entry.ignoredOptions?.length ? (
-              <Alert type="info" message={t("mailbox.outbox.ignored", { options: entry.ignoredOptions.join(", ") })} />
-            ) : null}
-            {entry.error && <Alert type="error" message={entry.error} />}
-            {entry.undelivered && (
-              <Space>
-                <Button size="small" onClick={() => resend(entry)}>{t("mailbox.outbox.retry")}</Button>
-                <Button size="small" onClick={() => removeUserOutbox(scope, entry.request.requestId)}>
-                  {t("mailbox.outbox.remove")}
-                </Button>
-              </Space>
+          <Alert
+            key={entry.request.requestId}
+            className={styles.alert}
+            type={entry.undelivered ? "error" : "warning"}
+            showIcon
+            message={t(`mailbox.outbox.${status}`)}
+            description={(
+              <div className={styles.content}>
+                <div className={styles.body}>{body}</div>
+                {entry.error ? <div className={styles.error}>{entry.error}</div> : null}
+                {entry.ignoredOptions?.length ? (
+                  <div className={styles.notice}>
+                    {t("mailbox.outbox.ignored", { options: entry.ignoredOptions.join(", ") })}
+                  </div>
+                ) : null}
+              </div>
             )}
-          </article>
+            action={entry.undelivered ? (
+              <div className={styles.actions}>
+                <UiButton size="mini" variant="ghost" onClick={() => resend(entry)}>
+                  {t("mailbox.outbox.retry")}
+                </UiButton>
+                <UiButton size="mini" variant="ghost" color="danger" onClick={() => removeUserOutbox(scope, entry.request.requestId)}>
+                  {t("mailbox.outbox.remove")}
+                </UiButton>
+              </div>
+            ) : null}
+          />
         );
       })}
     </div>

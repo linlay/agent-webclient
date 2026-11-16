@@ -44,6 +44,7 @@ import {
 import {
 	AGENT_DETACH_RUN_EVENT,
 } from "@/features/runs/lib/runControlEvents";
+import { isChatTransitionPending } from "@/features/conversation/lib/chatTransition";
 import {
 	createLiveQuerySession,
 	type LiveQuerySession,
@@ -233,6 +234,7 @@ interface ConversationPushHandlerOptions {
 	activeAttachRef?: { current: ActiveAttachState | null };
 	handleEvent: (event: AgentEvent) => void;
 	cursorRecovery?: Pick<AttachCursorRecovery, "nudge">;
+	requestAwaitingReconcile?: (chatId: string, awaitingId: string) => void;
 }
 
 function appendWsDebug(dispatch: WsTransportDispatch, line: string): void {
@@ -783,6 +785,40 @@ export function registerDetachRunListener(
 	};
 }
 
+/**
+ * A chat-level `awaiting.asking` Push never builds the Composer card by itself:
+ * the run stream owns the actionable state. When the current Chat is not
+ * attached to the asking Run (or an earlier attach missed the ask), reload the
+ * authoritative Chat so replay + reconciliation can restore the card.
+ */
+function requestAwaitingReconcileForPush(
+	options: ConversationPushHandlerOptions,
+	event: AgentEvent,
+	eventChatId: string,
+): void {
+	const awaitingId = toText((event as Record<string, unknown>).awaitingId);
+	if (!awaitingId || !options.requestAwaitingReconcile) {
+		return;
+	}
+	const state = options.stateRef.current;
+	if (toText(state.chatId) !== eventChatId || isChatTransitionPending(state.chatTransition)) {
+		return;
+	}
+	const runId = toText(event.runId);
+	const hasAwaiting = (Boolean(state.activeAwaiting)
+		&& (state.activeAwaiting?.awaitingId === awaitingId
+			|| Boolean(runId) && state.activeAwaiting?.runId === runId))
+		|| (state.pendingAwaitings ?? []).some((item) => item.awaitingId === awaitingId);
+	if (hasAwaiting) {
+		return;
+	}
+	const attach = options.activeAttachRef?.current;
+	if (attach?.chatId === eventChatId && (!runId || attach.runId === runId)) {
+		return;
+	}
+	options.requestAwaitingReconcile(eventChatId, awaitingId);
+}
+
 export function createConversationPushHandler(
 	options: ConversationPushHandlerOptions,
 ): (frame: WsPushFrame) => void {
@@ -997,10 +1033,11 @@ export function createConversationPushHandler(
 			isAwaitingAskPushEvent(type) || isAwaitingAnswerPushEvent(type);
 		if (isAwaitingPushEvent) {
 			upsertPushChatSummary(options.dispatch, liveEvent);
-			// The Run asking means its earlier steps are persisted, so a pending
-			// cursor recovery can now load a cursor Platform still retains.
 			if (isAwaitingAskPushEvent(type) && eventChatId) {
+				// The Run asking means its earlier steps are persisted, so a pending
+				// cursor recovery can now load a cursor Platform still retains.
 				options.cursorRecovery?.nudge(eventChatId);
+				requestAwaitingReconcileForPush(options, liveEvent, eventChatId);
 			}
 			return;
 		}
@@ -1080,6 +1117,16 @@ export function useConversationWsRuntime(options: {
 	}), [stateRef]);
 	useEffect(() => () => cursorRecovery.cancel(), [cursorRecovery]);
 
+	const awaitingReconcileRequestedRef = useRef<Set<string>>(new Set());
+	const requestAwaitingReconcile = useCallback((chatId: string, awaitingId: string) => {
+		const key = `${chatId}#${awaitingId}`;
+		if (awaitingReconcileRequestedRef.current.has(key)) return;
+		awaitingReconcileRequestedRef.current.add(key);
+		window.dispatchEvent(new CustomEvent("agent:load-chat", {
+			detail: { chatId, forceReload: true, focusComposerOnComplete: false },
+		}));
+	}, []);
+
 	const handlePush = useMemo(() => createConversationPushHandler({
 		dispatch,
 		stateRef,
@@ -1088,11 +1135,13 @@ export function useConversationWsRuntime(options: {
 		activeAttachRef,
 		handleEvent: stableHandleEvent,
 		cursorRecovery,
+		requestAwaitingReconcile,
 	}), [
 		activeQuerySessionRequestIdRef,
 		cursorRecovery,
 		dispatch,
 		querySessionsRef,
+		requestAwaitingReconcile,
 		stableHandleEvent,
 		stateRef,
 	]);

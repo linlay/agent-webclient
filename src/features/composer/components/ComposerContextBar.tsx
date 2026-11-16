@@ -9,6 +9,7 @@ import styles from "./ComposerContextBar.module.css";
 
 interface ComposerContextBarProps {
   agents: readonly Agent[];
+  currentAgent?: Agent | null;
   workerRows?: WorkerRow[];
   currentAgentKey: string;
   currentWorkerName?: string;
@@ -20,6 +21,7 @@ interface ComposerContextBarProps {
 
 export function ComposerContextBar({
   agents,
+  currentAgent: definition,
   workerRows = [],
   currentAgentKey,
   currentWorkerName,
@@ -29,7 +31,7 @@ export function ComposerContextBar({
   onSelectAgent,
 }: ComposerContextBarProps) {
   const { t } = useI18n();
-  const currentAgent = agents.find((agent) => agent.key === currentAgentKey);
+  const currentAgent = definition?.key === currentAgentKey ? definition : null;
   const displayName = currentAgent?.name || currentWorkerName || currentAgentKey || t("composer.context.selectAgent");
   const currentWorker = currentAgentKey ? {
     type: "agent" as const, sourceId: currentAgentKey, displayName,

@@ -42,10 +42,7 @@ export function useAgentAvailability(agentKey: string, _chatId: string) {
       } finally { clearTimeout(timer); }
     }, () => invalidateAgentDetail(agentKey), data => {
       if (session !== getDataSessionRevision()) return;
-      const agents = stateRef.current.agents;
-      const definition = { ...data } as unknown as Agent;
-      dispatch({ type: "SET_AGENTS", agents: agents.some(agent => agent.key === agentKey)
-        ? agents.map(agent => agent.key === agentKey ? { ...agent, ...definition } : agent) : [...agents, definition] });
+      dispatch({ type: "SET_CURRENT_AGENT", agent: { ...data } as unknown as Agent });
       publish("available");
     }, error => { if (session === getDataSessionRevision()) publish(classifyAgentAvailabilityError(error)); }, changed);
   }, [agentKey, dispatch, session, stateRef]);
@@ -54,6 +51,7 @@ export function useAgentAvailability(agentKey: string, _chatId: string) {
     previousSession.current = session;
     if (changed) { invalidateAgentDetail(); dispatch({ type: "CLEAR_AGENT_AVAILABILITY" }); }
     if (changed && agentKey) dispatch({ type: "SET_AGENT_AVAILABILITY", agentKey, status: "checking" });
+    if (stateRef.current.currentAgent?.key !== agentKey) dispatch({ type: "SET_CURRENT_AGENT", agent: null });
     refresh(changed);
     return () => { if (agentKey) agentRefresh(stateRef, agentKey).cancel(() => undefined); };
   }, [refresh, session, agentKey, dispatch]);

@@ -149,12 +149,6 @@ export const SystemAlert: React.FC<{
       : copyState === "error"
         ? t("timeline.systemAlert.copy.failed")
         : t("timeline.systemAlert.copy.action");
-  const copyTooltip =
-    copyState === "copied"
-      ? t("timeline.systemAlert.copy.copied")
-      : copyState === "error"
-        ? t("timeline.systemAlert.copy.failed")
-        : t("timeline.systemAlert.copy.tooltip");
 
   return (
     <div
@@ -180,17 +174,15 @@ export const SystemAlert: React.FC<{
             {text}
           </div>
         )}
-        <Tooltip title={copyTooltip}>
-          <UiButton
-            className={presentationClasses("system-alert-copy-btn")}
-            variant="ghost"
-            size="mini"
-            onClick={handleCopy}
-            aria-label={copyLabel}
-          >
-            {copyLabel}
-          </UiButton>
-        </Tooltip>
+        <UiButton
+          className={presentationClasses("system-alert-copy-btn")}
+          variant="ghost"
+          size="mini"
+          onClick={handleCopy}
+          aria-label={copyLabel}
+        >
+          {copyLabel}
+        </UiButton>
       </Flex>
       {showDetails && (
         <details className={presentationClasses("system-alert-details")}>

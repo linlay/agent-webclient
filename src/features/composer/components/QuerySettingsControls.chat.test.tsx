@@ -12,12 +12,15 @@ import { resolveComposerAccessScope } from "../lib/composerAccessLevel";
 import { interactionDefaults } from "@/shared/contracts/interaction";
 import { updateAgentModelConfig } from "@/shared/data";
 
+const mockSuccess = jest.fn();
+const mockError = jest.fn();
+jest.mock("@/shared/ui/useAppMessage", () => ({ useAppMessage: () => ({ success: mockSuccess, error: mockError }) }));
 let mockModelAllowed = true;
 let mockAccessMenu: any;
 let mockContext: { state: AppState; dispatch: React.Dispatch<AppAction> };
 jest.mock("@/app/state/AppContext", () => ({ useAppContext: () => mockContext }));
 jest.mock("@/features/workers/lib/currentWorker", () => ({ resolveCurrentWorkerSummary: () => ({
-  type: "agent", sourceId: "agent", raw: mockContext.state.agents[0],
+  type: "agent", sourceId: "agent", raw: mockContext.state.currentAgent,
 }) }));
 jest.mock("@/shared/i18n", () => ({ useI18n: () => ({ t: (key: string) => key }) }));
 jest.mock("@/shared/data", () => ({
@@ -36,6 +39,7 @@ jest.mock("antd", () => {
 function Harness({ access = "ask_for_approval", defaultLevel = "ask_for_approval" }: { access?: import("@/shared/data").QueryAccessLevel; defaultLevel?: import("@/shared/data").QueryAccessLevel } = {}) {
   const [state, dispatch] = useReducer(appReducer, undefined, () => ({ ...createInitialState(),
     agents: [{ key: "agent", name: "Agent", mode: "GENERAL", modelKey: "old-model", reasoningEffort: "LOW" as const }],
+    currentAgent: { key: "agent", name: "Agent", mode: "GENERAL", modelKey: "old-model", reasoningEffort: "LOW" as const },
   }));
   mockContext = { state, dispatch };
   const target = useMemo(() => ({ scope: resolveComposerAccessScope(state.accessToken), chatId: state.chatId, agentKey: "agent" }), [state.chatId, state.accessToken]);
@@ -48,6 +52,7 @@ let root: Root;
 beforeAll(() => { (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true; });
 beforeEach(() => {
   mockModelAllowed = true;
+  mockSuccess.mockClear(); mockError.mockClear();
   sessionStorage.clear(); clearCoderModelOptionsCacheForTest();
   (updateAgentModelConfig as jest.Mock).mockReset().mockImplementation(async input => ({ data: { agentKey: "agent", ...input } }));
   container = document.createElement("div"); document.body.appendChild(container); root = createRoot(container);
@@ -105,4 +110,39 @@ it("keeps the Chat preference while model capability is temporarily unavailable"
   expect(container.textContent).toContain("composer.query.access.full_access");
   expect(container.textContent).not.toContain("followLabel");
   expect(container.textContent).not.toContain("agent_default");
+});
+
+it("uses server-confirmed New Chat settings without writing a Composer model copy", async () => {
+  await act(async () => root.render(<Harness />));
+  expect(container.textContent).toContain("Old Model");
+  (updateAgentModelConfig as jest.Mock).mockResolvedValueOnce({ data: {
+    agentKey: "agent", modelKey: "new-model", reasoningEffort: "LOW", serviceTier: "FAST",
+  } });
+  await click("reasoning");
+  expect(updateAgentModelConfig).toHaveBeenCalledWith(expect.objectContaining({ agentKey: "agent", reasoningEffort: "HIGH" }));
+  expect(container.textContent).toContain("New Model");
+  expect(container.textContent).toContain("composer.query.reasoning.LOW");
+  expect(readComposerModel(mockContext.state, { scope: "", chatId: "", agentKey: "agent" })).toEqual({
+    key: "new-model", reasoningEffort: "LOW", serviceTier: "FAST",
+  });
+  expect(mockContext.state.modelByChatId).toEqual({});
+  expect(mockContext.state).not.toHaveProperty("newChatModelByAgentKey");
+});
+
+it("shows a saved-default hint only after a successful New Chat save", async () => {
+  await act(async () => root.render(<Harness />));
+  await click("model"); await click("reasoning");
+  expect(mockSuccess).toHaveBeenCalledTimes(2);
+  expect(mockSuccess).toHaveBeenLastCalledWith("composer.query.model.savedAsDefault");
+  await loadOld(); await click("reasoning");
+  expect(mockSuccess).toHaveBeenCalledTimes(2);
+});
+
+it("does not show a saved-default hint when saving fails", async () => {
+  (updateAgentModelConfig as jest.Mock).mockRejectedValueOnce(new Error("save failed"));
+  await act(async () => root.render(<Harness />));
+  await click("model");
+  expect(mockSuccess).not.toHaveBeenCalled();
+  expect(mockError).toHaveBeenCalledWith("save failed");
+  expect(container.textContent).toContain("Old Model");
 });

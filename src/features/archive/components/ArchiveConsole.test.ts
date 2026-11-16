@@ -1,7 +1,4 @@
-import {
-	buildArchiveBulkCandidates,
-	extractArchivePreviewLines,
-} from "@/features/archive/lib/archiveViewModel";
+import { buildArchiveBulkCandidates } from "@/features/archive/lib/archiveViewModel";
 
 describe("buildArchiveBulkCandidates", () => {
 	it("selects chats older than the cutoff", () => {
@@ -84,22 +81,5 @@ describe("buildArchiveBulkCandidates", () => {
 
 		expect(candidates).toHaveLength(1);
 		expect(candidates[0].lastRunAt).toBe(100);
-	});
-});
-
-describe("extractArchivePreviewLines", () => {
-	it("builds readable lines from archived event payloads", () => {
-		const lines = extractArchivePreviewLines({
-			chatId: "chat_1",
-			events: [
-				{ type: "request.query", message: "hello" },
-				{ type: "response.output", content: "world" },
-			],
-		});
-
-		expect(lines).toEqual([
-			{ key: "0-request.query", label: "request.query", text: "hello" },
-			{ key: "1-response.output", label: "response.output", text: "world" },
-		]);
 	});
 });

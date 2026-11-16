@@ -19,8 +19,21 @@ jest.mock("@/features/kbases/lib/kbaseOptions", () => ({
  ...jest.requireActual("@/features/kbases/lib/kbaseOptions"), loadKBaseOptions: (...args: unknown[]) => mockLoadKBaseOptions(...args),
 }));
 const startQuery = jest.fn();
+
+jest.mock("@/shared/data", () => ({
+  ...jest.requireActual("@/shared/data"),
+  getAgent: jest.fn(async (key: string) => ({ data: { key, name: key, mode: "CODER", connectors: [], skills: [], tools: [], controls: [], meta: {} } })),
+}));
+
 // Nonempty params intentionally keep these streaming/legacy query regressions on /api/query.
 function legacyQuery(actions: ReturnType<typeof useMessageActions>, ...args: Parameters<ReturnType<typeof useMessageActions>["sendMessage"]>) {
+  const context = useAppContext.getMockImplementation()?.();
+  const state = context?.stateRef?.current;
+  if (state && !state.currentAgent) {
+    const chat = state.chats.find((item: any) => item.chatId === state.chatId);
+    const key = chat?.agentKey || state.chatAgentById.get(state.chatId) || args[7] || state.pendingNewChatAgentKey || state.workerSelectionKey?.replace(/^agent:/, "");
+    if (key) state.currentAgent = state.agents.find((item: any) => item.key === key) || { key, name: key, mode: "CODER" };
+  }
   const [message, references = [], attachments = [], params = {}, ...rest] = args;
   return actions.sendMessage(message, references, attachments, { ...params, compatibilityQuery: true }, ...rest);
 }
@@ -863,7 +876,7 @@ describe("required libraries through message actions", () => {
  it("validates the actual leading mention target and freezes multi-library/plan query input", async () => {
   const {stateRef, actions} = harness();
   stateRef.current.planningMode = true;
-  stateRef.current.agents.push({key: "team", name: "Team", mode: "TEAM", teamConfig: {members: ["mentioned"]}});
+  stateRef.current.currentAgent = {key: "team", name: "Team", mode: "TEAM", teamConfig: {members: ["mentioned"]}};
   stateRef.current.workerSelectionKey = "agent:team";
   stateRef.current.workerIndexByKey.set("agent:team", {key: "agent:team", sourceId: "team", type: "agent"} as any);
   const ids = ["a", "b"];

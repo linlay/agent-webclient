@@ -1,6 +1,6 @@
 import { consumeUserOutbox } from "@/features/mailbox/lib/userOutbox";
 import { resolveStorageIdentity } from "@/shared/data/auth/storageIdentity";
-import { normalizeEventDetailLevel } from "@/shared/data/eventDetailLevel";
+import { isEventDetailLevel, normalizeEventDetailLevel } from "@/shared/data/eventDetailLevel";
 import { recordRenderBreadcrumb } from "@/shared/utils/renderDiagnostics";
 import { useCallback, useEffect, useRef } from "react";
 import { useAppContext } from "@/app/state/AppContext";
@@ -556,7 +556,7 @@ export function useConversationEventHandler(): {
       if (type === "run.start") {
         const runStartChatId = toText(event.chatId);
         const display = event.display as { defaultDetail?: unknown; effectiveDetail?: unknown } | undefined;
-        if (runStartChatId && display && (display.defaultDetail === "simple" || display.defaultDetail === "detailed")) {
+        if (runStartChatId && display && isEventDetailLevel(display.defaultDetail)) {
           dispatch({ type: "UPSERT_CHAT", chat: { chatId: runStartChatId, display: {
             defaultDetail: display.defaultDetail,
             effectiveDetail: normalizeEventDetailLevel(display.effectiveDetail),

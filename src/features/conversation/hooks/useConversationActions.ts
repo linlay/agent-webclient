@@ -836,10 +836,6 @@ export function useConversationActions() {
             const restoredModel = resolveChatModel(
               usageSnapshot ? [...rs.events, usageSnapshot] : rs.events, chatId,
             );
-            if (restoredModel) {
-              dispatch({ type: "SYNC_COMPOSER_MODEL", chatId,
-                value: restoredModel, initializeOnly: true });
-            }
 
             /* Dispatch the complete replay result as a single replay transaction */
             dispatch({
@@ -871,6 +867,10 @@ export function useConversationActions() {
                 downvotedRunKeys,
               },
             });
+            if (restoredModel) {
+              dispatch({ type: "SYNC_COMPOSER_MODEL", chatId,
+                value: restoredModel, initializeOnly: true });
+            }
             if (runAccessLevel) {
               dispatch({
                 type: "SYNC_COMPOSER_ACCESS_LEVEL",

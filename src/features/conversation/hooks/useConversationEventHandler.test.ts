@@ -657,6 +657,8 @@ describe('useConversationEventHandler live chat binding', () => {
       renderToStaticMarkup(React.createElement(Harness));
       handler!.handleEvent({type:'run.start',chatId:'chat_1',runId:'run_1',agentKey:'cutej',timestamp:100,display:{defaultDetail:'simple',effectiveDetail:'detailed'}});
       expect(stateRef.current.chats[0]).toMatchObject({agentKey:'cutej',display:{defaultDetail:'simple',effectiveDetail:'detailed'}});
+      handler!.handleEvent({type:'run.start',chatId:'chat_1',runId:'run_summary',agentKey:'cutej',timestamp:101,display:{defaultDetail:'summary',effectiveDetail:'summary'}});
+      expect(stateRef.current.chats[0]).toMatchObject({display:{defaultDetail:'summary',effectiveDetail:'summary'}});
       handler!.handleEvent({type:'run.start',chatId:'other',runId:'run_2',timestamp:101,display:{defaultDetail:'detailed',effectiveDetail:'detailed'}});
       expect(stateRef.current.chats).toHaveLength(1);
     } finally {restoreWindow();}

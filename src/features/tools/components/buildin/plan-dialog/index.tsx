@@ -38,7 +38,7 @@ export const PlanDialog: React.FC<PlanDialogProps> = ({
 }) => {
   const { t } = useI18n();
   const app = useOptionalAppContext();
-  const [executionAccessLevel, setExecutionAccessLevel] = useState(app?.state.agents.find(agent => agent.key === data.agentKey)?.defaultAccessLevel);
+  const [executionAccessLevel, setExecutionAccessLevel] = useState((app?.state.currentAgent?.key === data.agentKey ? app.state.currentAgent.defaultAccessLevel : undefined));
   const refreshExecutionAccess = useCallback(async () => {
     if (!app || !data.agentKey) return;
     invalidateAgentDetail(data.agentKey);

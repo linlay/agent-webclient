@@ -1,3 +1,93 @@
-.messages { display: flex; flex-direction: column; gap: 8px; padding: 8px 20px; max-height: 30vh; overflow-y: auto; }
-.message { align-self: flex-end; max-width: min(680px, 100%); padding: 12px 16px; border-radius: 12px; background: var(--ant-color-fill-tertiary); }
-.body { white-space: pre-wrap; overflow-wrap: anywhere; margin-bottom: 6px; }
+/* Rendered inside .bottom-dock-inner, directly above the composer: the tray is
+   exactly as wide as the input and never draws its own scrollbar. */
+.messages {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  /* Keep the dock bounded on short windows; the newest failure stays in view
+     via the scroll-to-bottom effect below. */
+  max-height: max(160px, 40vh);
+  min-height: 0;
+  padding-bottom: 6px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+}
+
+.messages::-webkit-scrollbar {
+  display: none;
+}
+
+/* Signal cut-off older entries without drawing a scrollbar. */
+.messages[data-clipped] {
+  mask-image: linear-gradient(to bottom, transparent 0, #000 16px);
+}
+
+.messages > .alert {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 12px;
+  align-items: flex-start;
+}
+
+.messages > .alert :global(.ant-alert-icon) {
+  margin: 2px 8px 0 0;
+  font-size: 15px;
+}
+
+.messages > .alert :global(.ant-alert-message) {
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 20px;
+}
+
+.messages > .alert :global(.ant-alert-description) {
+  line-height: 1.6;
+}
+
+.messages > .alert :global(.ant-alert-action) {
+  align-self: flex-start;
+  margin-inline-start: 16px;
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.body {
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.error,
+.notice {
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.error {
+  color: var(--accent-danger, #f53f3f);
+}
+
+.notice {
+  color: var(--ink-muted, #86909c);
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+/* Keep recovery actions as text links: the row must not read as a toolbar. */
+.actions :global(.ant-btn) {
+  height: 20px;
+  padding: 0;
+  font-size: 12px;
+  line-height: 20px;
+}

@@ -82,8 +82,8 @@ it("persists only the explicit detail override and supports restoring mode inher
  const form = formFromDetail(detail as Parameters<typeof formFromDetail>[0]);
  const translate = ((key:string) => key) as Parameters<typeof buildDefinition>[2];
  expect(buildDefinition(form,definition,translate)).not.toHaveProperty("interactionConfig");
- form.interactionConfig = {defaultDetail:"simple",showTerminal:false};
- expect(buildDefinition(form,definition,translate).interactionConfig).toEqual({defaultDetail:"simple",showTerminal:false});
+ form.interactionConfig = {defaultDetail:"summary",showTerminal:false};
+ expect(buildDefinition(form,definition,translate).interactionConfig).toEqual({defaultDetail:"summary",showTerminal:false});
  delete form.interactionConfig.defaultDetail;
  expect(buildDefinition(form,definition,translate).interactionConfig).toEqual({showTerminal:false});
 });

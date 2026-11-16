@@ -9,6 +9,7 @@ import {
 import { resolveConversationDisplayTitle } from "@/features/chats/lib/chatListFormatter";
 import type { MaterialIconName } from "@/shared/icons/material";
 import { toText } from "@/shared/utils/eventUtils";
+import { awaitingStatusLabelKey } from "@/shared/i18n/awaitingStatus";
 
 export type GlobalRowSection =
   | "awaiting"
@@ -83,21 +84,6 @@ const HISTORY_RESULT_LIMIT = 10;
 function readSortTimestamp(value: unknown): number {
   const timestamp = typeof value === "number" ? value : Number(value);
   return Number.isFinite(timestamp) ? timestamp : 0;
-}
-
-function getAwaitingStatusKey(mode?: string): string {
-  switch (mode) {
-    case "plan":
-      return "leftSidebar.awaitingStatus.plan";
-    case "question":
-      return "leftSidebar.awaitingStatus.question";
-    case "approval":
-      return "leftSidebar.awaitingStatus.approval";
-    case "form":
-      return "leftSidebar.awaitingStatus.form";
-    default:
-      return "leftSidebar.awaitingApproval";
-  }
 }
 
 function readAgentKey(chat: Partial<Chat> | null | undefined): string {
@@ -261,7 +247,7 @@ function toHistoryRow(input: {
     isUnread: candidate.isRead === false,
     hasPendingAwaiting: candidate.hasPendingAwaiting,
     statusLabel: candidate.hasPendingAwaiting
-      ? t(getAwaitingStatusKey(candidate.awaitingMode))
+      ? t(awaitingStatusLabelKey(candidate.awaitingMode))
       : undefined,
     hasActiveRun: candidate.hasActiveRun,
   };

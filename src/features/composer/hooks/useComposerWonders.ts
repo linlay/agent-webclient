@@ -7,7 +7,7 @@ import {
 } from "@/features/composer/lib/wonders";
 
 interface UseComposerWondersInput {
-  agents: AppState["agents"];
+  currentAgent: AppState["currentAgent"];
   currentAgentKey: string;
   isBlankConversation: boolean;
   showWonders?: boolean;
@@ -21,7 +21,7 @@ export function shouldLoadComposerAgentDetails(
 }
 
 export function useComposerWonders(input: UseComposerWondersInput) {
-  const { agents, currentAgentKey, isBlankConversation, showWonders = true } = input;
+  const { currentAgent, currentAgentKey, isBlankConversation, showWonders = true } = input;
   const blankWonderSignatureRef = useRef("");
   const wasBlankConversationRef = useRef(false);
   const [sampledWonders, setSampledWonders] = useState<string[]>([]);
@@ -31,15 +31,13 @@ export function useComposerWonders(input: UseComposerWondersInput) {
     if (!currentAgentKey) {
       return [];
     }
-    const agent = agents.find(
-      (item) => String(item?.key || "").trim() === currentAgentKey,
-    );
+    const agent = currentAgent?.key === currentAgentKey ? currentAgent : null;
     const fromState = normalizeWonders(agent?.wonders);
     if (fromState.length > 0) {
       return fromState;
     }
     return normalizeWonders(detail?.wonders);
-  }, [detail, agents, currentAgentKey]);
+  }, [detail, currentAgent, currentAgentKey]);
 
   useEffect(() => {
     const signature = currentAgentKey

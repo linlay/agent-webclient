@@ -1,5 +1,6 @@
 import {
   HTML_ELEMENT_REVIEW_MAX,
+  HTML_REVIEW_EDITOR_WIDTH,
   buildHtmlElementReviewDocument,
   buildHtmlElementReviewPayload,
   buildHtmlElementReviewScript,
@@ -7,6 +8,8 @@ import {
   createInitialHtmlElementReviewState,
   htmlElementReviewReducer,
   normalizeHtmlElementSelection,
+  normalizeHtmlElementViewportRect,
+  placeHtmlReviewEditor,
   sanitizeHtmlElementText,
   submittableHtmlElementAnnotations,
   type HtmlElementReviewAnnotation,
@@ -89,10 +92,10 @@ describe("html element review", () => {
     const first = normalizeHtmlElementSelection(selection())!;
     state = htmlElementReviewReducer(state, { type: "SET_LIST", open: true });
     expect(state.listOpen).toBe(true);
-    state = htmlElementReviewReducer(state, { type: "SELECT", selection: first });
+    state = htmlElementReviewReducer(state, { type: "SELECT", selection: first, viewportRect: { x: 10, y: 20, width: 200, height: 40 } });
     expect(state.listOpen).toBe(false);
     expect(state.pending?.selection.fullXPath).toBe("/html/body/main/h2");
-    state = htmlElementReviewReducer(state, { type: "SELECT", selection: first });
+    state = htmlElementReviewReducer(state, { type: "SELECT", selection: first, viewportRect: { x: 10, y: 20, width: 200, height: 40 } });
     expect(state.annotations).toHaveLength(0);
 
     state = htmlElementReviewReducer(state, { type: "CONFIRM_PENDING", id: "a1" });
@@ -103,7 +106,7 @@ describe("html element review", () => {
     expect(state.listOpen).toBe(false);
 
     state = htmlElementReviewReducer(state, { type: "START" });
-    state = htmlElementReviewReducer(state, { type: "SELECT", selection: first });
+    state = htmlElementReviewReducer(state, { type: "SELECT", selection: first, viewportRect: { x: 10, y: 20, width: 200, height: 40 } });
     state = htmlElementReviewReducer(state, { type: "PENDING_REQUIREMENT", value: "第二条" });
     state = htmlElementReviewReducer(state, { type: "CONFIRM_PENDING", id: "a2" });
     expect(state.annotations.map((item) => item.number)).toEqual([1, 2]);
@@ -208,7 +211,90 @@ describe("html element review", () => {
     expect(script).toContain("selectstart");
     expect(script).toContain("MutationObserver");
     expect(script).toContain("annotation-invalid");
+    expect(script).toContain("pending-rect");
     expect(script).toContain("token-3");
     expect(script).not.toContain("requirement");
   });
+
+  it("normalizes the pending element viewport rect, allowing negative offsets", () => {
+    expect(normalizeHtmlElementViewportRect({ x: -12, y: 40, width: 320, height: 48 })).toEqual({
+      x: -12,
+      y: 40,
+      width: 320,
+      height: 48,
+    });
+    expect(normalizeHtmlElementViewportRect({ x: 0, y: 0, width: 0, height: 10 })).toBeNull();
+    expect(normalizeHtmlElementViewportRect({ x: 0, y: 0, width: 10, height: 0 })).toBeNull();
+    expect(normalizeHtmlElementViewportRect("nope")).toBeNull();
+  });
+
+  it("updates the pending viewport rect without touching the requirement", () => {
+    let state = createInitialHtmlElementReviewState();
+    state = htmlElementReviewReducer(state, { type: "START" });
+    const firstSelection = normalizeHtmlElementSelection(selection())!;
+    state = htmlElementReviewReducer(state, {
+      type: "SELECT",
+      selection: firstSelection,
+      viewportRect: { x: 10, y: 20, width: 200, height: 40 },
+    });
+    state = htmlElementReviewReducer(state, { type: "PENDING_REQUIREMENT", value: "缩到 12 字" });
+    state = htmlElementReviewReducer(state, {
+      type: "PENDING_RECT",
+      rect: { x: 10, y: 140, width: 200, height: 40 },
+    });
+    expect(state.pending?.viewportRect).toEqual({ x: 10, y: 140, width: 200, height: 40 });
+    expect(state.pending?.requirement).toBe("缩到 12 字");
+    expect(state.pending?.selection.fullXPath).toBe("/html/body/main/h2");
+  });
+
+  it("prefers the element's top-left corner and never covers it", () => {
+    const target = { x: 120, y: 300, width: 300, height: 60 };
+    // Height is content-driven; the placement maths takes it as an input.
+    const size = { width: HTML_REVIEW_EDITOR_WIDTH, height: 46 };
+    const bounds = { width: 900, height: 700 };
+
+    const preferred = placeHtmlReviewEditor({ target, bounds, size });
+    expect(preferred).toEqual({ left: 120, top: 300 - size.height - 8, side: "above" });
+
+    // Element hugging the top edge: move below, still avoiding the element.
+    const below = placeHtmlReviewEditor({
+      target: { ...target, y: 10 },
+      bounds,
+      size,
+    });
+    expect(below.side).toBe("below");
+    expect(below.top).toBe(10 + target.height + 8);
+
+    // Element filling the horizontal band: above/below still avoid it.
+    const wide = placeHtmlReviewEditor({
+      target: { x: 0, y: 260, width: 900, height: 120 },
+      bounds,
+      size,
+    });
+    expect(["above", "below"]).toContain(wide.side);
+    expect(wide.top + size.height <= 260 || wide.top >= 380).toBe(true);
+
+    // Element covering the viewport: clamp inside and report it.
+    const covered = placeHtmlReviewEditor({
+      target: { x: 0, y: 0, width: 900, height: 700 },
+      bounds,
+      size,
+    });
+    expect(covered.side).toBe("clamped");
+    expect(covered.left).toBeGreaterThanOrEqual(8);
+    expect(covered.top).toBeGreaterThanOrEqual(8);
+  });
+
+  it("keeps the editor inside a narrow viewport", () => {
+    const placement = placeHtmlReviewEditor({
+      target: { x: 40, y: 120, width: 120, height: 40 },
+      bounds: { width: 240, height: 300 },
+      size: { width: 220, height: 46 },
+    });
+    expect(["above", "below", "left", "right", "clamped"]).toContain(placement.side);
+    expect(placement.left).toBeGreaterThanOrEqual(8);
+    expect(placement.left + 220).toBeLessThanOrEqual(240 - 8 + 1);
+  });
+
 });
+

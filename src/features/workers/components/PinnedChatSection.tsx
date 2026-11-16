@@ -64,7 +64,7 @@ export function PinnedChatSection({
           ownerLabel={ownerLabel}
           ownerType={ownerType}
           ownerIcon={ownerIcon}
-          ownerPosition="before"
+          pinnedLayout
           isActive={state.chatId === chat.chatId}
           loading={getChatLoading(chat.chatId)}
           onClick={() => {

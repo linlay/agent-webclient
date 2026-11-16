@@ -6,7 +6,7 @@ import React, {
   useState,
 } from "react";
 import styles from "./HistoryModal.module.css";
-import { Flex, Input, InputRef, Tag, Tooltip } from "antd";
+import { Flex, Input, InputRef, Tooltip } from "antd";
 import type { AppState } from "@/app/state/AppContext";
 import type { Chat } from "@/features/chats/lib/chatState";
 import { isChatUnread, normalizeChatReadState } from "@/features/chats/lib/chatReadState";
@@ -33,24 +33,10 @@ import {
   type HistoryDateRange,
 } from "@/features/chats/components/HistoryFilter";
 import { ModalTitleBar } from "@/shared/ui/ModalTitleBar";
+import { AwaitingStatusChip } from "@/shared/ui/AwaitingStatusChip";
+import { StatusChip } from "@/shared/ui/StatusChip";
 import { readEpochMillis } from "@/shared/utils/platformTime";
 import { useChatOperations } from "@/features/chats/hooks/useChatOperations";
-
-function getAwaitingStatusKey(mode?: string): string {
-  switch (mode) {
-    case "plan":
-    case "planning":
-      return "leftSidebar.awaitingStatus.plan";
-    case "question":
-      return "leftSidebar.awaitingStatus.question";
-    case "approval":
-      return "leftSidebar.awaitingStatus.approval";
-    case "form":
-      return "leftSidebar.awaitingStatus.form";
-    default:
-      return "leftSidebar.awaitingApproval";
-  }
-}
 
 function isChatForAgent(chat: Chat, agentKey: string): boolean {
   if (!agentKey) return true;
@@ -561,14 +547,12 @@ export const HistoryModal: React.FC<{
                     <span className="history-list-unread-dot" role="img" aria-label={t("history.unread")} />
                   ) : null}
                   {isChatActiveRun(chat) ? (
-                    <Tag color="processing" className="history-list-status">
+                    <StatusChip tone="active" dot pulse className="history-list-status">
                       {t("history.running")}
-                    </Tag>
+                    </StatusChip>
                   ) : null}
                   {chat.hasPendingAwaiting ? (
-                    <Tag color="gold" className="history-list-status">
-                      {t(getAwaitingStatusKey(chat.awaiting?.mode))}
-                    </Tag>
+                    <AwaitingStatusChip mode={chat.awaiting?.mode} className="history-list-status" />
                   ) : null}
                   {agentName ? (
                     <span className="history-list-agent-name">{agentName}</span>

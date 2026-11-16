@@ -114,7 +114,7 @@ describe("Composer model refresh click", () => {
       accessLevel: "ask_for_approval", modelOverride: {}, interactionConfig: interactionDefaults(mode),
       onAccessLevelChange: jest.fn(), onModelOverrideChange: onChange,
     })));
-    expect(onChange).toHaveBeenLastCalledWith({key: "saved-model", reasoningEffort: "HIGH"});
+    expect(onChange).not.toHaveBeenCalled();
     expect(container.textContent).toContain("Saved Model");
     expect(container.textContent).toContain("composer.query.reasoning.HIGH");
     expect(container.textContent).not.toContain("composer.query.reasoning.MEDIUM");

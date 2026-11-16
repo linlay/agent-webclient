@@ -33,7 +33,7 @@ import { HtmlElementReviewToolbar } from "./HtmlElementReviewToolbar";
  */
 export type DocumentMarkdownLinks = Pick<
   MarkdownContentProps,
-  "agentKey" | "onWorkspaceFileLinkClick" | "onResourceFileLinkClick" | "onWebLinkClick"
+  "agentKey" | "linkBase" | "onWorkspaceFileLinkClick" | "onResourceFileLinkClick" | "onWebLinkClick"
 >;
 
 const MarkdownPreview: React.FC<{
@@ -673,6 +673,7 @@ export const DocumentTextEditor: React.FC<{
             {htmlReview.pending ? (
               <HtmlElementReviewEditor
                 pending={htmlReview.pending}
+                frameRef={htmlReview.frameRef}
                 onRequirementChange={htmlReview.setPendingRequirement}
                 onConfirm={htmlReview.confirmPending}
                 onCancel={htmlReview.cancelPending}

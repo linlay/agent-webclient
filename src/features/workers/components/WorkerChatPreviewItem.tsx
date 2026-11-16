@@ -3,6 +3,7 @@ import { UiListItem } from "@/shared/ui/UiListItem";
 import { UiButton } from "@/shared/ui/UiButton";
 import { useI18n } from "@/shared/i18n";
 import type { WorkerConversationRow } from "../lib/workerState";
+import { formatChatTimeLabel } from "@/features/chats/lib/chatListFormatter";
 import { isChatUnread } from "@/features/chats/lib/chatReadState";
 import { UnreadDot } from "@/features/chats/components/UnreadDot";
 import { ChatActionsMenu } from "@/features/chats/components/ChatActionsMenu";
@@ -10,20 +11,10 @@ import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { AgentIcon } from "@/shared/icons/agent";
 import type { Agent } from "@/features/agents/lib/agentState";
 import { isChatActiveRun } from "@/features/chats/lib/chatRunState";
+import { AwaitingStatusChip } from "@/shared/ui/AwaitingStatusChip";
 import { SidebarOverflowText } from "./SidebarOverflowText";
 import styles from "./WorkerChatPreviewItem.module.css";
 import type { SidebarDragProps } from "./SidebarSortableList";
-
-function getAwaitingStatusKey(mode?: string): string {
-  switch (mode) {
-    case 'plan':
-    case 'planning': return 'leftSidebar.awaitingStatus.plan';
-    case 'question': return 'leftSidebar.awaitingStatus.question';
-    case 'approval': return 'leftSidebar.awaitingStatus.approval';
-    case 'form': return 'leftSidebar.awaitingStatus.form';
-    default: return 'leftSidebar.awaitingApproval';
-  }
-}
 
 export const WorkerChatPreviewItem: React.FC<{
   chat: WorkerConversationRow;
@@ -35,7 +26,8 @@ export const WorkerChatPreviewItem: React.FC<{
   ownerIcon?: Agent["icon"];
   ownerPosition?: "before" | "after";
   dragProps?: SidebarDragProps;
-}> = ({ chat, isActive, loading, onClick, ownerLabel, ownerType, ownerIcon, ownerPosition = "after", dragProps }) => {
+  pinnedLayout?: boolean;
+}> = ({ chat, isActive, loading, onClick, ownerLabel, ownerType, ownerIcon, ownerPosition = "after", dragProps, pinnedLayout = false }) => {
   const { t } = useI18n();
   const previewText = chat.chatName || chat.lastRunContent || t("leftSidebar.noPreview");
   const showAutomationSource = String(chat.source || "").trim().startsWith("automation:");
@@ -45,6 +37,18 @@ export const WorkerChatPreviewItem: React.FC<{
     {ownerType && <AgentIcon icon={ownerIcon} type={ownerType} props={{ icon: { className: "pinned-chat-owner-icon", width: 12, height: 12, style: { borderRadius: 3 } }, avatar: { className: "pinned-chat-owner-icon", size: 12 } }} />}
     <SidebarOverflowText text={ownerLabel} className={`${styles.ownerLabel} pinned-chat-owner-label`} />
   </span>;
+  const status = hasStatus && <span className={styles.status}>
+    {showAutomationSource && <span className={styles.automationSource}
+      title={t("leftSidebar.automationSource")} aria-label={t("leftSidebar.automationSource")} role="img">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}
+        strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
+        <circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" />
+      </svg>
+    </span>}
+    {chat.hasPendingAwaiting ? <AwaitingStatusChip mode={chat.awaitingMode} />
+      : isBusy ? <MaterialIcon name="progress_activity" className={`${styles.loading} worker-chat-loading`} /> : isChatUnread(chat) &&
+      <span className={`${styles.unread} worker-chat-unread`}><UnreadDot chat={chat} /></span>}
+  </span>;
   return (
     <ChatActionsMenu
       chatId={chat.chatId}
@@ -53,8 +57,8 @@ export const WorkerChatPreviewItem: React.FC<{
       renderTrigger={(openMenu) => (
         <UiListItem
           {...dragProps}
-          className={`${styles.row} worker-chat-item ${isActive ? "is-active" : ""} ${dragProps?.className || ""}`}
-          data-hover-space={!hasStatus && (!ownerLabel || ownerPosition === "before") ? "true" : undefined}
+          className={`${styles.row} ${pinnedLayout ? styles.pinned : ""} worker-chat-item ${isActive ? "is-active" : ""} ${dragProps?.className || ""}`}
+          data-hover-space={!pinnedLayout && !hasStatus && (!ownerLabel || ownerPosition === "before") ? "true" : undefined}
           selected={isActive}
           role="button"
           tabIndex={0}
@@ -66,21 +70,21 @@ export const WorkerChatPreviewItem: React.FC<{
             if (event.key === "F10" && event.shiftKey) { event.preventDefault(); openMenu(); }
           }}
         >
-          {ownerPosition === "before" && owner}
-          <SidebarOverflowText text={previewText} />
-          {ownerPosition === "after" && owner}
-          {hasStatus && <span className={styles.status}>
-            {showAutomationSource && <span className={styles.automationSource}
-              title={t("leftSidebar.automationSource")} aria-label={t("leftSidebar.automationSource")} role="img">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}
-                strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
-                <circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" />
-              </svg>
-            </span>}
-            {chat.hasPendingAwaiting ? <span className={`${styles.awaiting} chat-awaiting-status`}>{t(getAwaitingStatusKey(chat.awaitingMode))}</span>
-              : isBusy ? <MaterialIcon name="progress_activity" className={`${styles.loading} worker-chat-loading`} /> : isChatUnread(chat) &&
-              <span className={`${styles.unread} worker-chat-unread`}><UnreadDot chat={chat} /></span>}
-          </span>}
+          {pinnedLayout ? <>
+            <span className={styles.pinnedHead}><SidebarOverflowText text={previewText} /></span>
+            <span className={styles.pinnedMeta}>
+              {owner}
+              <span className={styles.pinnedMetaRight}>
+                {status}
+                <span className={styles.time}>{formatChatTimeLabel(chat.updatedAt)}</span>
+              </span>
+            </span>
+          </> : <>
+            {ownerPosition === "before" && owner}
+            <SidebarOverflowText text={previewText} />
+            {ownerPosition === "after" && owner}
+            {status}
+          </>}
           <UiButton
             className={`${styles.more} chat-actions-trigger ui-icon-hover-24`}
             size="mini" variant="ghost" iconOnly
