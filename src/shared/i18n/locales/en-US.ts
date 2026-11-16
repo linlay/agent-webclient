@@ -1425,6 +1425,7 @@ export const enUSMessages = {
   "composer.pastedText.characters": "{count} characters",
   "composer.pastedText.preview": "Preview pasted text: {title}",
   "composer.pastedText.remove": "Remove pasted text: {title}",
+  "composer.pastedText.removeTitle": "Remove pasted text",
   "composer.pastedText.expand": "Move to input to edit",
   "composer.query.access.auto_approve": "Auto-approve",
   "composer.query.access.ask_for_approval": "Ask for approval",

@@ -1506,6 +1506,7 @@ export const zhCNMessages = {
   "composer.pastedText.characters": "{count} 字符",
   "composer.pastedText.preview": "预览粘贴文本：{title}",
   "composer.pastedText.remove": "移除粘贴文本：{title}",
+  "composer.pastedText.removeTitle": "移除粘贴文本",
   "composer.pastedText.expand": "放回输入框编辑",
   "composer.query.access.auto_approve": "自动审批",
   "composer.query.access.ask_for_approval": "请求审批",

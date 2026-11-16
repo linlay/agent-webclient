@@ -1,102 +1,48 @@
+/* 粘贴文本卡复用附件卡（AttachmentCard.module.css）的 composer 文件卡外观，
+   这里只保留行容器、按钮默认样式重置和预览弹窗。 */
 .cards {
     display: flex;
-    flex-wrap: nowrap;
-    gap: 8px;
-    padding: 6px;
+    flex-wrap: wrap;
+    align-items: stretch;
+    gap: 4px;
     width: 100%;
     min-width: 0;
-    overflow-x: auto;
 }
 
 .card {
-    position: relative;
-    width: 290px;
-    max-width: calc(100vw - 64px);
     min-width: 0;
-    flex: 0 0 auto;
-    align-self: flex-end;
 }
 
+/* 预览按钮承载 attachment-card-file-shell，仅重置浏览器按钮默认样式。 */
 .preview {
-    display: flex;
-    align-items: center;
-    gap: 12px;
     width: 100%;
-    padding: 10px 32px 10px 10px;
-    border: 1px solid var(--line-soft);
-    border-radius: 12px;
-    background: var(--control-input-bg);
-    color: var(--ink-1);
-    text-align: left;
+    color: inherit;
     font: inherit;
+    text-align: left;
     cursor: pointer;
 }
 
-.preview:hover {
-    border-color: var(--line-strong);
-    background: var(--bg-elev-1);
+/* 全局样式会关闭 button 的聚焦轮廓，命中卡片外框保证键盘可见焦点。 */
+.card:has(.preview:focus-visible),
+.card:has(.remove:focus-visible) {
+    outline: 2px solid color-mix(in srgb, var(--accent-electric) 78%, white);
+    outline-offset: 3px;
+    border-radius: 16px;
 }
 
-.preview:focus-visible,
-.remove:focus-visible {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px;
+.remove:disabled {
+    cursor: default;
 }
 
-.icon {
-    display: grid;
-    place-items: center;
-    flex: 0 0 44px;
-    height: 44px;
-    border-radius: 10px;
-    background: var(--bg-elev-2);
-    color: var(--ink-muted);
-    font-size: 25px;
+.card:hover .remove:disabled,
+.card:focus-within .remove:disabled {
+    opacity: .45;
 }
 
-.copy {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    min-width: 0;
-}
-
-.title {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    font-size: 13px;
-    font-weight: 600;
-    line-height: 1.4;
-}
-
-.subtitle,
 .details {
     color: var(--ink-muted);
     font-size: 12px;
     line-height: 1.4;
-}
-
-.remove {
-    position: absolute;
-    top: 6px;
-    right: 6px;
-    display: grid;
-    place-items: center;
-    width: 20px;
-    height: 20px;
-    padding: 0;
-    border: 0;
-    border-radius: 50%;
-    background: var(--ink-1);
-    color: var(--bg-elev-1);
-    font-size: 14px;
-    cursor: pointer;
-}
-
-.remove:disabled {
-    opacity: .4;
-    cursor: default;
 }
 
 .modal :global(.ant-modal-content) {
