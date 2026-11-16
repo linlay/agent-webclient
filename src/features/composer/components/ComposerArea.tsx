@@ -19,6 +19,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { createPortal } from "react-dom";
 import type { TextAreaRef } from "antd/es/input/TextArea";
 import { App as AntdApp, Flex, Tooltip } from "antd";
 import {
@@ -100,7 +101,7 @@ import { resolveEditingModeSync, shouldClearPlanningMode } from "@/features/comp
 import { resolveSkillDisplayName } from "@/features/skills/lib/skillDisplayName";
 import { selectedTextFragmentFromAttachment } from "@/features/selection/lib/selectedTextReference";
 
-import { FileDropOverlay, useFileDropTarget, useConversationFileDropReceiver } from "@/shared/ui/ConversationFileDrop";
+import { FileDropOverlay, useFileDropTarget, useConversationFileDropReceiver, useFileDropSurfaceHost } from "@/shared/ui/ConversationFileDrop";
 import { useAgentAvailability } from "@/features/composer/hooks/useAgentAvailability";
 const presentationClasses = bindCssModuleClasses({ ...composerPresentation });
 
@@ -249,6 +250,16 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
   const stageFileDragActive = useConversationFileDropReceiver(fileDropReceiver);
   const fileDrop = useFileDropTarget(fileDropReceiver);
   const fileDropHighlight = fileDropAllowed && (fileDrop.active || stageFileDragActive);
+  // The composer owns the drop, but the hint covers the whole conversation
+  // column. Shells without that column keep the composer-frame hint.
+  const fileDropSurfaceHost = useFileDropSurfaceHost(composerRef, fileDropHighlight);
+  const fileDropHint = fileDropHighlight ? (
+    <FileDropOverlay
+      variant={fileDropSurfaceHost ? "surface" : "field"}
+      title={t("composer.attachments.dropTitle")}
+      hint={t("composer.attachments.dropHint")}
+    />
+  ) : null;
   const nativeShare = useDesktopNativeShare({
     enabled: enableNewChatContext,
     chatId: state.chatId,
@@ -1181,7 +1192,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
                 data-file-drag-active={fileDropHighlight ? "true" : undefined}
                 {...fileDrop.handlers}
               >
-                {fileDropHighlight && <FileDropOverlay title={t("composer.attachments.dropTitle")} hint={t("composer.attachments.dropHint")} />}
+                {!fileDropSurfaceHost && fileDropHint}
                 <FailedSubmissions agentKey={currentAgentKey} chatId={state.chatId} drafts={state.failedSubmissions || []}
                   restore={requestId => dispatch({ type: "RESTORE_FAILED_SUBMISSION", requestId })}
                   discard={requestId => dispatch({ type: "DISCARD_FAILED_SUBMISSION", requestId })} />
@@ -1331,6 +1342,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
           </ComposerPopover>
         </div>
       </div>
+      {fileDropSurfaceHost && fileDropHint && createPortal(fileDropHint, fileDropSurfaceHost)}
     </ComposerProvider>
   );
 };

@@ -40,15 +40,26 @@
 }
 
 /* Bound the entire form, not only the iframe. Header/actions retain their space;
-   the HTML document scrolls inside the remaining viewport. */
+   the HTML document scrolls inside the remaining viewport. The cap only applies
+   when the reported height cannot fit; 440 used to sit below the natural height
+   of a form with an open details view and silently compressed the iframe. */
 .awaiting-panel {
-  max-height: min(440px, calc(100dvh - 144px));
+  max-height: min(560px, calc(100dvh - 144px));
   min-height: 0;
   overflow: auto;
 }
 .frontend-tool-frame {
   height: 420px;
   min-height: 0;
-  flex: 0 1 420px;
+  /* Never shrink below the height the view reported: compressing the iframe
+     clips its document and adds a scrollbar for content that already fits. */
+  flex: 0 0 auto;
   color-scheme: light dark;
+}
+/* When the form still exceeds the cap the panel scrolls; keep the decision
+   buttons reachable instead of scrolling them out of view. */
+.awaiting-panel-footer {
+  position: sticky;
+  bottom: 0;
+  background: var(--bg-card);
 }
