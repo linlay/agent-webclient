@@ -11,11 +11,12 @@
 .conversation { display: flex; flex-direction: column; width: 100%; height: 100%; min-width: 0; min-height: 0; }
 .conversation > :global(.top-nav) { flex: none; height: auto; min-height: 52px; padding: env(safe-area-inset-top, 0px) 8px 0; background: var(--shell-page-bg); border-bottom: 1px solid var(--line-soft); }
 .conversation :global(.top-nav-inner) { min-height: 52px; gap: 4px; }
-.conversation :global(.nav-left) { flex: none; width: 44px; height: 44px; }
-.conversation :global(.nav-center) { flex: 1; min-width: 0; justify-content: flex-start; padding: 0; }
-.conversation :global(.current-worker-card) { min-width: 0; gap: 3px; justify-content: flex-start; padding: 0; }
+.conversation :global(.nav-left) { flex: none; width: 92px; height: 44px; }
+.conversation :global(.nav-center) { flex: 1; min-width: 0; justify-content: center; padding: 0; }
+.conversation :global(.current-worker-card) { min-width: 0; gap: 3px; justify-content: center; padding: 0; }
 .conversation :global(.current-worker-name) { max-width: 36vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; }
-.conversation :global(.status-pill) { padding-left: 14px; padding-right: 3px; font-size: 10px; }
+.conversation :global(.status-pill) { padding-left: 14px; padding-right: 3px; font-size: 12px; }
+.conversation :global(.usage-trigger.ui-btn.ui-btn-sm) { font-size: 14px; }
 .conversation :global(.status-pill)::before { left: 4px; width: 6px; height: 6px; }
 .conversation :global(.conversation-stage) { flex: 1; min-width: 0; min-height: 0; }
 .conversation :global(.messages-scroll) { padding: 12px 10px; }
