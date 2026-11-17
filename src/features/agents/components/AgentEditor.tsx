@@ -64,6 +64,10 @@ export const AGENT_FORM_SECTION_IDS = [
 
 export type AgentFormSectionId = (typeof AGENT_FORM_SECTION_IDS)[number];
 
+// Display order only, independent of the protocol union: the detail select
+// lists the concrete levels after "inherit" with the most verbose one last.
+const AGENT_DETAIL_LEVEL_OPTIONS = ["simple", "summary", "detailed"] as const;
+
 interface AgentFormSectionProps {
   children: React.ReactNode;
   icon: MaterialIconName;
@@ -544,7 +548,7 @@ export const AgentEditor: React.FC<AgentEditorProps> = (props) => {
             value={form.interactionConfig?.defaultDetail || "inherit"}
             options={[
               { value: "inherit", label: t("agents.interaction.defaultDetail.inherit"), description: "" },
-              ...(["simple", "detailed", "summary"] as const).map(value => ({
+              ...AGENT_DETAIL_LEVEL_OPTIONS.map(value => ({
                 value,
                 label: t(`agents.interaction.defaultDetail.${value}`),
                 description: t(`detailChooser.${value}.description`),
