@@ -7,6 +7,7 @@ import { LeftSidebar } from "./LeftSidebar";
 import { RightSidebar } from "./sidebar/right/RightSidebar";
 import { TopNav } from "./TopNav";
 import styles from "./MobileLayout.module.css";
+import { useMobileViewport } from "./hooks/useMobileViewport";
 
 export function MobileLayout({ children, conversationSearch, overlays }: { children: React.ReactNode; conversationSearch: string; overlays: React.ReactNode }) {
   const state = useAppState();
@@ -16,6 +17,7 @@ export function MobileLayout({ children, conversationSearch, overlays }: { child
   const navigate = useNavigate();
   const [navigationOpen, setNavigationOpen] = useState(false);
   const root = useRef<HTMLDivElement>(null);
+  useMobileViewport(root);
   const pageOpen = location.pathname !== "/mobile";
   useEffect(() => {
     const close = () => setNavigationOpen(false);
@@ -25,23 +27,6 @@ export function MobileLayout({ children, conversationSearch, overlays }: { child
   }, []);
   useEffect(() => { setNavigationOpen(false); }, [location.pathname]);
 
-  // Track the visible viewport as the software keyboard and browser chrome move.
-  useEffect(() => {
-    const viewport = window.visualViewport;
-    const update = () => {
-      root.current?.style.setProperty("--mobile-height", `${viewport?.height || window.innerHeight}px`);
-      root.current?.style.setProperty("--mobile-top", `${viewport?.offsetTop || 0}px`);
-    };
-    update();
-    viewport?.addEventListener("resize", update);
-    viewport?.addEventListener("scroll", update);
-    window.addEventListener("resize", update);
-    return () => {
-      viewport?.removeEventListener("resize", update);
-      viewport?.removeEventListener("scroll", update);
-      window.removeEventListener("resize", update);
-    };
-  }, []);
   const returnToConversation = () => void navigate(`/mobile${conversationSearch}`);
   return <div ref={root} id="app" className={`${styles.root} layout-mobile`}>
     <div className={styles.conversation}>

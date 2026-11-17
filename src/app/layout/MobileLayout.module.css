@@ -1,5 +1,5 @@
 .root {
-  position: fixed;
+  position: absolute;
   inset: var(--mobile-top, 0px) 0 auto;
   height: var(--mobile-height, 100dvh);
   min-height: 0;
@@ -23,9 +23,14 @@
 .conversation :global(.timeline-row-flow) { grid-template-columns: 16px minmax(0, 1fr); gap: 6px; }
 .conversation :global(.timeline-row-user) { max-width: 95%; padding-left: 4px; }
 .conversation :global(.timeline-task-group) { margin-left: 12px; }
+.conversation :global(.timeline-markdown) { --font-size: inherit; font-size: 16px; line-height: 1.75; }
+.conversation :global(.timeline-row[data-kind="content"]) :global(.timeline-markdown) { font-size: 17px; }
+.conversation :global(.timeline-row-user) :global(.timeline-text) { font-size: 16px; }
 .conversation :global(.timeline-markdown) :is(pre, table) { max-width: 100%; overflow-x: auto; }
 .conversation :global(.bottom-dock) { flex: none; min-width: 0; max-height: 65%; overflow-y: auto; padding: 4px 8px max(4px, env(safe-area-inset-bottom, 0px)); }
+.root[data-keyboard-open] .conversation :global(.bottom-dock) { padding-bottom: 4px; }
 .conversation :global(.bottom-dock-inner) { max-width: none; }
+.conversation :global(.bottom-dock-stack), .conversation :global(.composer-area), .conversation :global(.composer-layout) { height: auto; }
 .conversation :global(.composer-stack), .conversation :global(.composer-layout) { gap: 6px; }
 .conversation :global(.composer-pill) { margin-bottom: 0; border-radius: 12px; }
 .conversation :global(.composer-actions) { flex-wrap: wrap; gap: 4px; }
