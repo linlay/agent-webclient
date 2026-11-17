@@ -5,6 +5,7 @@ import { useI18n } from "@/shared/i18n";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { Typography } from "antd";
 import { UiButton } from "@/shared/ui/UiButton";
+import { isMobilePath } from "@/shared/utils/mobileRoutes";
 
 interface ComposerWondersProps {
   sampledWonders: string[];
@@ -35,6 +36,7 @@ export const ComposerWonders: React.FC<ComposerWondersProps> = ({
 }) => {
   const { t } = useI18n();
   const { applyComposerDraft } = useComposerContext();
+  const mobile = isMobilePath(typeof window === "undefined" ? undefined : window.location.pathname);
 
   if (sampledWonders.length === 0) {
     return null;
@@ -46,11 +48,11 @@ export const ComposerWonders: React.FC<ComposerWondersProps> = ({
       aria-label={t("composer.wonders.ariaLabel")}
     >
       <div className={COMPOSER_WONDERS_HEADER_CLASS}>
-        <div className={COMPOSER_WONDERS_KICKER_CLASS}>
+        {!mobile && <div className={COMPOSER_WONDERS_KICKER_CLASS}>
           {t("composer.wonders.kicker")}
-        </div>
+        </div>}
         <div className={COMPOSER_WONDERS_TITLE_CLASS}>
-          {t("composer.wonders.title")}
+          {t(mobile ? "composer.wonders.heading" : "composer.wonders.title")}
         </div>
         {allWonders.length > 0 && (
           <UiButton
@@ -74,11 +76,11 @@ export const ComposerWonders: React.FC<ComposerWondersProps> = ({
             className={COMPOSER_WONDER_CARD_CLASS}
             onClick={() => applyComposerDraft(wonder)}
           >
-            <span className={COMPOSER_WONDER_INDEX_CLASS}>
+            {!mobile && <span className={COMPOSER_WONDER_INDEX_CLASS}>
               {t("composer.wonders.itemLabel", { index: index + 1 })}
-            </span>
-            <Typography.Paragraph ellipsis={{ rows: 3, tooltip: wonder }} className={libraryPresentation.typography}>
-              <span className={COMPOSER_WONDER_TEXT_CLASS}>{wonder}</span>
+            </span>}
+            <Typography.Paragraph ellipsis={{ rows: mobile ? 1 : 3, tooltip: wonder }} className={`composer-wonder-copy ${libraryPresentation.typography}`}>
+              <span className={COMPOSER_WONDER_TEXT_CLASS}>{mobile ? wonder.replace(/\s*[\r\n]+\s*/g, " ") : wonder}</span>
             </Typography.Paragraph>
           </button>
         ))}

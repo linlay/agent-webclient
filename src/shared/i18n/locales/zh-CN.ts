@@ -1587,6 +1587,7 @@ export const zhCNMessages = {
   "composer.wonders.itemLabel": "推荐问题 {index}",
   "composer.wonders.kicker": "妙问",
   "composer.wonders.title": "试试这些推荐问题",
+  "composer.wonders.heading": "推荐问题",
   "composer.wonders.shuffle": "换一批",
   "composer.wonders.shuffleAriaLabel": "随机换一批推荐问题",
   "copilot.panel.close": "关闭面板",

@@ -29,7 +29,7 @@ export function MobileLayout({ children, conversationSearch, overlays }: { child
 
   const returnToConversation = () => void navigate(`/mobile${conversationSearch}`);
   return <div ref={root} id="app" className={`${styles.root} layout-mobile`}>
-    <div className={styles.conversation}>
+    <div className={styles.conversation} data-new-chat={!state.chatId || undefined}>
       <TopNav mobile onOpenNavigation={() => setNavigationOpen(true)} />
       {children}
     </div>

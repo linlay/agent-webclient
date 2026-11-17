@@ -39,7 +39,8 @@
 :global(.layout-mobile) .heading { min-height: 44px; font-size: 14px; }
 :global(.layout-mobile) .name { font-size: 16px; line-height: 22px; }
 :global(.layout-mobile) .preview { font-size: 14px; line-height: 20px; }
-:global(.layout-mobile) .item { min-height: 64px; padding: 8px 48px 8px 8px; }
+:global(.layout-mobile) .item { min-height: 56px; padding: 4px 48px 4px 8px; }
+:global(.layout-mobile) .navigation:not(.pinned) { padding-bottom: 8px; }
 :global(.layout-mobile) .history.history { top: 50%; transform: translateY(-50%); width: 40px; height: 40px; }
 :global(.layout-mobile) .navigation:not(.collapsed) .body { padding-right: 0; }
 :global(.layout-mobile) .navigation:not(.collapsed) .status { display: flex; }

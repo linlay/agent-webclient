@@ -1505,6 +1505,7 @@ export const enUSMessages = {
   "composer.wonders.itemLabel": "Prompt {index}",
   "composer.wonders.kicker": "Ideas",
   "composer.wonders.title": "Try one of these prompts",
+  "composer.wonders.heading": "Suggested prompts",
   "composer.wonders.shuffle": "Refresh",
   "composer.wonders.shuffleAriaLabel": "Shuffle recommended prompts",
   "copilot.panel.close": "Close panel",
