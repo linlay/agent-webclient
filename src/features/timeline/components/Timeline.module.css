@@ -344,6 +344,11 @@
     bottom: -12px;
 }
 
+/* wait 卡片比图标高，图标随卡片中线居中；连线从图标下沿重新开始，避免穿过图标。 */
+:global(.timeline-row-wait) :global(.timeline-marker)::after {
+    top: calc(50% + 9px);
+}
+
 /* 精简过程：节点图标不再占图标列，改为行内放进各块自己的头部（TimelineRow 从交互
    上下文的 detailLevel 决定是否渲染行内图标）。图标列撤掉后节点之间的时间线竖线也
    随之消失，所有行收成单列，正文与折叠展开的明细天然共用同一条左边缘，不需要任何
@@ -396,6 +401,11 @@
 :global(.timeline-inline-row) > :last-child {
     flex: 1 1 auto;
     min-width: 0;
+}
+
+/* wait 卡片比图标高：图标随卡片中线居中，而不是贴着卡片首行。 */
+:global(.timeline-inline-row.timeline-inline-row-center) {
+    align-items: center;
 }
 
 /* 精简过程的 Run 元信息（操作按钮、时间、耗时）默认完全透明，悬停该 Run 或键盘焦点

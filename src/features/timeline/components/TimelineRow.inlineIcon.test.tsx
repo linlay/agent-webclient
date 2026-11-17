@@ -29,6 +29,16 @@ const awaiting: TimelineNode = {
   ts: 1,
   text: "[]",
 } as TimelineNode;
+const wait: TimelineNode = {
+  id: "w1",
+  kind: "tool",
+  ts: 1,
+  runId: "r1",
+  toolId: "wait_1",
+  toolName: "wait",
+  status: "running",
+  toolWait: { startedAt: 1, deadlineAt: 61000, description: "等待剩余 4 个重派任务回信", match: "any", conditions: [] },
+} as TimelineNode;
 
 describe("TimelineRow icon placement by detail level", () => {
   it("keeps the icon column for detailed rows", () => {
@@ -50,6 +60,16 @@ describe("TimelineRow icon placement by detail level", () => {
     expect(html).toContain("timeline-inline-icon");
     expect(html).not.toContain("timeline-marker");
     expect(html).toContain("timeline-user-bubble");
+  });
+
+  it("centers the wait icon on its card instead of the card's first line", () => {
+    const detailed = render(wait, "detailed");
+    expect(detailed).toContain("timeline-row-wait");
+    expect(detailed).toContain("timeline-marker tw:relative tw:flex tw:self-stretch tw:items-center");
+    // simple 档没有图标列，图标在行内随卡片中线居中。
+    const simple = render(wait, "simple");
+    expect(simple).not.toContain("timeline-marker");
+    expect(simple).toContain("timeline-inline-row-center");
   });
 
   it("puts the inline icon inside a collapse header in simple mode", () => {

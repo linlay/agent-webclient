@@ -29,3 +29,12 @@ describe("simple detail level renders icons inline instead of a column", () => {
     expect(styles).not.toContain("margin-left: calc(-1 *");
   });
 });
+
+describe("wait rows center the marker on the taller card", () => {
+  it("restarts the connector below the centered icon", () => {
+    // 图标随卡片中线居中，连线不能从行首 20px 起穿过图标。
+    expect(styles).toContain(":global(.timeline-row-wait) :global(.timeline-marker)::after { top: calc(50% + 9px); }");
+    // simple 档的图标在行内槽位里，也要随卡片中线居中。
+    expect(styles).toContain(":global(.timeline-inline-row.timeline-inline-row-center) { align-items: center; }");
+  });
+});

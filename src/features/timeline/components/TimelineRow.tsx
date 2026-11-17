@@ -71,6 +71,10 @@ const TIMELINE_USER_ATTACHMENTS_BASE_CLASS_NAME =
   "timeline-user-attachments tw:w-full tw:justify-end";
 const TIMELINE_USER_ATTACHMENTS_SINGLE_CLASS_NAME = "tw:flex tw:gap-2.5 tw:flex-wrap";
 const TIMELINE_MARKER_CLASS_NAME = "timeline-marker tw:relative tw:flex tw:self-stretch";
+/** 卡片类行：图标与卡片中线对齐，而不是贴着自己的首行文字。 */
+const TIMELINE_MARKER_CENTERED_CLASS_NAME = `${TIMELINE_MARKER_CLASS_NAME} tw:items-center`;
+// wait 卡片比图标高，连线从图标下沿重新开始，避免竖线穿过图标。
+const TIMELINE_ROW_WAIT_CLASS_NAME = `${TIMELINE_ROW_FLOW_CLASS_NAME} timeline-row-wait`;
 const NODE_ICON_BASE_CLASS_NAME =
   "node-icon tw:relative tw:z-[2] tw:inline-flex tw:h-[18px] tw:w-[18px] tw:items-center tw:justify-center tw:[&_.material-icon]:text-lg tw:[&_svg]:block tw:[&_svg]:h-[18px] tw:[&_svg]:w-[18px] tw:[&_svg]:stroke-current tw:[&_svg]:stroke-[1.8] tw:[&_svg]:[stroke-linecap:round] tw:[&_svg]:[stroke-linejoin:round]";
 const NODE_ICON_STEER_CLASS_NAME = `${NODE_ICON_BASE_CLASS_NAME} node-icon-steer tw:text-accent-electric tw:rounded-full`;
@@ -96,6 +100,7 @@ const TIMELINE_ROW_TIME_CLASS_NAME =
   presentationClasses("timeline-row-time tw:ml-auto tw:shrink-0 tw:pl-2 tw:text-[12px] tw:leading-none tw:text-ink-muted tw:tracking-[0.02em]");
 const TIMELINE_INLINE_ICON_CLASS_NAME = "timeline-inline-icon";
 const TIMELINE_INLINE_ROW_CLASS_NAME = "timeline-inline-row";
+const TIMELINE_INLINE_ROW_CENTERED_CLASS_NAME = `${TIMELINE_INLINE_ROW_CLASS_NAME} timeline-inline-row-center`;
 const TIMELINE_COMMAND_LABEL_CLASS_NAME =
   "timeline-command-label tw:mt-[9px] tw:font-code tw:text-[11px] tw:font-bold tw:leading-none tw:tracking-[0.06em] tw:text-accent-electric-strong tw:uppercase tw:empty:hidden";
 
@@ -111,8 +116,10 @@ export interface TimelineActivityRowProps {
 const TimelineInlineRow: React.FC<{
   icon: React.ReactNode;
   children: React.ReactNode;
-}> = ({ icon, children }) => (
-  <div className={TIMELINE_INLINE_ROW_CLASS_NAME}>
+  /** 卡片类行：图标与卡片垂直居中，而不是贴在卡片首行。 */
+  centered?: boolean;
+}> = ({ icon, children, centered = false }) => (
+  <div className={centered ? TIMELINE_INLINE_ROW_CENTERED_CLASS_NAME : TIMELINE_INLINE_ROW_CLASS_NAME}>
     <span className={TIMELINE_INLINE_ICON_CLASS_NAME}>{icon}</span>
     <div>{children}</div>
   </div>
@@ -316,13 +323,15 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
   const interaction = useTimelineInteraction();
   /** 简单档：图标行内进各块头部，不再占图标列（展开体因此天然从正文左边缘开始）。 */
   const compact = interaction?.detailLevel === "simple";
-  const markerSlot = (icon: React.ReactNode): React.ReactNode =>
-    compact ? null : <div className={TIMELINE_MARKER_CLASS_NAME}>{icon}</div>;
+  const markerSlot = (icon: React.ReactNode, centered = false): React.ReactNode =>
+    compact ? null : (
+      <div className={centered ? TIMELINE_MARKER_CENTERED_CLASS_NAME : TIMELINE_MARKER_CLASS_NAME}>{icon}</div>
+    );
   const iconSlot = (icon: React.ReactNode): React.ReactNode =>
     compact ? <span className={TIMELINE_INLINE_ICON_CLASS_NAME}>{icon}</span> : undefined;
   /** 没有折叠头部的行（系统提示、卡片类工具结果）：简单档用行内图标 + 内容并排。 */
-  const inlineRow = (icon: React.ReactNode, content: React.ReactNode): React.ReactNode =>
-    compact ? <TimelineInlineRow icon={icon}>{content}</TimelineInlineRow> : content;
+  const inlineRow = (icon: React.ReactNode, content: React.ReactNode, centered = false): React.ReactNode =>
+    compact ? <TimelineInlineRow icon={icon} centered={centered}>{content}</TimelineInlineRow> : content;
   const timeTarget = node || toolGroup?.nodes[toolGroup.nodes.length - 1];
   if (!timeTarget) return null;
   const taskID =
@@ -592,6 +601,7 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
 
   /* Tool */
   if (toolGroup || (node && node.kind === "tool")) {
+    const waitNode = node?.toolName === "wait" ? node : null;
     const toolIcon = (
       <TimelineToolIcon
         toolNames={(toolGroup?.nodes || (node ? [node] : [])).map((item) => item.toolName)}
@@ -600,14 +610,14 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
     );
     return (
       <div
-        className={TIMELINE_ROW_FLOW_CLASS_NAME}
+        className={waitNode ? TIMELINE_ROW_WAIT_CLASS_NAME : TIMELINE_ROW_FLOW_CLASS_NAME}
         data-kind="tool"
         data-node-id={anchorNodeId}
         data-task-id={taskID || undefined}
       >
-        {markerSlot(toolIcon)}
+        {markerSlot(toolIcon, Boolean(waitNode))}
         <div className={TIMELINE_FLOW_CONTENT_CLASS_NAME}>
-          {node?.toolName === "wait" ? inlineRow(toolIcon, <WaitCard node={node} active={Boolean(interaction?.conversationActive)} />) : (toolGroup?.nodes || (node ? [node] : [])).every(isImageGenerationTool) ? (
+          {waitNode ? inlineRow(toolIcon, <WaitCard node={waitNode} active={Boolean(interaction?.conversationActive)} />, true) : (toolGroup?.nodes || (node ? [node] : [])).every(isImageGenerationTool) ? (
             inlineRow(toolIcon, <ImageGenerationCard nodes={toolGroup?.nodes || [node!]} />)
           ) : node?.toolName === "run_query" && node.relatedChat && node.relatedChat.chatId !== interaction?.surfaceContext?.chatId ? (
             inlineRow(toolIcon, <RelatedChatCards nodes={[node]} agents={agents} />)
