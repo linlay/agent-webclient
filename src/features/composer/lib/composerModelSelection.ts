@@ -38,15 +38,20 @@ export function readComposerModel(state: ComposerModelState & { currentAgent?: A
   }
   const agent = state.currentAgent;
   if (!target.agentKey || agent?.key !== target.agentKey) return {};
+  if (["PROXY", "CHANNEL"].includes(String(agent.mode || "").toUpperCase())) {
+    const draft = state.modelOverridesByChatId[JSON.stringify([target.scope, "new-chat", target.agentKey])];
+    if (draft && Date.now() - draft.updatedAt < MAX_AGE_MS) return draft.model;
+  }
   const model = normalizeRunModel({ key: agent.modelKey, reasoningEffort: agent.reasoningEffort, serviceTier: agent.serviceTier });
   if (model.serviceTier === "STANDARD") delete model.serviceTier;
   return model;
 }
 
-export function updateComposerModel<S extends ComposerModelState>(state: S, target: ComposerAccessTarget,
+export function updateComposerModel<S extends ComposerModelState & { currentAgent?: Agent | null }>(state: S, target: ComposerAccessTarget,
   value: QueryModelOverride, initializeOnly = false): S {
-  if (!target.chatId) return state;
-  const key = composerAccessKey(target);
+  if (!target.chatId && (!target.agentKey || state.currentAgent?.key !== target.agentKey ||
+    !["PROXY", "CHANNEL"].includes(String(state.currentAgent?.mode || "").toUpperCase()))) return state;
+  const key = target.chatId ? composerAccessKey(target) : JSON.stringify([target.scope, "new-chat", target.agentKey]);
   const overrides = pruneOverrides(state.modelOverridesByChatId);
   if (initializeOnly) {
     return { ...state, modelOverridesByChatId: overrides, modelByChatId: {

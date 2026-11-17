@@ -36,10 +36,10 @@ jest.mock("antd", () => {
     !menu.selectedKeys && React.createElement("button", { "data-test": "reasoning", onClick: () => menu.onClick({key:"reasoning:HIGH"}) }, "select reasoning")); } };
 });
 
-function Harness({ access = "ask_for_approval", defaultLevel = "ask_for_approval" }: { access?: import("@/shared/data").QueryAccessLevel; defaultLevel?: import("@/shared/data").QueryAccessLevel } = {}) {
+function Harness({ access = "ask_for_approval", defaultLevel = "ask_for_approval", mode = "GENERAL" }: { mode?: "GENERAL" | "CHANNEL"; access?: import("@/shared/data").QueryAccessLevel; defaultLevel?: import("@/shared/data").QueryAccessLevel } = {}) {
   const [state, dispatch] = useReducer(appReducer, undefined, () => ({ ...createInitialState(),
-    agents: [{ key: "agent", name: "Agent", mode: "GENERAL", modelKey: "old-model", reasoningEffort: "LOW" as const }],
-    currentAgent: { key: "agent", name: "Agent", mode: "GENERAL", modelKey: "old-model", reasoningEffort: "LOW" as const },
+    agents: [{ key: "agent", name: "Agent", mode, modelKey: "old-model", reasoningEffort: "LOW" as const }],
+    currentAgent: { key: "agent", name: "Agent", mode, modelKey: "old-model", reasoningEffort: "LOW" as const },
   }));
   mockContext = { state, dispatch };
   const target = useMemo(() => ({ scope: resolveComposerAccessScope(state.accessToken), chatId: state.chatId, agentKey: "agent" }), [state.chatId, state.accessToken]);
@@ -145,4 +145,14 @@ it("does not show a saved-default hint when saving fails", async () => {
   expect(mockSuccess).not.toHaveBeenCalled();
   expect(mockError).toHaveBeenCalledWith("save failed");
   expect(container.textContent).toContain("Old Model");
+});
+
+
+it("selects a remote new Chat model without mutating local or remote Agent defaults", async () => {
+  await act(async () => root.render(<Harness mode="CHANNEL" />));
+  await click("model"); await click("reasoning");
+  expect(updateAgentModelConfig).not.toHaveBeenCalled();
+  expect(mockContext.state.currentAgent?.modelKey).toBe("old-model");
+  expect(container.textContent).toContain("New Model");
+  expect(readComposerModel(mockContext.state, {scope:resolveComposerAccessScope(mockContext.state.accessToken), chatId:"", agentKey:"agent"})).toMatchObject({key:"new-model",reasoningEffort:"HIGH"});
 });

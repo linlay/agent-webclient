@@ -170,3 +170,18 @@ it("detail usage supplements history without persisting or overriding a manual s
   state = appReducer(state, { type: "SYNC_COMPOSER_MODEL", chatId: "old", value: old, initializeOnly: true });
   expect(readComposerModel(state, target("old"))).toEqual(fresh);
 });
+
+
+it("keeps remote New Chat model choices scoped to the matching remote agent", () => {
+  const state = { ...createInitialState(), currentAgent: {
+    key: "agent", name: "Remote", mode: "CHANNEL" as const, modelKey: "default",
+  } };
+  const changed = updateComposerModel(state, target(), fresh);
+  expect(readComposerModel(changed, target())).toEqual(fresh);
+  expect(readComposerModel({ ...changed, currentAgent: null }, target())).toEqual({});
+  expect(readComposerModel(changed, target("", "other-scope"))).toEqual({ key: "default" });
+  expect(readComposerModel({ ...changed, currentAgent: { ...state.currentAgent, mode: "GENERAL" as const } }, target()))
+    .toEqual({ key: "default" });
+  persistComposerModels(changed);
+  expect(readComposerModel({ ...restoreComposerModels(), currentAgent: state.currentAgent }, target())).toEqual(fresh);
+});

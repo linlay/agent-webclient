@@ -692,7 +692,8 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
       ...(state.chatId ? { serviceTier: nextOverride.serviceTier || "STANDARD" }
         : nextOverride.serviceTier ? { serviceTier: nextOverride.serviceTier } : {}),
     };
-    if (state.chatId) {
+    const remoteModel = ["PROXY", "CHANNEL"].includes(String(currentWorker?.raw?.mode || "").toUpperCase());
+    if (state.chatId || remoteModel) {
       onModelOverrideChange(persistedOverride);
       return;
     }
