@@ -36,26 +36,28 @@
     outline: none;
 }
 
+/* The filter entry is merged into the search input suffix and owns the agent
+   scope picker plus the date ranges. */
 :global(.archive-filter-trigger) {
     position: relative;
     flex: 0 0 auto;
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    min-height: 32px;
-    padding: 4px 8px;
-    border: 1px solid var(--line-soft);
-    border-radius: 8px;
-    background: var(--bg-base);
-    color: var(--ink-1);
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--text-muted);
     cursor: pointer;
-    text-align: start;
 }
 
 :global(.archive-filter-trigger):hover,
 :global(.archive-filter-trigger):focus-visible {
-    color: var(--accent);
-    border-color: var(--accent);
+    color: var(--ink-1);
+    background: color-mix(in srgb, var(--bg-hover) 92%, transparent);
 }
 
 :global(.archive-filter-trigger):focus-visible {
@@ -66,7 +68,16 @@
 :global(.archive-filter-trigger.is-active) {
     color: var(--accent);
     background: var(--accent-soft);
-    border-color: transparent;
+}
+
+:global(.archive-filter-dot) {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    width: 5px;
+    height: 5px;
+    border-radius: 999px;
+    background: var(--accent);
 }
 
 :global(.archive-filter-icon) {
@@ -74,27 +85,16 @@
     font-size: 20px;
 }
 
-:global(.archive-filter-name) {
-    flex: 0 0 auto;
-    font-size: 13px;
-    font-weight: 500;
-}
-
-:global(.archive-filter-count) {
-    flex: 0 0 auto;
-    color: var(--text-muted);
-    font-size: 12px;
-}
-
-:global(.archive-filter-trigger.is-active) :global(.archive-filter-count) {
-    color: var(--accent);
-}
-
 :global(.archive-filter-popover) {
     display: flex;
     flex-direction: column;
     gap: 10px;
     width: min(300px, calc(100vw - 48px));
+}
+
+:global(.archive-filter-summary) {
+    color: var(--text-muted);
+    font-size: 12px;
 }
 
 :global(.archive-filter-field) {
@@ -148,63 +148,28 @@
     white-space: nowrap;
 }
 
-:global(.archive-agent-filter-trigger) {
-    justify-content: center;
-    min-height: 32px;
-    padding: 4px 6px;
-    border-color: transparent;
-    background: transparent;
-}
-
-:global(.archive-agent-filter-trigger):hover,
-:global(.archive-agent-filter-trigger):focus-visible {
-    border-color: transparent;
-    background: var(--bg-hover);
-}
-
-:global(.archive-agent-filter-trigger.is-active) {
-    border-color: transparent;
-    background: var(--accent-soft);
-}
-
 :global(.archive-group-agent-icon) {
     flex: 0 0 auto;
     border-radius: 6px;
 }
 
-:global(.archive-group + .archive-group) {
-    border-top: 1px solid var(--line-soft);
-}
-
-/* The expanded (centered) list breathes more between the toolbar and rows. */
-:global(.archive-console-centered) :global(.archive-groups-scroll) {
-    margin-top: 16px;
-}
-
-/* Collapsed split list: the date filter matches the borderless agent filter. */
-:global(.archive-console-page) :global(.archive-filter-name),
-:global(.archive-console-page) :global(.archive-filter-count) {
-    display: none;
-}
-
-:global(.archive-console-page) :global(.archive-filter-trigger) {
-    gap: 0;
-    min-width: 32px;
+/* The split stays mounted with nothing selected, so the detail column keeps
+   its divider and shows a hint instead of collapsing. */
+:global(.archive-detail-empty) {
+    display: flex;
+    height: 100%;
+    min-height: 0;
+    align-items: center;
     justify-content: center;
-    padding: 4px 6px;
-    border-color: transparent;
-    background: transparent;
+    padding: 24px;
+    border-left: 1px solid color-mix(in srgb, var(--line-soft) 92%, transparent);
+    text-align: center;
 }
 
-:global(.archive-console-page) :global(.archive-filter-trigger):hover,
-:global(.archive-console-page) :global(.archive-filter-trigger):focus-visible {
-    border-color: transparent;
-    background: var(--bg-hover);
-}
-
-:global(.archive-console-page) :global(.archive-filter-trigger.is-active) {
-    border-color: transparent;
-    background: var(--accent-soft);
+:global(.archive-detail-empty-hint) {
+    margin: 0;
+    color: var(--ink-muted);
+    font-size: 13px;
 }
 
 :global(.archive-empty-state) {

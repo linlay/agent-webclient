@@ -26,6 +26,7 @@ const mockRuntime = {
   selectedItem: undefined,
   conversation: null,
   usageSummary: "",
+  refresh: jest.fn(),
   loadArchiveDetail: jest.fn(),
   restoreSelected: jest.fn(),
   deleteSelected: jest.fn(),
@@ -58,18 +59,20 @@ afterEach(() => {
   mockRuntime.selected = "";
 });
 
-test("centers the grouped list and hides the detail pane when nothing is selected", () => {
+test("keeps the list and detail split when nothing is selected", () => {
   const markup = renderToStaticMarkup(<ArchiveConsole />);
 
-  expect(markup).toContain("已归档聊天");
-  expect(markup).toContain("archive-console-centered");
-  expect(markup).toContain("tw:max-w-[1000px]");
   expect(markup).toContain('data-testid="list-pane"');
+  expect(markup).toContain("--archive-list-col:280px");
+  expect(markup).toContain("archive-console-resize-handle");
+  expect(markup).toContain("archive-detail-empty");
+  expect(markup).toContain("选择一条归档对话查看详情。");
+  expect(markup).not.toContain("archive-console-centered");
+  expect(markup).not.toContain("已归档聊天");
   expect(markup).not.toContain('data-testid="detail-pane"');
-  expect(markup).not.toContain("archive-console-resize-handle");
 });
 
-test("switches to the list and detail split once a chat is selected", () => {
+test("keeps the same split once a chat is selected", () => {
   mockRuntime.selected = "chat_1";
   const markup = renderToStaticMarkup(<ArchiveConsole />);
 
@@ -77,7 +80,7 @@ test("switches to the list and detail split once a chat is selected", () => {
   expect(markup).toContain('data-testid="detail-pane"');
   expect(markup).toContain("--archive-list-col:280px");
   expect(markup).toContain("archive-console-resize-handle");
-  expect(markup).not.toContain("已归档聊天");
+  expect(markup).not.toContain("archive-detail-empty");
 });
 
 test("passes the agent scope switch to the list toolbar", () => {

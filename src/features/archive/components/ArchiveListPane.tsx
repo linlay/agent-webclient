@@ -8,7 +8,6 @@ import {
   groupArchivesByAgent,
   type ArchiveDateRange,
 } from "@/features/archive/lib/archiveViewModel";
-import { ArchiveAgentFilter } from "@/features/archive/components/ArchiveAgentFilter";
 import { ArchiveFilter } from "@/features/archive/components/ArchiveFilter";
 import { AgentIcon } from "@/shared/icons/agent";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
@@ -31,6 +30,7 @@ export interface ArchiveListPaneProps {
   filteredCount: number;
   totalCount: number;
   onResetFilters: () => void;
+  onRefresh: () => void;
   resultText: string;
   loading: boolean;
   items: ArchivedSummaryResponse[];
@@ -46,17 +46,17 @@ export interface ArchiveListPaneProps {
 const GROUP_AGENT_ICON_PROPS = {
   icon: {
     className: "archive-group-agent-icon",
-    width: 24,
-    height: 24,
+    width: 18,
+    height: 18,
   },
   avatar: {
     className: "archive-group-agent-icon",
-    size: 24,
+    size: 18,
   },
 };
 
 const GROUP_ACTION_CLASS_NAME =
-  "archive-group-action tw:flex tw:h-7 tw:w-7 tw:flex-none tw:items-center tw:justify-center tw:rounded-control tw:border-0 tw:bg-transparent tw:text-ink-muted tw:hover:bg-bg-hover tw:hover:text-ink-1";
+  "archive-group-action tw:flex tw:h-6 tw:w-6 tw:flex-none tw:items-center tw:justify-center tw:rounded-control tw:border-0 tw:bg-transparent tw:text-ink-muted tw:opacity-60 tw:hover:bg-bg-hover tw:hover:text-ink-1 tw:hover:opacity-100";
 
 export const ArchiveListPane: React.FC<ArchiveListPaneProps> = (props) => {
   const agentByKey = useMemo(() => {
@@ -81,34 +81,45 @@ export const ArchiveListPane: React.FC<ArchiveListPaneProps> = (props) => {
 
   return (
     <section className="archive-list-pane tw:flex tw:min-h-0 tw:flex-1 tw:flex-col">
-      <div className="archive-toolbar tw:flex tw:flex-wrap tw:items-center tw:gap-2 tw:px-1.5 tw:py-1.5">
-        <div className="archive-toolbar-search tw:min-w-0 tw:grow tw:shrink tw:basis-[140px]">
+      <div className="archive-toolbar tw:flex tw:items-center tw:gap-2 tw:px-1.5 tw:py-1.5">
+        <div className="archive-toolbar-search tw:min-w-0 tw:grow tw:shrink">
           <Input
             prefix={<MaterialIcon name="search" />}
+            suffix={
+              <ArchiveFilter
+                showAgentFilter={props.showAgentFilter}
+                agents={props.agents}
+                agentFilter={props.agentFilter}
+                onAgentFilterChange={props.onAgentFilterChange}
+                archivedRange={props.archivedRange}
+                onArchivedRangeChange={props.onArchivedRangeChange}
+                createdRange={props.createdRange}
+                onCreatedRangeChange={props.onCreatedRangeChange}
+                lastRunRange={props.lastRunRange}
+                onLastRunRangeChange={props.onLastRunRangeChange}
+                filteredCount={props.filteredCount}
+                totalCount={props.totalCount}
+                onReset={props.onResetFilters}
+              />
+            }
             value={props.query}
             variant="filled"
             placeholder={t("archive.search.placeholder")}
             onChange={(event) => props.onQueryChange(event.target.value)}
           />
         </div>
-        <ArchiveFilter
-          archivedRange={props.archivedRange}
-          onArchivedRangeChange={props.onArchivedRangeChange}
-          createdRange={props.createdRange}
-          onCreatedRangeChange={props.onCreatedRangeChange}
-          lastRunRange={props.lastRunRange}
-          onLastRunRangeChange={props.onLastRunRangeChange}
-          filteredCount={props.filteredCount}
-          totalCount={props.totalCount}
-          onReset={props.onResetFilters}
-        />
-        {props.showAgentFilter ? (
-          <ArchiveAgentFilter
-            agents={props.agents}
-            value={props.agentFilter}
-            onChange={props.onAgentFilterChange}
-          />
-        ) : null}
+        <Tooltip title={t("archive.action.refresh")}>
+          <UiButton
+            size="sm"
+            variant="ghost"
+            iconOnly
+            aria-label={t("archive.action.refresh")}
+            loading={props.loading}
+            onClick={props.onRefresh}
+          >
+            <MaterialIcon name="refresh" />
+          </UiButton>
+        </Tooltip>
       </div>
       {props.resultText ? (
         <div className="archive-result-bar tw:flex tw:items-center tw:gap-3 tw:px-2 tw:pb-2 tw:text-xs tw:text-ink-muted">
@@ -162,7 +173,7 @@ export const ArchiveListPane: React.FC<ArchiveListPaneProps> = (props) => {
                   key={group.key || "archive-group-unassigned"}
                   className="archive-group tw:flex tw:flex-col"
                 >
-                  <header className="archive-group-head tw:flex tw:items-center tw:gap-2 tw:px-[6px] tw:py-[6px]">
+                  <header className="archive-group-head tw:flex tw:items-center tw:gap-2 tw:px-1.5 tw:py-1">
                     <div className="archive-group-identity tw:flex tw:min-w-0 tw:flex-1 tw:items-center tw:gap-1.5">
                       <AgentIcon
                         icon={agent?.icon}
@@ -170,12 +181,12 @@ export const ArchiveListPane: React.FC<ArchiveListPaneProps> = (props) => {
                         type="agent"
                         props={GROUP_AGENT_ICON_PROPS}
                       />
-                      <span className="archive-group-name tw:min-w-0 tw:flex-1 tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:text-[13px] tw:font-medium">
+                      <span className="archive-group-name tw:min-w-0 tw:flex-1 tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:text-[12px] tw:font-medium tw:text-ink-muted">
                         {groupName}
                       </span>
                     </div>
                     <div className="archive-group-actions tw:flex tw:flex-none tw:items-center tw:gap-1">
-                      <span className="archive-group-count tw:flex-none tw:rounded-full tw:bg-bg-hover tw:px-1.5 tw:py-0.5 tw:text-[11px] tw:text-ink-muted">
+                      <span className="archive-group-count tw:flex-none tw:text-[11px] tw:text-ink-muted tw:opacity-60">
                         {t("archive.group.count", { count: group.count })}
                       </span>
                       <Dropdown
@@ -208,7 +219,7 @@ export const ArchiveListPane: React.FC<ArchiveListPaneProps> = (props) => {
                         role="option"
                         aria-selected={item.chatId === props.selectedChatId}
                         tabIndex={0}
-                        className={`archive-list-item tw:flex tw:w-full tw:cursor-pointer tw:flex-col tw:rounded-none tw:border-0 tw:bg-transparent tw:px-3 tw:py-[11px] tw:text-left tw:text-ink-1 tw:hover:bg-bg-hover tw:[&.is-active]:bg-[var(--bg-selected)] tw:[&.is-active]:text-[var(--nav-selected-text)] ${item.chatId === props.selectedChatId ? "is-active" : ""}`}
+                        className={`archive-list-item tw:flex tw:w-full tw:cursor-pointer tw:flex-col tw:rounded-none tw:border-0 tw:bg-transparent tw:px-2.5 tw:py-2 tw:text-left tw:text-ink-1 tw:hover:bg-bg-hover tw:[&.is-active]:bg-[var(--bg-selected)] tw:[&.is-active]:text-[var(--nav-selected-text)] ${item.chatId === props.selectedChatId ? "is-active" : ""}`}
                         onClick={() => props.onSelect(item.chatId)}
                         onKeyDown={(event) => {
                           if (event.key === "Enter" || event.key === " ") {
@@ -222,7 +233,7 @@ export const ArchiveListPane: React.FC<ArchiveListPaneProps> = (props) => {
                             {item.chatName || item.chatId}
                           </strong>
                         </span>
-                        <span className="archive-list-meta tw:mt-2 tw:flex tw:flex-wrap tw:gap-x-1.5 tw:gap-y-1.5">
+                        <span className="archive-list-meta tw:mt-1 tw:flex tw:flex-wrap tw:gap-x-1.5 tw:gap-y-1">
                           <span className="archive-list-meta-item tw:whitespace-nowrap tw:text-[11px] tw:text-ink-muted">
                             {formatArchiveTimestamp(item.lastRunAt)}
                           </span>
@@ -242,7 +253,7 @@ export const ArchiveListPane: React.FC<ArchiveListPaneProps> = (props) => {
                                 props.onRestore(item.chatId, false)
                               }
                             >
-                              <MaterialIcon name="unarchive" />
+                              <MaterialIcon name="undo" />
                             </UiButton>
                           </Tooltip>
                           {props.canRestoreAndOpen ? (

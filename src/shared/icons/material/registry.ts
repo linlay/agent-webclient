@@ -121,6 +121,7 @@ export const materialIconSymbolIds = {
   thumb_down: "material-symbol-thumb-down",
   tune: "material-symbol-tune",
   unarchive: "material-symbol-unarchive",
+  undo: "material-symbol-undo",
   upload: "material-symbol-upload",
   verified_user: "material-symbol-verified-user",
   visibility: "material-symbol-visibility",

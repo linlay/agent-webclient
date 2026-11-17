@@ -1,11 +1,20 @@
-import React, { useState } from "react";
-import { DatePicker, Popover } from "antd";
+import React, { useMemo, useState } from "react";
+import { DatePicker, Popover, Select } from "antd";
 import dayjs from "dayjs";
 import type { Dayjs } from "dayjs";
+import type { Agent } from "@/features/agents/lib/agentState";
 import type { ArchiveDateRange } from "@/features/archive/lib/archiveViewModel";
+import { AgentIcon } from "@/shared/icons/agent";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
 import { t } from "@/shared/i18n";
+
+/**
+ * Keep every nested dropdown (date panels, agent select) inside the filter
+ * popover so picking a value does not count as an outside click.
+ */
+const popupInsidePopover = (trigger: HTMLElement) =>
+  trigger.parentElement || document.body;
 
 interface DateRangeFieldProps {
   label: string;
@@ -38,6 +47,7 @@ const DateRangeField: React.FC<DateRangeFieldProps> = ({ label, range, onChange 
           aria-label={`${label} ${t("archive.filter.dateStart")}`}
           placeholder={t("archive.filter.dateStart")}
           onChange={updateStart}
+          getPopupContainer={popupInsidePopover}
         />
         <DatePicker
           value={end != null ? dayjs(end) : null}
@@ -46,13 +56,30 @@ const DateRangeField: React.FC<DateRangeFieldProps> = ({ label, range, onChange 
           aria-label={`${label} ${t("archive.filter.dateEnd")}`}
           placeholder={t("archive.filter.dateEnd")}
           onChange={updateEnd}
+          getPopupContainer={popupInsidePopover}
         />
       </div>
     </div>
   );
 };
 
+const AGENT_ICON_PROPS = {
+  icon: {
+    className: "archive-filter-agent-icon",
+    width: 18,
+    height: 18,
+  },
+  avatar: {
+    className: "archive-filter-agent-icon",
+    size: 18,
+  },
+};
+
 export interface ArchiveFilterProps {
+  showAgentFilter: boolean;
+  agents: Agent[];
+  agentFilter: string;
+  onAgentFilterChange: (agentKey: string) => void;
   archivedRange: ArchiveDateRange;
   onArchivedRangeChange: (range: ArchiveDateRange) => void;
   createdRange: ArchiveDateRange;
@@ -64,7 +91,16 @@ export interface ArchiveFilterProps {
   onReset: () => void;
 }
 
+/**
+ * Single filter entry merged into the search input suffix. The popover owns
+ * the agent scope picker, the three date ranges and the reset action, so the
+ * toolbar only keeps a search box plus the refresh button.
+ */
 export const ArchiveFilter: React.FC<ArchiveFilterProps> = ({
+  showAgentFilter,
+  agents,
+  agentFilter,
+  onAgentFilterChange,
   archivedRange,
   onArchivedRangeChange,
   createdRange,
@@ -76,13 +112,65 @@ export const ArchiveFilter: React.FC<ArchiveFilterProps> = ({
   onReset,
 }) => {
   const [open, setOpen] = useState(false);
-  const active = Boolean(archivedRange || createdRange || lastRunRange);
+  const active = Boolean(
+    agentFilter || archivedRange || createdRange || lastRunRange,
+  );
+
+  const agentOptions = useMemo(
+    () =>
+      agents.map((agent) => {
+        const key = String(agent.key || "");
+        const name = agent.name || key;
+        return {
+          value: key,
+          label: (
+            <span
+              data-agent-identity=""
+              className="archive-filter-agent-option"
+              title={name}
+            >
+              <AgentIcon
+                icon={agent.icon}
+                mode={agent.mode}
+                type="agent"
+                props={AGENT_ICON_PROPS}
+              />
+              <span className="archive-filter-agent-name">{name}</span>
+            </span>
+          ),
+        };
+      }),
+    [agents],
+  );
 
   const content = (
     <div
       className="archive-filter-popover"
       onClick={(event) => event.stopPropagation()}
     >
+      <div className="archive-filter-summary">
+        {t("archive.filter.count", {
+          filtered: filteredCount,
+          total: totalCount,
+        })}
+      </div>
+      {showAgentFilter ? (
+        <div className="archive-filter-field">
+          <span className="archive-filter-label">
+            {t("archive.filter.agent")}
+          </span>
+          <Select
+            value={agentFilter || undefined}
+            allowClear
+            placeholder={t("archive.filter.agentAll")}
+            options={agentOptions}
+            onChange={(value) => onAgentFilterChange(String(value || ""))}
+            popupMatchSelectWidth={false}
+            getPopupContainer={popupInsidePopover}
+            aria-label={t("archive.filter.agent")}
+          />
+        </div>
+      ) : null}
       <DateRangeField
         label={t("archive.filter.archivedDate")}
         range={archivedRange}
@@ -129,10 +217,7 @@ export const ArchiveFilter: React.FC<ArchiveFilterProps> = ({
         title={t("archive.filter.ariaLabel")}
       >
         <MaterialIcon name="filter_list" className="archive-filter-icon" />
-        <span className="archive-filter-name">{t("archive.filter.label")}</span>
-        <span className="archive-filter-count">
-          {t("archive.filter.count", { filtered: filteredCount, total: totalCount })}
-        </span>
+        {active ? <span className="archive-filter-dot" aria-hidden="true" /> : null}
       </button>
     </Popover>
   );

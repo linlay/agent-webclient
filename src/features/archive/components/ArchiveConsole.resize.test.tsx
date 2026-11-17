@@ -2,7 +2,6 @@
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { ArchiveConsole } from "@/features/archive/components/ArchiveConsole";
-import { t } from "@/shared/i18n";
 
 const mockResizeOptions: {
   onResizeStart?: () => void;
@@ -35,6 +34,7 @@ const mockRuntime = {
   selectedItem: undefined,
   conversation: null,
   usageSummary: "",
+  refresh: jest.fn(),
   loadArchiveDetail: mockLoadArchiveDetail,
   restoreSelected: jest.fn(),
   deleteSelected: jest.fn(),
@@ -47,16 +47,10 @@ jest.mock("@/features/archive/hooks/useArchiveRuntime", () => ({
 }));
 
 jest.mock("@/features/archive/components/ArchiveListPane", () => ({
-  ArchiveListPane: (props: {
-    selectedChatId?: string;
-    onSelect?: (chatId: string) => void;
-  }) =>
+  ArchiveListPane: (props: { onSelect?: (chatId: string) => void }) =>
     require("react").createElement(
       "div",
-      {
-        "data-testid": "list-pane",
-        "data-selected": props.selectedChatId,
-      },
+      { "data-testid": "list-pane" },
       require("react").createElement(
         "button",
         {
@@ -92,6 +86,10 @@ beforeEach(() => {
   mockLoadArchiveDetail.mockClear();
 });
 
+afterEach(() => {
+  document.body.innerHTML = "";
+});
+
 async function renderConsole() {
   const container = document.createElement("div");
   document.body.appendChild(container);
@@ -109,46 +107,42 @@ async function drag(delta: number) {
   });
 }
 
-afterEach(() => {
-  document.body.innerHTML = "";
-});
-
-test("keeps the split below half the viewport", async () => {
-  const { container, root } = await renderConsole();
-  expect(container.querySelector('[data-testid="detail-pane"]')).not.toBeNull();
-
-  await drag(100);
+function listColumnWidth(container: HTMLElement): string {
   const consoleElement = container.querySelector(
     ".archive-console",
   ) as HTMLElement;
-  expect(consoleElement.style.getPropertyValue("--archive-list-col")).toBe(
-    "380px",
-  );
+  return consoleElement.style.getPropertyValue("--archive-list-col");
+}
+
+test("clamps the list width between its minimum and half the viewport", async () => {
+  const { container, root } = await renderConsole();
+
+  await drag(-400);
+  expect(listColumnWidth(container)).toBe("280px");
+
+  await drag(200);
+  expect(listColumnWidth(container)).toBe("480px");
+
+  // Dragging past half the viewport only clamps the split; it never expands
+  // the list over the detail pane.
+  await drag(600);
+  expect(listColumnWidth(container)).toBe("500px");
   expect(container.querySelector('[data-testid="detail-pane"]')).not.toBeNull();
 
   await act(async () => root.unmount());
 });
 
-test("expands the list once the splitter crosses half the viewport", async () => {
+test("keeps the split and loads the detail when a chat is selected", async () => {
   const { container, root } = await renderConsole();
 
-  await drag(250);
-  expect(container.querySelector('[data-testid="detail-pane"]')).toBeNull();
-  expect(container.textContent).toContain(t("archive.page.title"));
-  expect(
-    container.querySelector('[data-testid="list-pane"]')?.getAttribute(
-      "data-selected",
-    ),
-  ).toBe("chat_1");
-
-  // Selecting a chat from the expanded list returns to the split layout.
   const select = container.querySelector('[data-testid="select-chat"]');
   await act(async () => {
     (select as HTMLButtonElement).click();
   });
+
   expect(mockLoadArchiveDetail).toHaveBeenCalledWith("chat_1");
   expect(container.querySelector('[data-testid="detail-pane"]')).not.toBeNull();
-  expect(container.textContent).not.toContain(t("archive.page.title"));
+  expect(container.querySelector('[data-testid="list-pane"]')).not.toBeNull();
 
   await act(async () => root.unmount());
 });

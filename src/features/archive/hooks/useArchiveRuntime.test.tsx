@@ -164,6 +164,21 @@ describe("useArchiveRuntime archive invalidation", () => {
     expect(mockGetArchives).toHaveBeenCalledTimes(2);
     await act(async () => root.unmount());
   });
+
+  it("reloads the list through the toolbar refresh action", async () => {
+    let runtime: ArchiveRuntime | undefined;
+    const root = await renderProbe((next) => {
+      runtime = next;
+    });
+    expect(mockGetArchives).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      runtime?.refresh();
+    });
+
+    expect(mockGetArchives).toHaveBeenCalledTimes(2);
+    await act(async () => root.unmount());
+  });
 });
 
 describe("useArchiveRuntime group operations", () => {

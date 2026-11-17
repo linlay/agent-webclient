@@ -6,8 +6,54 @@ import type { ArchivedSummaryResponse } from "@/shared/data";
 import { t } from "@/shared/i18n";
 
 jest.mock("antd", () => ({
-  Input: () =>
-    require("react").createElement("input", { "aria-label": "archive-search" }),
+  Input: (props: {
+    prefix?: React.ReactNode;
+    suffix?: React.ReactNode;
+    value?: string;
+    placeholder?: string;
+    onChange?: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  }) =>
+    require("react").createElement(
+      "div",
+      { "data-testid": "archive-search-input" },
+      props.prefix,
+      require("react").createElement("input", {
+        "aria-label": "archive-search",
+        value: props.value,
+        placeholder: props.placeholder,
+        onChange: props.onChange,
+      }),
+      props.suffix,
+    ),
+  Select: (props: {
+    value?: string;
+    options?: Array<{ value: string; label?: React.ReactNode }>;
+    placeholder?: string;
+    onChange?: (value: string) => void;
+    "aria-label"?: string;
+  }) =>
+    require("react").createElement(
+      "select",
+      {
+        "data-testid": "agent-filter-select",
+        "aria-label": props["aria-label"],
+        value: props.value ?? "",
+        onChange: (event: React.ChangeEvent<HTMLSelectElement>) =>
+          props.onChange?.(event.target.value),
+      },
+      require("react").createElement(
+        "option",
+        { value: "" },
+        props.placeholder ?? "",
+      ),
+      (props.options ?? []).map((option) =>
+        require("react").createElement(
+          "option",
+          { key: option.value, value: option.value },
+          option.value,
+        ),
+      ),
+    ),
   Dropdown: ({
     children,
     menu,
@@ -56,7 +102,19 @@ jest.mock("antd", () => ({
       children,
     ),
   DatePicker: () => null,
-  Popover: ({ children }: { children: React.ReactNode }) => children,
+  Popover: ({
+    children,
+    content,
+  }: {
+    children: React.ReactNode;
+    content?: React.ReactNode;
+  }) =>
+    require("react").createElement(
+      require("react").Fragment,
+      null,
+      children,
+      content,
+    ),
 }));
 
 jest.mock("@/shared/icons/agent", () => ({
@@ -101,6 +159,7 @@ const baseProps: React.ComponentProps<typeof ArchiveListPane> = {
   filteredCount: 3,
   totalCount: 3,
   onResetFilters: jest.fn(),
+  onRefresh: jest.fn(),
   resultText: "",
   loading: false,
   items: [
@@ -158,40 +217,79 @@ test("groups archived chats by agent and shows the chat count per group", async 
   await act(async () => root.unmount());
 });
 
-test("keeps the agent picker in the same toolbar row as the filter trigger", async () => {
+test("puts the filter trigger inside the search input and merges the agent picker into it", async () => {
   const { container, root } = await renderPane();
 
   const toolbar = container.querySelector(".archive-toolbar");
-  expect(toolbar?.querySelector("input")).not.toBeNull();
+  const searchInput = toolbar?.querySelector(
+    '[data-testid="archive-search-input"]',
+  );
+  expect(searchInput?.querySelector("input")).not.toBeNull();
 
-  const filterTrigger = toolbar?.querySelector(
+  const filterTrigger = searchInput?.querySelector(
     `[aria-label="${t("archive.filter.ariaLabel")}"]`,
   );
-  const agentTrigger = toolbar?.querySelector(
-    `[aria-label="${t("archive.filter.agent")}"]`,
-  );
-  expect(agentTrigger).not.toBeNull();
-  // The agent filter trigger is a single agent_type icon, not a text select.
-  expect(agentTrigger?.textContent?.trim()).toBe("");
   expect(filterTrigger).not.toBeNull();
-  if (!filterTrigger || !agentTrigger) throw new Error("toolbar triggers missing");
-  // The agent trigger sits to the right of the date filter trigger.
-  expect(
-    filterTrigger.compareDocumentPosition(agentTrigger) &
-      Node.DOCUMENT_POSITION_FOLLOWING,
-  ).toBeTruthy();
+  // The suffix entry is a single icon button, not the old labelled trigger.
+  expect(filterTrigger?.tagName).toBe("BUTTON");
+  expect(filterTrigger?.textContent?.trim()).toBe("");
+
+  const popover = searchInput?.querySelector(".archive-filter-popover");
+  const agentSelect = popover?.querySelector(
+    `[aria-label="${t("archive.filter.agent")}"]`,
+  ) as HTMLSelectElement | null;
+  expect(agentSelect).not.toBeNull();
+  if (!agentSelect) throw new Error("agent picker missing from filter popover");
+  // "all agents" plus one row per agent.
+  expect(agentSelect.options).toHaveLength(baseProps.agents.length + 1);
+
+  const selectValue = Object.getOwnPropertyDescriptor(
+    HTMLSelectElement.prototype,
+    "value",
+  )?.set;
+  await act(async () => {
+    selectValue?.call(agentSelect, "agent_b");
+    agentSelect.dispatchEvent(new Event("change", { bubbles: true }));
+  });
+  expect(baseProps.onAgentFilterChange).toHaveBeenCalledWith("agent_b");
 
   await act(async () => root.unmount());
 });
 
-test("shows a larger agent avatar and keeps group actions in a dropdown", async () => {
+test("keeps the agent picker out of the filter popover for embedded panes", async () => {
+  const { container, root } = await renderPane({ showAgentFilter: false });
+
+  const popover = container.querySelector(".archive-filter-popover");
+  expect(popover).not.toBeNull();
+  expect(
+    popover?.querySelector(`[aria-label="${t("archive.filter.agent")}"]`),
+  ).toBeNull();
+
+  await act(async () => root.unmount());
+});
+
+test("adds a refresh button next to the search input", async () => {
+  const onRefresh = jest.fn();
+  const { container, root } = await renderPane({ onRefresh });
+
+  const refresh = container.querySelector(
+    `.archive-toolbar [aria-label="${t("archive.action.refresh")}"]`,
+  );
+  expect(refresh).not.toBeNull();
+  click(refresh);
+  expect(onRefresh).toHaveBeenCalledTimes(1);
+
+  await act(async () => root.unmount());
+});
+
+test("keeps the group header quiet and puts group actions in a dropdown", async () => {
   const { container, root } = await renderPane();
 
   const firstGroup = container.querySelectorAll(".archive-group")[0];
   const avatar = firstGroup
     .querySelector(".archive-group-identity")
     ?.querySelector('[data-testid="agent-icon"]');
-  expect(avatar?.getAttribute("data-size")).toBe("24");
+  expect(avatar?.getAttribute("data-size")).toBe("18");
 
   const actions = firstGroup.querySelector(".archive-group-actions");
   expect(actions?.textContent).toContain("2 条");

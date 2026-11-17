@@ -215,6 +215,12 @@ export function useArchiveRuntime(options: UseArchiveRuntimeOptions) {
     return () => window.clearTimeout(timer);
   }, [loadArchives, options.active]);
 
+  /** Manual reload from the list toolbar. */
+  const refresh = useCallback(() => {
+    if (!options.active) return;
+    void loadArchives();
+  }, [loadArchives, options.active]);
+
   // Archive data is shared with other surfaces: the Desktop sidebar, bulk
   // archive and other windows archive or restore Chats without touching this
   // page. The Archive route is a sibling of the conversation shell, so the
@@ -517,6 +523,7 @@ export function useArchiveRuntime(options: UseArchiveRuntimeOptions) {
     selectedItem,
     conversation,
     usageSummary: formatArchiveUsageSummary(selectedItem),
+    refresh,
     loadArchiveDetail,
     deleteSelected,
     restoreSelected,
