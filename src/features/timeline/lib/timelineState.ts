@@ -162,6 +162,7 @@ export interface TimelineNode {
 	runId?: string;
 	role?: TimelineRole;
 	messageVariant?: "default" | "steer" | "remember" | "learn" | "compact";
+	steerSource?: "user" | "agent" | "automation";
 	systemMessageLevel?: "info" | "error" | "activity";
 	steerId?: string;
 	awaitingId?: string;

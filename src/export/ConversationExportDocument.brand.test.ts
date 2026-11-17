@@ -49,19 +49,24 @@ it("retains inline image DOM across repeated Markdown renders", () => {
     act(() => root.render(React.createElement(ConversationExportDocument, { snapshot: value })));
     const image = container.querySelector('img[alt="generated.png"]');
     expect(image).not.toBeNull();
+    const frame = image!.parentElement!;
     for (let index = 0; index < 5; index += 1) {
       act(() => root.render(React.createElement(ConversationExportDocument, { snapshot: value })));
       expect(container.querySelector('img[alt="generated.png"]')).toBe(image);
     }
+    act(() => image!.dispatchEvent(new Event("error")));
+    expect(frame.querySelector('[role="status"]')?.textContent).toContain("generated.png");
   } finally { act(() => root.unmount()); container.remove(); }
 });
 
 it("uses each run's assistant identity and falls back for an older turn", () => {
+  window.history.replaceState({}, "", "/");
   const html = renderToStaticMarkup(React.createElement(ConversationExportDocument, { snapshot }));
   expect(html).toContain('data-agent-icon-name="proxy"');
   expect(html).toContain("小君");
   expect(html).toContain('data-agent-icon-name="general"');
   expect(html).toContain("助手");
+  expect(html).not.toContain("data-agent-pointer-enabled");
   expect(html).not.toContain("继续聊");
   expect(html).not.toContain("复制对话");
 });
@@ -73,6 +78,9 @@ it("renders a dismissible app entry only when a public brand is supplied", () =>
   expect(html).toContain('href="cutej://open"');
   expect(html).toContain("在 CuteJ 继续聊");
   expect(html).toContain("关闭应用入口");
+  expect(html).toContain("<main data-agent-pointer-disabled");
+  expect(html.match(/data-agent-identity="" data-agent-pointer-enabled=""/g)).toHaveLength(2);
+  expect(html.match(/data-agent-pointer-disabled/g)).toHaveLength(1);
 });
 
 it("previews HTML resources and offers other formal resources for download", () => {
@@ -173,9 +181,10 @@ it("keeps the iframe on expand, keeps expansion across files, and resets after c
   try {
     act(() => root.render(React.createElement(ConversationExportDocument, { snapshot: { ...snapshot, attachments }, canReshare: true })));
     const trigger = Array.from(host.querySelectorAll("a")).find((item) => item.textContent === attachments[0].name)!;
-    trigger.focus();
+    const restoreFocus = jest.spyOn(trigger, "focus");
     open();
-    expect(document.activeElement).toBe(trigger);
+    expect(host.querySelector('[data-share-scroll-lock]')).not.toBeNull();
+    expect(document.body.style.overflow).toBe(previousOverflow);
     const frame = host.querySelector("iframe");
     expect(button("展开").querySelector('[data-material-icon="expand_content"]')).not.toBeNull();
     act(() => button("展开").click());
@@ -195,6 +204,8 @@ it("keeps the iframe on expand, keeps expansion across files, and resets after c
     act(() => button("关闭").focus());
     act(() => button("关闭").click());
     expect(document.activeElement).toBe(trigger);
+    expect(restoreFocus).toHaveBeenCalledWith({ preventScroll: true });
+    expect(host.querySelector('[data-share-scroll-lock]')).toBeNull();
     expect(document.body.style.overflow).toBe(previousOverflow);
     expect(host.querySelector("iframe")).toBeNull();
     open();

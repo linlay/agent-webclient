@@ -239,6 +239,7 @@ describe("ConversationPreview", () => {
       events: completedChatEvents(),
     };
     const projection = renderTimeline(chat);
+    expect(container.querySelector('[data-testid="virtuoso"]')).not.toBeNull();
 
     expect(
       Array.from(projection.state.timelineNodes.values()).map(
@@ -291,6 +292,7 @@ describe("ConversationPreview", () => {
   it("omits user and answer metadata in the document share view", () => {
     renderTimeline({ chatId: "chat-history", events: completedChatEvents() }, "document");
 
+    expect(container.querySelector('[data-testid="virtuoso"]')).toBeNull();
     expect(container.querySelectorAll(".timeline-run-meta")).toHaveLength(0);
     expect(container.querySelectorAll('[data-run-id] [aria-label="timeline.toolPill.copy.action"]')).toHaveLength(0);
     expect(container.querySelectorAll('[aria-label="timeline.toolPill.copy.action"]')).toHaveLength(0);

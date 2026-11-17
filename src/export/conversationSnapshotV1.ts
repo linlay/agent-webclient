@@ -294,10 +294,12 @@ export function snapshotV1PreviewData(
     .flatMap((item) => item.id && item.sourceRef ? [[item.id, item] as const] : []));
   for (const turn of snapshot.turns) {
     for (const node of turn.nodes) {
+      const isSteer = node.kind === "message" && node.role === "user" && Boolean(node.steerId);
       nodes.push({
         ...node,
         expanded: node.kind === "awaiting-answer" ? true : undefined,
-        messageVariant: node.steerId ? "steer" : undefined,
+        messageVariant: isSteer ? "steer" : undefined,
+        steerSource: isSteer ? node.origin?.type ?? "user" : undefined,
         attachments: node.attachmentIds?.flatMap((id) => {
           const resource = resources.get(id);
           return resource ? [{ name: resource.name, url: resource.sourceRef,

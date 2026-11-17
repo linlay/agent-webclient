@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Tooltip } from "antd";
 import { ConversationPreview, type ConversationPreviewProps } from "@/features/conversation/components/ConversationPreview";
 import { ConversationMarkdown, type ConversationMarkdownComponents, type ConversationMarkdownElementProps } from "@/shared/ui/ConversationMarkdown";
@@ -33,6 +33,7 @@ export const ConversationExportDocument: React.FC<ConversationExportDocumentProp
   const labels = copy.attachments;
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(false);
+  const previewTrigger = useRef<HTMLAnchorElement | null>(null);
   const selected = snapshot.attachments.find((attachment) => attachment.id === selectedId);
   const previewOpen = Boolean(selected);
   const sharePath = conversationSharePath(window.location.pathname);
@@ -40,17 +41,14 @@ export const ConversationExportDocument: React.FC<ConversationExportDocumentProp
   const close = () => { setSelectedId(null); setExpanded(false); };
   useEffect(() => {
     if (!previewOpen) return;
-    const previousOverflow = document.body.style.overflow;
-    const previousFocus = document.activeElement;
-    document.body.style.overflow = "hidden";
+    const trigger = previewTrigger.current;
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") { setSelectedId(null); setExpanded(false); }
     };
     document.addEventListener("keydown", onKeyDown);
     return () => {
-      document.body.style.overflow = previousOverflow;
       document.removeEventListener("keydown", onKeyDown);
-      if (previousFocus instanceof HTMLElement && previousFocus.isConnected) previousFocus.focus();
+      if (trigger?.isConnected) trigger.focus({ preventScroll: true });
     };
   }, [previewOpen]);
   const data = useMemo(() => snapshotV1PreviewData(snapshot), [snapshot]);
@@ -70,18 +68,21 @@ export const ConversationExportDocument: React.FC<ConversationExportDocumentProp
     const omitted = omissions.get(canonicalChatSourceRef(url || "") || "");
     return omitted ? labels.omission[omitted.reason] : sharePath ? labels.notFound : labels.unavailable;
   }, [omissions, labels, sharePath]);
-  const open = useCallback((attachment: SnapshotAttachmentV1) => {
-    if (!attachmentLinks(attachment.id).preview) return;
-    setSelectedId(attachment.id);
-  }, [attachmentLinks]);
   const attachmentLink = useCallback((attachment: SnapshotAttachmentV1, children: React.ReactNode, props?: React.AnchorHTMLAttributes<HTMLAnchorElement>) => {
     const previewable = shareMediaKind(attachment.mimeType) !== "unsupported";
     const links = attachmentLinks(attachment.id);
     const route = previewable ? links.preview : links.download;
-    if (!route) return <span key={attachment.id} title={labels.unavailable}>{children}</span>;
+    if (!route) return <span key={attachment.id} className={props?.className} title={labels.unavailable}>{children}</span>;
     return <a key={attachment.id} {...props} href={route}
-      onClick={previewable ? (event) => { event.preventDefault(); open(attachment); } : undefined}>{children}</a>;
-  }, [attachmentLinks, labels, open]);
+      onClick={previewable ? (event) => {
+        event.preventDefault();
+        previewTrigger.current = event.currentTarget;
+        setSelectedId(attachment.id);
+      } : undefined}>{children}</a>;
+  }, [attachmentLinks, labels]);
+  const renderInlineImage = useCallback((resource: SnapshotAttachmentV1) => attachmentLink(resource,
+    <ShareMediaPreview attachment={resource} url={attachmentLinks(resource.id).preview} unavailable={labels.loadFailed} />,
+    { className: styles.inlineImage }), [attachmentLink, attachmentLinks, labels.loadFailed]);
   const markdownComponents = useMemo<ConversationMarkdownComponents>(() => ({
       a: ({ href, children, domNode: _domNode, streamStatus: _streamStatus, ...rest }: LinkProps) => {
         const attachment = findResource(href);
@@ -92,17 +93,19 @@ export const ConversationExportDocument: React.FC<ConversationExportDocumentProp
       img: ({ src, alt }: ConversationMarkdownElementProps<{ src?: string; alt?: string }>) => {
         const resource = findResource(src);
         return resource && shareMediaKind(resource.mimeType) === "image"
-          ? attachmentLink(resource, <ShareMediaPreview attachment={resource} url={attachmentLinks(resource.id).preview} unavailable={labels.loadFailed} />)
+          ? renderInlineImage(resource)
           : <span role="status">{alt || "image"} — {unavailable(src)}</span>;
       },
-  }), [attachmentLink, attachmentLinks, findResource, labels, unavailable]);
+  }), [attachmentLink, findResource, renderInlineImage, unavailable]);
   const renderMarkdown = useCallback((props: MarkdownContentProps) => <ConversationMarkdown
     content={props.content} codeComponent={ExportMarkdownCode} components={markdownComponents}
   />, [markdownComponents]);
   const renderRunHeader: NonNullable<ConversationPreviewProps["renderRunHeader"]> = (item) => {
     const assistant = assistantByRunId.get(item.runId || "");
-    return <div className={styles.assistantIdentity}>
-      <AgentIcon interactive={false} type="agent" mode={assistant?.mode} icon={{ name: assistant?.iconName, color: assistant?.iconColor }}
+    const interactive = Boolean(sharePath || publicBrand);
+    const pointerScope = interactive ? "" : undefined;
+    return <div className={styles.assistantIdentity} data-agent-identity={pointerScope} data-agent-pointer-enabled={pointerScope}>
+      <AgentIcon interactive={interactive} type="agent" mode={assistant?.mode} icon={{ name: assistant?.iconName, color: assistant?.iconColor }}
         props={{ icon: { width: 24, height: 24 } }} />
       <strong>{assistant?.name?.trim() || copy.assistant}</strong>
     </div>;
@@ -113,14 +116,14 @@ export const ConversationExportDocument: React.FC<ConversationExportDocumentProp
     </div></header>
     <div className={`${styles.shell} ${publicBrand ? styles.shellWithBrand : ""}`}>
       <div className={styles.notice}>{copy.aiNotice}</div>
-      <ConversationPreview data={data} agents={agents} viewportMode="document" keepUserInteractionsVisible
+      <ConversationPreview data={data} agents={agents} viewportMode="document"
         ariaLabel={snapshot.title} renderMarkdown={renderMarkdown} renderRunHeader={renderRunHeader}
         renderAttachment={(attachment, options) => {
           const resource = findResource(attachment.url);
           if (!resource) return <span role="status">{attachment.name} — {unavailable(attachment.url)}</span>;
-          return attachmentLink(resource, options.displayMode !== "file" && shareMediaKind(resource.mimeType) === "image"
-            ? <ShareMediaPreview attachment={resource} url={attachmentLinks(resource.id).preview} unavailable={labels.loadFailed} />
-            : resource.name);
+          return options.displayMode !== "file" && shareMediaKind(resource.mimeType) === "image"
+            ? renderInlineImage(resource)
+            : attachmentLink(resource, resource.name);
         }} />
       {publishedAttachments.length > 0 && <section className={styles.attachments} aria-label={labels.attachments}>
         <h2>{labels.attachments}</h2>
@@ -133,7 +136,7 @@ export const ConversationExportDocument: React.FC<ConversationExportDocumentProp
       <footer className={styles.footer}>{copy.readOnly}</footer>
     </div>
     {publicBrand && <PublicShareAppEntry brand={publicBrand} locale={snapshot.locale} />}
-    {selected && <div className={styles.previewBackdrop} role="presentation" onClick={close}>
+    {selected && <div className={styles.previewBackdrop} data-share-scroll-lock="" role="presentation" onClick={close}>
       <aside className={`${styles.previewPanel} ${expanded ? styles.previewExpanded : ""}`} role="dialog" aria-modal="true" aria-label={selected.name}
         onClick={(event) => event.stopPropagation()}>
         <ShareAttachmentViewer attachments={snapshot.attachments} attachment={selected}

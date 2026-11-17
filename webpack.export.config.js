@@ -5,6 +5,8 @@ const MiniCssExtractPlugin = require("mini-css-extract-plugin");
 
 class ExportModuleBoundaryPlugin {
   apply(compiler) {
+    // The preview server injects its live-reload client into every entry.
+    if (compiler.options.mode !== "production") return;
     compiler.hooks.afterEmit.tap("ExportModuleBoundary", (compilation) => {
       const modules = new Set();
       const visit = (module, result) => {

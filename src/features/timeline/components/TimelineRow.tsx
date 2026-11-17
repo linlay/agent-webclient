@@ -2,6 +2,7 @@ import { bindCssModuleClasses } from "@/shared/utils/cssModuleClasses";
 import timelinePresentation from "@/features/timeline/components/TimelinePresentation.module.css";
 import { MailBadge } from "./MailBadge";
 import { InboundMessage } from "./InboundMessage";
+import { SnapshotSteerMessage } from "./SnapshotSteerMessage";
 import { RelatedChatCards } from "./RelatedChatCards";
 import type { Agent } from "@/features/agents/lib/agentState";
 import { TimelineToolIcon } from "./TimelineToolIcon";
@@ -453,27 +454,31 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
           />
         </div>
         <div className={TIMELINE_FLOW_CONTENT_CLASS_NAME}>
-          <div className={TIMELINE_COMMAND_LABEL_CLASS_NAME}>
-            {node.mail
-              ? mailAskNode
-                ? null
-                : <MailBadge mail={node.mail} agents={agents} />
-              : getCommandMessageLabel(node.messageVariant)}
-          </div>
-          {mailAskNode}
-          <div className="tw:flex tw:flex-wrap tw:gap-1">
-            {(node.attachments || []).map((attachment, index) => (
-              <React.Fragment key={attachment.id || index}>
-                {interaction?.renderAttachment?.(attachment, {}) ?? <span>{attachment.name}</span>}
-              </React.Fragment>
-            ))}
-          </div>
-          {node.mail?.kind !== "ask" && <UserBubble
-            text={node.text || ""}
-            targetId={node.id}
-            variant={node.messageVariant}
-          />}
-          {timeNode}
+          {node.steerSource ? <SnapshotSteerMessage node={node} source={node.steerSource} /> : (
+            <>
+              <div className={TIMELINE_COMMAND_LABEL_CLASS_NAME}>
+                {node.mail
+                  ? mailAskNode
+                    ? null
+                    : <MailBadge mail={node.mail} agents={agents} />
+                  : getCommandMessageLabel(node.messageVariant)}
+              </div>
+              {mailAskNode}
+              <div className="tw:flex tw:flex-wrap tw:gap-1">
+                {(node.attachments || []).map((attachment, index) => (
+                  <React.Fragment key={attachment.id || index}>
+                    {interaction?.renderAttachment?.(attachment, {}) ?? <span>{attachment.name}</span>}
+                  </React.Fragment>
+                ))}
+              </div>
+              {node.mail?.kind !== "ask" && <UserBubble
+                text={node.text || ""}
+                targetId={node.id}
+                variant={node.messageVariant}
+              />}
+              {timeNode}
+            </>
+          )}
         </div>
       </div>
     );
