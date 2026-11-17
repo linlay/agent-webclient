@@ -11,7 +11,6 @@ import { ImageGenerationCard } from "./ImageGenerationCard";
 import { RunActivityIcon } from "./RunActivityIcon";
 import { isImageGenerationTool } from "../lib/imageGenerationDisplay";
 import React from "react";
-import { Flex } from "antd";
 import type { TimelineNode } from "@/features/timeline/lib/timelineState";
 import type { TimelineRenderEntry } from "@/features/timeline/lib/timelineDisplay";
 import {
@@ -74,18 +73,19 @@ const TIMELINE_USER_ATTACHMENTS_SINGLE_CLASS_NAME = "tw:flex tw:gap-2.5 tw:flex-
 const TIMELINE_MARKER_CLASS_NAME = "timeline-marker tw:relative tw:flex tw:self-stretch";
 const NODE_ICON_BASE_CLASS_NAME =
   "node-icon tw:relative tw:z-[2] tw:inline-flex tw:h-[18px] tw:w-[18px] tw:items-center tw:justify-center tw:[&_.material-icon]:text-lg tw:[&_svg]:block tw:[&_svg]:h-[18px] tw:[&_svg]:w-[18px] tw:[&_svg]:stroke-current tw:[&_svg]:stroke-[1.8] tw:[&_svg]:[stroke-linecap:round] tw:[&_svg]:[stroke-linejoin:round]";
-const NODE_ICON_STEER_CLASS_NAME = `${NODE_ICON_BASE_CLASS_NAME} node-icon-steer tw:text-accent-electric`;
+const NODE_ICON_STEER_CLASS_NAME = `${NODE_ICON_BASE_CLASS_NAME} node-icon-steer tw:text-accent-electric tw:rounded-full`;
 const NODE_ICON_PLANNING_CLASS_NAME = `${NODE_ICON_BASE_CLASS_NAME} node-icon-planning tw:text-accent-electric-strong tw:rounded-full`;
-const NODE_ICON_CLASS_BY_KIND: Record<string, string> = {
-  thinking: "node-icon-thinking tw:text-accent-warn",
-  "awaiting-answer": "node-icon-awaiting-answer tw:text-accent-warn",
-  tool: "node-icon-tool tw:text-accent-electric-strong",
-  content: "node-icon-content tw:text-accent-lime",
-  source: "node-icon-source tw:text-accent-electric-strong",
-  alert: "node-icon-alert tw:text-accent-danger",
-  info: "node-icon-info tw:text-ink-muted",
-  assistant: "node-icon-assistant tw:text-accent-electric",
+/** 节点种类 → 图标与色调。色调只给 tw: 颜色类，外框尺寸统一由 NODE_ICON_BASE_CLASS_NAME 提供。 */
+const NODE_ICON_BY_KIND: Record<string, { icon: MaterialIconName; tone: string }> = {
+  thinking: { icon: "psychology", tone: "node-icon-thinking tw:text-accent-warn" },
+  "awaiting-answer": { icon: "question_answer", tone: "node-icon-awaiting-answer tw:text-accent-warn" },
+  tool: { icon: "build", tone: "node-icon-tool tw:text-accent-electric-strong" },
+  content: { icon: "description", tone: "node-icon-content tw:text-accent-lime" },
+  source: { icon: "search", tone: "node-icon-source tw:text-accent-electric-strong" },
 };
+const NODE_ICON_TONE_SYSTEM_INFO = "node-icon-info tw:text-ink-muted";
+const NODE_ICON_TONE_SYSTEM_ALERT = "node-icon-alert tw:text-accent-danger";
+const NODE_ICON_TONE_ASSISTANT = "node-icon-assistant tw:text-accent-electric";
 const TIMELINE_FLOW_CONTENT_CLASS_NAME =
   "timeline-flow-content tw:flex tw:min-w-0 tw:flex-col tw:gap-2 tw:rounded-none tw:border-0 tw:bg-transparent tw:p-0 tw:shadow-none";
 const TIMELINE_CONTENT_FLOW_CLASS_NAME =
@@ -94,6 +94,8 @@ const TIMELINE_SOURCE_FLOW_CLASS_NAME =
   "tw:w-[min(100%,760px)] tw:max-w-[760px]";
 const TIMELINE_ROW_TIME_CLASS_NAME =
   presentationClasses("timeline-row-time tw:ml-auto tw:shrink-0 tw:pl-2 tw:text-[12px] tw:leading-none tw:text-ink-muted tw:tracking-[0.02em]");
+const TIMELINE_INLINE_ICON_CLASS_NAME = "timeline-inline-icon";
+const TIMELINE_INLINE_ROW_CLASS_NAME = "timeline-inline-row";
 const TIMELINE_COMMAND_LABEL_CLASS_NAME =
   "timeline-command-label tw:mt-[9px] tw:font-code tw:text-[11px] tw:font-bold tw:leading-none tw:tracking-[0.06em] tw:text-accent-electric-strong tw:uppercase tw:empty:hidden";
 
@@ -105,6 +107,17 @@ export interface TimelineActivityRowProps {
   placeholder?: boolean;
 }
 
+/** 行内图标行：图标与内容并排，供简单档的系统提示、卡片类行与活动行共用。 */
+const TimelineInlineRow: React.FC<{
+  icon: React.ReactNode;
+  children: React.ReactNode;
+}> = ({ icon, children }) => (
+  <div className={TIMELINE_INLINE_ROW_CLASS_NAME}>
+    <span className={TIMELINE_INLINE_ICON_CLASS_NAME}>{icon}</span>
+    <div>{children}</div>
+  </div>
+);
+
 /** Shared progress line used by live run.activity nodes and the empty-run transition. */
 export function TimelineActivityRow({
   text,
@@ -113,6 +126,9 @@ export function TimelineActivityRow({
   placeholder = false,
 }: TimelineActivityRowProps) {
   const interaction = useTimelineInteraction();
+  const compact = interaction?.detailLevel === "simple";
+  const activityIcon = <RunActivityIcon {...interaction?.activityAppearance} />;
+  const textNode = <TimelineActivityText text={text} />;
   return (
     <div
       className={TIMELINE_ROW_FLOW_CLASS_NAME}
@@ -121,15 +137,19 @@ export function TimelineActivityRow({
       data-node-id={nodeId}
       data-task-id={taskId || undefined}
     >
-      <div className={TIMELINE_MARKER_CLASS_NAME}>
-        <RunActivityIcon {...interaction?.activityAppearance} />
-      </div>
+      {compact ? null : (
+        <div className={TIMELINE_MARKER_CLASS_NAME}>{activityIcon}</div>
+      )}
       <div
         className={`${TIMELINE_FLOW_CONTENT_CLASS_NAME} tw:text-[13px]`}
         role="status"
         aria-live="polite"
       >
-        <TimelineActivityText text={text} />
+        {compact ? (
+          <TimelineInlineRow icon={activityIcon}>{textNode}</TimelineInlineRow>
+        ) : (
+          textNode
+        )}
       </div>
     </div>
   );
@@ -260,49 +280,24 @@ const NodeIcon: React.FC<{
 }> = ({ kind, role, messageVariant, systemMessageLevel }) => {
   if (isCommandMessageVariant(messageVariant)) {
     return (
-      <span className={`${NODE_ICON_STEER_CLASS_NAME} tw:rounded-full`}>
+      <span className={NODE_ICON_STEER_CLASS_NAME}>
         <SteerIcon />
       </span>
     );
   }
 
-  let className = `${NODE_ICON_BASE_CLASS_NAME} ${NODE_ICON_CLASS_BY_KIND.assistant}`;
-  let iconName: MaterialIconName = "smart_toy";
-
-  switch (kind) {
-    case "thinking":
-      className = `${NODE_ICON_BASE_CLASS_NAME} ${NODE_ICON_CLASS_BY_KIND.thinking}`;
-      iconName = "psychology";
-      break;
-    case "awaiting-answer":
-      className = `${NODE_ICON_BASE_CLASS_NAME} ${NODE_ICON_CLASS_BY_KIND["awaiting-answer"]}`;
-      iconName = "question_answer";
-      break;
-    case "tool":
-      className = `${NODE_ICON_BASE_CLASS_NAME} ${NODE_ICON_CLASS_BY_KIND.tool}`;
-      iconName = "build";
-      break;
-    case "content":
-      className = `${NODE_ICON_BASE_CLASS_NAME} ${NODE_ICON_CLASS_BY_KIND.content}`;
-      iconName = "description";
-      break;
-    case "source":
-      className = `${NODE_ICON_BASE_CLASS_NAME} ${NODE_ICON_CLASS_BY_KIND.source}`;
-      iconName = "search";
-      break;
-    default:
-      if (role === "system") {
-        const isInfo = systemMessageLevel === "info";
-        className = `${NODE_ICON_BASE_CLASS_NAME} ${NODE_ICON_CLASS_BY_KIND[isInfo ? "info" : "alert"]}`;
-        iconName = isInfo ? (messageVariant === "compact" ? "compress" : "info") : "warning";
-      } else {
-        className = `${NODE_ICON_BASE_CLASS_NAME} ${NODE_ICON_CLASS_BY_KIND.assistant}`;
-        iconName = "smart_toy";
-      }
-  }
+  const isSystem = role === "system";
+  const isInfo = systemMessageLevel === "info";
+  const entry = isSystem ? undefined : NODE_ICON_BY_KIND[kind];
+  const tone = isSystem
+    ? (isInfo ? NODE_ICON_TONE_SYSTEM_INFO : NODE_ICON_TONE_SYSTEM_ALERT)
+    : (entry?.tone ?? NODE_ICON_TONE_ASSISTANT);
+  const iconName: MaterialIconName = isSystem
+    ? (isInfo ? (messageVariant === "compact" ? "compress" : "info") : "warning")
+    : (entry?.icon ?? "smart_toy");
 
   return (
-    <span className={`${className} tw:rounded-full`}>
+    <span className={`${NODE_ICON_BASE_CLASS_NAME} ${tone} tw:rounded-full`}>
       <MaterialIcon name={iconName} />
     </span>
   );
@@ -319,6 +314,15 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
   const { locale, t } = useI18n();
   const activeAgentSkills = skills ?? EMPTY_AGENT_SKILLS;
   const interaction = useTimelineInteraction();
+  /** 简单档：图标行内进各块头部，不再占图标列（展开体因此天然从正文左边缘开始）。 */
+  const compact = interaction?.detailLevel === "simple";
+  const markerSlot = (icon: React.ReactNode): React.ReactNode =>
+    compact ? null : <div className={TIMELINE_MARKER_CLASS_NAME}>{icon}</div>;
+  const iconSlot = (icon: React.ReactNode): React.ReactNode =>
+    compact ? <span className={TIMELINE_INLINE_ICON_CLASS_NAME}>{icon}</span> : undefined;
+  /** 没有折叠头部的行（系统提示、卡片类工具结果）：简单档用行内图标 + 内容并排。 */
+  const inlineRow = (icon: React.ReactNode, content: React.ReactNode): React.ReactNode =>
+    compact ? <TimelineInlineRow icon={icon}>{content}</TimelineInlineRow> : content;
   const timeTarget = node || toolGroup?.nodes[toolGroup.nodes.length - 1];
   if (!timeTarget) return null;
   const taskID =
@@ -437,6 +441,30 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
     node.role === "user" &&
     isCommandMessageVariant(node.messageVariant)
   ) {
+    const commandIcon = (
+      <NodeIcon kind="message" role="user" messageVariant={node.messageVariant} />
+    );
+    const commandLabel = node.mail
+      ? mailAskNode
+        ? null
+        : <MailBadge mail={node.mail} agents={agents} />
+      : getCommandMessageLabel(node.messageVariant);
+    const commandAttachments = (node.attachments || []).length > 0 ? (
+      <div className="tw:flex tw:flex-wrap tw:gap-1">
+        {(node.attachments || []).map((attachment, index) => (
+          <React.Fragment key={attachment.id || index}>
+            {interaction?.renderAttachment?.(attachment, {}) ?? <span>{attachment.name}</span>}
+          </React.Fragment>
+        ))}
+      </div>
+    ) : null;
+    const commandBubble = node.mail?.kind !== "ask" ? (
+      <UserBubble
+        text={node.text || ""}
+        targetId={node.id}
+        variant={node.messageVariant}
+      />
+    ) : null;
     return (
       <div
         className={TIMELINE_ROW_FLOW_CLASS_NAME}
@@ -446,36 +474,33 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
         data-node-id={anchorNodeId}
         data-task-id={taskID || undefined}
       >
-        <div className={TIMELINE_MARKER_CLASS_NAME}>
-          <NodeIcon
-            kind="message"
-            role="user"
-            messageVariant={node.messageVariant}
-          />
-        </div>
+        {markerSlot(commandIcon)}
         <div className={TIMELINE_FLOW_CONTENT_CLASS_NAME}>
           {node.steerSource ? <SnapshotSteerMessage node={node} source={node.steerSource} /> : (
             <>
-              <div className={TIMELINE_COMMAND_LABEL_CLASS_NAME}>
-                {node.mail
-                  ? mailAskNode
-                    ? null
-                    : <MailBadge mail={node.mail} agents={agents} />
-                  : getCommandMessageLabel(node.messageVariant)}
-              </div>
-              {mailAskNode}
-              <div className="tw:flex tw:flex-wrap tw:gap-1">
-                {(node.attachments || []).map((attachment, index) => (
-                  <React.Fragment key={attachment.id || index}>
-                    {interaction?.renderAttachment?.(attachment, {}) ?? <span>{attachment.name}</span>}
-                  </React.Fragment>
-                ))}
-              </div>
-              {node.mail?.kind !== "ask" && <UserBubble
-                text={node.text || ""}
-                targetId={node.id}
-                variant={node.messageVariant}
-              />}
+              {compact ? (
+                <>
+                  {/* 附件与图标同一条左边缘，图标只和气泡（或指令名）同一行。 */}
+                  {commandAttachments}
+                  <div className={TIMELINE_INLINE_ROW_CLASS_NAME}>
+                    {iconSlot(commandIcon)}
+                    <div>
+                      {commandLabel && (
+                        <div className={TIMELINE_COMMAND_LABEL_CLASS_NAME}>{commandLabel}</div>
+                      )}
+                      {mailAskNode}
+                      {commandBubble}
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className={TIMELINE_COMMAND_LABEL_CLASS_NAME}>{commandLabel}</div>
+                  {mailAskNode}
+                  {commandAttachments}
+                  {commandBubble}
+                </>
+              )}
               {timeNode}
             </>
           )}
@@ -497,6 +522,7 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
 
   /* System messages */
   if (node && node.kind === "message" && node.role === "system") {
+    const systemIcon = <NodeIcon kind="message" role="system" messageVariant={node.messageVariant} systemMessageLevel={node.systemMessageLevel} />;
     return (
       <div
         className={TIMELINE_ROW_FLOW_CLASS_NAME}
@@ -505,16 +531,17 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
         data-node-id={anchorNodeId}
         data-task-id={taskID || undefined}
       >
-        <div className={TIMELINE_MARKER_CLASS_NAME}>
-          <NodeIcon kind="message" role="system" messageVariant={node.messageVariant} systemMessageLevel={node.systemMessageLevel} />
-        </div>
+        {markerSlot(systemIcon)}
         <div className={TIMELINE_FLOW_CONTENT_CLASS_NAME}>
-          <SystemAlert
-            level={node.systemMessageLevel}
-            text={node.text || ""}
-            tooltip={node.tooltip}
-            errorDetail={node.errorDetail}
-          />
+          {inlineRow(
+            systemIcon,
+            <SystemAlert
+              level={node.systemMessageLevel}
+              text={node.text || ""}
+              tooltip={node.tooltip}
+              errorDetail={node.errorDetail}
+            />,
+          )}
           {timeNode}
         </div>
       </div>
@@ -523,6 +550,7 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
 
   /* Thinking */
   if (node && node.kind === "thinking") {
+    const thinkingIcon = <NodeIcon kind="thinking" />;
     return (
       <div
         className={TIMELINE_ROW_FLOW_CLASS_NAME}
@@ -530,11 +558,9 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
         data-node-id={anchorNodeId}
         data-task-id={taskID || undefined}
       >
-        <div className={TIMELINE_MARKER_CLASS_NAME}>
-          <NodeIcon kind="thinking" />
-        </div>
+        {markerSlot(thinkingIcon)}
         <div className={TIMELINE_FLOW_CONTENT_CLASS_NAME}>
-          <ThinkingBlock node={node} />
+          <ThinkingBlock node={node} icon={iconSlot(thinkingIcon)} />
           {timeNode}
         </div>
       </div>
@@ -543,6 +569,7 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
 
   /* Awaiting answer */
   if (node && node.kind === "awaiting-answer") {
+    const awaitingIcon = <NodeIcon kind="awaiting-answer" />;
     return (
       <div
         className={TIMELINE_ROW_FLOW_CLASS_NAME}
@@ -550,15 +577,13 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
         data-node-id={anchorNodeId}
         data-task-id={taskID || undefined}
       >
-        <div className={TIMELINE_MARKER_CLASS_NAME}>
-          <NodeIcon kind="awaiting-answer" />
-        </div>
+        {markerSlot(awaitingIcon)}
         <div className={TIMELINE_FLOW_CONTENT_CLASS_NAME}>
           {node.delegatedBy && <p>
             {t("mailbox.delegated", {agent: node.delegatedBy})}
             {node.delegatedLevel && ` · ${t("mailbox.grant", {level: node.delegatedLevel})}`}
           </p>}
-          <AwaitingAnswerBlock node={node} />
+          <AwaitingAnswerBlock node={node} icon={iconSlot(awaitingIcon)} />
           {timeNode}
         </div>
       </div>
@@ -567,6 +592,12 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
 
   /* Tool */
   if (toolGroup || (node && node.kind === "tool")) {
+    const toolIcon = (
+      <TimelineToolIcon
+        toolNames={(toolGroup?.nodes || (node ? [node] : [])).map((item) => item.toolName)}
+        className={`${NODE_ICON_BASE_CLASS_NAME} ${NODE_ICON_BY_KIND.tool.tone} tw:rounded-full`}
+      />
+    );
     return (
       <div
         className={TIMELINE_ROW_FLOW_CLASS_NAME}
@@ -574,18 +605,13 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
         data-node-id={anchorNodeId}
         data-task-id={taskID || undefined}
       >
-        <div className={TIMELINE_MARKER_CLASS_NAME}>
-          <TimelineToolIcon
-            toolNames={(toolGroup?.nodes || (node ? [node] : [])).map((item) => item.toolName)}
-            className={`${NODE_ICON_BASE_CLASS_NAME} ${NODE_ICON_CLASS_BY_KIND.tool} tw:rounded-full`}
-          />
-        </div>
+        {markerSlot(toolIcon)}
         <div className={TIMELINE_FLOW_CONTENT_CLASS_NAME}>
-          {node?.toolName === "wait" ? <WaitCard node={node} active={Boolean(interaction?.conversationActive)} /> : (toolGroup?.nodes || (node ? [node] : [])).every(isImageGenerationTool) ? (
-            <ImageGenerationCard nodes={toolGroup?.nodes || [node!]} />
+          {node?.toolName === "wait" ? inlineRow(toolIcon, <WaitCard node={node} active={Boolean(interaction?.conversationActive)} />) : (toolGroup?.nodes || (node ? [node] : [])).every(isImageGenerationTool) ? (
+            inlineRow(toolIcon, <ImageGenerationCard nodes={toolGroup?.nodes || [node!]} />)
           ) : node?.toolName === "run_query" && node.relatedChat && node.relatedChat.chatId !== interaction?.surfaceContext?.chatId ? (
-            <RelatedChatCards nodes={[node]} agents={agents} />
-          ) : <ToolPill node={node} toolGroup={toolGroup} />}
+            inlineRow(toolIcon, <RelatedChatCards nodes={[node]} agents={agents} />)
+          ) : <ToolPill node={node} toolGroup={toolGroup} icon={iconSlot(toolIcon)} />}
           {timeNode}
         </div>
       </div>
@@ -601,9 +627,7 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
         data-node-id={anchorNodeId}
         data-task-id={taskID || undefined}
       >
-        <div className={`${TIMELINE_MARKER_CLASS_NAME} tw:pt-[2px]`}>
-          <NodeIcon kind="content" />
-        </div>
+        {markerSlot(<NodeIcon kind="content" />)}
         <div
           className={`${TIMELINE_FLOW_CONTENT_CLASS_NAME} ${TIMELINE_CONTENT_FLOW_CLASS_NAME}`}
         >
@@ -616,6 +640,7 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
 
   /* Source */
   if (node && node.kind === "source") {
+    const sourceIcon = <NodeIcon kind="source" />;
     return (
       <div
         className={TIMELINE_ROW_FLOW_CLASS_NAME}
@@ -623,13 +648,11 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
         data-node-id={anchorNodeId}
         data-task-id={taskID || undefined}
       >
-        <div className={TIMELINE_MARKER_CLASS_NAME}>
-          <NodeIcon kind="source" />
-        </div>
+        {markerSlot(sourceIcon)}
         <div
           className={`${TIMELINE_FLOW_CONTENT_CLASS_NAME} ${TIMELINE_SOURCE_FLOW_CLASS_NAME}`}
         >
-          <SourceBlock node={node} />
+          <SourceBlock node={node} icon={iconSlot(sourceIcon)} />
           {timeNode}
         </div>
       </div>
@@ -638,6 +661,11 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
 
   /* Planning */
   if (node && node.kind === "planning") {
+    const planningIcon = (
+      <span className={NODE_ICON_PLANNING_CLASS_NAME}>
+        <MaterialIcon name="assignment" />
+      </span>
+    );
     return (
       <div
         className={TIMELINE_ROW_FLOW_CLASS_NAME}
@@ -645,17 +673,14 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
         data-node-id={anchorNodeId}
         data-task-id={taskID || undefined}
       >
-        <div className={TIMELINE_MARKER_CLASS_NAME}>
-          <span className={NODE_ICON_PLANNING_CLASS_NAME}>
-            <MaterialIcon name="assignment" />
-          </span>
-        </div>
-        <PlanningTimeline node={node} />
+        {markerSlot(planningIcon)}
+        <PlanningTimeline node={node} icon={iconSlot(planningIcon)} />
       </div>
     );
   }
 
   /* Default assistant message */
+  const fallbackIcon = <NodeIcon kind={node?.kind || "message"} role={node?.role} />;
   return (
     <div
       className={TIMELINE_ROW_FLOW_CLASS_NAME}
@@ -664,11 +689,9 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
       data-node-id={anchorNodeId}
       data-task-id={taskID || undefined}
     >
-      <div className={TIMELINE_MARKER_CLASS_NAME}>
-        <NodeIcon kind={node?.kind || "message"} role={node?.role} />
-      </div>
+      {markerSlot(fallbackIcon)}
       <div className={TIMELINE_FLOW_CONTENT_CLASS_NAME}>
-        {node && <ContentBlock node={node} />}
+        {inlineRow(fallbackIcon, node ? <ContentBlock node={node} /> : null)}
         {timeNode}
       </div>
     </div>

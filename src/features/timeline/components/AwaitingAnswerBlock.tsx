@@ -12,6 +12,8 @@ const presentationClasses = bindCssModuleClasses({ ...timelinePresentation });
 
 interface AwaitingAnswerBlockProps {
   node: TimelineNode;
+  /** 简单档把节点图标行内放进折叠头部。 */
+  icon?: React.ReactNode;
 }
 
 interface AwaitingAnswerDisplayItem {
@@ -170,6 +172,7 @@ function parseAwaitingAnswerEnvelope(text: string): AwaitingAnswerEnvelope {
 
 export const AwaitingAnswerBlock: React.FC<AwaitingAnswerBlockProps> = ({
   node,
+  icon,
 }) => {
   const interaction = useTimelineInteraction();
   const { t } = useI18n();
@@ -208,7 +211,16 @@ export const AwaitingAnswerBlock: React.FC<AwaitingAnswerBlockProps> = ({
     <TimelineCollapse
       expanded={expanded}
       onExpand={() => interaction?.setExpanded?.(node.id, !expanded)}
-      label={summaryText}
+      label={
+        icon ? (
+          <span className="timeline-label-with-icon">
+            {icon}
+            <span>{summaryText}</span>
+          </span>
+        ) : (
+          summaryText
+        )
+      }
     >
       <Flex vertical gap={10} className={presentationClasses("awaiting-detail")}>
         {items.map((item) => (

@@ -13,6 +13,8 @@ const presentationClasses = bindCssModuleClasses({ ...timelinePresentation });
 
 interface ThinkingBlockProps {
   node: TimelineNode;
+  /** 简单档把节点图标行内放进折叠头部。 */
+  icon?: React.ReactNode;
 }
 
 function useThinkingDurationTick(active: boolean): number {
@@ -33,7 +35,7 @@ function useThinkingDurationTick(active: boolean): number {
   return now;
 }
 
-export const ThinkingBlock: React.FC<ThinkingBlockProps> = ({ node }) => {
+export const ThinkingBlock: React.FC<ThinkingBlockProps> = ({ node, icon }) => {
   const interaction = useTimelineInteraction();
   const { t } = useI18n();
   const expanded = Boolean(node.expanded);
@@ -56,6 +58,7 @@ export const ThinkingBlock: React.FC<ThinkingBlockProps> = ({ node }) => {
     <TimelineCollapse
       label={
         <span className="tw:inline-flex tw:items-center tw:gap-1.5 tw:text-[13px]">
+          {icon}
           {isLoading ? (
             <>
               <Skeleton active={true} text={triggerLabel} />

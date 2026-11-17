@@ -39,6 +39,8 @@ const TERMINAL_TOOL_STATUSES = new Set([
 interface ToolPillProps {
   node?: TimelineNode;
   toolGroup?: ToolGroupRenderEntry;
+  /** 简单档把节点图标行内放进折叠头部。 */
+  icon?: React.ReactNode;
 }
 
 export interface ToolPillRecord {
@@ -370,7 +372,7 @@ export function getToolPillDurationText(
   );
 }
 
-export const ToolPill: React.FC<ToolPillProps> = ({ node, toolGroup }) => {
+export const ToolPill: React.FC<ToolPillProps> = ({ node, toolGroup, icon }) => {
   const [expanded, setExpanded] = useState(false);
   const [copyStatus, setCopyStatus] = useState<Record<string, CopyState>>({});
   const [wrapMap, setWrapMap] = useState<Record<string, boolean>>({});
@@ -505,7 +507,8 @@ export const ToolPill: React.FC<ToolPillProps> = ({ node, toolGroup }) => {
         setExpanded(nextExpanded);
       }}
       label={
-        <Flex gap={6}>
+        <Flex gap={6} align={icon ? "center" : undefined}>
+          {icon}
           <Flex
             align="center"
             gap={6}

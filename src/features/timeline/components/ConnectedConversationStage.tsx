@@ -1889,6 +1889,7 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
   const waitTransport = useRunTransport();
   const interaction = useMemo<TimelineInteractionValue>(() => ({
     agents: state.agents,
+    detailLevel,
     activityAppearance: resolveRunActivityAppearance(state.agents.find(agent => agent.key === resolvePreferredAgentKey(state))),
     // "Continue now" is a blank steer, which Platform treats as "continue"; a
     // request.steer without content renders no user message.

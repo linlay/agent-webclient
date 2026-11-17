@@ -6,9 +6,15 @@ import type { ContentSegment, ContentViewBinding } from "@/shared/contracts/cont
 import type { MarkdownContentProps } from "@/features/viewers/components/MarkdownContent";
 import type { DesktopContextMenuTargetDescriptor } from "@/shared/data/desktop/desktopContextMenu";
 import type { RunActivityAppearance } from "../lib/runActivityAppearance";
+import type { EventDetailLevel } from "@/shared/data/eventDetailLevel";
 
 export interface TimelineInteractionValue {
   activityAppearance?: RunActivityAppearance;
+  /**
+   * 生效过程档位。simple 下 TimelineRow 把节点图标行内放进各块头部（不再占图标列），
+   * 展开体因此天然从正文左边缘开始；未注入时按 detailed 的图标列渲染。
+   */
+  detailLevel?: EventDetailLevel;
   /** Agent directory used by inline identity lines (sender avatars). */
   agents?: readonly import("@/features/agents/lib/agentState").Agent[];
   conversationActive?: boolean;

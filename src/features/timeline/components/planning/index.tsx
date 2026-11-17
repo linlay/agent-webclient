@@ -15,11 +15,13 @@ const presentationClasses = bindCssModuleClasses({ ...timelinePresentation });
 
 interface PlanningTimelineProps {
   node: TimelineNode;
+  /** 简单档把节点图标行内放进折叠头部。 */
+  icon?: React.ReactNode;
 }
 
 const EXPAND_DIV_CLASS_NAME =
   "tw:absolute tw:inset-x-0 tw:bottom-0 tw:bg-[linear-gradient(180deg,transparent,var(--bg-base))] tw:p-4";
-export const PlanningTimeline: React.FC<PlanningTimelineProps> = ({ node }) => {
+export const PlanningTimeline: React.FC<PlanningTimelineProps> = ({ node, icon }) => {
   const { t } = useI18n();
   const copyText = useTimelineCopy();
   const interaction = useTimelineInteraction();
@@ -42,6 +44,13 @@ export const PlanningTimeline: React.FC<PlanningTimelineProps> = ({ node }) => {
     }
   };
 
+  const planningLabel =
+    node.status === "completed" ? (
+      t("planningTimeline.implementPlan")
+    ) : (
+      <Skeleton text={t("planningTimeline.writing")} active />
+    );
+
   return (
     <Collapse
       defaultActiveKey="planning"
@@ -51,12 +60,14 @@ export const PlanningTimeline: React.FC<PlanningTimelineProps> = ({ node }) => {
       items={[
         {
           key: "planning",
-          label:
-            node.status === "completed" ? (
-              t("planningTimeline.implementPlan")
-            ) : (
-              <Skeleton text={t("planningTimeline.writing")} active />
-            ),
+          label: icon ? (
+            <Flex align="center" gap={6}>
+              {icon}
+              {planningLabel}
+            </Flex>
+          ) : (
+            planningLabel
+          ),
           extra: (
             <Flex gap={4}>
               {node.planningId && chatId && interaction?.openTarget ? <Tooltip title={t("planningTimeline.openInSidebar")}>

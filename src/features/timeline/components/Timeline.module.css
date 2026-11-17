@@ -344,15 +344,12 @@
     bottom: -12px;
 }
 
-/* 精简过程：普通行整列图标撤掉，正文与状态左对齐、不再缩进，也不画节点间的
-   时间线竖线。活动行是唯一例外——TimelineActivityRow 的 RunActivityIcon 要继续
-   显示，所以只有它保留自己的 18px 图标列（图标是那一行的标识，正文紧随其后）。
-   档位标记由 ConversationStage 按后端 effectiveDetail 写入，这里只做展示收敛，
-   不过滤节点。 */
-:global(.conversation-stage-virtuoso[data-detail-level="simple"]) :global(.timeline-marker)::after {
-    display: none;
-}
-
+/* 精简过程：节点图标不再占图标列，改为行内放进各块自己的头部（TimelineRow 从交互
+   上下文的 detailLevel 决定是否渲染行内图标）。图标列撤掉后节点之间的时间线竖线也
+   随之消失，所有行收成单列，正文与折叠展开的明细天然共用同一条左边缘，不需要任何
+   负边距补偿（负边距会在折叠动画的 overflow 下被横向裁剪）。
+   下面的 .timeline-marker 兜底只在 detailLevel 未注入（舞台标了 simple 但上下文没有）
+   时生效：此时行内图标不会出现，撤掉整列图标也仍保持单列，不会把正文挤进 18px 列。 */
 :global(.conversation-stage-virtuoso[data-detail-level="simple"]) :global(.timeline-row-flow) {
     grid-template-columns: minmax(0, 1fr);
 }
@@ -361,12 +358,44 @@
     display: none;
 }
 
-:global(.conversation-stage-virtuoso[data-detail-level="simple"]) :global(.timeline-row-flow[data-kind="activity"]) {
-    grid-template-columns: 18px minmax(0, 1fr);
+/* 行内图标槽：与图标列同尺寸（18px），保证图标、折叠箭头与正文左边缘的关系不变。 */
+:global(.timeline-inline-icon) {
+    display: inline-flex;
+    flex: none;
+    width: 18px;
+    height: 18px;
+    align-items: center;
+    justify-content: center;
 }
 
-:global(.conversation-stage-virtuoso[data-detail-level="simple"]) :global(.timeline-row-flow[data-kind="activity"]) :global(.timeline-marker) {
+:global(.timeline-inline-icon) :global(.material-icon) {
+    font-size: 18px;
+}
+
+/* 活动行头像内联尺寸是 32px，行内槽位放不下，缩到 18px 视觉尺寸。 */
+:global(.timeline-inline-icon) :global([data-run-activity-icon]) svg {
+    transform: scale(0.5625);
+    transform-origin: center;
+}
+
+/* 折叠头部：图标 + 文案同一行。 */
+:global(.timeline-label-with-icon) {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+/* 没有折叠头部的行（系统提示、卡片类工具结果）：图标与内容并排。 */
+:global(.timeline-inline-row) {
     display: flex;
+    min-width: 0;
+    align-items: flex-start;
+    gap: 8px;
+}
+
+:global(.timeline-inline-row) > :last-child {
+    flex: 1 1 auto;
+    min-width: 0;
 }
 
 /* 精简过程的 Run 元信息（操作按钮、时间、耗时）默认完全透明，悬停该 Run 或键盘焦点

@@ -28,6 +28,8 @@ function sourceName(source: TimelineSource): string {
 
 export interface SourceBlockProps {
   node: TimelineNode;
+  /** 简单档把节点图标行内放进折叠头部。 */
+  icon?: React.ReactNode;
 }
 
 const SOURCE_QUERY_CLASS_NAME = "source-query tw:text-ink-1 tw:opacity-60";
@@ -35,7 +37,7 @@ const SOURCE_LIST_CLASS_NAME = "source-list tw:flex tw:flex-wrap tw:gap-2";
 const SOURCE_ITEM_CLASS_NAME = "source-item tw:flex tw:flex-col tw:gap-1.5";
 const SOURCE_ITEM_ICON_CLASS_NAME = "tw:text-accent-electric-strong";
 
-export const SourceBlock: React.FC<SourceBlockProps> = ({ node }) => {
+export const SourceBlock: React.FC<SourceBlockProps> = ({ node, icon }) => {
   const interaction = useTimelineInteraction();
   const { t } = useI18n();
   const sources = Array.isArray(node.sources) ? node.sources : [];
@@ -49,7 +51,8 @@ export const SourceBlock: React.FC<SourceBlockProps> = ({ node }) => {
     <TimelineCollapse
       expanded={node.expanded}
       label={
-        <Flex gap={6}>
+        <Flex gap={6} align={icon ? "center" : undefined}>
+          {icon}
           <span>{t("timeline.source.title", { count: sourceCount })}</span>
           <span className={SOURCE_QUERY_CLASS_NAME}>"{node.sourceQuery}"</span>
         </Flex>

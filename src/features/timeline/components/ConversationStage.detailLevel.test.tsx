@@ -33,7 +33,7 @@ function renderStage(detailLevel?: "simple" | "detailed"): HTMLElement {
 }
 
 describe("ConversationStage detail level marker", () => {
-  it("marks a simple chat so icons and the timeline rail stay hidden", () => {
+  it("marks a simple chat so the rail stops but node icons except the body stay", () => {
     expect(renderStage("simple").getAttribute("data-detail-level")).toBe("simple");
   });
 
