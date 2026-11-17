@@ -13,7 +13,7 @@ import { RunTerminalNotice } from "./RunTerminalNotice";
 import type { EventDetailLevel } from "@/shared/data/eventDetailLevel";
 import { buildRunRenderEntries, type TimelineDisplayItem, type TimelineRenderEntry } from "../lib/timelineDisplay";
 import { isImageGenerationTool } from "../lib/imageGenerationDisplay";
-import { runPresentationSections } from "../lib/runPresentationSections";
+import { buildDocumentRunSections } from "../lib/runPresentationSections";
 import "./Timeline.module.css";
 
 export type ConversationListItem =
@@ -38,7 +38,6 @@ export interface ConversationStageProps {
   skills?: readonly AgentSkill[];
   fallbackAgentKey?: string;
   tasks?: Map<string, TaskItemMeta>;
-  keepUserInteractionsVisible?: boolean;
   expandedRuns: Record<string, boolean>;
   onToggleRun: (key: string) => void;
   expandedTasks: Record<string, boolean>;
@@ -78,7 +77,7 @@ const ConversationItem = ({ item, children, ...rest }: React.HTMLAttributes<HTML
 
 export function ConversationStage({
   items, agents, skills, fallbackAgentKey, tasks, expandedRuns, onToggleRun,
-  expandedTasks, onToggleTask, detailLevel, queryMeta, runMeta, runHeader, viewport, keepUserInteractionsVisible = false,
+  expandedTasks, onToggleTask, detailLevel, queryMeta, runMeta, runHeader, viewport,
   pointerSurface = false,
 }: ConversationStageProps): React.ReactElement {
   const { t } = useI18n();
@@ -87,32 +86,8 @@ export function ConversationStage({
     fallbackAgentKey={fallbackAgentKey} expandedTaskGroups={expandedTasks}
     onToggleTaskGroup={onToggleTask}
   />;
-  return <Virtuoso
-    key={viewport?.instanceKey}
-    ref={viewport?.ref}
-    data={items}
-    computeItemKey={(_index, item) => item.key}
-    useWindowScroll={viewport?.mode === "document"}
-    initialTopMostItemIndex={viewport?.initialPosition === "bottom" ? { index: "LAST" } : undefined}
-    restoreStateFrom={viewport?.snapshot}
-    scrollerRef={viewport?.scrollerRef}
-    increaseViewportBy={typeof window === "undefined" ? 0 : window.innerHeight}
-    followOutput={viewport?.followOutput}
-    atBottomThreshold={
-      viewport?.atBottomThreshold ?? DEFAULT_AT_BOTTOM_THRESHOLD_PX
-    }
-    atBottomStateChange={viewport?.atBottomStateChange}
-    totalListHeightChanged={viewport?.totalListHeightChanged}
-    rangeChanged={viewport?.rangeChanged}
-    isScrolling={viewport?.isScrolling}
-    className={viewport?.mode === "document" ? "conversation-stage-virtuoso" : `conversation-stage-virtuoso tw:h-full ${SCROLLBAR_THIN_CLASS_NAME}`}
-    id={viewport?.scrollerId || "messages"}
-    data-desktop-workspace-arrow-keys="allow"
-    data-detail-level={detailLevel}
-    // Agent avatars in the chat follow the pointer anywhere in the stage, not just their own row.
-    data-agent-pointer-surface={pointerSurface ? "" : undefined}
-    components={{ Footer: viewport?.Footer, Item: ConversationItem }}
-    itemContent={(_index, listItem) => {
+  const renderItem =
+    (_index: number, listItem: ConversationListItem) => {
       if (listItem.kind === "query") return <div id={listItem.anchorId}
         className="timeline-query-anchor-row tw:relative"
         data-query-anchor-id={listItem.anchorId}>
@@ -132,41 +107,75 @@ export function ConversationStage({
           (node.kind === "message" && node.role === "user" && !node.taskId));
         const persistentIds = new Set(persistent.map(node => node.id));
         const process = item.nodes.filter(node => !persistentIds.has(node.id));
-        const collapse = Boolean(item.completedAt)
-          && item.nodes.length > 1 && process.length > 0
-          && !item.nodes.some(isImageGenerationTool);
+        const documentSections = viewport?.mode === "document" ? buildDocumentRunSections(item.nodes, tasks) : undefined;
+        const lastProcessSection = documentSections?.findLastIndex(section => section.hasProcess) ?? -1;
+        const expanded = Boolean(expandedRuns[item.key]);
+        const collapse = Boolean(item.completedAt) && (documentSections
+          ? lastProcessSection >= 0
+          : item.nodes.length > 1 && process.length > 0 && !item.nodes.some(isImageGenerationTool));
+        // Keep trailing results mounted and interleave earlier results with the unfolded process.
+        const processEntries = documentSections
+          ? documentSections.slice(0, lastProcessSection + 1).flatMap(section => expanded
+            ? section.entries
+            : section.entries.filter(entry => !section.collapsedEntries.some(result => result.key === entry.key)))
+          : collapse ? buildRunRenderEntries(process, tasks) : [];
+        const visibleEntries = documentSections
+          ? (collapse && expanded ? documentSections.slice(lastProcessSection + 1) : documentSections)
+              .flatMap(section => collapse && !expanded ? section.collapsedEntries : section.entries)
+          : collapse ? buildRunRenderEntries(persistent, tasks) : item.renderEntries;
         return <Flex vertical gap={8} data-run-id={item.runId || undefined} className="timeline-run-block tw:mb-4">
           {runHeader?.(item)}
-          {keepUserInteractionsVisible ? runPresentationSections(item.nodes).map(section => {
-            const key = `${item.key}:${section.key}`;
-            // Submitted inputs must also stay outside task-group collapses.
-            const entries: TimelineRenderEntry[] = section.process
-              ? buildRunRenderEntries(section.nodes, tasks)
-              : section.nodes.map(node => ({ kind: "node", key: `node_${node.id}`, node }));
-            const content = <div className="timeline-run-items tw:flex tw:flex-col tw:gap-[12px]">{entries.map(renderEntry)}</div>;
-            return section.process && item.completedAt && !section.nodes.some(isImageGenerationTool)
-              ? <Collapse key={key} ghost destroyOnHidden className="timeline-run-collapse"
-                  activeKey={expandedRuns[key] ? [key] : []} onChange={() => onToggleRun(key)}
-                  items={[{ key, label: t("timeline.run.process"), children: content }]} />
-              : <React.Fragment key={key}>{content}</React.Fragment>;
-          }) : <>
-            {collapse && <Collapse ghost destroyOnHidden className="timeline-run-collapse"
-              activeKey={expandedRuns[item.key] ? ["run-entries"] : []}
-              onChange={() => onToggleRun(item.key)}
-              items={[{ key: "run-entries", label: t("timeline.run.processed", { duration }), children:
-                <div className="timeline-run-items tw:flex tw:flex-col tw:gap-[12px]">
-                  {buildRunRenderEntries(process, tasks).map(renderEntry)}
-                </div> }]} />}
-            <section className="timeline-run-group tw:relative tw:flex tw:flex-col tw:gap-2 tw:mt-[4px]">
-              {collapse ? buildRunRenderEntries(persistent, tasks).map(renderEntry)
-                : <div className="timeline-run-items tw:flex tw:flex-col tw:gap-[12px]">{item.renderEntries.map(renderEntry)}</div>}
-            </section>
-          </>}
-          {(keepUserInteractionsVisible || !collapse) && <RunTerminalNotice terminalType={item.terminalType} duration={duration} />}
+          {collapse && <Collapse ghost destroyOnHidden className="timeline-run-collapse"
+            activeKey={expanded ? ["run-entries"] : []}
+            onChange={() => onToggleRun(item.key)}
+            items={[{
+              key: "run-entries",
+              label: documentSections && !duration ? t("timeline.run.process") : t("timeline.run.processed", { duration }),
+              children: <div className="timeline-run-items tw:flex tw:flex-col tw:gap-[12px]">
+                {processEntries.map(renderEntry)}
+              </div>,
+            }]} />}
+          {documentSections
+            ? <div className="timeline-run-items tw:flex tw:flex-col tw:gap-[12px]">{visibleEntries.map(renderEntry)}</div>
+            : <section className="timeline-run-group tw:relative tw:flex tw:flex-col tw:gap-2 tw:mt-[4px]">
+              {collapse ? visibleEntries.map(renderEntry)
+                : <div className="timeline-run-items tw:flex tw:flex-col tw:gap-[12px]">{visibleEntries.map(renderEntry)}</div>}
+            </section>}
+          {(documentSections || !collapse) && <RunTerminalNotice terminalType={item.terminalType} duration={duration} />}
           {item.completedAt ? runMeta?.(item, duration) : null}
         </Flex>;
       }
       return renderEntry(listItem.item.renderEntry);
-    }}
+    };
+  if (viewport?.mode === "document") return <div>
+    {items.map((item, index) => <ConversationItem key={item.key} item={item}>
+      {renderItem(index, item)}
+    </ConversationItem>)}
+  </div>;
+  return <Virtuoso
+    key={viewport?.instanceKey}
+    ref={viewport?.ref}
+    data={items}
+    computeItemKey={(_index, item) => item.key}
+    initialTopMostItemIndex={viewport?.initialPosition === "bottom" ? { index: "LAST" } : undefined}
+    restoreStateFrom={viewport?.snapshot}
+    scrollerRef={viewport?.scrollerRef}
+    increaseViewportBy={typeof window === "undefined" ? 0 : window.innerHeight}
+    followOutput={viewport?.followOutput}
+    atBottomThreshold={
+      viewport?.atBottomThreshold ?? DEFAULT_AT_BOTTOM_THRESHOLD_PX
+    }
+    atBottomStateChange={viewport?.atBottomStateChange}
+    totalListHeightChanged={viewport?.totalListHeightChanged}
+    rangeChanged={viewport?.rangeChanged}
+    isScrolling={viewport?.isScrolling}
+    className={`conversation-stage-virtuoso tw:h-full ${SCROLLBAR_THIN_CLASS_NAME}`}
+    id={viewport?.scrollerId || "messages"}
+    data-desktop-workspace-arrow-keys="allow"
+    data-detail-level={detailLevel}
+    // Agent avatars in the chat follow the pointer anywhere in the stage, not just their own row.
+    data-agent-pointer-surface={pointerSurface ? "" : undefined}
+    components={{ Footer: viewport?.Footer, Item: ConversationItem }}
+    itemContent={renderItem}
   />;
 }

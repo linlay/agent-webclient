@@ -17,19 +17,6 @@
   color: var(--ink-1);
 }
 
-.document :global(.conversation-stage-virtuoso) {
-  height: auto;
-  background: transparent;
-}
-
-.document :global(.conversation-stage-virtuoso > div) {
-  width: 100%;
-  max-width: 100%;
-  left: 0;
-  transform: none;
-  padding-inline: 0;
-}
-
 .document :global(.timeline-row[data-kind="content"] .timeline-flow-content) {
   width: 100%;
   max-width: 100%;
@@ -100,6 +87,22 @@
 
 .document :global(.ant-collapse-content-hidden) {
   display: none;
+}
+
+.document :global(.awaiting-detail) {
+  box-sizing: border-box;
+  inline-size: fit-content;
+  max-inline-size: min(100%, 720px);
+  padding: 8px 12px;
+  background: var(--bg-elev-1);
+  border-radius: var(--radius-sm);
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.document :global(.awaiting-answer-value) {
+  margin-block-start: 4px;
+  color: var(--ink-1);
 }
 
 .empty {

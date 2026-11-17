@@ -88,9 +88,15 @@ it.each(["visibilitychange", "pagehide"])("closes the prompt when the page leave
 
 it("closes through Escape and after the explicit download action", () => {
   renderEntry();
+  const trigger = host.querySelector<HTMLAnchorElement>('a[href="zenmind://open"]')!;
+  const restoreFocus = jest.spyOn(trigger, "focus");
   clickAppEntry();
+  expect(host.querySelector('[data-share-scroll-lock]')).not.toBeNull();
   act(() => document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })));
   expect(host.querySelector('[role="dialog"]')).toBeNull();
+  expect(host.querySelector('[data-share-scroll-lock]')).toBeNull();
+  act(() => jest.runOnlyPendingTimers());
+  expect(restoreFocus).toHaveBeenCalledWith({ preventScroll: true });
 
   clickAppEntry();
   const download = host.querySelector<HTMLAnchorElement>('a[href="https://example.test/download"]')!;

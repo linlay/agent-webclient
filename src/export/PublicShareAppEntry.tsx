@@ -15,7 +15,6 @@ export const PublicShareAppEntry: React.FC<PublicShareAppEntryProps> = ({ brand,
   const triggerRef = useRef<HTMLAnchorElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
-  const previousFocusRef = useRef<HTMLElement | null>(null);
   const titleId = useId();
   const descriptionId = useId();
   const copy = conversationExportMessages[locale].appEntry;
@@ -23,15 +22,12 @@ export const PublicShareAppEntry: React.FC<PublicShareAppEntryProps> = ({ brand,
   const closeDialog = useCallback((restoreFocus = true) => {
     setDialogOpen(false);
     if (restoreFocus) {
-      window.setTimeout(() => (previousFocusRef.current || triggerRef.current)?.focus(), 0);
+      window.setTimeout(() => triggerRef.current?.focus({ preventScroll: true }), 0);
     }
   }, []);
 
   const startAttempt = useCallback(() => {
     if (!brand.downloadPageUrl) return;
-    previousFocusRef.current = document.activeElement instanceof HTMLElement
-      ? document.activeElement
-      : triggerRef.current;
     setDialogOpen(true);
   }, [brand.downloadPageUrl]);
 
@@ -52,8 +48,6 @@ export const PublicShareAppEntry: React.FC<PublicShareAppEntryProps> = ({ brand,
 
   useEffect(() => {
     if (!dialogOpen) return;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
     const focusTimer = window.setTimeout(() => closeRef.current?.focus(), 0);
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
@@ -79,7 +73,6 @@ export const PublicShareAppEntry: React.FC<PublicShareAppEntryProps> = ({ brand,
     document.addEventListener("keydown", handleKeyDown);
     return () => {
       window.clearTimeout(focusTimer);
-      document.body.style.overflow = previousOverflow;
       document.removeEventListener("keydown", handleKeyDown);
     };
   }, [closeDialog, dialogOpen]);
@@ -111,7 +104,7 @@ export const PublicShareAppEntry: React.FC<PublicShareAppEntryProps> = ({ brand,
         </button>
       </div>
     </div>
-    {dialogOpen && brand.downloadPageUrl && <div className={styles.dialogBackdrop}
+    {dialogOpen && brand.downloadPageUrl && <div className={styles.dialogBackdrop} data-share-scroll-lock=""
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) closeDialog();
       }}>

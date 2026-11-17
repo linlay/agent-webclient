@@ -7,9 +7,76 @@ import { PlanningTimeline } from "@/features/timeline/components/planning";
 import { TimelineInteractionProvider } from "@/features/timeline/components/TimelineInteractionContext";
 import { ShareMediaPreview } from "./ShareMediaPreview";
 import { AwaitingAnswerBlock } from "@/features/timeline/components/AwaitingAnswerBlock";
+import { ConversationExportDocument } from "./ConversationExportDocument";
 import { I18nProvider } from "@/shared/i18n";
+import type { ConversationSnapshotV1 } from "./conversationSnapshotV1";
 
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
+jest.mock("@/export/brand-icons/assistant-default.svg", () => "default-icon");
+jest.mock("@/shared/ui/markdown-code/ConversationMarkdownCode", () => ({ ConversationMarkdownCode: () => null }));
+
+it("folds the entire shared run process and preserves guidance, tool and approval order", () => {
+  const host = document.createElement("div");
+  const root = createRoot(host);
+  const at = 1_800_000_000_000;
+  const endedAt = at + 283_000;
+  const message = { kind: "message", role: "user", at, runId: "run" } as const;
+  const original = "检查目录\n<原文>保留换行和符号";
+  const attachmentId = "1".repeat(24);
+  const snapshot: ConversationSnapshotV1 = {
+    version: 1, title: "分享对话", locale: "zh-CN", createdAt: at, capturedAt: endedAt,
+    turns: [{ runId: "run", queryAt: at, startedAt: at, endedAt, outcome: "completed", nodes: [
+      { ...message, id: "query", text: "继续" },
+      { ...message, id: "agent-steer", at: at + 1, steerId: "agent", origin: { type: "agent" },
+        text: original, attachmentIds: [attachmentId] },
+      { kind: "tool", id: "tool", runId: "run", at: at + 2, toolName: "test", toolLabel: "检查结果", status: "success" },
+      { ...message, id: "user-steer", at: at + 3, steerId: "user", text: "用户引导的原文" },
+      { ...message, kind: "awaiting-answer", id: "approval", at: at + 4, taskId: "child",
+        text: JSON.stringify({ status: "answered", items: [{ question: "是否继续？", answer: "继续执行" }] }) },
+      { kind: "tool", id: "second-tool", runId: "run", at: at + 5, toolName: "test", toolLabel: "执行结果", status: "success" },
+      { kind: "content", id: "final", runId: "run", at: endedAt, role: "assistant", text: "最终答复" },
+    ] }],
+    attachments: [{ id: attachmentId, name: "附件.txt", sourceRef: "note.txt", mimeType: "text/plain" }],
+  };
+  try {
+    act(() => root.render(<I18nProvider locale="zh-CN" persistLocale={false}>
+      <ConversationExportDocument snapshot={snapshot} />
+    </I18nProvider>));
+    const headers = host.querySelectorAll<HTMLElement>(".timeline-run-collapse .ant-collapse-header");
+    expect(Array.from(headers, header => header.textContent)).toEqual(["已处理 4分43秒"]);
+    const [process] = headers;
+    const visibleText = () => host.textContent || "";
+    const history = ["智能体引导", "检查结果", "用户引导", "已提交 1 项回答", "执行结果"];
+    expect(visibleText()).toContain("最终答复");
+    for (const text of history) expect(visibleText()).not.toContain(text);
+    act(() => process.click());
+    expect(visibleText()).toMatch(new RegExp(["继续", ...history, "最终答复"].join(".*"), "s"));
+    expect(visibleText()).toContain("继续执行");
+    const collapsedGuidance = (id: string, label: string) => {
+      const row = host.querySelector(`[data-node-id="${id}"]`)!;
+      expect(row.querySelector('.timeline-marker [data-material-icon="reply"]')).not.toBeNull();
+      const toggle = row.querySelector<HTMLElement>(".ant-collapse-header")!;
+      expect(toggle).not.toBeNull();
+      expect(toggle.getAttribute("aria-expanded")).toBe("false");
+      expect(toggle.querySelector(".ant-collapse-arrow")).not.toBeNull();
+      expect(toggle.textContent).toBe(label);
+      return toggle;
+    };
+    const agent = collapsedGuidance("agent-steer", "智能体引导");
+    const user = collapsedGuidance("user-steer", "用户引导");
+    expect(visibleText()).not.toContain(original);
+    act(() => agent.click());
+    const details = agent.closest(".ant-collapse-item")?.querySelector(".ant-collapse-content");
+    expect(details?.textContent).toBe(`${original}附件.txt`);
+    expect(agent.getAttribute("aria-expanded")).toBe("true");
+    expect(user.getAttribute("aria-expanded")).toBe("false");
+    act(() => agent.click());
+    expect(host.textContent).not.toContain(original);
+    act(() => process.click());
+    for (const text of history) expect(visibleText()).not.toContain(text);
+    expect(visibleText()).toContain("最终答复");
+  } finally { act(() => root.unmount()); }
+});
 
 it("expands saved choices and timeout records without submission controls", () => {
   const host = document.createElement("div"); document.body.append(host);

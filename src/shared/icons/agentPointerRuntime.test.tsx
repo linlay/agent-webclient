@@ -115,6 +115,28 @@ it("leaves exported avatars static when a containing surface disables pointer fe
   move(); frames(1); expect(icon().hasAttribute("data-pointer-tracking")).toBe(false); expect(queue.size).toBe(0);
 });
 
+it("follows the pointer over the opted-in run title and keeps other share avatars static", () => {
+  act(() => root.render(<main data-agent-pointer-disabled="">
+    <div data-agent-identity="" data-agent-pointer-enabled="">
+      <AgentIcon type="agent" icon={{ name: "proxy" }} /><strong>小君</strong>
+    </div>
+    <AgentIcon type="agent" icon={{ name: "general" }} />
+  </main>));
+  const [titleAvatar, otherAvatar] = host.querySelectorAll<SVGSVGElement>("[data-agent-avatar]");
+  move(200, 117, host.querySelector("strong")!); frames(12);
+  expect(titleAvatar.dataset.pointerMood).not.toBe("rest");
+  expect(otherAvatar.hasAttribute("data-pointer-tracking")).toBe(false);
+  move(200, 117, otherAvatar); frames(180);
+  expect(titleAvatar.dataset.pointerMood).toBe("rest");
+  expect(jest.getTimerCount()).toBe(0);
+  act(() => { now += 61_000; jest.advanceTimersByTime(61_000); });
+  expect(titleAvatar.dataset.agentAction).toBeUndefined();
+  const touch = new MouseEvent("pointerdown", { bubbles: true, clientX: 120, clientY: 117 });
+  Object.defineProperty(touch, "pointerType", { value: "touch" });
+  act(() => titleAvatar.dispatchEvent(touch)); frames(8);
+  expect(titleAvatar.dataset.pointerMood).toBe("rest");
+});
+
 it("skips offscreen avatars and resumes tracking when intersection changes", () => {
   let deliver!: (entries: Partial<IntersectionObserverEntry>[]) => void;
   class Observer {

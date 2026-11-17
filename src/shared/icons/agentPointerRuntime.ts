@@ -11,6 +11,7 @@ interface Eye {
 interface Actor {
   root: SVGSVGElement; name: PointerAgentName; motion: SVGGElement; shadow: SVGEllipseElement | null;
   group: Element; surface: Element | null; eyes: Eye[]; sizeTargets: Element[];
+  mouseOnly: boolean;
   visible: boolean; width: number; cx: number; cy: number; angle: number; lift: number;
   idleAt: number; lastIdle?: AgentIdleMotion; idlePlayback?: AgentMotionPlayback; following: boolean;
   settled: boolean; near: boolean; pulseUntil: number; blinkAt: number; blinkStart: number;
@@ -63,7 +64,7 @@ class AgentPointerRuntime {
     this.preference?.addEventListener("change", this.onSuspend);
   }
 
-  add(root: SVGSVGElement, name: PointerAgentName): () => void {
+  add(root: SVGSVGElement, name: PointerAgentName, mouseOnly: boolean): () => void {
     const motion = root.querySelector<SVGGElement>("[data-agent-motion]");
     const eyes = Array.from(root.querySelectorAll<SVGGElement>("[data-agent-gaze]")).flatMap(gaze => {
       const blink = gaze.querySelector<SVGGElement>("[data-agent-blink]");
@@ -76,7 +77,7 @@ class AgentPointerRuntime {
     });
     if (!motion || !eyes.length) return () => undefined;
     const actor: Actor = {
-      root, name, motion, eyes, sizeTargets: [], shadow: root.querySelector("[data-agent-shadow]"),
+      root, name, mouseOnly, motion, eyes, sizeTargets: [], shadow: root.querySelector("[data-agent-shadow]"),
       group: root.closest("[data-agent-identity]") || root,
       surface: root.closest("[data-agent-pointer-surface]"),
       visible: !this.observer, width: 0, cx: 0, cy: 0, angle: 0, lift: 0,
@@ -115,12 +116,12 @@ class AgentPointerRuntime {
   private scheduleIdle = () => {
     this.win.clearTimeout(this.idleTimer); this.idleTimer = undefined;
     if (this.doc.hidden || this.preference?.matches) return;
-    const deadline = Math.min(...Array.from(this.actors).filter(actor => actor.visible && !actor.following).map(actor => actor.idleAt));
+    const deadline = Math.min(...Array.from(this.actors).filter(actor => !actor.mouseOnly && actor.visible && !actor.following).map(actor => actor.idleAt));
     if (!Number.isFinite(deadline)) return;
     this.idleTimer = this.win.setTimeout(() => {
       const now = this.now();
       for (const actor of this.actors) {
-        if (!actor.visible || actor.following || actor.idleAt > now) continue;
+        if (actor.mouseOnly || !actor.visible || actor.following || actor.idleAt > now) continue;
         this.restore(actor);
         const motion = chooseAgentIdleMotion(actor.lastIdle);
         const variants = { general: "general", coder: "code", kbase: "knowledge", team: "team", proxy: "agent", executor: "executor" } as const;
@@ -147,7 +148,7 @@ class AgentPointerRuntime {
     if (event.pointerType !== "touch" || this.preference?.matches) return;
     this.focus = null;
     this.pointer = { x: event.clientX, y: event.clientY, target: null, inside: false, movedAt: this.now() };
-    for (const actor of this.actors) if (actor.group.contains(event.target as Node)) actor.pulseUntil = this.now() + 900;
+    for (const actor of this.actors) if (!actor.mouseOnly && actor.group.contains(event.target as Node)) actor.pulseUntil = this.now() + 900;
     this.start();
   };
   private onPointerOut = (event: PointerEvent) => {
@@ -212,7 +213,7 @@ class AgentPointerRuntime {
       const withinGroup = !!this.pointer.target && actor.group.contains(this.pointer.target);
       actor.surface = actor.root.closest("[data-agent-pointer-surface]");
       const withinSurface = !!this.pointer.target && !!actor.surface?.contains(this.pointer.target);
-      const focused = !!this.focus && actor.group.contains(this.focus) && now - this.focusAt < AGENT_POINTER_REST_MS;
+      const focused = !actor.mouseOnly && !!this.focus && actor.group.contains(this.focus) && now - this.focusAt < AGENT_POINTER_REST_MS;
       const inside = this.pointer.inside && (actor.surface ? withinSurface : withinGroup);
       // Mouse greetings end with the containing row/surface; touch pulses have no pointer target.
       if (!inside && this.pointer.target) actor.pulseUntil = 0;
@@ -295,8 +296,9 @@ class AgentPointerRuntime {
 }
 
 export function registerAgentPointer(root: SVGSVGElement, name: PointerAgentName): () => void {
-  if (!root.ownerDocument.defaultView || root.closest("[data-agent-pointer-disabled]")) return () => undefined;
+  const scope = root.closest("[data-agent-pointer-enabled], [data-agent-pointer-disabled]");
+  if (!root.ownerDocument.defaultView || scope?.hasAttribute("data-agent-pointer-disabled")) return () => undefined;
   let runtime = runtimes.get(root.ownerDocument);
   if (!runtime) { runtime = new AgentPointerRuntime(root.ownerDocument); runtimes.set(root.ownerDocument, runtime); }
-  return runtime.add(root, name);
+  return runtime.add(root, name, scope?.hasAttribute("data-agent-pointer-enabled") ?? false);
 }
