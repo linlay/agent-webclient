@@ -1,4 +1,4 @@
-import { ConversationFileDropProvider } from "@/shared/ui/ConversationFileDrop";
+import { ConversationFileDropProvider, useConversationFileDropTarget } from "@/shared/ui/ConversationFileDrop";
 import { referencesForNewChat } from "@/features/timeline/lib/queryResend";
 import { bindCssModuleClasses } from "@/shared/utils/cssModuleClasses";
 import appPresentation from "@/app/layout/ShellPresentation.module.css";
@@ -310,6 +310,9 @@ export const AgentChatShell: React.FC = () => {
 
 const AgentChatShellContent: React.FC = () => {
   const state = useAppState();
+  // This shell has no conversation column, so the whole app shell is the drop
+  // surface the composer hint covers and the receiver tolerates drops on.
+  const fileDrop = useConversationFileDropTarget();
   const deriveChatAction = useDeriveChatAction();
   const onFeedback = useRunFeedbackAction();
   const dispatch = useAppDispatch();
@@ -861,6 +864,8 @@ const AgentChatShellContent: React.FC = () => {
             .filter(Boolean)
             .join(" ")}
           data-agent-pointer-surface={!chatId ? "" : undefined}
+          data-file-drop-surface=""
+          {...fileDrop.handlers}
           id="app"
         >
           <TopNav surface="agent" />

@@ -1,4 +1,4 @@
-import { ConversationFileDropProvider } from "@/shared/ui/ConversationFileDrop";
+import { ConversationFileDropProvider, useConversationFileDropTarget } from "@/shared/ui/ConversationFileDrop";
 import { bindCssModuleClasses } from "@/shared/utils/cssModuleClasses";
 import appPresentation from "@/app/layout/ShellPresentation.module.css";
 import { useConversationSurface } from "@/shared/ui/ConversationSurfaceContext";
@@ -55,7 +55,7 @@ const presentationClasses = bindCssModuleClasses({ ...appPresentation });
 
 
 const COPILOT_SHELL_CLASS =
-  presentationClasses("app-shell layout-copilot tw:grid tw:h-[100dvh] tw:min-h-0 tw:grid-cols-[minmax(0,1fr)] tw:grid-rows-[auto_minmax(0,1fr)_auto] tw:gap-0 tw:overflow-hidden tw:bg-[var(--panel-surface)] tw:p-0 tw:[&_.conversation-stage]:row-start-2 tw:[&_.conversation-stage]:min-w-0");
+  presentationClasses("app-shell layout-copilot tw:relative tw:grid tw:h-[100dvh] tw:min-h-0 tw:grid-cols-[minmax(0,1fr)] tw:grid-rows-[auto_minmax(0,1fr)_auto] tw:gap-0 tw:overflow-hidden tw:bg-[var(--panel-surface)] tw:p-0 tw:[&_.conversation-stage]:row-start-2 tw:[&_.conversation-stage]:min-w-0");
 const COPILOT_TOPBAR_CLASS =
   "copilot-topbar tw:relative tw:z-30 tw:row-start-1 tw:flex tw:min-w-0 tw:items-stretch tw:border-b tw:[border-color:color-mix(in_srgb,var(--line-soft)_92%,transparent)] tw:bg-[color-mix(in_srgb,var(--bg-card)_96%,var(--bg-base))] tw:px-2 tw:h-11 tw:pt-1 tw:shadow-elevated tw:[html[data-theme=dark]_&]:bg-[color-mix(in_srgb,var(--bg-base)_94%,transparent)]";
 const COPILOT_TOPBAR_ROW_CLASS =
@@ -242,6 +242,9 @@ export const CopilotShell: React.FC = () => {
 
 const CopilotShellContent: React.FC = () => {
   const state = useAppState();
+  // The copilot panel has no conversation column, so the whole panel is the drop
+  // surface the composer hint covers and the receiver tolerates drops on.
+  const fileDrop = useConversationFileDropTarget();
   const deriveChatAction = useDeriveChatAction();
   const onFeedback = useRunFeedbackAction();
   const dispatch = useAppDispatch();
@@ -490,6 +493,8 @@ const CopilotShellContent: React.FC = () => {
             className={`${COPILOT_SHELL_CLASS}${
               isDesktopCopilotHost ? " is-desktop-copilot-host" : ""
             }`}
+            data-file-drop-surface=""
+            {...fileDrop.handlers}
             id="app"
           >
             <CopilotTopBar />

@@ -26,4 +26,15 @@ describe("independent conversation surface layout contracts", () => {
       /:global\(\.layout-copilot\):global\(\.is-desktop-copilot-host\) :global\(\.copilot-topbar-actions\)\s*\{[\s\S]*?margin-right:\s*30px;/,
     );
   });
+
+  it("makes the whole app shell the file drop surface on route shells", () => {
+    // Neither route shell has a conversation column, so the composer hint and
+    // the drop receiver live on the shell root instead of only the composer.
+    for (const fileName of ["AgentChatShell.tsx", "CopilotShell.tsx"]) {
+      const shell = source(fileName);
+      expect(shell).toMatch(/useConversationFileDropTarget\(\)/);
+      expect(shell).toMatch(/data-file-drop-surface=/);
+      expect(shell).toMatch(/\{\.\.\.fileDrop\.handlers\}/);
+    }
+  });
 });

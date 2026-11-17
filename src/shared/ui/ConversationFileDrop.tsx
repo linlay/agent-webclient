@@ -2,7 +2,10 @@ import React, { createContext, useCallback, useContext, useEffect, useLayoutEffe
 import { MaterialIcon } from "@/shared/icons/material";
 import styles from "./ConversationFileDrop.module.css";
 
-const SURFACE_HOST_SELECTOR = ".app-shell-center";
+// Shells with a conversation column draw the hint over that column. Route
+// shells without one (the standalone agent page) mark their root so the hint
+// still covers a real drop surface instead of only the composer frame.
+const SURFACE_HOST_SELECTOR = ".app-shell-center, [data-file-drop-surface]";
 const useIsomorphicLayoutEffect =
   typeof window === "undefined" ? useEffect : useLayoutEffect;
 // Nested surfaces (column, message area, composer frame) all see the same drop.
@@ -58,12 +61,20 @@ export function useConversationFileDropReceiver(receiver: FileDropReceiver) {
 }
 
 export function useFileDropTarget({ enabled, resetKey, onDrop }: FileDropReceiver) {
-  const [active, setActive] = useState(false);
+  const [active, setActiveState] = useState(false);
+  // Mirrors `active` so resets that change nothing (mount, a drag that never
+  // entered, a nested surface leaving) do not schedule a render.
+  const activeRef = useRef(false);
+  const setActive = useCallback((next: boolean) => {
+    if (activeRef.current === next) return;
+    activeRef.current = next;
+    setActiveState(next);
+  }, []);
   const depth = useRef(0);
   const reset = useCallback(() => {
     depth.current = 0;
     setActive(false);
-  }, []);
+  }, [setActive]);
   useEffect(reset, [enabled, resetKey, reset]);
   useEffect(() => {
     window.addEventListener("dragend", reset);
@@ -118,17 +129,21 @@ export function useConversationFileDropTarget() {
   const [surfaceKey] = useState(() => Symbol("file-drop-surface"));
   const setSurfaceActive = context?.setSurfaceActive;
   useEffect(() => {
-    setSurfaceActive?.(surfaceKey, target.active);
+    // An inactive surface has nothing to publish, and dispatching on mount would
+    // dirty the receiver state for every shell that only renders a drop target.
+    if (!target.active) return;
+    setSurfaceActive?.(surfaceKey, true);
     return () => setSurfaceActive?.(surfaceKey, false);
   }, [target.active, setSurfaceActive, surfaceKey]);
   return target;
 }
 
 /**
- * Resolves the conversation center column that owns a drop anchor, so the drop
- * hint can cover the whole column instead of only the composer frame. Resolution
- * runs when a drag becomes active because the anchor may mount late (awaiting
- * shells render before the composer) and the host may change on remount.
+ * Resolves the element that owns a drop anchor (the conversation column, or the
+ * marked root of a shell without one), so the drop hint can cover that whole
+ * surface instead of only the composer frame. Resolution runs when a drag
+ * becomes active because the anchor may mount late (awaiting shells render
+ * before the composer) and the host may change on remount.
  */
 export function useFileDropSurfaceHost(
   anchorRef: React.RefObject<HTMLElement>,
