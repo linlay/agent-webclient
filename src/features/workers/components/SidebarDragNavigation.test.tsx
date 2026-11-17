@@ -120,7 +120,7 @@ it("directly drags projects, project chats, general chats and bots, retaining al
   expect(select).toHaveBeenCalledWith("general-0");
 });
 
-it("keeps groups and identities isolated, and restores time sorting explicitly", async () => {
+it("keeps groups and identities isolated, and toggles time ordering explicitly", async () => {
   await drag(chat("general-1"), chat("project-a-0"));
   expect(chatIds(host.querySelector('section[aria-label="对话"]')!)).toEqual(["general-0", "general-1"]);
   await drag(chat("general-1"), chat("general-0"));
@@ -128,10 +128,23 @@ it("keeps groups and identities isolated, and restores time sorting explicitly",
   expect(chatIds(host.querySelector('section[aria-label="对话"]')!)).toEqual(["general-0", "general-1"]);
   mockState.accessToken = "identity-a"; await render();
   expect(chatIds(host.querySelector('section[aria-label="对话"]')!)).toEqual(["general-1", "general-0"]);
-  await act(async () => host.querySelector<HTMLButtonElement>('button[aria-label="对话排序"]')!.click());
-  const time = [...document.querySelectorAll<HTMLElement>('[role="menuitem"]')].find(item => item.textContent?.includes("时间"))!;
-  await act(async () => time.click());
+  const sortToggle = () => host.querySelector<HTMLButtonElement>('button[aria-label="按时间降序"], button[aria-label="按时间升序"]')!;
+  expect(sortToggle().getAttribute("aria-label")).toBe("按时间降序");
+  await act(async () => sortToggle().click());
+  expect(sortToggle().getAttribute("aria-label")).toBe("按时间升序");
+  expect(chatIds(host.querySelector('section[aria-label="对话"]')!)).toEqual(["general-1", "general-0"]);
+  await act(async () => sortToggle().click());
+  expect(sortToggle().getAttribute("aria-label")).toBe("按时间降序");
   expect(chatIds(host.querySelector('section[aria-label="对话"]')!)).toEqual(["general-0", "general-1"]);
+});
+
+it("shows the current time sort state while hovering the toggle", async () => {
+  const toggle = () => host.querySelector<HTMLButtonElement>('button[aria-label="按时间降序"], button[aria-label="按时间升序"]')!;
+  await act(async () => { toggle().dispatchEvent(new MouseEvent("mouseover", { bubbles: true })); await new Promise(resolve => setTimeout(resolve, 250)); });
+  expect([...document.querySelectorAll<HTMLElement>(".ant-tooltip")].map(node => node.textContent).join("")).toContain("按时间降序");
+  await act(async () => toggle().click());
+  await act(async () => { toggle().dispatchEvent(new MouseEvent("mouseover", { bubbles: true })); await new Promise(resolve => setTimeout(resolve, 250)); });
+  expect([...document.querySelectorAll<HTMLElement>(".ant-tooltip")].map(node => node.textContent).join("")).toContain("按时间升序");
 });
 
 it("keeps project actions clickable and supports moving a focused row with Alt+Arrow", async () => {

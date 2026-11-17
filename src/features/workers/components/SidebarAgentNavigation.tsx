@@ -1,13 +1,13 @@
 import { effectiveAgentIcon } from "@/shared/icons/agentAppearance";
 import React, { useEffect, useMemo, useState } from "react";
-import { Dropdown } from "antd";
+import { Dropdown, Tooltip } from "antd";
 import { useAppContext } from "@/app/state/AppContext";
 import { AgentIcon } from "@/shared/icons/agent";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
 import { useI18n } from "@/shared/i18n";
 import type { WorkerConversationRow, WorkerRow } from "../lib/workerState";
-import { GENERAL_CHAT_LIMIT, GENERAL_CHAT_MAX, PROJECT_CHAT_LIMIT, PROJECT_CHAT_MAX, selectGeneralSidebarChats, splitSidebarWorkers, type SidebarChatSort } from "../lib/sidebarNavigation";
+import { GENERAL_CHAT_LIMIT, GENERAL_CHAT_MAX, PROJECT_CHAT_LIMIT, PROJECT_CHAT_MAX, selectGeneralSidebarChats, splitSidebarWorkers } from "../lib/sidebarNavigation";
 import { useSidebarChatPreviews } from "../hooks/useSidebarChatPreviews";
 import { WorkerChatPreviewItem } from "./WorkerChatPreviewItem";
 import { WorkerActionsMenu, type WorkerActionHandlers } from "./WorkerActionsMenu";
@@ -43,7 +43,7 @@ export function SidebarAgentNavigation(props: {
 }) {
   const { state } = useAppContext();
   const { t } = useI18n();
-  const [sort, setSort] = useState<SidebarChatSort>("byTime");
+  const [timeSortAscending, setTimeSortAscending] = useState(false);
   const generalOrder = useSidebarOrder("chats");
   const projectOrder = useSidebarOrder("projects");
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set(state.workerSelectionKey ? [state.workerSelectionKey] : []));
@@ -54,7 +54,7 @@ export function SidebarAgentNavigation(props: {
   const catalogKey = visibleAgents.map(agent => `${agent.key}:${String(agent.workspaceDir || "").trim()}`).join("|");
   const preview = useSidebarChatPreviews(true, catalogKey, groups.general.length > 0,
     props.excludeAgentKeys?.size ? groups.general.map(row => row.sourceId) : undefined);
-  const generalChats = selectGeneralSidebarChats({ chats: state.chats.filter(chat => !props.excludeAgentKeys?.has(chat.agentKey || chat.firstAgentKey || "")), agents: visibleAgents, fetchedIds: preview.fetchedIds, pinnedOrder: state.chatPinnedOrder, sort });
+  const generalChats = selectGeneralSidebarChats({ chats: state.chats.filter(chat => !props.excludeAgentKeys?.has(chat.agentKey || chat.firstAgentKey || "")), agents: visibleAgents, fetchedIds: preview.fetchedIds, pinnedOrder: state.chatPinnedOrder, sortDirection: timeSortAscending ? "asc" : "desc" });
   const generalLimit = preview.limits.general || GENERAL_CHAT_LIMIT;
   const selectedGeneral = groups.general.find(row => row.key === props.generalAgentKey);
   const icons = new Map(state.agents.map(agent => [agent.key, effectiveAgentIcon(agent.icon, agent.mode)]));
@@ -112,10 +112,13 @@ export function SidebarAgentNavigation(props: {
               <span>{selectedGeneral.displayName}</span><MaterialIcon name="expand_more" />
             </UiButton>
           </Dropdown>}
-          <Dropdown trigger={["click"]} menu={{ selectedKeys: generalOrder.manual ? [] : [sort], onClick: ({ key }) => { setSort(key as SidebarChatSort); generalOrder.reset(); },
-            items: [{ key: "byTime", label: t("leftSidebar.sort.byTime") }, { key: "byName", label: t("leftSidebar.sort.byName") }] }}>
-            <UiButton className={`${styles.iconButton} ${styles.headingHoverAction}`} size="mini" variant="ghost" iconOnly aria-label={t("leftSidebar.navigation.sort")} title={t("leftSidebar.navigation.sort")}><MaterialIcon name="list_arrow" /></UiButton>
-          </Dropdown>
+          <Tooltip title={t(timeSortAscending ? "leftSidebar.sort.timeAsc" : "leftSidebar.sort.timeDesc")}>
+            <UiButton className={`${styles.iconButton} ${styles.headingHoverAction}`} size="mini" variant="ghost" iconOnly
+              aria-label={t(timeSortAscending ? "leftSidebar.sort.timeAsc" : "leftSidebar.sort.timeDesc")}
+              onClick={() => { setTimeSortAscending(value => !value); generalOrder.reset(); }}>
+              <MaterialIcon name="list_arrow" className={timeSortAscending ? styles.sortAscending : undefined} />
+            </UiButton>
+          </Tooltip>
           <UiButton className={styles.iconButton} size="mini" variant="ghost" iconOnly
             aria-label={t("leftSidebar.newConversation")} title={t("leftSidebar.newConversation")} disabled={!selectedGeneral}
             onClick={() => selectedGeneral && props.onNewConversation(selectedGeneral.key)}><MaterialIcon name="edit_square" /></UiButton>

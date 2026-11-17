@@ -7,6 +7,7 @@
 .heading:hover .headingHoverAction, .headingHoverAction:focus-visible { opacity: 1; pointer-events: auto; }
 .iconButton.iconButton { width: 24px; height: 24px; padding: 0; color: var(--text-muted); }
 .iconButton svg { width: 16px; height: 16px; }
+.sortAscending { transform: scaleY(-1); }
 .agentSelector.agentSelector { padding: 0 4px; max-width: 110px; font-size: 11px; }
 .agentSelector :global(.ui-btn-label) { gap: 6px; min-width: 0; }
 .agentMenuIdentity { display: inline-flex; align-items: center; gap: 8px; }

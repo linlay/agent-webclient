@@ -25,13 +25,18 @@ describe("sidebar navigation ownership", () => {
       { ...chat("server-pinned", "general"), pinned: true },
       { ...chat("team", "general"), agentKey: "team" },
       chat("historical-owner", "deleted-agent", 250), chat("unknown", "unknown")];
-    const rows = selectGeneralSidebarChats({ chats, agents, fetchedIds: ["historical-owner", "project", "team"], pinnedOrder: ["pinned"], sort: "byTime" });
+    const rows = selectGeneralSidebarChats({ chats, agents, fetchedIds: ["historical-owner", "project", "team"], pinnedOrder: ["pinned"] });
     expect(rows.map(row => row.chatId)).toEqual(["general-new", "historical-owner", "coder", "team"]);
     expect(rows[1].agentKey).toBe("deleted-agent");
   });
 
-  it("sorts by name with deterministic time ties", () => {
-    const chats = [chat("A", "general", 50), chat("B", "general", 100), { ...chat("A-new", "general", 90), chatName: "A" }];
-    expect(selectGeneralSidebarChats({ chats, agents, fetchedIds: [], sort: "byName" }).map(row => row.chatId)).toEqual(["A-new", "A", "B"]);
+  it("orders by time descending by default with deterministic ties", () => {
+    const chats = [chat("A", "general", 50), chat("B", "general", 100), { ...chat("A-new", "general", 50), chatName: "A" }];
+    expect(selectGeneralSidebarChats({ chats, agents, fetchedIds: [] }).map(row => row.chatId)).toEqual(["B", "A", "A-new"]);
+  });
+
+  it("orders by time ascending when the toggle is flipped", () => {
+    const chats = [chat("A", "general", 50), chat("B", "general", 100), { ...chat("A-new", "general", 50), chatName: "A" }];
+    expect(selectGeneralSidebarChats({ chats, agents, fetchedIds: [], sortDirection: "asc" }).map(row => row.chatId)).toEqual(["A", "A-new", "B"]);
   });
 });

@@ -3,7 +3,6 @@ import type { Chat } from "@/features/chats/lib/chatState";
 import type { WorkerConversationRow, WorkerRow } from "./workerState";
 import { toWorkerConversationRow } from "./workerConversationFormatter";
 
-export type SidebarChatSort = "byTime" | "byName";
 export const GENERAL_CHAT_LIMIT = 8;
 export const GENERAL_CHAT_MAX = 24;
 export const PROJECT_CHAT_LIMIT = 5;
@@ -26,7 +25,7 @@ export function selectGeneralSidebarChats(input: {
   agents: Agent[];
   fetchedIds: string[];
   pinnedOrder?: string[] | null;
-  sort: SidebarChatSort;
+  sortDirection?: "asc" | "desc";
 }): WorkerConversationRow[] {
   const knownGeneral = new Set(input.agents.filter(agent => !isProjectAgent(agent)).map(agent => agent.key));
   const projectKeys = new Set(input.agents.filter(isProjectAgent).map(agent => agent.key));
@@ -37,10 +36,7 @@ export function selectGeneralSidebarChats(input: {
     const owner = String(chat.agentKey || chat.firstAgentKey || "");
     return !projectKeys.has(owner) && (knownGeneral.has(owner) || fetched.has(chat.chatId));
   }).map(toWorkerConversationRow).sort((a, b) => {
-    if (input.sort === "byName") {
-      const byName = (a.chatName || a.lastRunContent).localeCompare(b.chatName || b.lastRunContent, "zh-CN", { numeric: true });
-      if (byName) return byName;
-    }
-    return b.updatedAt - a.updatedAt || a.chatId.localeCompare(b.chatId);
+    const byTime = (a.updatedAt - b.updatedAt) * (input.sortDirection === "asc" ? 1 : -1);
+    return byTime || a.chatId.localeCompare(b.chatId);
   });
 }
