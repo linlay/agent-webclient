@@ -90,7 +90,7 @@ export interface SlashCommandFilterOptions {
 export const SLASH_COMMANDS: SlashCommandDefinition[] = [
   {
     id: 'btw',
-    icon: 'question_answer',
+    icon: 'side_chat',
     command: '/btw',
     labelKey: 'slash.command.btw.label',
     descriptionKey: 'slash.command.btw.description',
@@ -106,7 +106,7 @@ export const SLASH_COMMANDS: SlashCommandDefinition[] = [
   },
   {
     id: 'compact',
-    icon: 'compress',
+    icon: 'compact_context',
     command: '/compact',
     labelKey: 'slash.command.compact.label',
     descriptionKey: 'slash.command.compact.description',
