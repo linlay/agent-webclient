@@ -1,7 +1,7 @@
 # AgentTeam选择与Worker列表
 
 ## 当前状态
-Worker 是对话选择和历史归属的内部模型，继续兼容 Agent 与 Team。独立左侧导航展示普通对话和项目：Agent 的 `workspaceDir` 去除首尾空白后非空即归入项目，不按名称或 CODER/KBASE 模式分类。置顶、未读、pending awaiting、active run 等状态继续消费现有协议。
+Worker 是对话选择和历史归属的内部模型，继续兼容 Agent 与 Team。独立左侧导航展示普通对话和项目：Agent 的导航摘要中 `workspaceDir` 非空时归入项目，省略或为空时归入普通智能体。Platform 会为使用 `@root` 或未配置 Workspace 的 Agent 省略该字段。分类与名称、CODER/KBASE 模式无关。置顶、未读、pending awaiting、active run 等状态继续消费现有协议。
 
 会话预览与 Worker 预览在 pending awaiting 时只显示对应等待标签，不同时显示 running 动画图标；没有 awaiting 的运行中会话仍显示 running 图标。此规则仅控制展示，不改变 awaiting 所属 Run 的活动状态、运行控制或导航关注状态。
 

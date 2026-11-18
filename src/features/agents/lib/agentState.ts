@@ -88,7 +88,7 @@ export function reduceAgentsState<S extends AgentsState>(state: S, input: { type
     case "SET_AGENT_AVAILABILITY":
       return { ...state, agentAvailability: { ...state.agentAvailability, [action.agentKey]: action.status } };
     case "SET_CURRENT_AGENT":
-      return { ...state, currentAgent: currentAgentDefinition(action.agent) };
+      return { ...state, currentAgent: action.agent };
     case "PATCH_CURRENT_AGENT":
       return state.currentAgent?.key === action.agentKey
         ? { ...state, currentAgent: { ...state.currentAgent, ...action.patch, key: action.agentKey } }
@@ -104,11 +104,7 @@ export function selectCurrentAgent(state: { currentAgent?: Agent | null }, agent
   return state.currentAgent?.key === agentKey ? state.currentAgent : null;
 }
 
-/** Workspace belongs to the detail contract's meta, independently of directory paths. */
-function currentAgentDefinition(agent: Agent | null): Agent | null {
-  const workspace = agent?.meta?.workspace;
-  if (!agent || !workspace || typeof workspace !== "object" || Array.isArray(workspace)) return agent;
-  const root = (workspace as Record<string, unknown>).root;
-  if (typeof root !== "string" || root.trim() === agent.workspaceDir) return agent;
-  return { ...agent, workspaceDir: root.trim() };
+export function hasAgentProjectWorkspace(agent: Pick<Agent, "workspaceDir"> | null): boolean {
+  const workspaceDir = agent?.workspaceDir;
+  return typeof workspaceDir === "string" && workspaceDir.trim().length > 0;
 }

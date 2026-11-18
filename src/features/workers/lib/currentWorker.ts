@@ -89,12 +89,6 @@ export function workerShowsTerminal(
   return interaction?.showTerminal === true;
 }
 
-export function workerHasWorkspace(
-  worker: CurrentWorkerSummary | null | undefined,
-): boolean {
-  return worker?.type === "agent" && Boolean(toText(worker.raw?.workspaceDir));
-}
-
 export function supportsActiveRunContextCompact(
   worker: CurrentWorkerSummary | null | undefined,
 ): boolean {

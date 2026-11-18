@@ -19,6 +19,16 @@ describe("sidebar navigation ownership", () => {
     expect(groups.projects.map(row => row.sourceId)).toEqual(["project-kbase"]);
   });
 
+  it("keeps a root agent without a project directory and its chats in ordinary navigation", () => {
+    const rootAgent = { key: "zenmi", name: "Zenmi", mode: "GENERAL" };
+    expect(isProjectAgent({ workspaceDir: "/" })).toBe(true);
+    const chats = [chat("zenmi-chat", "zenmi")];
+    const rows = buildWorkerRows({ chats, agents: [rootAgent] });
+    expect(splitSidebarWorkers(rows, [rootAgent])).toEqual({ general: rows, projects: [] });
+    expect(selectGeneralSidebarChats({ chats, agents: [rootAgent], fetchedIds: [] }).map(row => row.chatId))
+      .toEqual(["zenmi-chat"]);
+  });
+
   it("keeps pins and project history out of general previews, preserving deleted historical owners", () => {
     const chats = [chat("general-new", "general", 300), chat("coder", "general-coder", 200),
       chat("project", "project-kbase"), chat("pinned", "general"),

@@ -1,4 +1,4 @@
-import type { Agent } from "@/features/agents/lib/agentState";
+import { hasAgentProjectWorkspace, type Agent } from "@/features/agents/lib/agentState";
 import type { Chat } from "@/features/chats/lib/chatState";
 import type { WorkerConversationRow, WorkerRow } from "./workerState";
 import { toWorkerConversationRow } from "./workerConversationFormatter";
@@ -9,7 +9,7 @@ export const PROJECT_CHAT_LIMIT = 5;
 export const PROJECT_CHAT_MAX = 20;
 
 export function isProjectAgent(agent: Pick<Agent, "workspaceDir">): boolean {
-  return Boolean(String(agent.workspaceDir || "").trim());
+  return hasAgentProjectWorkspace(agent);
 }
 
 export function splitSidebarWorkers(rows: WorkerRow[], agents: Agent[]) {

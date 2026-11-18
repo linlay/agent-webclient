@@ -47,6 +47,7 @@ export interface AgentDetailResponse {
   key: string;
   name: string;
   type?: "agent" | "coder";
+  /** Platform project directory. An empty or omitted value means the project UI is unavailable. */
   workspaceDir?: string;
   workspaceName?: string;
   icon?: unknown;

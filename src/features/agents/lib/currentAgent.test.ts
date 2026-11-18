@@ -32,12 +32,19 @@ it("never uses a navigation record as the current execution definition", () => {
   expect(appReducer(loaded, { type: "CLEAR_GATEWAY_IDENTITY_STATE" }).currentAgent).toBeNull();
 });
 
-it("resolves Workspace only from the current detail contract", () => {
+it("preserves the project directory and execution root as separate detail fields", () => {
   let state = { ...createInitialState(), workerSelectionKey: "agent:a", agents: [{ key: "a", name: "Stale", workspaceDir: "/stale" }] };
-  state = appReducer(state, { type: "SET_CURRENT_AGENT", agent: { ...detail, meta: { workspace: { root: "/authoritative/project" } } } });
+  const project = { ...detail, workspaceDir: "/authoritative/project", meta: { workspace: { root: "/runtime/project" } } };
+  state = appReducer(state, { type: "SET_CURRENT_AGENT", agent: project });
+  expect(state.currentAgent).toBe(project);
   expect(state.currentAgent?.workspaceDir).toBe("/authoritative/project");
   expect(resolveCurrentWorkerSummary(state)?.raw?.workspaceDir).toBe("/authoritative/project");
-  state = appReducer(state, { type: "SET_CURRENT_AGENT", agent: detail });
+
+  const runtimeRoot = { workspace: { root: "/" } };
+  state = appReducer(state, { type: "SET_CURRENT_AGENT", agent: { ...detail, meta: runtimeRoot, workspaceDir: "" } });
+  expect(state.currentAgent).toMatchObject({ workspaceDir: "", meta: runtimeRoot });
+
+  state = appReducer(state, { type: "SET_CURRENT_AGENT", agent: { ...detail, meta: project.meta } });
   expect(state.currentAgent?.workspaceDir).toBeUndefined();
   expect(resolveCurrentWorkerSummary(state)?.raw?.workspaceDir).toBeUndefined();
 });

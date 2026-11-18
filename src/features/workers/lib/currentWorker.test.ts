@@ -4,7 +4,6 @@ import { createInitialState } from '@/app/state/AppContext';
 import {
   buildWorkerSwitchRows,
   workerShowsTerminal,
-  workerHasWorkspace,
   resolveCurrentWorkerSummary,
   supportsActiveRunContextCompact,
 } from '@/features/workers/lib/currentWorker';
@@ -130,7 +129,6 @@ describe('currentWorker helpers', () => {
     // Neither mode enables an entry; only resolved Platform fields do.
     expect(workerShowsTerminal(kbase)).toBe(false);
     expect(workerShowsTerminal(coderWithCapability)).toBe(false);
-    expect(workerHasWorkspace(kbase)).toBe(false);
     expect(workerShowsTerminal(null)).toBe(false);
   });
 

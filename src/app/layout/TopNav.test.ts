@@ -296,16 +296,32 @@ describe("TopNav", () => {
 		expect(mockUseTerminalAgentStatuses).toHaveBeenLastCalledWith(true);
 	});
 
-	it("does not render the project browser action without a Workspace", () => {
-		const state = createInitialState();
-		state.agents = [{ key: "react-agent", name: "React Agent", mode: "CODER" }];
-		state.workerSelectionKey = "agent:react-agent";
-		useAppState.mockReturnValue(state);
+  it.each([false, true])("updates the project action only for the selected Agent's available Workspace (mobile=%s)", mobile => {
+    mockMobileMenuOpen = mobile;
+    const state = createInitialState();
+    state.agents = [{ key: "next", name: "Next", mode: "CODER", workspaceDir: "/stale/summary" }];
+    state.workerSelectionKey = "agent:next";
+    state.currentAgent = { key: "previous", name: "Previous", workspaceDir: "/work/previous" };
+    useAppState.mockReturnValue(state);
+    const html = () => renderToStaticMarkup(React.createElement(TopNav, { mobile }));
+    const projectAction = 'aria-label="打开项目文件"';
 
-		const html = renderToStaticMarkup(React.createElement(TopNav));
+    expect(html()).not.toContain(projectAction);
 
-		expect(html).not.toContain('aria-label="打开项目文件"');
-	});
+    state.currentAgent = { key: "next", name: "Next", workspaceDir: "", meta: { workspace: { root: "/" } } };
+    expect(html()).not.toContain(projectAction);
+
+    state.currentAgent = { key: "next", name: "Next", meta: { workspace: { root: "/runtime-only" } } };
+    expect(html()).not.toContain(projectAction);
+
+    state.currentAgent = { key: "next", name: "Next", workspaceDir: "/work/current", meta: { workspace: { root: "/" } } };
+    state.agentAvailability = { next: "checking" };
+    expect(html()).not.toContain(projectAction);
+    state.agentAvailability = { next: "available" };
+    expect(html()).toContain(projectAction);
+    state.agentAvailability = { next: "unavailable" };
+    expect(html()).not.toContain(projectAction);
+  });
 
 	it("renders usage entry with chat total from the latest snapshot", () => {
 		const state = createInitialState();

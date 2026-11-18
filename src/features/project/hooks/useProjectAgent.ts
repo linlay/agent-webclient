@@ -1,4 +1,5 @@
 import React from "react";
+import { hasAgentProjectWorkspace } from "@/features/agents/lib/agentState";
 import type { Chat } from "@/features/chats/lib/chatState";
 import { getAgent, getChats, type AgentDetailResponse } from "@/shared/data";
 
@@ -25,14 +26,9 @@ export function useProjectAgent(agentKey = "") {
     void getAgent(key)
       .then(({ data }) => {
         if (disposed) return;
-        const workspace = data.meta?.workspace;
-        const root = workspace && typeof workspace === "object" && !Array.isArray(workspace)
-          ? (workspace as Record<string, unknown>).root
-          : undefined;
-        const workspaceDir = String(root ?? data.workspaceDir ?? "").trim();
         setState((current) => ({
           ...current,
-          agent: workspaceDir && !workspaceDir.startsWith("@") ? data : null,
+          agent: hasAgentProjectWorkspace(data) ? data : null,
           loading: false,
         }));
       })

@@ -2,7 +2,7 @@
 
 ## 定位与入口
 
-Project 是项目 Agent 的只读 Workspace 浏览器，每个页面实例通过 `/project/:agentKey` 固定一个项目，不提供项目选择或切换。直接读取该 Agent 的详情与最近 20 条会话，不加载全量项目目录；Workspace 按详情的 `meta.workspace.root` 判定，兼容旧详情顶层 `workspaceDir`，不依赖列表字段；未配置具体 Workspace 或使用 `@root` 时显示不可浏览空态。裸 `/project` 显示缺少项目上下文，不自动选中其他项目。前端不按 mode 筛选，Platform 现有的项目接口 mode 限制继续由服务端校验。项目创建使用请求级 `isProject:true`，该标志不持久化。普通 Workspace/文件只需要 `path`，Chat 全量变更需要 `chatId`，指定 Run 才增加 `runId`，`view=diff` 必须同时具备 `chatId + runId + path`。
+Project 是项目 Agent 的只读 Workspace 浏览器，每个页面实例通过 `/project/:agentKey` 固定一个项目，不提供项目选择或切换。直接读取该 Agent 的详情与最近 20 条会话，不加载全量项目目录；项目入口和页面以 Agent 详情顶层的 `workspaceDir` 为准，为空或省略时显示不可浏览空态。`meta.workspace.root` 表示运行目录，例如 `@root` 展开得到的 `/`。裸 `/project` 显示缺少项目上下文，不自动选中其他项目。前端不按 mode 筛选，Platform 现有的项目接口 mode 限制继续由服务端校验。项目创建使用请求级 `isProject:true`，该标志不持久化。普通 Workspace/文件只需要 `path`，Chat 全量变更需要 `chatId`，指定 Run 才增加 `runId`，`view=diff` 必须同时具备 `chatId + runId + path`。
 
 ## 组件边界
 

@@ -11,12 +11,12 @@ import {
   useAppDispatch,
 } from "@/app/state/AppContext";
 import { selectConversationState, selectUiState } from "@/app/state/selectors";
+import { hasAgentProjectWorkspace, selectCurrentAgent } from "@/features/agents/lib/agentState";
 import type { AppState } from "@/app/state/AppContext";
 import type { RightSidebarTabKey } from "@/features/viewers/lib/viewerState";
 import {
   resolveCurrentWorkerSummary,
   workerShowsTerminal,
-  workerHasWorkspace,
 } from "@/features/workers/lib/currentWorker";
 import {
   isDebugPanelEnabled,
@@ -178,6 +178,7 @@ export const TopNav: React.FC<{ surface?: "root" | "agent"; mobile?: boolean; on
   const isGlobalSearchOpen = useGlobalSearchOpen();
   const ui = selectUiState(state);
   const conversation = selectConversationState(state);
+  const presentation = useConversationSurface();
   const mainChatRuntime = appContext
     ? resolveMainChatRuntime(
         appContext.stateRef,
@@ -200,7 +201,10 @@ export const TopNav: React.FC<{ surface?: "root" | "agent"; mobile?: boolean; on
   const showMuteControl = voiceEnabled && (voiceModeAvailable || ui.audioMuted);
   const debugPanelEnabled = isDebugPanelEnabled();
   const hideDesktopAgentActions = desktopMode && surface === "agent";
-  const showProjectButton = !desktopMode && workerHasWorkspace(currentWorker);
+  const projectAgent = selectCurrentAgent(state, currentWorker?.sourceId || "");
+  const agentAvailability = projectAgent && state.agentAvailability[projectAgent.key];
+  const showProjectButton = !desktopMode && !presentation?.blocked &&
+    (!agentAvailability || agentAvailability === "available") && hasAgentProjectWorkspace(projectAgent);
   const currentWorkerTerminalStatus = showTerminalButton
     ? terminalAgentStatuses.get(currentWorker?.sourceId || "")
     : undefined;
@@ -344,7 +348,6 @@ export const TopNav: React.FC<{ surface?: "root" | "agent"; mobile?: boolean; on
   ) : null;
 
   const statusLabel = t(statusText);
-  const presentation = useConversationSurface();
   const statusTitle = statusDetail
     ? `${statusLabel}: ${statusDetail}`
     : statusLabel;

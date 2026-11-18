@@ -9,6 +9,7 @@ Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
 
 const agent: AgentDetailResponse = {
   key: "project", name: "Project", mode: "GENERAL",
+  workspaceDir: "/work/project",
   tools: [], skills: [], connectors: [], controls: [], meta: { workspace: { root: "/work/project" } },
 };
 const response = <T,>(data: T) => ({ status: 200, code: 0, msg: "success", data });
@@ -50,26 +51,26 @@ describe("single project loading", () => {
     expect(container.firstElementChild?.getAttribute("data-loading")).toBe("false");
   });
 
-  it.each(["", " @root "])("rejects an unavailable Workspace %j", async (workspaceDir) => {
-    jest.mocked(getAgent).mockResolvedValue(response({ ...agent, meta: { workspace: { root: workspaceDir } } }));
+  it.each([undefined, "", "  "])("hides the project without a project directory %j", async (workspaceDir) => {
+    jest.mocked(getAgent).mockResolvedValue(response({ ...agent, workspaceDir, meta: { workspace: { root: "/runtime-only" } } }));
     await act(async () => root.render(<Probe agentKey="project" />));
     expect(read().agent).toBeUndefined();
   });
 
-  it("supports older detail responses with a top-level workspaceDir", async () => {
+  it("loads a project directory without runtime workspace metadata", async () => {
     jest.mocked(getAgent).mockResolvedValue(response({ ...agent, meta: {}, workspaceDir: "/work/legacy" }));
     await act(async () => root.render(<Probe agentKey="project" />));
     expect(read().agent).toBe("project");
   });
 
-  it("keeps resolved metadata authoritative over a legacy workspaceDir", async () => {
-    jest.mocked(getAgent).mockResolvedValue(response({ ...agent, meta: { workspace: { root: "@root" } }, workspaceDir: "/work/legacy" }));
+  it.each([["", undefined], ["/work/project", "project"]])("uses the Platform project directory %j for the same runtime root", async (workspaceDir, expectedAgent) => {
+    jest.mocked(getAgent).mockResolvedValue(response({ ...agent, meta: { workspace: { root: "/" } }, workspaceDir }));
     await act(async () => root.render(<Probe agentKey="project" />));
-    expect(read().agent).toBeUndefined();
+    expect(read().agent).toBe(expectedAgent);
   });
 
-  it("rejects a detail response without Workspace metadata", async () => {
-    jest.mocked(getAgent).mockResolvedValue(response({ ...agent, meta: {} }));
+  it("rejects a detail response without either workspace field", async () => {
+    jest.mocked(getAgent).mockResolvedValue(response({ ...agent, workspaceDir: undefined, meta: {} }));
     await act(async () => root.render(<Probe agentKey="project" />));
     expect(read().agent).toBeUndefined();
   });
