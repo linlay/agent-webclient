@@ -33,7 +33,6 @@
 @media (prefers-reduced-motion: reduce) { .loading { animation: none; } }
 @media (hover: none) { .history.history { opacity: 1; pointer-events: auto; } .navigation:not(.collapsed) .body { padding-right: 24px; } .navigation:not(.collapsed) .status { display: none; } }
 
-.modeActive.modeActive { color: var(--text-main); background: var(--bg-selected); }
 
 .item:disabled { cursor: default; opacity: 0.6; }
 :global(.layout-mobile) .heading { min-height: 44px; font-size: 14px; }

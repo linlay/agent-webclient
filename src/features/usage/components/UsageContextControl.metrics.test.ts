@@ -63,10 +63,11 @@ describe("UsageContextControl metric presentation", () => {
     container.remove();
   });
 
-  const renderControl = async () => {
+  const renderControl = async (mobile = false) => {
+    if (mobile) container.classList.add("layout-mobile");
     await act(async () => root.render(React.createElement(I18nProvider, { locale: "en-US", persistLocale: false },
       React.createElement(ConfigProvider, { theme: { tokens: { motion: false } } },
-        React.createElement(AntdApp, null, React.createElement(UsageContextControl)),
+        React.createElement(AntdApp, null, React.createElement(UsageContextControl, { presentation: mobile ? "mobile" : "popover" })),
       ),
     )));
   };
@@ -159,5 +160,19 @@ describe("UsageContextControl metric presentation", () => {
     expect(metricCell("Reasoning")!.querySelector(".usage-metric-value")!.textContent).toBe("800");
     await act(async () => toggle.click());
     expect(document.querySelectorAll("[data-segment]")).toHaveLength(15);
+  });
+
+  it("keeps mobile sections without data to one row in both views", async () => {
+    await renderControl(true);
+    const sections = [...container.querySelectorAll(".usage-drawer section")];
+    expect(sections).toHaveLength(3);
+    expect(sections[0].querySelectorAll("[data-segment]")).toHaveLength(5);
+    expect(sections[1].textContent).toContain("No data");
+    expect(sections[1].children).toHaveLength(1);
+    const toggle = container.querySelector<HTMLButtonElement>(".usage-view-toggle")!;
+    await act(async () => toggle.click());
+    expect(sections[0].querySelectorAll(".usage-metric")).toHaveLength(6);
+    expect(sections[1].children).toHaveLength(1);
+    expect(sections[2].children).toHaveLength(1);
   });
 });

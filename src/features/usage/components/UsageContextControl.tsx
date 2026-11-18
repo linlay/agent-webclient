@@ -153,10 +153,25 @@ const UsageContextWindow: React.FC<{
   onCompact: () => void;
   snapshot: AIUsageSnapshotEvent | null;
   t: (key: string, values?: Record<string, string>) => string;
-}> = ({ compactDisabled, onCompact, snapshot, t }) => {
+  mobile: boolean;
+}> = ({ compactDisabled, onCompact, snapshot, t, mobile }) => {
   const cacheHitPercent = resolveChatCacheHitPercent(snapshot);
   const cacheHitLabel = formatUsagePercent(cacheHitPercent);
   const maxSizeLabel = formatUsageNumber(snapshot?.contextWindow?.maxSize);
+  const compactButton = (
+    <UiButton
+      className={USAGE_CONTEXT_COMPACT_BTN_CLASS}
+      variant="secondary"
+      size="sm"
+      disabled={compactDisabled}
+      aria-label={t("topNav.usage.compact")}
+      title={t("topNav.usage.compact")}
+      aria-haspopup="dialog"
+      onClick={onCompact}
+    >
+      {t(mobile ? "topNav.usage.compact" : "topNav.usage.compactShort")}
+    </UiButton>
+  );
 
   return (
     <div className={USAGE_CONTEXT_WINDOW_CLASS}>
@@ -171,18 +186,7 @@ const UsageContextWindow: React.FC<{
         <strong>
           {maxSizeLabel}
         </strong>
-        <UiButton
-          className={USAGE_CONTEXT_COMPACT_BTN_CLASS}
-          variant="secondary"
-          size="sm"
-          disabled={compactDisabled}
-          aria-label={t("topNav.usage.compact")}
-          title={t("topNav.usage.compact")}
-          aria-haspopup="dialog"
-          onClick={onCompact}
-        >
-          {t("topNav.usage.compactShort")}
-        </UiButton>
+        {!mobile && compactButton}
       </div>
 
       <div
@@ -192,6 +196,7 @@ const UsageContextWindow: React.FC<{
         <span>{t("topNav.usage.cacheHitRate")}:</span>
         <strong>{cacheHitLabel}</strong>
       </div>
+      {mobile && compactButton}
     </div>
   );
 };
@@ -284,19 +289,22 @@ const UsageSection: React.FC<{
   stats?: AIUsageStats;
   aside?: React.ReactNode;
   variant: UsageMetricDisplayVariant;
-}> = ({ title, metrics, stats, aside, variant }) => {
+  mobile: boolean;
+}> = ({ title, metrics, stats, aside, variant, mobile }) => {
+  const { t } = useI18n();
+  const empty = mobile && !hasUsageStatsData(stats);
 
   return (
     <section className={USAGE_POPOVER_SECTION_CLASS}>
       <div className={USAGE_POPOVER_SECTION_TITLE_CLASS}>
         <h3 className={USAGE_POPOVER_SECTION_HEADING_CLASS}>{title}</h3>
-        {aside}
+        {empty ? <span className={USAGE_SECTION_STAT_CLASS}>{t("topNav.usage.noData")}</span> : aside}
       </div>
-      {variant === "bar" ? <UsageStackedMetrics stats={stats} /> : <div className={USAGE_METRIC_GRID_CLASS}>
+      {!empty && (variant === "bar" ? <UsageStackedMetrics stats={stats} /> : <div className={USAGE_METRIC_GRID_CLASS}>
         {metrics.map((metric) => (
           <UsageMetricCell key={metric.key} metric={metric} variant={variant} />
         ))}
-      </div>}
+      </div>)}
     </section>
   );
 };
@@ -380,8 +388,9 @@ const UsageCallCounts: React.FC<{
 
 export const UsageContextControl: React.FC<{
   placement?: "bottom" | "bottomRight";
-  presentation?: "popover" | "drawer";
+  presentation?: "popover" | "drawer" | "mobile";
 }> = ({ placement, presentation = "popover" }) => {
+  const mobile = presentation === "mobile";
   const state = useAppState();
   const dispatch = useAppDispatch();
   const appContext = useOptionalAppContext();
@@ -511,10 +520,50 @@ export const UsageContextControl: React.FC<{
   const contextTooltip = <div className={styles["usage-detail"]}>
     {contextRows.map(row => <div key={row.label}><span>{row.label}</span><strong>{row.value}</strong></div>)}
   </div>;
+  const title = t("topNav.usage.title");
+  const modelKey = usageSnapshot?.contextWindow?.modelKey || usageSnapshot?.model?.key;
+  const contextWindow = (
+    <UsageContextWindow
+      compactDisabled={compactDisabled}
+      onCompact={handleOpenCompactChooser}
+      snapshot={usageSnapshot}
+      t={t}
+      mobile={mobile}
+    />
+  );
+  const detailActions = (
+    <>
+      <Tooltip title={metricVariantProps.toggleLabel} arrow={false}>
+        <UiButton
+          className={USAGE_VIEW_TOGGLE_CLASS}
+          variant="ghost"
+          size="sm"
+          iconOnly
+          active={metricVariant === "value"}
+          aria-label={metricVariantProps.toggleLabel}
+          aria-pressed={metricVariant === "value"}
+          onClick={metricVariantProps.onToggleVariant}
+        >
+          <MaterialIcon name="swap_horiz" style={{ fontSize: mobile ? 20 : 12 }} />
+        </UiButton>
+      </Tooltip>
+      <UiButton
+        className={USAGE_POPOVER_CLOSE_CLASS}
+        variant="ghost"
+        size="sm"
+        iconOnly
+        aria-label={t("topNav.usage.close")}
+        title={t("topNav.usage.close")}
+        onClick={handleCloseUsagePopover}
+      >
+        <MaterialIcon name="close" />
+      </UiButton>
+    </>
+  );
 
   const detailContent = (
-    <div role="dialog" aria-label={t("topNav.usage.title")}>
-      <Flex gap={10} align="center">
+    <div role={mobile ? undefined : "dialog"} aria-label={mobile ? undefined : title}>
+      <Flex gap={10} align="center" className={styles["usage-summary"]}>
         <Tooltip title={contextTooltip} trigger={["hover", "focus"]} arrow={false}>
         <div
           tabIndex={0}
@@ -536,18 +585,13 @@ export const UsageContextControl: React.FC<{
             <Flex
               gap={4}
               align="center"
-              style={{ overflow: "hidden", whiteSpace: "nowrap" }}
+              className={styles["usage-model"]}
             >
               <Typography.Text
-                ellipsis={{
-                  tooltip:
-                    usageSnapshot?.contextWindow?.modelKey ||
-                    usageSnapshot?.model?.key,
-                }} className={libraryPresentation.typography}
+                ellipsis={mobile ? false : { tooltip: modelKey }}
+                className={libraryPresentation.typography}
               >
-                {usageSnapshot?.contextWindow?.modelKey ||
-                  usageSnapshot?.model?.key ||
-                  t("topNav.usage.modelUnknown")}
+                {modelKey || t("topNav.usage.modelUnknown")}
               </Typography.Text>
               {reasoningEffortLabel ? (
                 <span style={{ color: "var(--ink-muted)" }}>
@@ -563,46 +607,19 @@ export const UsageContextControl: React.FC<{
                 <span>{t("topNav.usage.totalCost")}:</span>
                 <strong>{estimatedCostLabel}</strong>
               </div>
-              <Tooltip title={metricVariantProps.toggleLabel} arrow={false}>
-                <UiButton
-                  className={USAGE_VIEW_TOGGLE_CLASS}
-                  variant="ghost"
-                  size="sm"
-                  iconOnly
-                  active={metricVariant === "value"}
-                  aria-label={metricVariantProps.toggleLabel}
-                  aria-pressed={metricVariant === "value"}
-                  onClick={metricVariantProps.onToggleVariant}
-                >
-                  <MaterialIcon name="swap_horiz" style={{ fontSize: 12 }} />
-                </UiButton>
-              </Tooltip>
-                <UiButton
-                  className={USAGE_POPOVER_CLOSE_CLASS}
-                  variant="ghost"
-                  size="sm"
-                  iconOnly
-                  aria-label={t("topNav.usage.close")}
-                  title={t("topNav.usage.close")}
-                  onClick={handleCloseUsagePopover}
-                >
-                  <MaterialIcon name="close" />
-                </UiButton>
+              {!mobile && detailActions}
             </Flex>
           </div>
-          <UsageContextWindow
-            compactDisabled={compactDisabled}
-            onCompact={handleOpenCompactChooser}
-            snapshot={usageSnapshot}
-            t={t}
-          />
+          {!mobile && contextWindow}
         </Flex>
       </Flex>
+      {mobile && contextWindow}
       <UsageSection
         title={t("topNav.usage.section.current")}
         metrics={buildUsageMetrics(t, usageSnapshot?.usage?.current)}
         stats={usageSnapshot?.usage?.current}
         variant={metricVariant}
+        mobile={mobile}
         aside={
           <UsageCallCounts
             t={t}
@@ -617,6 +634,7 @@ export const UsageContextControl: React.FC<{
         metrics={buildUsageMetrics(t, usageSnapshot?.usage?.run)}
         stats={usageSnapshot?.usage?.run}
         variant={metricVariant}
+        mobile={mobile}
         aside={
           <UsageCallCounts
             t={t}
@@ -631,6 +649,7 @@ export const UsageContextControl: React.FC<{
         metrics={buildUsageMetrics(t, usageSnapshot?.usage?.chat)}
         stats={usageSnapshot?.usage?.chat}
         variant={metricVariant}
+        mobile={mobile}
         aside={
           <UsageCallCounts
             t={t}
@@ -646,6 +665,7 @@ export const UsageContextControl: React.FC<{
           metrics={buildUsageMetrics(t, compactUsage)}
           stats={compactUsage}
           variant={metricVariant}
+          mobile={mobile}
           aside={<UsageCallCounts t={t} stats={compactUsage} />}
         />
       ) : null}
@@ -659,9 +679,11 @@ export const UsageContextControl: React.FC<{
       size="sm"
       active={state.usagePopoverOpen}
       aria-label={t("topNav.usage.open")}
+      aria-haspopup={mobile ? "dialog" : undefined}
+      aria-expanded={mobile ? state.usagePopoverOpen : undefined}
       title={t("topNav.usage.open")}
       onClick={
-        presentation === "drawer"
+        presentation !== "popover"
           ? () => handleUsagePopoverOpenChange(true)
           : undefined
       }
@@ -678,7 +700,7 @@ export const UsageContextControl: React.FC<{
     </UiButton>
   );
 
-  if (presentation === "drawer") {
+  if (presentation !== "popover") {
     return (
       <>
         {triggerButton}
@@ -688,8 +710,12 @@ export const UsageContextControl: React.FC<{
           height="auto"
           closable={false}
           destroyOnHidden
-          rootClassName={USAGE_DRAWER_ROOT_CLASS}
-          styles={{ mask: { background: "transparent" } }}
+          title={mobile ? title : undefined}
+          extra={mobile ? <div className={styles["usage-mobile-actions"]}>{detailActions}</div> : undefined}
+          getContainer={mobile ? ".layout-mobile" : undefined}
+          rootStyle={mobile ? { position: "absolute" } : undefined}
+          rootClassName={mobile ? `${USAGE_DRAWER_ROOT_CLASS} ${styles["usage-mobile"]}` : USAGE_DRAWER_ROOT_CLASS}
+          styles={mobile ? undefined : { mask: { background: "transparent" } }}
           onClose={handleCloseUsagePopover}
         >
           {detailContent}

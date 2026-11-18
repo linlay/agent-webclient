@@ -114,3 +114,57 @@
     font-size: 13px;
     font-weight: 600;
 }
+
+.sheet :global(.ant-drawer-content) {
+    border-radius: 16px 16px 0 0;
+    background: var(--bg-base);
+}
+
+.sheet :global(.ant-drawer-header) {
+    padding: 8px max(12px, env(safe-area-inset-right, 0px)) 8px max(12px, env(safe-area-inset-left, 0px));
+}
+
+.sheet :global(.ant-drawer-close) {
+    flex: 0 0 44px;
+    width: 44px;
+    height: 44px;
+    margin-inline-end: 4px;
+    font-size: 20px;
+}
+
+.sheetMenu {
+    display: flex;
+    flex-direction: column;
+    max-height: min(520px, calc(var(--mobile-height, 100dvh) - 84px - env(safe-area-inset-top, 0px)));
+    padding: 0 env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
+    overflow: hidden;
+}
+
+:global(.layout-mobile[data-keyboard-open]) .sheetMenu {
+    padding-bottom: 0;
+}
+
+.sheetMenu :global(.timeline-agent-switcher-search.ant-input) {
+    flex: none;
+    min-height: 44px;
+    padding: 8px 16px;
+    border-bottom: 1px solid var(--line-soft);
+    border-radius: 0;
+    font-size: 16px;
+}
+
+.sheetMenu :global(.timeline-agent-switcher-list) {
+    min-height: 0;
+    max-height: none;
+    overscroll-behavior: contain;
+}
+
+.sheetMenu :global(.timeline-agent-switcher-option) {
+    min-height: 44px;
+    gap: 8px;
+    padding: 8px 16px;
+}
+
+.sheetMenu :global(.timeline-agent-switcher-option-copy) strong {
+    font-size: 15px;
+}

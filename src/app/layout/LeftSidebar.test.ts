@@ -366,12 +366,12 @@ const globalWithStorage = globalThis as typeof globalThis & {
 };
 
 describe("LeftSidebar", () => {
-  function renderSidebar(): string {
+  function renderSidebar(mobile = false): string {
     return renderToStaticMarkup(
       React.createElement(
         I18nProvider,
         { locale: "zh-CN", fallbackLocale: "zh-CN", persistLocale: false },
-        React.createElement(LeftSidebar),
+        React.createElement(LeftSidebar, { mobile }),
       ),
     );
   }
@@ -1834,15 +1834,16 @@ describe("LeftSidebar", () => {
     expect(renderSidebar()).toContain('data-material-icon="progress_activity"');
   });
 
-  it("switches primary navigation from the search toolbar without creating a chat", () => {
+  it("links to mobile beside the brand and removes the bot visibility button from the header", () => {
     const state = createWorkerState(); state.leftDrawerOpen = true;
+    state.chatId = "chat_5";
+    globalWithWindow.window!.location.search = "?lang=zh-CN";
     mockState(state);
     const html = renderSidebar();
-    expect(html).toContain('aria-label="显示机器人"');
-    const toggle = uiButtonProps.find(props => props["aria-label"] === "显示机器人");
-    (toggle?.onClick as () => void)();
-    expect(useAppContext().dispatch).toHaveBeenCalledWith({ type: "SET_PRIMARY_NAVIGATION", enabled: true });
-    expect(dispatchedEvents("agent:start-new-conversation")).toHaveLength(0);
+    expect(html).toMatch(/<span>Webclient<\/span><\/div><a href="\/mobile\?lang=zh-CN&amp;chatId=chat_5"[^>]+aria-label="手机版"/);
+    expect(html).toContain('data-material-icon="smartphone"');
+    expect(html).not.toContain('aria-label="显示机器人"');
+    expect(renderSidebar(true)).not.toContain('aria-label="手机版"');
   });
 
   it("uses primary navigation only for BOT while preserving other Agents and utilities", () => {
@@ -1866,7 +1867,6 @@ describe("LeftSidebar", () => {
     expect(html).toContain("Coder history");
     expect(html).not.toContain("must not replace coder history");
     expect(html).toContain('data-material-icon="edit_square"');
-    expect(html).toContain('aria-pressed="true"');
     expect(html).toContain("自动化");
     expect(html).toContain("知识库");
     expect(html).toContain("记忆");

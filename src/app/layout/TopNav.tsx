@@ -37,6 +37,7 @@ import { useTerminalAgentStatuses } from "@/features/terminal/hooks/useActiveTer
 import { resolveMainChatRuntime } from "@/features/runs/lib/runRuntimeState";
 import { useOpenTarget } from "@/features/surfaces/hooks/useOpenTarget";
 import { isDesktopAppMode } from "@/shared/utils/routing";
+import { buildClientLayoutHref } from "@/shared/utils/mobileRoutes";
 import { supportsPrimaryChat } from "@/features/chats/lib/primaryChatIntent";
 const presentationClasses = bindCssModuleClasses({ ...appPresentation, ...sharedPresentation });
 
@@ -171,13 +172,6 @@ export const TopNav: React.FC<{ surface?: "root" | "agent"; mobile?: boolean; on
   const { t } = useI18n();
   const openTarget = useOpenTarget();
   const [toolsOpen, setToolsOpen] = React.useState(false);
-  const switchClientLayout = () => {
-    const params = new URLSearchParams(window.location.search);
-    for (const key of ["chatId", "agentKey", "newChat", "composerDraft", "composerSkill"]) params.delete(key);
-    if (state.chatId) params.set("chatId", state.chatId);
-    const query = params.toString();
-    window.location.assign(`${mobile ? "/" : "/mobile"}${query ? `?${query}` : ""}`);
-  };
   const { isAnyOverlayOpen } = useSettingsOverlayState();
   const { isMemoryOpen } = useMemoryOverlayState();
   const isCommandOverlayOpen = useCommandOverlayOpen();
@@ -551,7 +545,7 @@ export const TopNav: React.FC<{ surface?: "root" | "agent"; mobile?: boolean; on
             >
               {statusLabel}
             </span>
-            <UsageContextControl presentation={mobile ? "drawer" : undefined} />
+            <UsageContextControl presentation={mobile ? "mobile" : undefined} />
           </div>
           }
         </div>
@@ -564,7 +558,8 @@ export const TopNav: React.FC<{ surface?: "root" | "agent"; mobile?: boolean; on
           }))}><MaterialIcon name="edit_square" /></UiButton>}
           <TimelineTextSearchControl buttonClassName={TOP_NAV_ICON_BUTTON_CLASS} />
           {tools}
-          <UiButton variant="ghost" size="sm" onClick={switchClientLayout}>
+          <UiButton variant="ghost" size="sm"
+            onClick={() => window.location.assign(buildClientLayoutHref("/", window.location.search, state.chatId))}>
             {t("mobile.desktop")}
           </UiButton>
         </div>}>

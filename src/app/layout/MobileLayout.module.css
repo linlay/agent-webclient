@@ -16,7 +16,7 @@
 .conversation :global(.current-worker-card) { min-width: 0; gap: 3px; justify-content: center; padding: 0; }
 .conversation :global(.current-worker-name) { max-width: 36vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; }
 .conversation :global(.status-pill) { padding-left: 14px; padding-right: 3px; font-size: 12px; }
-.conversation :global(.usage-trigger.ui-btn.ui-btn-sm) { font-size: 14px; }
+.conversation :global(.usage-trigger.ui-btn.ui-btn-sm) { height: 44px; min-height: 44px; font-size: 14px; }
 .conversation :global(.status-pill)::before { left: 4px; width: 6px; height: 6px; }
 .conversation :global(.conversation-stage) { flex: 1; min-width: 0; min-height: 0; }
 .conversation :global(.messages-scroll) { padding: 12px 10px; }

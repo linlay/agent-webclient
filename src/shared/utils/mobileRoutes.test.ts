@@ -1,6 +1,17 @@
-import { isFullClientPath, isMobilePath, toMobileRoute } from "./mobileRoutes";
+import { buildClientLayoutHref, isFullClientPath, isMobilePath, toMobileRoute } from "./mobileRoutes";
 
 describe("mobile route handoffs", () => {
+  it("preserves the active chat and global settings when switching layout", () => {
+    const search = "?lang=en-US&chatId=old&agentKey=stale&newChat=123&composerDraft=old&composerSkill=stale";
+    expect(buildClientLayoutHref("/mobile", search, "active", "demo")).toBe("/mobile?lang=en-US&chatId=active");
+    expect(buildClientLayoutHref("/", search, "active")).toBe("/?lang=en-US&chatId=active");
+  });
+
+  it("opens a blank mobile conversation with the selected Agent", () => {
+    expect(buildClientLayoutHref("/mobile", "?chatId=old", "", "agent/demo")).toBe("/mobile?agentKey=agent%2Fdemo");
+    expect(buildClientLayoutHref("/mobile", "")).toBe("/mobile");
+  });
+
   it("keeps management detail routes and their filters inside mobile", () => {
     expect(toMobileRoute("/connectors/example?lang=en-US#settings")).toBe("/mobile/connectors/example?lang=en-US#settings");
     expect(toMobileRoute("/mobile/agents/demo")).toBe("/mobile/agents/demo");

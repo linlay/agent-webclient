@@ -7,6 +7,22 @@ export function isFullClientPath(pathname: string): boolean {
   return pathname === "/" || isMobilePath(pathname);
 }
 
+export function buildClientLayoutHref(
+  pathname: "/" | "/mobile",
+  search: string,
+  chatId?: string | null,
+  agentKey?: string,
+): string {
+  const params = new URLSearchParams(search);
+  for (const key of ["chatId", "agentKey", "newChat", "composerDraft", "composerSkill"]) {
+    params.delete(key);
+  }
+  if (chatId) params.set("chatId", chatId);
+  else if (pathname === "/mobile" && agentKey) params.set("agentKey", agentKey);
+  const query = params.toString();
+  return query ? `${pathname}?${query}` : pathname;
+}
+
 export function toMobileRoute(target: string): string {
   // External URLs, hashes and relative navigation keep their original meaning.
   if (!target.startsWith("/") || target.startsWith("//") || isMobilePath(target.split(/[?#]/)[0])) return target;

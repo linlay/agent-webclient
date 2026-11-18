@@ -113,6 +113,7 @@ export const materialIconSymbolIds = {
   side_chat: "material-symbol-side-chat",
   skills: "material-symbol-skills",
   slideshow: "material-symbol-slideshow",
+  smartphone: "material-symbol-smartphone",
   smart_toy: "material-symbol-smart-toy",
   stop_circle: "material-symbol-stop-circle",
   subject: "material-symbol-subject",

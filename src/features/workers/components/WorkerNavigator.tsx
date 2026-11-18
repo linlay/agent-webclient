@@ -1,6 +1,7 @@
 import { useClientPageNavigation } from "@/shared/ui/ClientNavigationContext";
 import { SidebarTouchContext } from "./SidebarTouchContext";
 import { getClientStorage } from "@/shared/utils/clientStorage";
+import { buildClientLayoutHref } from "@/shared/utils/mobileRoutes";
 import libraryPresentation from "@/shared/ui/Presentation.module.css";
 import { bindCssModuleClasses } from "@/shared/utils/cssModuleClasses";
 import sharedPresentation from "@/shared/ui/Presentation.module.css";
@@ -35,6 +36,7 @@ import { useI18n } from "@/shared/i18n";
 import { selectNavigationState } from "@/app/state/selectors";
 import { AgentIcon } from "@/shared/icons/agent";
 import { useWorkerSidebarData } from "@/features/workers/hooks/useWorkerSidebarData";
+import { resolveCurrentWorkerSummary } from "../lib/currentWorker";
 import type { WorkerActionHandlers } from "./WorkerActionsMenu";
 import { WorkerConversationPreviewList } from "@/features/workers/components/WorkerConversationPreviewList";
 import { SidebarHistorySection } from "@/features/chats/components/SidebarHistorySection";
@@ -66,7 +68,6 @@ import { PinnedChatSection } from "./PinnedChatSection";
 import { PrimaryChatNavigation } from "./PrimaryChatNavigation";
 import { selectPrimaryNavigation } from "../lib/primaryNavigation";
 import { supportsPrimaryChat } from "@/features/chats/lib/primaryChatIntent";
-import primaryStyles from "./PrimaryChatNavigation.module.css";
 import { SidebarAgentNavigation } from "./SidebarAgentNavigation";
 import { splitSidebarWorkers } from "../lib/sidebarNavigation";
 import { readStoredGeneralAgentKey, persistGeneralAgentKey } from "../lib/generalAgentPreference";
@@ -209,11 +210,6 @@ export const WorkerNavigator: React.FC<WorkerNavigatorProps> = ({
       }
     } catch { /* Navigation remains available without storage. */ }
   }, [dispatch]);
-  const togglePrimaryNavigation = () => {
-    const enabled = !state.primaryNavigation;
-    dispatch({ type: "SET_PRIMARY_NAVIGATION", enabled });
-    try { getClientStorage("local").setItem("agent:show-bots", String(enabled)); } catch { /* Optional preference. */ }
-  };
   const [generalAgentKey, setGeneralAgentKey] = useState(readStoredGeneralAgentKey);
   const [historyAgentKey, setHistoryAgentKey] = useState("");
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -659,6 +655,15 @@ export const WorkerNavigator: React.FC<WorkerNavigatorProps> = ({
     }),
   });
 
+  const mobileHref = !mobile && expanded
+    ? buildClientLayoutHref(
+      "/mobile",
+      typeof window === "undefined" ? "" : window.location?.search || "",
+      state.chatId,
+      state.pendingNewChatAgentKey || resolveCurrentWorkerSummary(state)?.sourceId,
+    )
+    : undefined;
+
   return (
     <SidebarTouchContext.Provider value={mobile && sorting}>
       <aside
@@ -693,10 +698,22 @@ export const WorkerNavigator: React.FC<WorkerNavigatorProps> = ({
               gap={12}
               className={LEFT_SIDEBAR_TOP_ROW_CLASS}
             >
-              <div className={presentationClasses("brand-text")}>
-                <strong>AGENT</strong>
-                <span>Webclient</span>
-              </div>
+              <Flex align="center" gap={6}>
+                <div className={presentationClasses("brand-text")}>
+                  <strong>AGENT</strong>
+                  <span>Webclient</span>
+                </div>
+                {mobileHref && (
+                  <a
+                    href={mobileHref}
+                    className="ui-btn ui-btn-sm ui-btn-ghost is-icon-only ui-icon-hover-24"
+                    aria-label={t("mobile.mobile")}
+                    title={t("mobile.mobile")}
+                  >
+                    <MaterialIcon name="smartphone" />
+                  </a>
+                )}
+              </Flex>
               <Flex gap={4}>
                 {mobile && <UiButton size="sm" variant="ghost" iconOnly active={sorting}
                   aria-label={t("mobile.sort")} aria-pressed={sorting} onClick={() => setSorting(!sorting)}>
@@ -705,12 +722,6 @@ export const WorkerNavigator: React.FC<WorkerNavigatorProps> = ({
                 <UiButton size="sm" variant="ghost" iconOnly className="ui-icon-hover-24"
                   aria-label={t("leftSidebar.navigation.search")} title={t("leftSidebar.navigation.search")}
                   onClick={onOpenSearch}><MaterialIcon name="search" /></UiButton>
-                <UiButton size="sm" variant="ghost" iconOnly
-                  className={`ui-icon-hover-24 ${state.primaryNavigation ? primaryStyles.modeActive : ""}`}
-                  aria-label={t("leftSidebar.navigation.primaryMode")}
-                  title={t(state.primaryNavigation ? "leftSidebar.navigation.standardMode" : "leftSidebar.navigation.primaryMode")}
-                  aria-pressed={state.primaryNavigation}
-                  onClick={togglePrimaryNavigation}><MaterialIcon name="question_answer" /></UiButton>
                 <UiButton
                   size="sm"
                   variant="ghost"

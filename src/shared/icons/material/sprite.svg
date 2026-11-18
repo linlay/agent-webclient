@@ -1,4 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 770 960">
+  <symbol id="material-symbol-smartphone" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M11 18.5h2"/></g></symbol>
   <symbol id="material-symbol-add" viewBox="0 0 960 960"><path d="M440 520H240Q223 520 211.5 508.5Q200 497 200 480Q200 463 211.5 451.5Q223 440 240 440H440V240Q440 223 451.5 211.5Q463 200 480 200Q497 200 508.5 211.5Q520 223 520 240V440H720Q737 440 748.5 451.5Q760 463 760 480Q760 497 748.5 508.5Q737 520 720 520H520V720Q520 737 508.5 748.5Q497 760 480 760Q463 760 451.5 748.5Q440 737 440 720Z"/></symbol>
   <symbol id="material-symbol-archive" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="5" rx="1"/><path d="M5 9v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V9M10 13h4"/></g></symbol>
   <symbol id="material-symbol-arrow-downward" viewBox="0 -960 960 960"><path d="M440-800v487L216-537l-56 57 320 320 320-320-56-57-224 224v-487h-80Z"/></symbol>

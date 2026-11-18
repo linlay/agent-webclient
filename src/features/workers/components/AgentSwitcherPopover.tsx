@@ -1,15 +1,17 @@
 import React, { useState, useRef, useMemo, useEffect } from "react";
-import { Input, Popover } from "antd";
+import { Drawer, Input, Popover } from "antd";
 import type { InputRef } from "antd";
 import { AgentIcon } from "@/shared/icons/agent";
 import { useI18n } from "@/shared/i18n";
+import { isMobilePath } from "@/shared/utils/mobileRoutes";
 import type { CurrentWorkerSummary } from "../lib/currentWorker";
 import {
   filterTimelineAgentOptions,
   dispatchTimelineAgentSwitch,
   type TimelineAgentOption,
 } from "../lib/agentSelection";
-import "./AgentSwitcherPopover.module.css";
+import styles from "./AgentSwitcherPopover.module.css";
+
 const TIMELINE_EMPTY_AGENT_SWITCHER_CLASS_NAME =
   "timeline-empty-agent-switcher tw:relative tw:inline-block tw:align-baseline";
 const TIMELINE_AGENT_SWITCHER_TRIGGER_CLASS_NAME =
@@ -44,7 +46,7 @@ export const AgentSwitcherPopover: React.FC<{
   options: TimelineAgentOption[];
   disabled?: boolean;
   containerClassName?: string;
-  renderTrigger?: (open: boolean) => React.ReactElement;
+  renderTrigger?: (open: boolean) => React.ReactElement<React.ButtonHTMLAttributes<HTMLButtonElement>>;
   onSelectAgent?: (key: string) => void;
   initialOpen?: boolean;
   initialSearchText?: string;
@@ -59,7 +61,9 @@ export const AgentSwitcherPopover: React.FC<{
   initialSearchText = "",
 }) => {
   const { t } = useI18n();
+  const mobile = isMobilePath(typeof window === "undefined" ? undefined : window.location?.pathname);
   const [open, setOpen] = useState(initialOpen);
+  const expanded = open && !disabled;
   const [searchText, setSearchText] = useState(initialSearchText);
   const searchInputRef = useRef<InputRef>(null);
   const currentAgentKey =
@@ -74,12 +78,12 @@ export const AgentSwitcherPopover: React.FC<{
   );
 
   useEffect(() => {
-    if (!open) return;
+    if (mobile || !expanded) return;
     searchInputRef.current?.focus();
-  }, [open]);
+  }, [mobile, expanded]);
 
   useEffect(() => {
-    if (!open || typeof document === "undefined") return;
+    if (mobile || !expanded || typeof document === "undefined") return;
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
@@ -91,7 +95,7 @@ export const AgentSwitcherPopover: React.FC<{
     return () => {
       document.removeEventListener("keydown", handleKeyDown);
     };
-  }, [open]);
+  }, [mobile, expanded]);
 
   const handleSelectAgent = (option: TimelineAgentOption) => {
     setOpen(false);
@@ -100,133 +104,157 @@ export const AgentSwitcherPopover: React.FC<{
     else dispatchTimelineAgentSwitch(option);
   };
 
-  return (
-    <span
-      className={containerClassName || TIMELINE_EMPTY_AGENT_SWITCHER_CLASS_NAME}
-    >
-      <Popover
-        open={open && !disabled}
-        onOpenChange={(next) => {
-          if (!disabled) setOpen(next);
-        }}
-        trigger={["click"]}
-        placement="topLeft"
-        arrow={false}
-        styles={{
-          body: {
-            padding: 0,
-            border: "1px solid color-mix(in srgb, var(--line-soft) 88%, transparent)",
-            borderRadius: 15,
-            boxShadow: "var(--shadow-soft)",
-            overflow: "hidden",
-          },
-        }}
-        content={
-          <div className={TIMELINE_AGENT_SWITCHER_MENU_CLASS_NAME}>
-            <Input
-              ref={searchInputRef}
-              className={TIMELINE_AGENT_SWITCHER_SEARCH_CLASS_NAME}
-              variant="borderless"
-              value={searchText}
-              placeholder={t("timeline.agentSwitcher.searchPlaceholder")}
-              onChange={(event) => setSearchText(event.target.value)}
-              style={{ padding: "8px 10px" }}
-            />
-            {filteredOptions.length === 0 ? (
-              <div className={TIMELINE_AGENT_SWITCHER_EMPTY_CLASS_NAME}>
-                {t("timeline.agentSwitcher.empty")}
-              </div>
-            ) : (
-              <div
-                className={TIMELINE_AGENT_SWITCHER_LIST_CLASS_NAME}
-                role="listbox"
-                aria-label={t("timeline.agentSwitcher.listAriaLabel")}
+  const searchLabel = t("timeline.agentSwitcher.searchPlaceholder");
+  const menu = (
+    <div className={mobile ? styles.sheetMenu : TIMELINE_AGENT_SWITCHER_MENU_CLASS_NAME}>
+      <Input
+        ref={searchInputRef}
+        className={TIMELINE_AGENT_SWITCHER_SEARCH_CLASS_NAME}
+        variant="borderless"
+        value={searchText}
+        aria-label={searchLabel}
+        placeholder={searchLabel}
+        onChange={(event) => setSearchText(event.target.value)}
+        style={mobile ? undefined : { padding: "8px 10px" }}
+      />
+      {filteredOptions.length === 0 ? (
+        <div className={TIMELINE_AGENT_SWITCHER_EMPTY_CLASS_NAME}>
+          {t("timeline.agentSwitcher.empty")}
+        </div>
+      ) : (
+        <div
+          className={TIMELINE_AGENT_SWITCHER_LIST_CLASS_NAME}
+          role="listbox"
+          aria-label={t("timeline.agentSwitcher.listAriaLabel")}
+        >
+          {filteredOptions.map((option) => {
+            const selected = option.key === currentAgentKey;
+            return (
+              <button data-agent-identity=""
+                key={option.key}
+                className={[
+                  TIMELINE_AGENT_SWITCHER_OPTION_CLASS_NAME,
+                  selected
+                    ? TIMELINE_AGENT_SWITCHER_OPTION_ACTIVE_CLASS_NAME
+                    : "",
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
+                type="button"
+                role="option"
+                aria-selected={selected}
+                onClick={() => handleSelectAgent(option)}
               >
-                {filteredOptions.map((option) => {
-                  const selected = option.key === currentAgentKey;
-                  return (
-                    <button data-agent-identity=""
-                      key={option.key}
-                      className={[
-                        TIMELINE_AGENT_SWITCHER_OPTION_CLASS_NAME,
-                        selected
-                          ? TIMELINE_AGENT_SWITCHER_OPTION_ACTIVE_CLASS_NAME
-                          : "",
-                      ]
-                        .filter(Boolean)
-                        .join(" ")}
-                      type="button"
-                      role="option"
-                      aria-selected={selected}
-                      onClick={() => handleSelectAgent(option)}
+                <AgentIcon
+                  interactive={false}
+                  icon={option.icon}
+                  type="agent"
+                  props={{
+                    icon: {
+                      className:
+                        TIMELINE_AGENT_SWITCHER_AVATAR_CLASS_NAME,
+                      width: 20,
+                      height: 20,
+                    },
+                    avatar: {
+                      className:
+                        TIMELINE_AGENT_SWITCHER_AVATAR_CLASS_NAME,
+                      size: 20,
+                    },
+                  }}
+                />
+                <span
+                  className={
+                    TIMELINE_AGENT_SWITCHER_OPTION_COPY_CLASS_NAME
+                  }
+                >
+                  <strong
+                    className={
+                      TIMELINE_AGENT_SWITCHER_OPTION_NAME_CLASS_NAME
+                    }
+                  >
+                    {option.name}
+                  </strong>
+                  {!option.hideRole && option.role && (
+                    <span
+                      className={
+                        TIMELINE_AGENT_SWITCHER_OPTION_ROLE_CLASS_NAME
+                      }
                     >
-                      <AgentIcon
-                        interactive={false}
-                        icon={option.icon}
-                        type="agent"
-                        props={{
-                          icon: {
-                            className:
-                              TIMELINE_AGENT_SWITCHER_AVATAR_CLASS_NAME,
-                            width: 20,
-                            height: 20,
-                          },
-                          avatar: {
-                            className:
-                              TIMELINE_AGENT_SWITCHER_AVATAR_CLASS_NAME,
-                            size: 20,
-                          },
-                        }}
-                      />
-                      <span
-                        className={
-                          TIMELINE_AGENT_SWITCHER_OPTION_COPY_CLASS_NAME
-                        }
-                      >
-                        <strong
-                          className={
-                            TIMELINE_AGENT_SWITCHER_OPTION_NAME_CLASS_NAME
-                          }
-                        >
-                          {option.name}
-                        </strong>
-                        {!option.hideRole && option.role && (
-                          <span
-                            className={
-                              TIMELINE_AGENT_SWITCHER_OPTION_ROLE_CLASS_NAME
-                            }
-                          >
-                            {option.role}
-                          </span>
-                        )}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        }
-      >
-        {renderTrigger ? (
-          renderTrigger(open && !disabled)
-        ) : (
-          <button data-agent-identity=""
-            disabled={disabled}
-            className={`${TIMELINE_AGENT_SWITCHER_TRIGGER_CLASS_NAME} tw:gap-2`}
-            type="button"
-            aria-haspopup="listbox"
-            aria-expanded={open}
-            aria-label={t("timeline.agentSwitcher.ariaLabel", {
-              name: displayName,
-            })}
+                      {option.role}
+                    </span>
+                  )}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+  const trigger = renderTrigger?.(expanded) ?? (
+    <button data-agent-identity=""
+      disabled={disabled}
+      className={`${TIMELINE_AGENT_SWITCHER_TRIGGER_CLASS_NAME} tw:gap-2`}
+      type="button"
+      aria-haspopup="listbox"
+      aria-expanded={expanded}
+      aria-label={t("timeline.agentSwitcher.ariaLabel", { name: displayName })}
+    >
+      <span className={TIMELINE_AGENT_SWITCHER_TRIGGER_NAME_CLASS_NAME}>
+        {displayName}
+      </span>
+    </button>
+  );
+
+  return (
+    <span className={containerClassName || TIMELINE_EMPTY_AGENT_SWITCHER_CLASS_NAME}>
+      {mobile ? (
+        <>
+          {React.cloneElement(trigger, {
+            "aria-haspopup": "dialog",
+            onClick: (event: React.MouseEvent<HTMLButtonElement>) => {
+              trigger.props.onClick?.(event);
+              if (!disabled && !event.defaultPrevented) setOpen(!expanded);
+            },
+          })}
+          <Drawer
+            open={expanded}
+            onClose={() => setOpen(false)}
+            placement="bottom"
+            height="auto"
+            title={t("composer.context.selectAgent")}
+            getContainer=".layout-mobile"
+            rootClassName={styles.sheet}
+            rootStyle={{ position: "absolute" }}
+            styles={{ body: { padding: 0, overflow: "hidden" } }}
           >
-            <span className={TIMELINE_AGENT_SWITCHER_TRIGGER_NAME_CLASS_NAME}>
-              {displayName}
-            </span>
-          </button>
-        )}
-      </Popover>
+            {menu}
+          </Drawer>
+        </>
+      ) : (
+        <Popover
+          open={expanded}
+          onOpenChange={(next) => {
+            if (!disabled) setOpen(next);
+          }}
+          trigger={["click"]}
+          placement="topLeft"
+          arrow={false}
+          styles={{
+            body: {
+              padding: 0,
+              border: "1px solid color-mix(in srgb, var(--line-soft) 88%, transparent)",
+              borderRadius: 15,
+              boxShadow: "var(--shadow-soft)",
+              overflow: "hidden",
+            },
+          }}
+          content={menu}
+        >
+          {trigger}
+        </Popover>
+      )}
     </span>
   );
 };
