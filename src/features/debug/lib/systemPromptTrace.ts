@@ -67,7 +67,7 @@ export function resolveRawLLMTraceFile(event: AgentEvent | null): string {
 
 export function resolveSystemPromptCalls(
 	event: AgentEvent | null,
-	debugEvents: AgentEvent[],
+	debugEvents: readonly AgentEvent[],
 ): SystemPromptCall[] {
 	const type = String(event?.type || "").toLowerCase();
 	if (!event) {
@@ -120,7 +120,7 @@ function buildSystemPromptCall(
 
 function findRunStartEvent(
 	event: AgentEvent,
-	debugEvents: AgentEvent[],
+	debugEvents: readonly AgentEvent[],
 ): AgentEvent | null {
 	const runId = readEventRunId(event);
 	if (!runId) {

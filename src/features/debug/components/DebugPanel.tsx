@@ -15,8 +15,9 @@ import { t } from "@/shared/i18n";
 import { buildConversationSharePath } from "@/shared/data/conversationSharePath";
 import { SCROLLBAR_THIN_CLASS_NAME } from "@/shared/styles/scrollbarClassNames";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
+import { EventInspector } from "@/features/debug/components/EventInspector";
 import { UiButton } from "@/shared/ui/UiButton";
-import { Flex, Modal, Tabs, Tag, Tooltip, Typography } from "antd";
+import { Flex, Tabs, Tag, Tooltip, Typography } from "antd";
 import { buildSurfaceRoute, readSurfacePresentationContext } from "@/features/surfaces/lib/surfaceRoutes";
 import {
   DEBUG_EVENT_TABS,
@@ -369,24 +370,26 @@ export const DebugPanelContent: React.FC<{
 }) => {
   const state = useAppState();
   const dispatch = useAppDispatch();
-  const [selectedEvent, setSelectedEvent] = React.useState<AgentEvent | null>(null);
+  const [selectedEvent, setSelectedEvent] = React.useState<{
+    event: AgentEvent;
+    index: number;
+    anchor: { x: number; y: number };
+  } | null>(null);
   const visibleEvents = events ?? state.debugEvents;
 
   const openEventPopover = React.useCallback(
     (event: AgentEvent, idx: number, target: HTMLDivElement) => {
+      const rect = target.getBoundingClientRect();
+      const anchor = { x: rect.left, y: rect.bottom };
       if (independentDetails) {
-        setSelectedEvent(event);
+        setSelectedEvent({ event, index: idx, anchor });
         return;
       }
-      const rect = target.getBoundingClientRect();
       dispatch({
         type: "SET_EVENT_POPOVER",
         index: idx,
         event,
-        anchor: {
-          x: rect.left,
-          y: rect.bottom,
-        },
+        anchor,
       });
     },
     [dispatch, independentDetails],
@@ -525,17 +528,14 @@ export const DebugPanelContent: React.FC<{
           />
         )}
       </div>
-      {independentDetails ? (
-        <Modal
-          open={Boolean(selectedEvent)}
-          onCancel={() => setSelectedEvent(null)}
-          footer={null}
-          width="min(860px, 92vw)"
-          title={String(selectedEvent?.type || "Event")}
-          destroyOnHidden
-        >
-          <pre className="event-json">{JSON.stringify(selectedEvent, null, 2)}</pre>
-        </Modal>
+      {independentDetails && selectedEvent ? (
+        <EventInspector
+          event={selectedEvent.event}
+          events={visibleEvents}
+          index={selectedEvent.index}
+          anchor={selectedEvent.anchor}
+          onClose={() => setSelectedEvent(null)}
+        />
       ) : null}
     </div>
   );
