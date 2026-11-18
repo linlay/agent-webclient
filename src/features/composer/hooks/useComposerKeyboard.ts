@@ -30,6 +30,7 @@ export function useComposerKeyboard({
   slashItemsLength,
   onHistoryPrevious,
   onHistoryNext,
+  submitOnEnter = true,
 }: {
   closeMention: () => void;
   dispatch: Dispatch<AppAction>;
@@ -51,6 +52,8 @@ export function useComposerKeyboard({
   slashItemsLength: number;
   onHistoryPrevious?: () => void;
   onHistoryNext?: () => void;
+  /** Touch-first layouts submit from the send button; plain Enter always starts a new line. */
+  submitOnEnter?: boolean;
 }) {
   return useCallback(
     (event: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -59,6 +62,13 @@ export function useComposerKeyboard({
         return;
       }
       if (isImeEnterConfirming(event, Boolean(isComposingRef.current))) {
+        return;
+      }
+
+      // Mobile presentation: a bare Enter belongs to the textarea so the person can
+      // write multi-line messages; sending goes through the explicit send button
+      // (or the Cmd/Ctrl+Enter shortcut below). Suggestions stay tap-to-select.
+      if (!submitOnEnter && event.key === "Enter" && !event.shiftKey && !event.metaKey && !event.ctrlKey && !event.altKey) {
         return;
       }
 
@@ -189,6 +199,7 @@ export function useComposerKeyboard({
       slashItemsLength,
       onHistoryPrevious,
       onHistoryNext,
+      submitOnEnter,
     ],
   );
 }

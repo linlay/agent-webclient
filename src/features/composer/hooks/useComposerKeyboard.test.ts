@@ -118,6 +118,60 @@ describe("useComposerKeyboard", () => {
 });
 
 
+describe("mobile composer keeps Enter as a newline", () => {
+  const keyEvent = (overrides = {}) => ({
+    key: "Enter", metaKey: false, ctrlKey: false, shiftKey: false, altKey: false, repeat: false,
+    preventDefault: jest.fn(), stopPropagation: jest.fn(), ...overrides,
+  } as unknown as React.KeyboardEvent<HTMLTextAreaElement>);
+
+  it("leaves plain Enter to the textarea instead of sending", () => {
+    const handleSend = jest.fn();
+    const event = keyEvent();
+    renderKeyboardHook({ handleSend, submitOnEnter: false })(event);
+    expect(handleSend).not.toHaveBeenCalled();
+    expect(event.preventDefault).not.toHaveBeenCalled();
+    expect(event.stopPropagation).not.toHaveBeenCalled();
+  });
+
+  it("does not confirm slash or mention suggestions with Enter", () => {
+    const onSelectSlashItem = jest.fn();
+    const selectMentionByIndex = jest.fn();
+    const event = keyEvent();
+    renderKeyboardHook({
+      submitOnEnter: false,
+      showSlashPalette: true,
+      slashItemsLength: 1,
+      selectSlashItem: () => null,
+      onSelectSlashItem,
+      mentionOpen: true,
+      mentionSuggestionsLength: 1,
+      selectMentionByIndex,
+    })(event);
+    expect(onSelectSlashItem).not.toHaveBeenCalled();
+    expect(selectMentionByIndex).not.toHaveBeenCalled();
+    expect(event.preventDefault).not.toHaveBeenCalled();
+  });
+
+  it("still submits queued steer with Cmd+Enter on a hardware keyboard", () => {
+    const originalNavigator = global.navigator;
+    Object.defineProperty(global, "navigator", {
+      value: { platform: "MacIntel" },
+      configurable: true,
+    });
+    try {
+      const onSubmitQueuedSteer = jest.fn();
+      const handleSend = jest.fn();
+      const event = keyEvent({ metaKey: true });
+      renderKeyboardHook({ handleSend, onSubmitQueuedSteer, submitOnEnter: false })(event);
+      expect(onSubmitQueuedSteer).toHaveBeenCalledTimes(1);
+      expect(handleSend).not.toHaveBeenCalled();
+      expect(event.preventDefault).toHaveBeenCalled();
+    } finally {
+      Object.defineProperty(global, "navigator", { value: originalNavigator, configurable: true });
+    }
+  });
+});
+
 describe("queued steer shortcut", () => {
   const originalNavigator = global.navigator;
 

@@ -93,6 +93,7 @@ import { useDesktopSelectionActions } from "@/features/composer/hooks/useDesktop
 import { BrowserSelectionToolbar } from "@/features/selection/components/BrowserSelectionToolbar";
 import { BrowserSelectionPanels } from "@/features/composer/components/BrowserSelectionPanels";
 import { isDesktopAppMode } from "@/shared/utils/routing";
+import { isMobilePath } from "@/shared/utils/mobileRoutes";
 import { useSelectedTextFragments } from "@/features/selection/hooks/useSelectedTextFragments";
 import { useComposerSkillMenuQuery } from "../hooks/useComposerSkillMenuQuery";
 import { useAgentInteraction } from "@/features/composer/hooks/useAgentInteraction";
@@ -206,6 +207,9 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     ["PROXY", "CHANNEL"].includes(String(currentWorker?.raw?.mode || "").toUpperCase())
   );
   const presentation = useConversationSurface();
+  // The /mobile shell is touch-first: Enter starts a new line and sending stays on
+  // the explicit send button, so a phone keyboard never submits by accident.
+  const touchComposer = isMobilePath(typeof window === "undefined" ? undefined : window.location.pathname);
   const conversationBlocking = presentation?.blocked ?? areConversationInteractionsBlocked(state);
   const chatTransitionBlocking = agentExecutionBlocked || conversationBlocking;
   const inputDisabled = conversationBlocking || (agentExecutionBlocked && agentAvailability.status !== "checking");
@@ -993,6 +997,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     slashItemsLength: slashItems.length,
     onHistoryPrevious: handleHistoryPrevious,
     onHistoryNext: handleHistoryNext,
+    submitOnEnter: !touchComposer,
   });
 
   useComposerLifecycle({

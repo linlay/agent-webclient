@@ -121,7 +121,7 @@ Composer 按当前 Chat 的持久化 owner 独立请求 `/api/agent`；不依赖
 
 非运行状态下，Cmd+Enter 与普通 Enter 行为一致，沿用输入建议选择和普通 query 发送流程。
 
-Enter 将当前文字或有效引用加入本地等待区；输入框为空时 Cmd+Enter 提交当前 Run 的第一条等待项。输入框有文字或有效引用时 Cmd+Enter 直接提交该内容到服务端 steer 队列，已有等待项保留。两条路径共享受理确认、失败恢复与防重复提交逻辑；输入框及等待区均为空时不执行操作。BOT 聊天例外：直连时 Enter 和 Cmd+Enter 都直接走 `/api/send`，由 Platform 排队，不创建本地等待项。Shift+Enter 保持换行，输入法确认、上传中、附件失败和交互阻塞继续按原规则处理。
+Enter 将当前文字或有效引用加入本地等待区；输入框为空时 Cmd+Enter 提交当前 Run 的第一条等待项。输入框有文字或有效引用时 Cmd+Enter 直接提交该内容到服务端 steer 队列，已有等待项保留。两条路径共享受理确认、失败恢复与防重复提交逻辑；输入框及等待区均为空时不执行操作。BOT 聊天例外：直连时 Enter 和 Cmd+Enter 都直接走 `/api/send`，由 Platform 排队，不创建本地等待项。Shift+Enter 保持换行，输入法确认、上传中、附件失败和交互阻塞继续按原规则处理。手机版壳层（`/mobile`）例外：普通 Enter 只插入换行，既不发送也不确认 slash／mention 建议（建议以点选为准），发送用发送按钮；硬件键盘的 Cmd/Ctrl+Enter 仍按上述 steer 规则生效，BOT 主聊天同样由按钮走 `/api/send`。
 
 空 query 的资格由 `/api/chat` 和 `/api/chats` 的 `canContinue` 提供，实时主 Run 的异常或取消终态更新为可继续，正常完成、新 query、Run 启动或等待人工交互时关闭。子任务、隐藏旁聊、旧快照和未知终态不授予资格；后端始终按持久化状态再次校验。仅附件续聊仍按已有历史校验。
 
