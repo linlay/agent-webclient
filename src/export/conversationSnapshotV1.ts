@@ -321,6 +321,17 @@ export function snapshotV1PreviewData(
         systemMessageLevel: "error", runId: turn.runId,
         ts: turn.endedAt ?? snapshot.capturedAt,
         text: error?.message.trim() || conversationExportMessages[snapshot.locale].runFailed,
+        errorDetail: error ? {
+          code: error.code,
+          message: error.message,
+          category: "",
+          scope: "",
+          status: null,
+          retryable: null,
+          diagnostics: null,
+          raw: null,
+          technicalText: "",
+        } : undefined,
       });
     }
     for (const task of turn.tasks || []) {
