@@ -67,11 +67,13 @@ function isObjectRecord(value: unknown): value is Record<string, unknown> {
 	return value != null && typeof value === "object";
 }
 
-function normalizePushType(type: string): string {
+function normalizePushType(type: string, status: unknown): string {
 	if (type === "run.started") {
 		return "run.start";
 	}
 	if (type === "run.finished") {
+		if (status === "failed") return "run.error";
+		if (status === "interrupted") return "run.cancel";
 		return "run.complete";
 	}
 	return type;
@@ -114,13 +116,10 @@ function toPushEvent(frame: {
 			? frame.data
 			: {};
 	const { frame: _frame, payload: _payload, data: _data, ...topLevel } = frame;
-	const normalizedType = normalizePushType(
-		String(frame.type || nestedRecord.type || ""),
-	);
+	const event = { ...nestedRecord, ...topLevel };
 	return {
-		...nestedRecord,
-		...topLevel,
-		type: normalizedType,
+		...event,
+		type: normalizePushType(String(frame.type || nestedRecord.type || ""), event.status),
 	} as AgentEvent;
 }
 

@@ -69,7 +69,8 @@ export function resolveChatCanContinue(event: AgentEvent): boolean | undefined {
   if (event.taskId || event.hidden === true || (event.lane && event.lane !== 'main')) return undefined;
   if (event.type === 'run.error' || event.type === 'run.cancel') return Boolean(toText(event.runId));
   if (event.type === 'run.complete') {
-    // run.finished pushes normalize to run.complete but preserve finishReason.
+    if ('status' in event && event.status === 'completed') return false;
+    // Legacy run.finished pushes can lack a terminal status.
     return Boolean(toText(event.runId)) && ['error', 'cancel', 'cancelled', 'canceled', 'interrupted'].includes(toText(event.finishReason).toLowerCase());
   }
   if (event.type === 'request.query' || event.type === 'run.start' || isAwaitingAskLike(event.type)) return false;

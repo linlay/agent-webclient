@@ -2135,7 +2135,12 @@ describe("createConversationPushHandler continued", () => {
 		expect(handleEvent).not.toHaveBeenCalled();
 	});
 
-	it("upserts run.finished and clears the matching active run observation without reloading the chat", async () => {
+	it.each([
+		["completed", { finishReason: "complete" }, false],
+		["completed", { finishReason: "error" }, false],
+		["failed", { error: { code: "tool_calls_exceeded", message: "The tool call limit was reached." } }, true],
+		["interrupted", {}, true],
+	])("upserts %s run.finished and clears the matching active run observation", async (status, terminalData, canContinue) => {
 		const abortController = new AbortController();
 		const state = createState({
 			accessToken: "token_local",
@@ -2204,11 +2209,13 @@ describe("createConversationPushHandler continued", () => {
 		onPush(withPushContractTime({
 			frame: "push",
 			type: "run.finished",
-			payload: {
+			data: {
 				chatId: "chat_active",
 				runId: "run_done",
-        finishedAt: EPOCH_MS + 40
-    }
+				status,
+				...terminalData,
+				finishedAt: EPOCH_MS + 40,
+			}
 		}) as WsPushFrame);
 
 		expect(dispatch).toHaveBeenCalledWith({
@@ -2216,8 +2223,9 @@ describe("createConversationPushHandler continued", () => {
 			chat: expect.objectContaining({
 				chatId: "chat_active",
 				lastRunId: "run_done",
-        updatedAt: EPOCH_MS + 40
-    })
+				canContinue,
+				updatedAt: EPOCH_MS + 40,
+			})
 		});
 		expect(dispatch).toHaveBeenCalledWith({
 			type: "SET_CURRENT_CHAT_ACTIVE_RUN",
