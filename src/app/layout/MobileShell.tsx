@@ -25,7 +25,17 @@ export const MobileShell: React.FC = () => {
     const viewport = document.querySelector<HTMLMetaElement>('meta[name="viewport"]');
     if (!viewport) return;
     const previous = viewport.content;
-    viewport.content = `${previous}, viewport-fit=cover`;
+    // Draw under the notch, and make Chromium resize the layout viewport with the
+    // keyboard instead of only shrinking the visual viewport: Edge Android otherwise
+    // reports a viewport shorter than the visible area, leaving a blank strip under the
+    // composer. WebKit ignores the hint and keeps the visual-viewport path.
+    const parts = previous.split(",").map(part => part.trim()).filter(Boolean);
+    for (const [key, value] of [["viewport-fit", "cover"], ["interactive-widget", "resizes-content"]]) {
+      const index = parts.findIndex(part => part.split("=")[0].trim().toLowerCase() === key);
+      if (index >= 0) parts[index] = `${key}=${value}`;
+      else parts.push(`${key}=${value}`);
+    }
+    viewport.content = parts.join(", ");
     return () => { viewport.content = previous; };
   }, []);
 
