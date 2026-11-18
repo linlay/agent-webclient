@@ -31,7 +31,8 @@ function buildSnapshot(turns: ReturnType<typeof buildTurn>[]) {
   };
 }
 
-it.each([undefined, { code: "run_timeout", message: "运行超时。" }])("shows one terminal error and expanded historical answers (error=%s)", error => {
+it.each([undefined, { code: "run_timeout", message: "运行超时。" },
+  { code: "provider_not_configured", message: "运行失败" }])("shows one terminal error and expanded historical answers (error=%s)", error => {
   const value = buildSnapshot([buildTurn("run-1", 1)]);
   Object.assign(value.turns[0], { outcome: "failed", error, endedAt: EPOCH,
     nodes: [{ id: "answer", kind: "awaiting-answer", role: "user", text: '{"status":"answered","items":[]}', at: EPOCH, runId: "run-1" }] });
@@ -42,6 +43,12 @@ it.each([undefined, { code: "run_timeout", message: "运行超时。" }])("shows
   const errors = data.nodes.filter(node => node.systemMessageLevel === "error");
   expect(errors).toHaveLength(1);
   expect(errors[0].text).toBe(error?.message ?? "运行失败。");
+  if (error) {
+    expect(errors[0].errorDetail).toMatchObject({ ...error, category: "", scope: "", status: null, retryable: null });
+    expect(errors[0].errorDetail?.diagnostics).toBeNull();
+  } else {
+    expect(errors[0].errorDetail).toBeUndefined();
+  }
 });
 
 it("rejects malformed optional terminal errors", () => {

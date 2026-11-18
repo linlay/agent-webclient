@@ -92,6 +92,43 @@ it("restores the safe area when the keyboard closes with focus retained, and ign
   expect(shell.hasAttribute("data-keyboard-open")).toBe(false);
 });
 
+it("keeps the keyboard state when the browser resizes the layout viewport", () => {
+  let layoutHeight = 700;
+  jest.spyOn(document.documentElement, "clientHeight", "get").mockImplementation(() => layoutHeight);
+  act(() => root.render(<Harness />));
+  const shell = host.firstElementChild as HTMLElement;
+  const textarea = shell.querySelector("textarea")!;
+  expect(shell.hasAttribute("data-keyboard-open")).toBe(false);
+  textarea.focus();
+  // interactive-widget=resizes-content: layout and visual viewport shrink together,
+  // so the old clientHeight-vs-visualViewport difference is zero.
+  layoutHeight = 430;
+  viewport.height = 430;
+  window.dispatchEvent(new Event("resize"));
+  viewport.dispatchEvent(new Event("resize"));
+  flush();
+  expect(shell.style.getPropertyValue("--mobile-height")).toBe("430px");
+  expect(shell.hasAttribute("data-keyboard-open")).toBe(true);
+  layoutHeight = 700;
+  viewport.height = 700;
+  window.dispatchEvent(new Event("resize"));
+  flush();
+  expect(shell.style.getPropertyValue("--mobile-height")).toBe("700px");
+  expect(shell.hasAttribute("data-keyboard-open")).toBe(false);
+});
+
+it("never sizes the shell past the layout viewport", () => {
+  jest.spyOn(document.documentElement, "clientHeight", "get").mockReturnValue(560);
+  act(() => root.render(<Harness />));
+  const shell = host.firstElementChild as HTMLElement;
+  // A visual viewport taller than the layout viewport would push the composer under
+  // the browser UI, so the layout height wins.
+  viewport.height = 900;
+  viewport.dispatchEvent(new Event("resize"));
+  flush();
+  expect(shell.style.getPropertyValue("--mobile-height")).toBe("560px");
+});
+
 it.each([
   { mode: "resizes-visual", layoutHeight: 844, scrollY: 180, pageTop: 180 },
   { mode: "resizes-content", layoutHeight: 430, scrollY: 0, pageTop: 0 },
@@ -100,7 +137,8 @@ it.each([
   const shell = host.firstElementChild as HTMLElement;
   Object.defineProperty(shell, "offsetParent", { value: host });
   jest.spyOn(host, "getBoundingClientRect").mockImplementation(() => ({ top: -window.scrollY } as DOMRect));
-  jest.spyOn(document.documentElement, "clientHeight", "get").mockReturnValue(layoutHeight);
+  let currentLayoutHeight = layoutHeight;
+  jest.spyOn(document.documentElement, "clientHeight", "get").mockImplementation(() => currentLayoutHeight);
   jest.replaceProperty(window, "innerHeight", layoutHeight);
   jest.replaceProperty(window, "scrollY", scrollY);
   viewport.height = 430;
@@ -113,6 +151,9 @@ it.each([
   flush();
   expect(shell.style.getPropertyValue("--mobile-height")).toBe("430px");
   expect(shell.style.getPropertyValue("--mobile-top")).toBe(`${pageTop}px`);
+  // resizes-content grows the layout viewport back with the keyboard; resizes-visual
+  // never shrank it. Closing the keyboard must not leave the shell at 430px.
+  currentLayoutHeight = 844;
   jest.replaceProperty(window, "innerHeight", 844);
   jest.replaceProperty(window, "scrollY", 0);
   viewport.height = 844;

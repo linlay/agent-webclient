@@ -10,6 +10,8 @@ import { AwaitingAnswerBlock } from "@/features/timeline/components/AwaitingAnsw
 import { ConversationExportDocument } from "./ConversationExportDocument";
 import { I18nProvider } from "@/shared/i18n";
 import type { ConversationSnapshotV1 } from "./conversationSnapshotV1";
+import { TimelineRow } from "@/features/timeline/components/TimelineRow";
+import { parseConversationSnapshotV1, snapshotV1PreviewData } from "./conversationSnapshotV1";
 
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
 jest.mock("@/export/brand-icons/assistant-default.svg", () => "default-icon");
@@ -76,6 +78,50 @@ it("folds the entire shared run process and preserves guidance, tool and approva
     for (const text of history) expect(visibleText()).not.toContain(text);
     expect(visibleText()).toContain("最终答复");
   } finally { act(() => root.unmount()); }
+});
+
+it.each([undefined, { code: "provider_not_configured", message: "运行失败" }])("renders and copies only saved failure details (error=%s)", async error => {
+  const previousObserver = Object.getOwnPropertyDescriptor(globalThis, "ResizeObserver");
+  Object.defineProperty(globalThis, "ResizeObserver", { configurable: true,
+    value: class { observe() {} unobserve() {} disconnect() {} } });
+  const host = document.createElement("div"); document.body.append(host);
+  const root = createRoot(host);
+  const copy = jest.fn().mockResolvedValue(undefined);
+  const epoch = 1_800_000_000_000;
+  const snapshot = parseConversationSnapshotV1(JSON.stringify({
+    version: 1, title: "现在几点了", locale: "zh-CN", createdAt: epoch, capturedAt: epoch,
+    turns: [{ runId: "failed-run", queryAt: epoch, startedAt: epoch, endedAt: epoch, outcome: "failed", error,
+      nodes: [{ id: "query", kind: "message", role: "user", text: "现在几点了", at: epoch, runId: "failed-run" }] }], attachments: [],
+  }));
+  try {
+    expect(snapshot).not.toBeNull();
+    const node = snapshotV1PreviewData(snapshot!).nodes.find(item => item.systemMessageLevel === "error")!;
+    act(() => root.render(<I18nProvider locale="zh-CN" persistLocale={false}>
+      <TimelineInteractionProvider value={{ readOnly: true, copyText: copy }}>
+        <TimelineRow node={node} agents={[]} />
+      </TimelineInteractionProvider>
+    </I18nProvider>));
+    expect(host.textContent).toContain(error?.message ?? "运行失败。");
+    const details = host.querySelector("details");
+    if (error) {
+      expect(details).not.toBeNull();
+      expect(details!.open).toBe(false);
+      expect(details!.querySelector("summary")!.textContent).toBe("技术详情");
+      act(() => details!.querySelector("summary")!.click());
+      expect(details!.open).toBe(true);
+      expect(Array.from(details!.querySelectorAll("dd"), item => item.textContent)).toEqual([error.code, error.message]);
+    } else {
+      expect(details).toBeNull();
+    }
+    await act(async () => host.querySelector<HTMLButtonElement>('button[aria-label="复制"]')!.click());
+    expect(copy).toHaveBeenCalledTimes(1);
+    if (error) expect(copy.mock.calls[0][0]).toContain(`"code": "${error.code}"`);
+    else expect(copy).toHaveBeenCalledWith("运行失败。");
+  } finally {
+    act(() => root.unmount()); host.remove();
+    if (previousObserver) Object.defineProperty(globalThis, "ResizeObserver", previousObserver);
+    else Reflect.deleteProperty(globalThis, "ResizeObserver");
+  }
 });
 
 it("expands saved choices and timeout records without submission controls", () => {
