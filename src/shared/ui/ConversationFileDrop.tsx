@@ -166,8 +166,10 @@ export function FileDropOverlay({ title, hint, variant = "field" }: {
   if (variant === "surface") {
     return <div className={styles.surface} aria-hidden="true">
       <div className={styles.surfaceZone}>
-        <strong className={styles.surfaceTitle}>{title}</strong>
-        <span className={styles.surfaceHint}>{hint}</span>
+        <div className={styles.surfaceLabel}>
+          <strong className={styles.surfaceTitle}>{title}</strong>
+          <span className={styles.surfaceHint}>{hint}</span>
+        </div>
       </div>
     </div>;
   }
