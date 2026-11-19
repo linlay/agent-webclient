@@ -48,3 +48,10 @@
 .resume:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .resume:disabled { cursor: default; color: var(--text-muted); }
 .error { padding: 0 12px 8px; color: var(--accent-danger); font-size: 11px; line-height: 17px; }
+
+/* 移动端等待卡片：描述与倒计时跟过程组件一起放大，状态文案仍比正文小一档。 */
+:global(.layout-mobile) .description { font-size: 14px; }
+:global(.layout-mobile) .caption { font-size: 13px; }
+:global(.layout-mobile) .digits { font-size: 15px; }
+:global(.layout-mobile) .resume { font-size: 13px; }
+:global(.layout-mobile) .error { font-size: 12px; }

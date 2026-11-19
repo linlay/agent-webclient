@@ -36,6 +36,28 @@
 .conversation :global(.timeline-row-flow) { grid-template-columns: 16px minmax(0, 1fr); gap: 6px; }
 .conversation :global(.timeline-row-user) { max-width: 95%; padding-left: 4px; }
 .conversation :global(.timeline-task-group) { margin-left: 12px; }
+/* 手机阅读距离近、行宽窄，时间线正文沿用桌面字号会偏小：主对话正文提高到 17px，
+   用户气泡 16px，其它时间线文本 15px（桌面分别是 15px、14px、13px）。 */
+.conversation :global(.timeline-markdown) { --font-size: inherit; font-size: 15px; }
+.conversation :global(.timeline-text) { font-size: 15px; }
+.conversation :global(.timeline-row[data-kind="content"]) :global(.timeline-markdown) { font-size: 17px; }
+.conversation :global(.timeline-row-user) :global(.timeline-text) { font-size: 16px; line-height: 1.6; }
+/* 思考、工具、任务等过程组件同步放大：标题与状态行 14px，过程正文 15px，
+   工具输出 14px，耗时等元信息 13px，仍与主对话正文保持一级层级差。 */
+.conversation :global(.timeline-run-collapse) { font-size: 15px; }
+.conversation :global(.timeline-thinking-label) { font-size: 14px; }
+.conversation :global(.timeline-thinking-duration) { font-size: 13px; }
+.conversation :global(.timeline-row[data-kind="activity"] .timeline-flow-content) { font-size: 14px; }
+.conversation :global(.tool-pill-status-row) { font-size: 14px; }
+.conversation :global(.tool-pill-duration) { font-size: 13px; }
+.conversation :global(.tool-call-title) { font-size: 13px; }
+.conversation :global(.tool-call-note) { font-size: 14px; }
+.conversation :global(.tool-call-inline),
+.conversation :global(.tool-call-result) { font-size: 14px; }
+.conversation :global(.tool-call-copy) { font-size: 13px; }
+.conversation :global(.timeline-task-group-title),
+.conversation :global(.timeline-task-group-agent-name) { font-size: 13px; }
+.conversation :global(.timeline-task-group-duration) { font-size: 12px; }
 .conversation :global(.timeline-markdown) :is(pre, table) { max-width: 100%; overflow-x: auto; }
 .conversation :global(.bottom-dock) { flex: none; min-width: 0; max-height: 65%; overflow-y: auto; padding: 4px 8px max(4px, env(safe-area-inset-bottom, 0px)); }
 .root[data-keyboard-open] .conversation :global(.bottom-dock) { padding-bottom: 4px; }
