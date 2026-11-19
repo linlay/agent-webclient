@@ -21,7 +21,6 @@ const DEFAULT_APPROVAL_DECISIONS: AIAwaitApprovalDecision[] = ["approve"];
 export function resolveApprovalOptions(
   approval: Pick<AIAwaitApproval, "options">,
   t: ApprovalDialogTranslate,
-  mainRuleTitle?: string,
 ): ApprovalDialogOption[] {
   const normalized = Array.isArray(approval.options)
     ? approval.options.filter(
@@ -36,9 +35,7 @@ export function resolveApprovalOptions(
   return options.map((option) => ({
     decision: option.decision,
     label: approvalDecisionLabel(option.decision, t),
-    description: option.decision === "approve_rule_run" && mainRuleTitle
-      ? t("approvalDialog.option.approveRuleRun.named", { rule: mainRuleTitle })
-      : approvalDecisionDescription(option.decision, t),
+    description: approvalDecisionDescription(option.decision, t),
   }));
 }
 
@@ -83,21 +80,16 @@ export function presentApprovalReasons(approval: AIAwaitApproval, t: ApprovalDia
     ? policyLeaves
     : (approval.requirements ?? []).flatMap(pendingApprovalLeaves);
 
-  const reasons = leaves.flatMap((item) => {
+  return leaves.flatMap((item) => {
     const localized = localizedApprovalReason(item, t);
     if (!localized && !item.reason) return [];
     const subject = item.subject || item.path;
     return [{
-      ruleKey: item.ruleKey,
       title: localized?.title,
       detail: localized?.detail ?? [item.reason, subject && !item.reason?.includes(subject) ? subject : undefined]
         .filter(Boolean).join(" · "),
     }];
   });
-  const primary = policyLeaves.length && approval.ruleKey
-    ? reasons.find((item) => item.ruleKey === approval.ruleKey)
-    : undefined;
-  return { reasons, mainRuleTitle: primary?.title, summary: primary?.title ? primary.detail : reasons.find((item) => item.title)?.detail };
 }
 
 export function buildApprovalSubmitParams(

@@ -1,11 +1,11 @@
 # HITL-Approval审批交互
 
 ## 当前状态
-Approval awaiting 用于命令、规则或高风险动作审批。前端支持 approve、reject、approve_rule_run 等 decision。卡片保留工具用途说明，结构化原因可用时给出一句摘要，并允许展开查看完整命令和待人工确认的原因。命令可复制。
+Approval awaiting 用于命令、规则或高风险动作审批。前端支持 approve、reject、approve_rule_run 等 decision。卡片以工具用途说明为标题，下方显示命令。有审批原因时，命令下增加一行「查看具体的审批原因」。
 
 审批原因优先读取 `policy` 的待人工确认叶节点。图片等审批可直接提供外层 `requirements`。前端按 `reasonCode` 和 `subject` 本地化，旧记录及未知代码可在展开层显示原始原因。审批项级 `description` 仍用于工具用途说明。
 
-`AIAwaitApprovalOption` 只携带决策。客户端根据当前语言说明仅批准本次或本轮规则复用。Host Bash 支持本轮复用时，以审批项公开的 `ruleKey` 匹配具体主规则，未匹配时使用通用提示。客户端沿用后端下发的批准选项与现有提交字段。
+`AIAwaitApprovalOption` 只携带决策。客户端根据当前语言说明仅批准本次或本轮规则复用。批准选项按原有行内样式展示。客户端沿用后端下发的批准选项与现有提交字段。
 
 原生 Approval 选项示例：
 

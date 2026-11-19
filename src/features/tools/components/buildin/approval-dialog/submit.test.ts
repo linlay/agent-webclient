@@ -2,13 +2,11 @@
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { ApprovalDialog } from "./index";
-import { copyText } from "@/shared/utils/copy";
 import type { ApprovalActiveAwaiting } from "@/features/tools/lib/toolsState";
 
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
 jest.mock("@/shared/i18n", () => ({ useI18n: () => ({ t: (key: string, params?: any) => params?.detail ? `Submit failed: ${params.detail}` : key }) }));
-jest.mock("@/shared/ui/useAppMessage", () => ({ useAppMessage: () => ({ warning: jest.fn(), success: jest.fn(), error: jest.fn() }) }));
-jest.mock("@/shared/utils/copy", () => ({ copyText: jest.fn().mockResolvedValue(undefined) }));
+jest.mock("@/shared/ui/useAppMessage", () => ({ useAppMessage: () => ({ warning: jest.fn() }) }));
 jest.mock("@/shared/utils/useKeyboard", () => ({ useKeyboard: () => {} }));
 jest.mock("@/features/tools/hooks/useAwaitingTimeoutCountdown", () => ({ useAwaitingTimeoutCountdown: () => ({ label: "" }) }));
 jest.mock("@/features/tools/components/buildin/useAwaitingResolutionNotice", () => ({ useAwaitingResolutionNotice: () => {} }));
@@ -32,16 +30,15 @@ jest.mock("antd/es", () => {
 const data = { key: "run:wait", mode: "approval", runId: "run", awaitingId: "wait",
   approvals: [{ id: "tool", description: "Check directories", allowFreeText: true, options: [{ decision: "approve" }] }] } as ApprovalActiveAwaiting;
 
-test("shows separate checks and copies the exact command without submitting", async () => {
+test("adds only the reasons disclosure to the existing approval card", async () => {
   const host = document.createElement("div");
   document.body.appendChild(host);
   const root = createRoot(host);
   const submit = jest.fn();
-  const command = "  find . -type f -print0 | xargs -0 du -k\n";
+  const command = "find . -type f -print0 | xargs -0 du -k";
+  const baseApproval = { ...data.approvals[0], command };
   const approval = {
-    ...data.approvals[0],
-    command,
-    ruleKey: "xargs-rule",
+    ...baseApproval,
     policy: { requirements: [
       { ruleKey: "xargs-rule", reasonCode: "runtime_wrapper_arguments", subject: "xargs" },
       { reasonCode: "path_outside_read_roots", subject: "/usr/bin/xargs" },
@@ -53,6 +50,8 @@ test("shows separate checks and copies the exact command without submitting", as
       data: { ...data, approvals: [approval] },
       onSubmit: submit,
     })));
+    const originalCard = host.cloneNode(true) as HTMLElement;
+    originalCard.querySelector("details")?.remove();
     const details = host.querySelector("details") as HTMLDetailsElement;
     const summary = details.querySelector("summary") as HTMLElement;
     expect(details.open).toBe(false);
@@ -67,11 +66,12 @@ test("shows separate checks and copies the exact command without submitting", as
     }
     summary.click();
     expect(details.open).toBe(true);
-    expect(details.querySelector("code")?.textContent).toBe(command);
     expect(details.querySelectorAll("li")).toHaveLength(3);
-    expect(host.querySelector('[data-decision="approve_rule_run"]')).toBeNull();
-    await act(async () => (details.querySelector("button") as HTMLButtonElement).click());
-    expect(copyText).toHaveBeenCalledWith(command);
+    await act(async () => root.render(React.createElement(ApprovalDialog, {
+      data: { ...data, approvals: [baseApproval] },
+      onSubmit: submit,
+    })));
+    expect(host.innerHTML).toBe(originalCard.innerHTML);
     expect(submit).not.toHaveBeenCalled();
   } finally {
     act(() => root.unmount());

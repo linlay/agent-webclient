@@ -286,7 +286,7 @@ function normalizeApprovals(value: unknown): AIAwaitApproval[] {
         : undefined;
       return {
         id: toText(approval.id) || toText(approval.command),
-        command: typeof approval.command === "string" ? approval.command : toText(approval.command),
+        command: toText(approval.command),
         ...(policy ? { policy } : {}),
         ...(requirements?.length ? { requirements } : {}),
         ruleKey: toText(approval.ruleKey) || undefined,
@@ -300,7 +300,7 @@ function normalizeApprovals(value: unknown): AIAwaitApproval[] {
           toText(approval.freeTextPlaceholder) || undefined,
       };
     })
-    .filter((approval) => Boolean(approval.id) && Boolean(approval.command.trim()));
+    .filter((approval) => Boolean(approval.id) && Boolean(approval.command));
 }
 
 function normalizeForms(
