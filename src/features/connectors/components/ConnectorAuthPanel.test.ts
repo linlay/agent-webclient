@@ -44,6 +44,23 @@ beforeEach(() => {
 });
 afterEach(async () => { await act(async () => root.unmount()); container.remove(); jest.useRealTimers(); jest.restoreAllMocks(); });
 
+it("shows CLI preparation independently of account authorization", async () => {
+  jest.mocked(getConnectorConnection).mockResolvedValue({
+    code: 0, msg: "", data: {
+      connectorId: item.id, configured: false, configurationRequired: true, readiness: "configuration_required",
+      authentication: response("unauthorized").data,
+      capabilities: {
+        canConnect: true, canDisconnect: true, canCheck: true, authMode: "self", authBrowser: "system",
+        hasCli: true, hasMcp: false,
+      },
+      preparation: { connectorId: item.id, status: "ready" },
+    },
+  });
+  await mount();
+  expect(container.textContent).toContain("CLI 已就绪");
+  expect(button("登录")).toBeDefined();
+});
+
 it.each(["self"] as const)("offers a safe manual link for authMode=%s and only displays success after server confirmation", async mode => {
   const open = jest.spyOn(window, "open").mockReturnValue(null);
   await mount({ ...item, authMode: mode });

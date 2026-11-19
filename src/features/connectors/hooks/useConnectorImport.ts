@@ -8,9 +8,10 @@ interface Options {
   onImport: (file: File, overwrite: boolean) => Promise<string | null>;
   onImportMCP: (params: ImportConnectorMCPRequest) => Promise<string | null>;
   onImported: (id: string) => void;
+  onMount: (id: string, agentKey: string) => Promise<void>;
 }
 
-export function useConnectorImport({ onImport, onImportMCP, onImported }: Options) {
+export function useConnectorImport({ onImport, onImportMCP, onImported, onMount }: Options) {
   const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<"archive" | "mcp">("archive");
@@ -30,6 +31,9 @@ export function useConnectorImport({ onImport, onImportMCP, onImported }: Option
   const [tokenAuth, setTokenAuth] = useState<NonNullable<ImportConnectorMCPRequest["tokenAuth"]>>("bearer");
   const [headerName, setHeaderName] = useState("X-API-Key");
   const [archive, setArchive] = useState<File | null>(null);
+  const [mountAgentKey, setMountAgentKey] = useState<string>();
+  const [importedId, setImportedId] = useState<string>();
+  const [mounting, setMounting] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [overwriteRequired, setOverwriteRequired] = useState(false);
   const [error, setErrorMessage] = useState("");
@@ -68,16 +72,16 @@ export function useConnectorImport({ onImport, onImportMCP, onImported }: Option
   };
 
   const submit = async () => {
-    if (submittingRef.current || (mode === "archive" ? !archive : !mcpUrl.trim())) return;
-    if (mode === "mcp" && !validateConnectorMCPURL(mcpUrl)) {
+    if (submittingRef.current || (importedId ? !mountAgentKey : mode === "archive" ? !archive : !mcpUrl.trim())) return;
+    if (!importedId && mode === "mcp" && !validateConnectorMCPURL(mcpUrl)) {
       setError(t("connectors.import.mcp.invalidUrl"));
       return;
     }
-    if (mode === "mcp" && (iconPending.current || !mcpName.trim() || !validConnectorImportId(mcpId.trim()))) {
+    if (!importedId && mode === "mcp" && (iconPending.current || !mcpName.trim() || !validConnectorImportId(mcpId.trim()))) {
       if (!iconPending.current) setError(t(!mcpName.trim() ? "connectors.import.mcp.nameRequired" : "connectors.import.mcp.invalidId"));
       return;
     }
-    if (mode === "mcp" && authMode === "token" && tokenAuth === "header" && !/^[!#$%&'*+.^_`|~0-9A-Za-z-]+$/.test(headerName.trim())) {
+    if (!importedId && mode === "mcp" && authMode === "token" && tokenAuth === "header" && !/^[!#$%&'*+.^_`|~0-9A-Za-z-]+$/.test(headerName.trim())) {
       setError(t("connectors.import.mcp.invalidHeader"));
       return;
     }
@@ -85,14 +89,27 @@ export function useConnectorImport({ onImport, onImportMCP, onImported }: Option
     setSubmitting(true);
     setError("");
     try {
-      const id = mode === "archive" ? await onImport(archive!, overwriteRequired) : await onImportMCP({ mcpUrl: mcpUrl.trim(), name: mcpName.trim(), id: mcpId.trim(), ...(description.trim() ? { description: description.trim() } : {}), ...(iconPng ? { iconPng } : iconPreset ? { iconPreset } : {}), authMode, ...(authMode === "token" ? { tokenAuth, ...(tokenAuth === "header" ? { headerName: headerName.trim() } : {}) } : {}) });
+      const id = importedId ?? (mode === "archive" ? await onImport(archive!, overwriteRequired) : await onImportMCP({ mcpUrl: mcpUrl.trim(), name: mcpName.trim(), id: mcpId.trim(), ...(description.trim() ? { description: description.trim() } : {}), ...(iconPng ? { iconPng } : iconPreset ? { iconPreset } : {}), authMode, ...(authMode === "token" ? { tokenAuth, ...(tokenAuth === "header" ? { headerName: headerName.trim() } : {}) } : {}) }));
       if (!id) return;
+      if (!importedId) onImported(id);
+      if (mountAgentKey) {
+        setImportedId(id);
+        setOverwriteRequired(false);
+        setMounting(true);
+        try {
+          await onMount(id, mountAgentKey);
+        } catch (cause) {
+          setError(t("connectors.import.mountFailed", { id, agent: mountAgentKey }));
+          setErrorDetails(connectorErrorDetails(cause));
+          return;
+        }
+      }
       setOpen(false);
       setMCPURL("");
       clearMetadata();
       setArchive(null);
       setOverwriteRequired(false);
-      onImported(id);
+      setImportedId(undefined);
     } catch (cause) {
       const conflict = mode === "archive" && isConnectorImportConflict(cause);
       setOverwriteRequired(conflict);
@@ -106,12 +123,14 @@ export function useConnectorImport({ onImport, onImportMCP, onImported }: Option
     } finally {
       submittingRef.current = false;
       setSubmitting(false);
+      setMounting(false);
     }
   };
 
   return {
-    open, archive, submitting, mode, mcpUrl, mcpName, mcpId, description, iconPng, iconName, iconPreset, iconReading, acceptIcon, authMode, tokenAuth, headerName,
-    canSubmit: mode === "archive" ? !!archive : !!mcpUrl.trim() && !!mcpName.trim() && validConnectorImportId(mcpId.trim()) && !iconReading,
+    open, archive, submitting, mounting, importedId, mountAgentKey, mode, mcpUrl, mcpName, mcpId, description, iconPng, iconName, iconPreset, iconReading, acceptIcon, authMode, tokenAuth, headerName,
+    setMountAgentKey: (key?: string) => { if (!submittingRef.current) { setMountAgentKey(key); setError(""); } },
+    canSubmit: importedId ? !!mountAgentKey : mode === "archive" ? !!archive : !!mcpUrl.trim() && !!mcpName.trim() && validConnectorImportId(mcpId.trim()) && !iconReading,
     setMode: (value: "archive" | "mcp") => { if (!submittingRef.current) { setMode(value); setOverwriteRequired(false); setError(""); } },
     setMCPURL: (value: string) => { if (!submittingRef.current) { setMCPURL(value); if (!idEdited.current) setMCPId(connectorUrlToId(value)); setError(""); } },
     setMCPName: (value: string) => { if (!submittingRef.current) { setMCPName(value); setError(""); } },
@@ -128,6 +147,8 @@ export function useConnectorImport({ onImport, onImportMCP, onImported }: Option
     show: () => {
       if (submittingRef.current) return;
       setArchive(null);
+      setImportedId(undefined);
+      setMountAgentKey(undefined);
       setMode("archive");
       setMCPURL("");
       clearMetadata();

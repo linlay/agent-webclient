@@ -1,6 +1,7 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Input, Modal, Segmented, Select } from "antd";
 import { useI18n } from "@/shared/i18n";
+import { getAdminAgents } from "@/shared/data";
 import { MCP_ICON_ARTWORK } from "../lib/mcpIconPresets";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { CONNECTOR_IMPORT_ICON_PRESETS, formatConnectorArchiveSize } from "@/features/connectors/lib/connectorImport";
@@ -12,6 +13,26 @@ export function ConnectorImportModal({ runtime }: { runtime: ReturnType<typeof u
   const input = useRef<HTMLInputElement>(null);
   const iconInput = useRef<HTMLInputElement>(null);
   const [dragActive, setDragActive] = useState(false);
+  const [agents, setAgents] = useState<Array<{ value: string; label: string }>>([]);
+  const [agentsLoading, setAgentsLoading] = useState(false);
+  const [agentsError, setAgentsError] = useState(false);
+  useEffect(() => {
+    if (!runtime.open) return;
+    let current = true;
+    setAgents([]);
+    setAgentsError(false);
+    setAgentsLoading(true);
+    getAdminAgents().then(({ data }) => {
+      if (!current) return;
+      setAgents(data.filter(agent => agent.status === "ready" && agent.mode?.toUpperCase() !== "PROXY")
+        .map(agent => ({ value: agent.key, label: agent.name === agent.key ? agent.key : `${agent.name} (${agent.key})` })));
+    }).catch(() => {
+      if (current) setAgentsError(true);
+    }).finally(() => {
+      if (current) setAgentsLoading(false);
+    });
+    return () => { current = false; };
+  }, [runtime.open]);
   return <Modal
     open={runtime.open}
     title={t("connectors.import.title")}
@@ -24,12 +45,13 @@ export function ConnectorImportModal({ runtime }: { runtime: ReturnType<typeof u
     onCancel={runtime.close}
     onOk={() => void runtime.submit()}
     confirmLoading={runtime.submitting}
-    okText={t(runtime.overwriteRequired ? "connectors.import.overwrite.action" : "connectors.import.submit")}
+    okText={t(runtime.importedId ? "connectors.import.mountRetry" : runtime.overwriteRequired ? "connectors.import.overwrite.action" : "connectors.import.submit")}
     cancelText={t("connectors.import.cancel")}
     okButtonProps={{ disabled: !runtime.canSubmit, danger: runtime.overwriteRequired }}
     cancelButtonProps={{ disabled: runtime.submitting }}
   >
     <div className={styles.importBody}>
+      {!runtime.importedId && <>
       <Segmented block value={runtime.mode} disabled={runtime.submitting}
         options={[{ label: t("connectors.import.archive"), value: "archive" }, { label: t("connectors.import.mcp.tab"), value: "mcp" }]}
         onChange={value => runtime.setMode(value as "archive" | "mcp")} />
@@ -112,12 +134,21 @@ export function ConnectorImportModal({ runtime }: { runtime: ReturnType<typeof u
         </button>
         <p className={styles.hint}>{t("connectors.import.layout")}</p>
       </>}
+      </>}
+      {runtime.importedId && <p role="status" className={styles.hint}>{t("connectors.import.success", { id: runtime.importedId })}</p>}
+      <div className={styles.importField}>
+        <label htmlFor="connector-import-agent">{t("connectors.import.mountAgent")}</label>
+        <Select id="connector-import-agent" showSearch allowClear optionFilterProp="label" options={agents}
+          value={runtime.mountAgentKey} disabled={runtime.submitting || agentsError} loading={agentsLoading}
+          placeholder={t("connectors.import.mountPlaceholder")} onChange={runtime.setMountAgentKey} />
+        <p className={styles.hint}>{t(agentsError ? "connectors.import.mountAgentsUnavailable" : "connectors.import.mountHint")}</p>
+      </div>
       {runtime.overwriteRequired && <div role="alert" className={styles.importConflict}>
         <strong>{t("connectors.import.overwrite.title")}</strong>
         <p>{t("connectors.import.overwrite.description", { file: runtime.archive?.name || "" })}</p>
       </div>}
       {runtime.error && <div role="alert" className={styles.error}>{runtime.error}{runtime.errorDetails && <details><summary>{t("connectors.error.details")}</summary><pre style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>{runtime.errorDetails}</pre></details>}</div>}
-      {runtime.submitting && <p role="status" className={styles.hint}>{t(runtime.mode === "mcp" ? "connectors.import.mcp.importing" : "connectors.import.uploading")}</p>}
+      {runtime.submitting && <p role="status" className={styles.hint}>{t(runtime.mounting ? "connectors.chat.phase.mounting" : runtime.mode === "mcp" ? "connectors.import.mcp.importing" : "connectors.import.uploading")}</p>}
     </div>
   </Modal>;
 }

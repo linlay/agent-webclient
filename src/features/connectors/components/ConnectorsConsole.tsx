@@ -6,7 +6,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { message, Spin, Dropdown, Flex, Tooltip } from "antd";
 import type { MenuProps } from "antd";
 import { useOptionalAppContext } from "@/app/state/AppContext";
-import type { ConnectorType } from "@/shared/data";
+import { getAdminAgentConnectors, setAdminAgentConnector, type ConnectorType } from "@/shared/data";
 import { useI18n } from "@/shared/i18n";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
@@ -104,6 +104,26 @@ export function ConnectorsConsole({
   const importer = useConnectorImport({
     onImport: runtime.importArchive,
     onImportMCP: runtime.importMCP,
+    onMount: async (id, agentKey) => {
+      let selection;
+      try {
+        selection = (await setAdminAgentConnector({ agentKey, connectorId: id, enabled: true })).data;
+      } catch (cause) {
+        const saved = await getAdminAgentConnectors(agentKey).catch(() => null);
+        if (!saved?.data.connectorIds.includes(id)) throw cause;
+        selection = saved.data;
+      }
+      if (selection.agentKey !== agentKey || !selection.connectorIds.includes(id)) {
+        throw new Error(t("connectors.chat.invalidResponse"));
+      }
+      const published = selection.activeConnectorIds.includes(id) && !selection.reloadPending;
+      void messageApi.success({
+        key: "connector-import-mount",
+        content: t(published ? "connectors.import.mountPublished" : "connectors.import.mountPending", { id, agent: agentKey }),
+        duration: 5,
+      });
+      void runtime.refreshCatalog();
+    },
     onImported: (id) => {
       void messageApi.success({
         key: "connector-import",

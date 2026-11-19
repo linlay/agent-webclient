@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ConnectorAuthBrowser } from "./ConnectorAuthBrowser";
 import { ApiError, connectConnector, getConnectorConnection } from "@/shared/data";
-import type { ConnectorSummary } from "@/shared/data";
+import type { ConnectorPreparation, ConnectorSummary } from "@/shared/data";
 import { useI18n } from "@/shared/i18n";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
@@ -46,6 +46,8 @@ function ConnectorAuthPanelContent({ item, disabled, onConfigure, onCredentialsC
   const [confirmingConnection, setConfirmingConnection] = useState(false);
   const [configured, setConfigured] = useState<boolean | null>(null);
   const [connectionError, setConnectionError] = useState(false);
+  const [preparation, setPreparation] = useState<ConnectorPreparation["status"] | "unknown">("unknown");
+  const tracksPreparation = item.hasCli && !item.builtin;
   const connectionScope = useRef<AbortController | null>(null);
   const connectionCheck = useRef<AbortController | null>(null);
   const credentialResetScope = useRef<AbortController | null>(null);
@@ -59,24 +61,36 @@ function ConnectorAuthPanelContent({ item, disabled, onConfigure, onCredentialsC
   const deadline = connectorAuthDeadline(auth.session);
   const confirmable = status === "delegated" || item.authMode === "oneid" && status === "authorized";
   const refreshConnection = useCallback(async () => {
-    if (!confirmable) return;
+    if (!confirmable && !tracksPreparation) return;
     connectionCheck.current?.abort();
     const controller = new AbortController(); connectionCheck.current = controller;
     const timeout = window.setTimeout(() => controller.abort(), 20_000);
     try {
       const response = await getConnectorConnection(item.id, controller.signal);
       if (connectionCheck.current !== controller || controller.signal.aborted) return;
-      setConfigured(readConnectorConnection(response.data, item.id).configured);
+      const connection = readConnectorConnection(response.data, item.id);
+      if (confirmable) setConfigured(connection.configured);
+      if (tracksPreparation) setPreparation(connection.preparation?.status ?? "pending");
     } catch {
-      if (connectionCheck.current === controller) setConfigured(null);
+      if (connectionCheck.current === controller) {
+        if (confirmable) setConfigured(null);
+        if (tracksPreparation) setPreparation("unknown");
+      }
     } finally { window.clearTimeout(timeout); if (connectionCheck.current === controller) connectionCheck.current = null; }
-  }, [item.id, confirmable]);
+  }, [item.id, confirmable, tracksPreparation]);
   useEffect(() => {
     if (!auth.checking) void refreshConnection();
     const onVisible = () => { if (document.visibilityState === "visible") void refreshConnection(); };
     document.addEventListener("visibilitychange", onVisible);
     return () => { document.removeEventListener("visibilitychange", onVisible); connectionCheck.current?.abort(); connectionCheck.current = null; };
   }, [refreshConnection, item, auth.session, auth.checking]);
+  useEffect(() => {
+    if (preparation !== "preparing" || auth.checking) return;
+    const interval = window.setInterval(() => {
+      if (!connectionCheck.current && document.visibilityState === "visible") void refreshConnection();
+    }, 2_000);
+    return () => window.clearInterval(interval);
+  }, [auth.checking, preparation, refreshConnection]);
   const errorText = auth.error instanceof ApiError && [401, 403, 404, 405].includes(auth.error.status || 0)
     ? t(`connectors.auth.error.${auth.error.status}`)
     : auth.error?.message.startsWith("connectors.auth.error.") || auth.error?.message.startsWith("connectors.chat.") ? t(auth.error.message) : auth.error?.message;
@@ -97,6 +111,7 @@ function ConnectorAuthPanelContent({ item, disabled, onConfigure, onCredentialsC
       <UiTag role="status" tone={status === "authorized" ? "accent" : ["failed", "expired"].includes(status) || auth.error ? "danger" : "muted"}>{t(status === "unknown" ? auth.error ? "connectors.auth.checkFailed" : "connectors.auth.checking" : `connectors.auth.status.${status}`)}</UiTag>
     </div>
     <p>{t(item.authMode === "token" ? "connectors.auth.token" : status === "unknown" ? auth.error ? "connectors.auth.checkFailedHint" : "connectors.auth.checkingHint" : item.authMode === "oneid" ? "connectors.auth.oneid" : `connectors.auth.description.${status}`)}</p>
+    {tracksPreparation && <p role="status" className={styles.hint}>{t(`connectors.preparation.${preparation}`)}</p>}
     {item.hasNative && <p className={styles.hint}>{t("connectors.native.hint")}</p>}
     {(auth.session?.pendingVerification || status === "pending_verification") && <p className={styles.notice} role="status">{t("connectors.credentials.pending")}</p>}
     {checkable && <>

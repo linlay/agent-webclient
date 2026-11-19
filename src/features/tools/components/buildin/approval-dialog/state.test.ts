@@ -105,6 +105,17 @@ describe("approval dialog state helpers", () => {
     ]);
   });
 
+  it("shows the resolved executable for an invocation-bound approval", () => {
+    const reasons = presentApprovalReasons({
+      id: "bash", command: "wecom-cli --version",
+      policy: {
+        reasonCode: "execution_effects_unknown", subject: "wecom-cli",
+        scopeKind: "invocation_version", scope: "/opt/other/bin/wecom-cli",
+      },
+    }, (key, params) => `${key} ${params?.subject ?? ""}`);
+    expect(reasons[0].detail).toBe("approvalDialog.reason.executionEffects.versioned /opt/other/bin/wecom-cli");
+  });
+
   it("uses legacy text for single policy nodes or per-file requirements", () => {
     const approval = { id: "tool", command: "check" };
     expect(presentApprovalReasons({

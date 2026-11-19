@@ -8,9 +8,10 @@ jest.mock("@/shared/i18n", () => ({ useI18n: () => ({ t: (key: string) => key })
 const onImport = jest.fn<Promise<string | null>, [File, boolean]>();
 const onImportMCP = jest.fn<Promise<string | null>, [ImportConnectorMCPRequest]>();
 const onImported = jest.fn();
+const onMount = jest.fn<Promise<void>, [string, string]>();
 let current: ReturnType<typeof useConnectorImport>;
 let root: Root;
-function Harness() { current = useConnectorImport({ onImport, onImportMCP, onImported }); return null; }
+function Harness() { current = useConnectorImport({ onImport, onImportMCP, onImported, onMount }); return null; }
 const archive = () => new File(["zip fixture"], "connector.zip", { type: "application/zip" });
 beforeEach(async () => {
   (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
@@ -36,6 +37,22 @@ it("requires a separate user action before retrying with overwrite", async () =>
   expect(current.open).toBe(false);
   expect(onImported).toHaveBeenCalledWith("demo");
   expect(onImported).toHaveBeenCalledTimes(1);
+  expect(onMount).not.toHaveBeenCalled();
+});
+
+it("retries a failed explicit mount without reinstalling the connector", async () => {
+  onImport.mockResolvedValueOnce("wecom");
+  onMount.mockRejectedValueOnce(new Error("mount failed")).mockResolvedValueOnce(undefined);
+  await act(async () => { current.acceptFiles([archive()]); current.setMountAgentKey("cutej"); });
+  await act(async () => current.submit());
+  expect(current.importedId).toBe("wecom");
+  expect(current.open).toBe(true);
+  expect(current.error).toBe("connectors.import.mountFailed");
+  await act(async () => current.submit());
+  expect(onImport).toHaveBeenCalledTimes(1);
+  expect(onImported).toHaveBeenCalledTimes(1);
+  expect(onMount.mock.calls).toEqual([["wecom", "cutej"], ["wecom", "cutej"]]);
+  expect(current.open).toBe(false);
 });
 
 it("does not upload invalid files and clears overwrite approval when the file changes", async () => {

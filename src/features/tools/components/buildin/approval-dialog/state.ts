@@ -67,9 +67,9 @@ function localizedApprovalReason(item: AIAwaitApprovalRequirement, t: ApprovalDi
     case "execution_effects_unknown":
       return {
         title: t("approvalDialog.reason.executionEffects"),
-        detail: t(item.scopeKind === "invocation_version"
-          ? "approvalDialog.reason.executionEffects.versioned"
-          : "approvalDialog.reason.executionEffects.detail", { subject }),
+        detail: item.scopeKind === "invocation_version"
+          ? t("approvalDialog.reason.executionEffects.versioned", { subject: item.scope || subject })
+          : t("approvalDialog.reason.executionEffects.detail", { subject }),
       };
   }
 }
