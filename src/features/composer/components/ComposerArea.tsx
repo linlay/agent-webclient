@@ -961,6 +961,8 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     (!speechSupported ||
       speechState === "error" ||
       speechState === "unsupported");
+  // 运行中的发送按钮（引导当前 Run）只在输入区确实有可引导文本或有效引用时出现。
+  const hasSteerableContent = hasSendableContent(inputValue, combinedSendReferences, true);
   const sendDisabled =
     nativeShare.busy || nativeShare.blocked ||
     hasInvalidSelectedSkills ||
@@ -969,7 +971,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     (!usesMailboxSend(currentWorker?.type === "agent" ? currentWorker.raw?.mode : undefined) && (isFrontendActive || isAwaitingActive)) ||
     hasUploadingAttachments ||
     hasFailedAttachments ||
-    !(isMainChatRunning ? hasSendableContent(inputValue, combinedSendReferences, true) : hasSendableQuery(inputValue, combinedSendReferences, hasQueryHistory(state), canContinueChat(state)));
+    !(isMainChatRunning ? hasSteerableContent : hasSendableQuery(inputValue, combinedSendReferences, hasQueryHistory(state), canContinueChat(state)));
 
   useEmbedComposer({ value: inputValue, setValue: value => { setInputValue(value); setSlashDismissed(true); },
     disabled: inputDisabled || (!usesMailboxSend(currentWorker?.raw?.mode) && (isFrontendActive || isAwaitingActive)) || isVoiceMode || interactionPending,
