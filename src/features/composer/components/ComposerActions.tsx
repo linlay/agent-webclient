@@ -246,6 +246,28 @@ const ComposerActionsPure: React.FC<
           ? t("composer.actions.screenshotCapturing")
           : undefined;
 
+  // 运行中这颗按钮代表“把当前文本/附件引导给正在跑的 Run”，走 direct steer，
+  // 与输入框的 ⌘/Ctrl+Enter 一致；空闲时仍是普通发送，交给 handleSend 自己路由。
+  const renderSendButton = (directSteer: boolean) => (
+    <UiButton
+      className={SEND_BUTTON_CLASS}
+      id={presentationClasses("send-btn")}
+      variant="primary"
+      size="sm"
+      iconOnly
+      disabled={sendDisabled}
+      onClick={() => (directSteer ? handleSend(true) : handleSend())}
+      aria-label={
+        directSteer ? t("composer.steer.submit") : t("composer.actions.send")
+      }
+      title={directSteer ? t("composer.steer.shortcut") : undefined}
+    >
+      <SkinVisual slot="chat.send">
+        <MaterialIcon name="arrow_upward" />
+      </SkinVisual>
+    </UiButton>
+  );
+
   return (
     <Flex vertical style={{ width: "100%" }}>
       {isCopilot && (
@@ -436,21 +458,27 @@ const ComposerActionsPure: React.FC<
               onAccessLevelChange={onAccessLevelChange}
               onModelOverrideChange={onModelOverrideChange}
             />
-            <UiButton
-              className={INTERRUPT_BUTTON_CLASS}
-              id="interrupt-btn"
-              variant="ghost"
-              color="danger"
-              size="sm"
-              iconOnly
-              disabled={interruptDisabled}
-              onClick={() => void interruptCurrentRun()}
-              aria-label={t("composer.actions.interrupt")}
-            >
-              <SkinVisual slot="chat.stop" size={28}>
-                <MaterialIcon name="stop_circle" style={{ fontSize: 28 }} />
-              </SkinVisual>
-            </UiButton>
+            {/* 发送与中断互斥占用同一个位置：真能引导时才换成发送按钮，否则保留
+                中断按钮。sendDisabled 在运行中已经包含了“存在可引导内容”这一条件。 */}
+            {!sendDisabled && !isVoiceMode ? (
+              renderSendButton(true)
+            ) : (
+              <UiButton
+                className={INTERRUPT_BUTTON_CLASS}
+                id="interrupt-btn"
+                variant="ghost"
+                color="danger"
+                size="sm"
+                iconOnly
+                disabled={interruptDisabled}
+                onClick={() => void interruptCurrentRun()}
+                aria-label={t("composer.actions.interrupt")}
+              >
+                <SkinVisual slot="chat.stop" size={28}>
+                  <MaterialIcon name="stop_circle" style={{ fontSize: 28 }} />
+                </SkinVisual>
+              </UiButton>
+            )}
           </>
         ) : !isVoiceMode ? (
           <>
@@ -490,20 +518,7 @@ const ComposerActionsPure: React.FC<
                 </SkinVisual>
               </UiButton>
             ) : null}
-            <UiButton
-              className={SEND_BUTTON_CLASS}
-              id={presentationClasses("send-btn")}
-              variant="primary"
-              size="sm"
-              iconOnly
-              disabled={sendDisabled}
-              onClick={() => handleSend()}
-              aria-label={t("composer.actions.send")}
-            >
-              <SkinVisual slot="chat.send">
-                <MaterialIcon name="arrow_upward" />
-              </SkinVisual>
-            </UiButton>
+            {renderSendButton(false)}
           </>
         ) : null}
       </div>

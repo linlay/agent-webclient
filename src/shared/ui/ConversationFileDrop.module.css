@@ -8,9 +8,10 @@
     justify-content: center;
     gap: 4px;
     padding: 8px 12px;
-    border: 2px dashed var(--accent-electric);
+    border: 2px dashed color-mix(in srgb, var(--accent-electric) 72%, transparent);
     border-radius: inherit;
-    background: color-mix(in srgb, var(--accent-electric) 10%, var(--control-input-bg) 90%);
+    /* A tint, not a fill: the composer text behind stays readable while dragging. */
+    background: color-mix(in srgb, var(--accent-electric) 9%, transparent);
     color: var(--accent-electric);
     pointer-events: none;
     text-align: center;
@@ -34,8 +35,9 @@
 }
 
 /* Column-wide mask: the composer receives the drop, the center column shows it.
-   Mirrors the Desktop file-drop overlay (elevated panel with a dashed drop zone
-   inside) and sits above the dock (22), below popovers. */
+   Mirrors the Desktop file-drop overlay (a dashed drop zone carrying the label)
+   and sits above the dock (22), below popovers. The mask is intentionally light
+   so the conversation stays legible while a file is dragged over it. */
 .surface {
     position: absolute;
     inset: 6px;
@@ -44,9 +46,11 @@
     flex-direction: column;
     gap: 10px;
     padding: 10px;
-    border: 1px solid var(--line-strong);
+    border: 1px solid color-mix(in srgb, var(--line-strong) 55%, transparent);
     border-radius: 14px;
-    background: var(--surface-strong);
+    /* Deliberately mostly transparent: the column keeps showing through while the
+       dashed outline and the centered label carry the affordance. */
+    background: color-mix(in srgb, var(--surface-strong) 22%, transparent);
     box-shadow: var(--shadow-soft);
     color: var(--ink-soft);
     pointer-events: none;
@@ -56,15 +60,28 @@
 .surfaceZone {
     display: flex;
     flex: 1;
-    flex-direction: column;
     justify-content: center;
     align-items: center;
-    gap: 10px;
     padding: 18px 12px;
-    border: 2px dashed var(--accent);
+    border: 2px dashed color-mix(in srgb, var(--accent) 62%, transparent);
     border-radius: 10px;
-    background: color-mix(in srgb, var(--accent) 12%, transparent);
+    background: color-mix(in srgb, var(--accent) 5%, transparent);
     color: var(--ink-soft);
+}
+
+/* Only the label gets a material; the rest of the zone keeps showing whatever is
+   behind it. The blur keeps the title readable over code blocks and tool cards. */
+.surfaceLabel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 14px 22px;
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--surface-strong) 90%, transparent);
+    box-shadow: var(--shadow-soft);
+    -webkit-backdrop-filter: blur(10px) saturate(1.05);
+    backdrop-filter: blur(10px) saturate(1.05);
 }
 
 .surfaceTitle {

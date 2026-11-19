@@ -67,6 +67,7 @@ describe("ComposerActions", () => {
       React.createElement(ComposerActions, {
         ...baseProps,
         isStreaming: true,
+        sendDisabled: true,
       }),
     );
 
@@ -77,7 +78,7 @@ describe("ComposerActions", () => {
 
   it("shows an inline status while keeping Stop available for an existing run", () => {
     const html = renderToStaticMarkup(React.createElement(ComposerActions, {
-      ...baseProps, isStreaming: true, interactionDisabled: true, interruptDisabled: false,
+      ...baseProps, isStreaming: true, sendDisabled: true, interactionDisabled: true, interruptDisabled: false,
       statusNotice: React.createElement("span", { role: "status" }, "Agent unavailable"),
     }));
     expect(html).toContain("Agent unavailable");
@@ -87,7 +88,21 @@ describe("ComposerActions", () => {
     expect(stop).not.toMatch(/\sdisabled(?:=|\s|>)/);
   });
 
-  it("hides send and voice controls while streaming", () => {
+  it("keeps interrupt instead of send while streaming without steerable content", () => {
+    const html = renderToStaticMarkup(
+      React.createElement(ComposerActions, {
+        ...baseProps,
+        isStreaming: true,
+        sendDisabled: true,
+      }),
+    );
+
+    expect(html).not.toContain("send-btn");
+    expect(html).toContain("interrupt-btn");
+    expect(html).not.toContain("voice-btn");
+  });
+
+  it("replaces interrupt with the steer send while streaming with steerable content", () => {
     const html = renderToStaticMarkup(
       React.createElement(ComposerActions, {
         ...baseProps,
@@ -95,8 +110,26 @@ describe("ComposerActions", () => {
       }),
     );
 
-    expect(html).not.toContain("send-btn");
+    expect(html).toContain("send-btn");
+    expect(html).toContain('aria-label="composer.steer.submit"');
+    // 发送与中断互斥：能引导时不再渲染停止按钮。
+    expect(html).not.toContain("interrupt-btn");
+    // 运行中发的是引导，不是新一轮 query，也不出现语音按钮。
     expect(html).not.toContain("voice-btn");
+  });
+
+  it("keeps interrupt in voice mode even when steerable", () => {
+    const html = renderToStaticMarkup(
+      React.createElement(ComposerActions, {
+        ...baseProps,
+        isStreaming: true,
+        isVoiceMode: true,
+      }),
+    );
+
+    // 语音模式没有文本发送入口，位置仍留给中断。
+    expect(html).not.toContain("send-btn");
+    expect(html).toContain("interrupt-btn");
   });
 
   it("keeps the screenshot action out of the control row so the add menu owns it", () => {

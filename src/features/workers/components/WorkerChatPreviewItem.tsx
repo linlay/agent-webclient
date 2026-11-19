@@ -31,8 +31,10 @@ export const WorkerChatPreviewItem: React.FC<{
   const { t } = useI18n();
   const previewText = chat.chatName || chat.lastRunContent || t("leftSidebar.noPreview");
   const showAutomationSource = String(chat.source || "").trim().startsWith("automation:");
-  const isBusy = chat.hasPendingAwaiting || loading || isChatActiveRun(chat);
-  const hasStatus = showAutomationSource || isBusy || isChatUnread(chat);
+  const showAwaiting = Boolean(chat.hasPendingAwaiting);
+  const showLoading = !showAwaiting && (loading || isChatActiveRun(chat));
+  const showUnread = !showAwaiting && !showLoading && isChatUnread(chat);
+  const hasStatus = Boolean(showAutomationSource || showAwaiting || showUnread);
   const owner = ownerLabel && <span data-agent-identity="" className={`${styles.owner} pinned-chat-owner`} title={ownerLabel}>
     {ownerType && <AgentIcon icon={ownerIcon} type={ownerType} props={{ icon: { className: "pinned-chat-owner-icon", width: 12, height: 12, style: { borderRadius: 3 } }, avatar: { className: "pinned-chat-owner-icon", size: 12 } }} />}
     <SidebarOverflowText text={ownerLabel} className={`${styles.ownerLabel} pinned-chat-owner-label`} />
@@ -45,9 +47,12 @@ export const WorkerChatPreviewItem: React.FC<{
         <circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" />
       </svg>
     </span>}
-    {chat.hasPendingAwaiting ? <AwaitingStatusChip mode={chat.awaitingMode} />
-      : isBusy ? <MaterialIcon name="progress_activity" className={`${styles.loading} worker-chat-loading`} /> : isChatUnread(chat) &&
-      <span className={`${styles.unread} worker-chat-unread`}><UnreadDot chat={chat} /></span>}
+    {showAwaiting ? <AwaitingStatusChip mode={chat.awaitingMode} />
+      : showUnread && <span className={`${styles.unread} worker-chat-unread`}><UnreadDot chat={chat} /></span>}
+  </span>;
+  // 运行指示占用“更多”按钮的槽位：桌面 hover 时由按钮顶替，触屏时按钮让位。
+  const loadingIndicator = showLoading && <span className={styles.loadingSlot}>
+    <MaterialIcon name="progress_activity" className={`${styles.loading} worker-chat-loading`} />
   </span>;
   return (
     <ChatActionsMenu
@@ -59,6 +64,7 @@ export const WorkerChatPreviewItem: React.FC<{
           {...dragProps}
           className={`${styles.row} ${pinnedLayout ? styles.pinned : ""} worker-chat-item ${isActive ? "is-active" : ""} ${dragProps?.className || ""}`}
           data-hover-space={!pinnedLayout && !hasStatus && (!ownerLabel || ownerPosition === "before") ? "true" : undefined}
+          data-loading={showLoading ? "true" : undefined}
           selected={isActive}
           role="button"
           tabIndex={0}
@@ -85,6 +91,7 @@ export const WorkerChatPreviewItem: React.FC<{
             {ownerPosition === "after" && owner}
             {status}
           </>}
+          {loadingIndicator}
           <UiButton
             className={`${styles.more} chat-actions-trigger ui-icon-hover-24`}
             size="mini" variant="ghost" iconOnly
