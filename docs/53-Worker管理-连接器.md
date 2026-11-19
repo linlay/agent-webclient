@@ -53,7 +53,7 @@ Composer 另用现有 HTTP `GET /api/connectors/connection` 读取连接配置�
 
 目录状态只读取既有认证/准备及 MCP 同步快照，不执行 CLI 或主动探测上游。菜单打开期间，仅 reloadPending、preparing/pending_verification 或 MCP pending/syncing 每次响应后间隔 2 秒补查目录；状态稳定、读取失败或关闭菜单后停止。未挂载与不可用分别显示，不用可用性推断开关。
 
-保存期间使 Agent 详情缓存与在途可用性检查失效，显示加载并禁止重复切换，成功后使用响应中的配置；失败保留诊断并重新读取源配置，避免网络中断后误报状态。初始配置加载失败时不假设所有连接器关闭，提供重试。切换 Agent 或关闭面板后忽略旧响应。
+Composer 持有开关操作，关闭菜单后仍会保存。保存期间使 Agent 详情缓存与在途可用性检查失效，显示加载并禁止重复切换，成功后使用响应中的配置；写入失败保留诊断并重新读取源配置。开启 MCP 连接器或等待 Agent 重载时，用当前 Agent 的使用目录确认发布和工具同步。在此期间保留草稿，并让已排队的消息等到更新完成后在原会话启动下一轮。工具不可用或等待超时会提示用户并恢复发送。切换 Agent 后忽略原 Agent 的过期响应。
 
 `/agents/:agentKey` 的能力区复用 `/api/admin/agent` 的 connectorBindings，再读取 `/api/admin/connectors` 展示预置、声明及当前生效挂载；后台目录更新、窗口重新聚焦和恢复可见时重读管理详情以校准运行快照。连接器默认折叠，展开查看其工具和 CLI/VIEW/技能能力，原生工具用 nativeTools 归属、MCP 服务按当前 agentKey 隔离；不重复出现在自身工具区。“管理连接器”和卡片移除只编辑 `definition.connectorConfig.connectors` 对应的表单草稿，统一随 Agent 创建／保存提交，不调用单项挂载 PUT。预置带锁；builtin/readOnly 包的普通挂载仍可选择。待保存增删与后端等待重载分开展示，后台刷新不覆盖草稿；安装、卸载及账号连接通过新窗口进入连接器中心。管理“发起对话”仍使用管理详情投影的完整 activeConnectorIds，确认生效后导航。两套挂载 PUT 均拒绝预置修改（403 preset_connector_readonly），预置运行时工具和技能仍正常挂载。
 

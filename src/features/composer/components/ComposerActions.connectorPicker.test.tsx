@@ -3,6 +3,12 @@ import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { ComposerActions } from "./ComposerActions";
 
+const mockConnectorOptions = [
+  { id: "conn-1", name: "Connector 1" },
+  { id: "conn-2", name: "Connector 2" },
+];
+const connectorIds = mockConnectorOptions.map(({ id }) => id);
+
 jest.mock("@/features/composer/components/ComposerContext", () => ({
   useComposerContext: () => ({
     captureDesktopScreenshot: jest.fn(),
@@ -24,6 +30,9 @@ jest.mock("@/features/composer/components/ComposerAddMenu", () => ({
 jest.mock("@/features/connectors/components/AgentConnectorPicker", () => ({
   AgentConnectorPicker: () =>
     React.createElement("div", { "data-connector-picker": "true" }),
+}));
+jest.mock("@/features/connectors/hooks/useConnectorPickerCatalog", () => ({
+  useConnectorPickerCatalog: () => ({ items: mockConnectorOptions }),
 }));
 jest.mock("@/shared/i18n", () => ({
   useI18n: () => ({ t: (key: string) => key }),
@@ -80,24 +89,32 @@ const baseProps = {
   onTogglePlanningMode: jest.fn(),
   onEditingModeChange: jest.fn(),
   onAddReference: jest.fn(),
-  enabledConnectors: [
-    { id: "conn-1", name: "Connector 1" },
-    { id: "conn-2", name: "Connector 2" },
-  ],
-};
+} satisfies React.ComponentProps<typeof ComposerActions>;
 
 function renderActions() {
   (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
   const container = document.createElement("div");
   document.body.append(container);
   const root = createRoot(container);
-  const render = (overrides: Record<string, unknown> = {}) =>
+  const render = (overrides: Partial<React.ComponentProps<typeof ComposerActions>> = {}) =>
     act(() =>
       root.render(
         React.createElement(ComposerActions, {
           ...baseProps,
+          connectorSelection: {
+            data: { agentKey: overrides.currentAgentKey ?? baseProps.currentAgentKey, connectorIds },
+            availableIds: connectorIds,
+            loading: false,
+            savingId: "",
+            loadError: null,
+            saveError: null,
+            syncError: null,
+            catalogRevision: 0,
+            refresh: jest.fn(),
+            setSelected: jest.fn(),
+          },
           ...overrides,
-        } as any),
+        }),
       ),
     );
   const trigger = () =>
@@ -135,7 +152,7 @@ describe("ComposerActions connector picker", () => {
       view.openPicker();
       expect(view.picker()).not.toBeNull();
 
-      view.render({ currentAgentKey: "agent-b", currentChatId: "chat-b" });
+      view.render({ currentAgentKey: "agent-b" });
       expect(view.picker()).toBeNull();
     } finally {
       act(() => view.root.unmount());

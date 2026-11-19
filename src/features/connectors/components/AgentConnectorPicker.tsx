@@ -1,18 +1,18 @@
 import { Spin } from "antd";
 import { useI18n } from "@/shared/i18n";
 import { UiButton } from "@/shared/ui/UiButton";
-import { useAgentConnectors } from "../hooks/useAgentConnectors";
+import type { AgentConnectorSelection } from "../hooks/useAgentConnectors";
 import { ConnectorPicker } from "./ConnectorPicker";
 import styles from "./ConnectorPicker.module.css";
 
-export function AgentConnectorPicker({ agentKey, search, onSearchChange, disabled }: {
+export function AgentConnectorPicker({ agentKey, selection, search, onSearchChange, disabled }: {
   agentKey: string;
+  selection: AgentConnectorSelection;
   search: string;
   onSearchChange: (value: string) => void;
   disabled?: boolean;
 }) {
   const { t } = useI18n();
-  const selection = useAgentConnectors(agentKey);
   const error = selection.loadError;
   return <div>
     {!agentKey ? <div className={styles.status}>{t("composer.addMenu.connectors.noAgent")}</div>
