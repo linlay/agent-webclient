@@ -17,9 +17,13 @@
 }
 :global(.layout-mobile) .row.row { min-height: 44px; padding: 4px 48px 4px 10px; font-size: 16px; }
 :global(.layout-mobile) .row.row.pinned { padding: 4px 48px 4px 10px; }
-:global(.layout-mobile) .row .more { width: 40px; height: 40px; }
+/* Beat the shared icon-button sizing so the mobile trigger keeps its 40x40 tap target. */
+:global(.layout-mobile) .row .more:global(.chat-actions-trigger) { width: 40px; height: 40px; }
+:global(.layout-mobile) .row .loadingSlot { width: 40px; height: 40px; }
 :global(.layout-mobile) .owner { font-size: 12px; }
 :global(.layout-mobile) .time { font-size: 12px; }
+/* Inline rows reserve the slot only while running; pinned rows keep their own padding. */
+.row[data-loading="true"] { padding-right: 32px; }
 .row.row:hover, .row.row:focus-visible, .row.row:global(.is-active) {
   background: var(--bg-hover);
 }
@@ -48,6 +52,19 @@
 .status { display: inline-flex; flex-shrink: 0; align-items: center; gap: 8px; }
 .automationSource { display: inline-flex; flex-shrink: 0; width: 9px; height: 9px; color: var(--text-sub); }
 .automationSource svg { width: 100%; height: 100%; }
+/* Loading shares the actions slot so the row keeps a single stable status position. */
+.loadingSlot {
+  position: absolute;
+  z-index: 1;
+  right: 4px;
+  top: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  pointer-events: none;
+}
 .row .loading { flex-shrink: 0; width: 16px; height: 16px; font-size: 16px; color: var(--text-sub); animation: spin 1s linear infinite; }
 .unread { display: inline-flex; flex-shrink: 0; align-items: center; justify-content: center; width: 16px; }
 .row .more {
@@ -63,11 +80,22 @@
   box-shadow: -10px 0 10px var(--bg-hover);
 }
 .row:hover .more { visibility: visible; }
+@media (hover: hover) {
+  /* Pointer hover hands the slot over to the actions button. */
+  .row:hover .loadingSlot { visibility: hidden; }
+  /* Some layouts reserve no gutter for the slot, so the running row clears its meta text
+     the same way the hover state does instead of shifting the time column. */
+  .pinned[data-loading="true"] .pinnedHead,
+  .pinned[data-loading="true"] .pinnedMeta { clip-path: inset(0 24px 0 0); }
+  .pinned[data-loading="true"] .pinnedMetaRight { opacity: 0; }
+}
 .row[data-hover-space="true"]:hover { padding-right: 32px; }
 .row:hover .status { opacity: 0; }
 @media (hover: none) {
   .row .more { visibility: visible; }
   .row { padding-right: 32px; }
+  /* Touch has no hover hand-off: while running, loading keeps the slot instead. */
+  .row[data-loading="true"] .more { display: none; }
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 @keyframes titleScroll {
@@ -92,7 +120,9 @@
 .pinnedMetaRight { display: inline-flex; flex-shrink: 0; align-items: center; gap: 8px; margin-left: auto; }
 .time { color: var(--text-muted); font-size: 11px; line-height: 14px; white-space: nowrap; }
 .pinned .more { top: 50%; transform: translateY(-50%); box-shadow: none; background: transparent; }
+.pinned .loadingSlot { top: 50%; transform: translateY(-50%); }
 .pinned:focus-within .more { visibility: visible; }
+.pinned:focus-within .loadingSlot { visibility: hidden; }
 .pinned:hover .pinnedMetaRight, .pinned:focus-within .pinnedMetaRight { opacity: 0; }
 /* Clear both lines beneath the centered menu, including scrolling title text. */
 .pinned:hover .pinnedHead, .pinned:hover .pinnedMeta,
