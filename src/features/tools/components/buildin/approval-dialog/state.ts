@@ -1,4 +1,4 @@
-import type { AIAwaitApproval, AIAwaitApprovalDecision, AIAwaitApprovalOption, AIAwaitApprovalSubmitParamData } from "@/shared/contracts/agentEvents";
+import type { AIAwaitApproval, AIAwaitApprovalDecision, AIAwaitApprovalOption, AIAwaitApprovalRequirement, AIAwaitApprovalSubmitParamData } from "@/shared/contracts/agentEvents";
 import type { TranslateParams } from "@/shared/i18n";
 
 export type ApprovalDialogDecision =
@@ -21,6 +21,7 @@ const DEFAULT_APPROVAL_DECISIONS: AIAwaitApprovalDecision[] = ["approve"];
 export function resolveApprovalOptions(
   approval: Pick<AIAwaitApproval, "options">,
   t: ApprovalDialogTranslate,
+  mainRuleTitle?: string,
 ): ApprovalDialogOption[] {
   const normalized = Array.isArray(approval.options)
     ? approval.options.filter(
@@ -35,8 +36,68 @@ export function resolveApprovalOptions(
   return options.map((option) => ({
     decision: option.decision,
     label: approvalDecisionLabel(option.decision, t),
-    description: approvalDecisionDescription(option.decision, t),
+    description: option.decision === "approve_rule_run" && mainRuleTitle
+      ? t("approvalDialog.option.approveRuleRun.named", { rule: mainRuleTitle })
+      : approvalDecisionDescription(option.decision, t),
   }));
+}
+
+function pendingApprovalLeaves(item: AIAwaitApprovalRequirement): AIAwaitApprovalRequirement[] {
+  if (item.decision && item.decision !== "requires_approval") return [];
+  if (item.requirements?.length) return item.requirements.flatMap(pendingApprovalLeaves);
+  return item.reason || item.reasonCode ? [item] : [];
+}
+
+function localizedApprovalReason(item: AIAwaitApprovalRequirement, t: ApprovalDialogTranslate) {
+  const subject = item.subject || item.path || item.scope;
+  if (!subject) return;
+  switch (item.reasonCode) {
+    case "runtime_wrapper_arguments":
+      return {
+        title: t("approvalDialog.reason.runtimeArguments", { subject }),
+        detail: t("approvalDialog.reason.runtimeArguments.detail", { subject }),
+      };
+    case "path_outside_read_roots":
+      return {
+        title: t("approvalDialog.reason.readPath"),
+        detail: t("approvalDialog.reason.readPath.detail", { subject }),
+      };
+    case "path_outside_write_roots":
+      return {
+        title: t("approvalDialog.reason.writePath"),
+        detail: t("approvalDialog.reason.writePath.detail", { subject }),
+      };
+    case "execution_effects_unknown":
+      return {
+        title: t("approvalDialog.reason.executionEffects"),
+        detail: t(item.scopeKind === "invocation_version"
+          ? "approvalDialog.reason.executionEffects.versioned"
+          : "approvalDialog.reason.executionEffects.detail", { subject }),
+      };
+  }
+}
+
+export function presentApprovalReasons(approval: AIAwaitApproval, t: ApprovalDialogTranslate) {
+  const policyLeaves = approval.policy ? pendingApprovalLeaves(approval.policy) : [];
+  const leaves = approval.policy?.requirements?.length || policyLeaves.length
+    ? policyLeaves
+    : (approval.requirements ?? []).flatMap(pendingApprovalLeaves);
+
+  const reasons = leaves.flatMap((item) => {
+    const localized = localizedApprovalReason(item, t);
+    if (!localized && !item.reason) return [];
+    const subject = item.subject || item.path;
+    return [{
+      ruleKey: item.ruleKey,
+      title: localized?.title,
+      detail: localized?.detail ?? [item.reason, subject && !item.reason?.includes(subject) ? subject : undefined]
+        .filter(Boolean).join(" · "),
+    }];
+  });
+  const primary = policyLeaves.length && approval.ruleKey
+    ? reasons.find((item) => item.ruleKey === approval.ruleKey)
+    : undefined;
+  return { reasons, mainRuleTitle: primary?.title, summary: primary?.title ? primary.detail : reasons.find((item) => item.title)?.detail };
 }
 
 export function buildApprovalSubmitParams(

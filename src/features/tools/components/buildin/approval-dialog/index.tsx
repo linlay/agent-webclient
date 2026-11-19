@@ -6,7 +6,6 @@ import React, {
   useCallback,
   useEffect,
   useImperativeHandle,
-  useMemo,
   useRef,
   useState,
 } from "react";
@@ -25,12 +24,14 @@ import {
   buildPartialApprovalSubmitParams,
   buildApprovalSubmitParams,
   findApprovalDecisionError,
+  presentApprovalReasons,
   resolveApprovalOptions,
 } from "@/features/tools/components/buildin/approval-dialog/state";
 import { useAwaitingTimeoutCountdown } from "@/features/tools/hooks/useAwaitingTimeoutCountdown";
 import { useAwaitingResolutionNotice } from "@/features/tools/components/buildin/useAwaitingResolutionNotice";
 import { useI18n } from "@/shared/i18n";
 import { useAppMessage } from "@/shared/ui/useAppMessage";
+import { copyText } from "@/shared/utils/copy";
 import debounce from "lodash/debounce";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { Pager } from "@/shared/ui/Pager";
@@ -511,12 +512,23 @@ const ApprovalQuestion = forwardRef<
     ref,
   ) => {
     const hostRef = useRef<HTMLDivElement>(null);
-    const { locale, t } = useI18n();
+    const { t } = useI18n();
+    const message = useAppMessage();
     const checkboxsRef = useRef<CheckboxRef[]>([]);
-    const options = useMemo(
-      () => resolveApprovalOptions(approval, t),
-      [approval, locale, t],
-    );
+    const { reasons, summary, mainRuleTitle } = presentApprovalReasons(approval, t);
+    const options = resolveApprovalOptions(approval, t, mainRuleTitle);
+    const hasReasons = reasons.length > 0;
+    const command = approval.command ?? "";
+    const showPurpose = approval.description && !command.trim().startsWith(approval.description);
+
+    async function copyCommand() {
+      try {
+        await copyText(command);
+        void message.success(t("rightSidebar.copy.success"));
+      } catch {
+        void message.error(t("timeline.toolPill.copy.failed"));
+      }
+    }
     const onEnterDebounce = useCallback(debounce(onEnter, 300), [onEnter]);
 
     useImperativeHandle(
@@ -543,18 +555,43 @@ const ApprovalQuestion = forwardRef<
           justify="space-between"
         >
           <div className={hitlDialogClassNames.questionHeading}>
-            {approval?.description ||
-              t("approvalDialog.descriptionFallback")}
+            {hasReasons ? t("approvalDialog.title") : approval.description || t("approvalDialog.descriptionFallback")}
           </div>
           {pagnation}
         </Flex>
-        <Typography.Paragraph
-          className={[libraryPresentation.typography, hitlDialogClassNames.approvalDetails].filter(Boolean).join(" ")}
-          ellipsis={{ rows: 5 }}
-          title={approval?.command}
-        >
-          {approval?.command}
-        </Typography.Paragraph>
+        {hasReasons ? (
+          <div className="tw:mb-2 tw:px-3 tw:leading-normal tw:text-text-muted tw:[overflow-wrap:anywhere]">
+            {showPurpose && <p className="tw:mb-1">{approval.description}</p>}
+            {summary && <p className="tw:mb-1">{summary}</p>}
+            <details onKeyDown={(event) => event.stopPropagation()}>
+              <summary className="tw:cursor-pointer tw:py-1 tw:font-medium tw:text-text-main">
+                {t("approvalDialog.details", { count: reasons.length })}
+              </summary>
+              <pre className="tw:my-1 tw:whitespace-pre-wrap tw:rounded-lg tw:bg-bg-hover tw:p-2">
+                <code>{command}</code>
+              </pre>
+              <Button type="text" size="small" onClick={() => void copyCommand()}>
+                {t("approvalDialog.copyCommand")}
+              </Button>
+              <ol className="tw:mt-1 tw:list-decimal tw:space-y-1.5 tw:pl-5">
+                {reasons.map((item, index) => (
+                  <li key={index}>
+                    {item.title && <div className="tw:font-medium tw:text-text-main">{item.title}</div>}
+                    {item.detail}
+                  </li>
+                ))}
+              </ol>
+            </details>
+          </div>
+        ) : (
+          <Typography.Paragraph
+            className={[libraryPresentation.typography, hitlDialogClassNames.approvalDetails].filter(Boolean).join(" ")}
+            ellipsis={{ rows: 5 }}
+            title={command}
+          >
+            {command}
+          </Typography.Paragraph>
+        )}
         <Radio.Group
           className={hitlDialogClassNames.radioGroup}
           value={decision}
@@ -586,20 +623,12 @@ const ApprovalQuestion = forwardRef<
                 <span className={hitlDialogClassNames.optionIndex}>
                   {index + 1}
                 </span>
-                <Typography.Text
-                  className={[libraryPresentation.typography, hitlDialogClassNames.optionInfo].filter(Boolean).join(" ")}
-                  ellipsis={{ tooltip: option.label }}
-                >
-                  {option.label}
-                </Typography.Text>
-                {option.description && (
-                  <Typography.Text
-                    className={[libraryPresentation.typography, hitlDialogClassNames.approvalMeta].filter(Boolean).join(" ")}
-                    ellipsis={{ tooltip: option.description }}
-                  >
-                    {option.description}
-                  </Typography.Text>
-                )}
+                <div className="tw:min-w-0 tw:leading-normal tw:[overflow-wrap:anywhere]">
+                  <div className={hitlDialogClassNames.optionInfo}>{option.label}</div>
+                  {option.description && (
+                    <div className={hitlDialogClassNames.approvalMeta}>{option.description}</div>
+                  )}
+                </div>
                 <span className={hitlDialogClassNames.selectedBadge}>
                   {t("approvalDialog.selected")}
                 </span>

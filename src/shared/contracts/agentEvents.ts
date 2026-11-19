@@ -274,12 +274,26 @@ export interface AIAwaitQuestion {
   freeTextPlaceholder?: string;
 }
 
+export interface AIAwaitApprovalRequirement {
+  decision?: string;
+  ruleKey?: string;
+  reason?: string;
+  reasonCode?: string;
+  subject?: string;
+  path?: string;
+  scope?: string;
+  scopeKind?: string;
+  requirements?: AIAwaitApprovalRequirement[];
+}
+
 export interface AIAwaitApproval {
   id: string;
   command: string;
   ruleKey?: string;
   description?: string;
   options?: AIAwaitApprovalOption[];
+  policy?: AIAwaitApprovalRequirement;
+  requirements?: AIAwaitApprovalRequirement[];
   allowFreeText?: boolean;
   freeTextPlaceholder?: string;
 }

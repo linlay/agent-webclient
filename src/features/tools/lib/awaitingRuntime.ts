@@ -1,6 +1,6 @@
 import { readViewReference } from "@/shared/contracts/view";
 import type { ActiveAwaiting, FormActiveAwaiting } from "@/features/tools/lib/toolsState";
-import type { AgentEvent, AIAwaitApproval, AIAwaitApprovalDecision, AIAwaitForm, AIAwaitMode, AIAwaitPlan, AIAwaitPlanDecision, AIAwaitQuestion } from "@/shared/contracts/agentEvents";
+import type { AgentEvent, AIAwaitApproval, AIAwaitApprovalDecision, AIAwaitApprovalRequirement, AIAwaitForm, AIAwaitMode, AIAwaitPlan, AIAwaitPlanDecision, AIAwaitQuestion } from "@/shared/contracts/agentEvents";
 import { AIAwaitQuestionType, ViewRendererEnum, isAwaitingAnswerStreamEvent, isAwaitingAskStreamEvent } from "@/shared/contracts/agentEvents";
 import { toText } from '@/shared/utils/eventUtils';
 import { readEpochMillis } from '@/shared/utils/platformTime';
@@ -229,6 +229,24 @@ function normalizeQuestions(value: unknown): AIAwaitQuestion[] {
     .filter((question) => Boolean(question.id) && Boolean(question.question));
 }
 
+function normalizeApprovalRequirement(value: unknown): AIAwaitApprovalRequirement | undefined {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return;
+  const raw = value as Record<string, unknown>;
+  const item: AIAwaitApprovalRequirement = {};
+  for (const field of ["decision", "ruleKey", "reason", "reasonCode", "subject", "path", "scope", "scopeKind"] as const) {
+    const text = raw[field];
+    if (typeof text === "string" && text.trim()) item[field] = text.trim();
+  }
+  if (Array.isArray(raw.requirements)) {
+    item.requirements = normalizeApprovalRequirements(raw.requirements);
+  }
+  return item;
+}
+
+function normalizeApprovalRequirements(items: unknown[]): AIAwaitApprovalRequirement[] {
+  return items.map(normalizeApprovalRequirement).filter((item) => item !== undefined);
+}
+
 function normalizeApprovals(value: unknown): AIAwaitApproval[] {
   if (!Array.isArray(value)) {
     return [];
@@ -262,9 +280,15 @@ function normalizeApprovals(value: unknown): AIAwaitApproval[] {
                 || option.decision === 'approve_rule_run',
             )
         : undefined;
+      const policy = normalizeApprovalRequirement(approval.policy);
+      const requirements = Array.isArray(approval.requirements)
+        ? normalizeApprovalRequirements(approval.requirements)
+        : undefined;
       return {
         id: toText(approval.id) || toText(approval.command),
-        command: toText(approval.command),
+        command: typeof approval.command === "string" ? approval.command : toText(approval.command),
+        ...(policy ? { policy } : {}),
+        ...(requirements?.length ? { requirements } : {}),
         ruleKey: toText(approval.ruleKey) || undefined,
         description: toText(approval.description) || undefined,
         options,
@@ -276,7 +300,7 @@ function normalizeApprovals(value: unknown): AIAwaitApproval[] {
           toText(approval.freeTextPlaceholder) || undefined,
       };
     })
-    .filter((approval) => Boolean(approval.id) && Boolean(approval.command));
+    .filter((approval) => Boolean(approval.id) && Boolean(approval.command.trim()));
 }
 
 function normalizeForms(

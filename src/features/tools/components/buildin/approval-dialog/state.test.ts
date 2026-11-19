@@ -1,6 +1,7 @@
 import {
   buildPartialApprovalSubmitParams,
   buildApprovalSubmitParams,
+  presentApprovalReasons,
   resolveApprovalOptions,
 } from "@/features/tools/components/buildin/approval-dialog/state";
 
@@ -65,6 +66,70 @@ describe("approval dialog state helpers", () => {
         label: "Approve",
         description: "Allow once",
       },
+    ]);
+  });
+
+  it("shows only pending policy leaves and names the public reusable rule", () => {
+    const approval = {
+      id: "bash",
+      command: "find . -type f -print0 | xargs -0 du -k",
+      ruleKey: "xargs-rule",
+      options: [{ decision: "approve" as const }, { decision: "approve_rule_run" as const }],
+      policy: {
+        reason: "duplicate aggregate",
+        requirements: [
+          {
+            decision: "requires_approval",
+            ruleKey: "xargs-rule",
+            reasonCode: "runtime_wrapper_arguments",
+            subject: "xargs",
+          },
+          {
+            decision: "requires_approval",
+            requirements: [
+              { reasonCode: "path_outside_read_roots", subject: "/usr/bin/xargs" },
+              { reasonCode: "execution_effects_unknown", subject: "/usr/bin/xargs" },
+              { decision: "auto_approved", reason: "already allowed" },
+            ],
+          },
+        ],
+      },
+      requirements: [{ ruleKey: "xargs-rule", reason: "duplicate aggregate" }],
+    };
+    const translate = (key: string, params?: Record<string, unknown>) =>
+      [key, params?.subject ?? params?.rule].filter(Boolean).join(" ");
+    const presented = presentApprovalReasons(approval, translate);
+    expect(presented.summary).toBe("approvalDialog.reason.runtimeArguments.detail xargs");
+    expect(presented.reasons.map((item) => item.detail)).toEqual([
+      "approvalDialog.reason.runtimeArguments.detail xargs",
+      "approvalDialog.reason.readPath.detail /usr/bin/xargs",
+      "approvalDialog.reason.executionEffects.detail /usr/bin/xargs",
+    ]);
+    expect(resolveApprovalOptions(approval, translate, presented.mainRuleTitle)[1].description)
+      .toBe("approvalDialog.option.approveRuleRun.named approvalDialog.reason.runtimeArguments xargs");
+    expect(resolveApprovalOptions({ options: [{ decision: "approve" }] }, translate, presented.mainRuleTitle))
+      .toHaveLength(1);
+  });
+
+  it("uses legacy text for single policy nodes or per-file requirements", () => {
+    const approval = { id: "tool", command: "check" };
+    expect(presentApprovalReasons({
+      ...approval,
+      policy: { reason: "older policy summary" },
+    }, t)).toMatchObject({
+      reasons: [{ detail: "older policy summary" }],
+      summary: undefined,
+      mainRuleTitle: undefined,
+    });
+    expect(presentApprovalReasons({
+      ...approval,
+      requirements: [
+        { reasonCode: "future", reason: "file outside roots", path: "/a" },
+        { reason: "file outside roots", path: "/b" },
+      ],
+    }, t).reasons.map((item) => item.detail)).toEqual([
+      "file outside roots · /a",
+      "file outside roots · /b",
     ]);
   });
 
