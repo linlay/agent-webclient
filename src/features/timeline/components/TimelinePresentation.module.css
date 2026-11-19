@@ -144,3 +144,14 @@ html[data-theme="dark"] .timeline-markdown a {
         background-color: var(--bg-base) !important;
     }
 }
+
+/* 移动端过程组件：思考与待确认正文跟工具卡片一起提到可读字号（桌面分别是 12px/11px）。 */
+:global(.layout-mobile) .thinking-detail {
+    font-size: 15px;
+    line-height: 1.65;
+}
+
+:global(.layout-mobile) .awaiting-detail {
+    font-size: 13px;
+    line-height: 1.6;
+}
