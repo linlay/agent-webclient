@@ -28,7 +28,7 @@ it("puts the sender avatar before the name", () => {
   );
   expect(html).toContain("data-agent-avatar");
   expect(html).toContain('data-agent-pointer-disabled="true"');
-  expect(html).toContain('width="1em" height="1em"');
+  expect(html).toContain('width="14" height="14"');
   expect(html.indexOf("data-agent-avatar")).toBeLessThan(
     html.indexOf("Worker"),
   );

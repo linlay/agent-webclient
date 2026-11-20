@@ -12,8 +12,8 @@ export function MailSenderAvatar({ agent, className }: { agent: Agent; className
       props={{
         icon: {
           className,
-          width: "1em",
-          height: "1em",
+          width: 14,
+          height: 14,
           style: { alignSelf: "center", flexShrink: 0, verticalAlign: "middle" },
         },
       }}
