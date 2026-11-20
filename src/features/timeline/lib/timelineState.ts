@@ -138,10 +138,7 @@ export interface RelatedChat {
 	title?: string;
 }
 
-/**
- * Input another Agent delivered. The user's own input and the task a child
- * Chat receives from its parent render as ordinary messages and carry none.
- */
+/** An Agent letter, reply or notification received by this Chat. */
 export interface TimelineInbound {
 	kind: "letter" | "reply" | "notify";
 	fromAgentKey: string;

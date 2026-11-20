@@ -24,11 +24,17 @@ it.each(["letter", "reply", "notify"])("keeps another Agent's %s body for expans
   expect(node).toMatchObject({ text: "mail body", inbound: { kind: mailKind, fromAgentKey: "peer", child: false } });
   expect(serializeRunTranscript(node, [])).not.toContain("mail body");
 });
-it("shows the parent's task in full inside the child Chat", () => {
-  const [node] = nodes(input(fromAgent("bot", "letter")), false);
-  expect(node).toMatchObject({ text: "mail body" });
-  expect(node.inbound).toBeUndefined();
-  expect(serializeRunTranscript(node, [])).toContain("mail body");
+it.each([
+  ["GENERAL to itself", "cutej", "cutej"],
+  ["GENERAL to CODER", "cutej", "dbx-for-qiuer"],
+  ["BOT main to its worker", "bot", "bot"],
+])("replays %s as an expandable sender letter", (_, sender, receiver) => {
+  const [node] = nodes(input({ ...fromAgent(sender, "letter"), agentKey: receiver }), false);
+  expect(node).toMatchObject({
+    text: "mail body",
+    inbound: { kind: "letter", fromAgentKey: sender, fromChatId: "sender", child: false },
+  });
+  expect(serializeRunTranscript(node, [])).not.toContain("mail body");
 });
 it("trusts origin.type rather than conflicting mail envelope fields", () => {
   expect(nodes(input({ origin: { type: "agent", agentKey: "peer" }, mailId: "m", mailKind: "reply", mailOrigin: "user" }))[0].inbound).toMatchObject({ kind: "letter", child: false });

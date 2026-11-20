@@ -92,6 +92,7 @@ it.each(["letter", "reply", "notify"] as const)("collapses another Agent's %s be
   );
   expect(html).toContain(`data-inbound="${kind}"`);
   expect(html).toContain("Peer Bot");
+  if (kind === "letter") expect(html.replace(/<[^>]+>/g, "")).toContain("收到Peer Bot的来信");
   expect(html).toContain('href="/?chatId=peer-main"');
   expect(html).toContain('aria-expanded="false"');
   const toggle = html.match(/<button[^>]*aria-expanded="false"[^>]*>([\s\S]*?)<\/button>/);

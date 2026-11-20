@@ -2035,11 +2035,14 @@ describe("agent-delivered inputs", () => {
       expect(onlyNode(target.state).attachments).toEqual([expect.objectContaining({ name: "result.md" })]);
     }
   });
-  it.each(cases)("shows the parent's task in full in a child Chat from $type in $mode", ({ mode, type }) => {
+  it.each(cases)("preserves a parent letter and its attachments for expansion from $type in $mode", ({ mode, type }) => {
     const target = receiving(mode);
     applyCommands(target.state, run(target, mail(type, { mailKind: "letter", origin: { type: "agent", agentKey: "bot", chatId: "main" } })));
-    expect(onlyNode(target.state)).toMatchObject({ text: "internal body" });
-    expect(onlyNode(target.state).inbound).toBeUndefined();
+    expect(onlyNode(target.state)).toMatchObject({
+      text: "internal body",
+      inbound: { kind: "letter", fromAgentKey: "bot", fromChatId: "main", child: false },
+      attachments: [expect.objectContaining({ name: "result.md" })],
+    });
   });
   it.each(cases)("never reveals a reply body when the receiving Agent is unknown in $type $mode", ({ mode, type }) => {
     const state = createState();

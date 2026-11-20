@@ -26,8 +26,7 @@ function resolveSenderChat(
 }
 
 /**
- * Input another Agent delivered: one muted line instead of a user bubble. A
- * child Chat's reply is hidden; other mail opens its body on demand.
+ * Agent letters open their body on demand, including a parent's task for its worker.
  */
 export function InboundMessage({
   node,
@@ -52,7 +51,7 @@ export function InboundMessage({
     !inbound.child && (body.trim() !== "" || attachments.length > 0);
 
   const agent = agents.find((item) => item.key === inbound.fromAgentKey);
-  const name = agent?.name || inbound.fromAgentKey;
+  const name = agent?.name || inbound.fromAgentKey || t("timeline.inbound.unknownSender");
   const chat = resolveSenderChat(agent, inbound);
   const href =
     chat && interaction?.openChat ? interaction.getChatHref?.(chat) : undefined;

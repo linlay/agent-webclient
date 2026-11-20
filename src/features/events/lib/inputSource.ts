@@ -35,12 +35,10 @@ export function classifyInput(event: AgentEvent, receiverAgentKey = ""): InputDi
   const origin = readOrigin(event);
   const fromAgentKey = toText(origin?.agentKey);
   const receiver = toText(event.agentKey) || receiverAgentKey;
-  // A BOT dispatches only to its own child Chats, so a same-Agent sender is
-  // the parent or a child. An unknown side counts as own: never leak a body.
-  const own = !fromAgentKey || !receiver || fromAgentKey === receiver;
   const kind = mail?.kind ?? "letter";
-  // The parent's task is the child Chat's whole input.
-  if (own && kind === "letter") return { kind: "message" };
+  // Letters always have a visible sender row. Replies and notifications stay
+  // internal when the sender matches the receiver or either identity is missing.
+  const child = kind !== "letter" && (!fromAgentKey || !receiver || fromAgentKey === receiver);
   return {
     kind: "inbound",
     inbound: {
@@ -48,7 +46,7 @@ export function classifyInput(event: AgentEvent, receiverAgentKey = ""): InputDi
       fromAgentKey,
       ...(toText(origin?.chatId) ? { fromChatId: toText(origin?.chatId) } : {}),
       ...(mail?.outcome ? { outcome: mail.outcome } : {}),
-      child: own,
+      child,
     },
   };
 }
