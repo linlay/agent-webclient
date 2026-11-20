@@ -119,7 +119,7 @@ it.each(["reply", "notify"] as const)("hides a child %s even when it carries a t
   expect(html).toBe("");
 });
 
-it("shows the sender avatar to the left of the linked name", () => {
+it("shows a static, text-sized sender avatar to the left of the linked name", () => {
   const html = renderToStaticMarkup(
     <TimelineInteractionProvider value={{ openChat: jest.fn(), getChatHref: chat => `/?chatId=${chat.chatId}` }}>
       <TimelineRow agents={[{ key: "peer", name: "Peer Bot", mode: "BOT", icon: { name: "coder" }, primaryChat: { chatId: "peer-main" } } as never]} node={{
@@ -129,6 +129,8 @@ it("shows the sender avatar to the left of the linked name", () => {
     </TimelineInteractionProvider>,
   );
   expect(html).toContain('data-agent-avatar=""');
+  expect(html).toContain('data-agent-pointer-disabled="true"');
+  expect(html).toContain('width="1em" height="1em"');
   // The avatar is part of the sender link, left of the name.
   expect(html.indexOf("<a ")).toBeLessThan(html.indexOf("data-agent-avatar"));
   expect(html.indexOf("data-agent-avatar")).toBeLessThan(html.indexOf("Peer Bot</a>"));

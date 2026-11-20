@@ -2,13 +2,10 @@ import React from "react";
 import type { Agent } from "@/features/agents/lib/agentState";
 import type { MailMetadata } from "@/shared/data/api/dto/mailbox";
 import { useI18n } from "@/shared/i18n";
-import { AgentIcon } from "@/shared/icons/agent";
+import { MailSenderAvatar } from "./MailSenderAvatar";
 
-/** Matches the inbound sender avatar so both mail lines read at one size. */
-const AVATAR_SIZE = 30;
-/** Avatar and name form one centered identity unit, never split by the wording. */
 const SENDER_CLASS_NAME =
-  "tw:inline-flex tw:align-middle tw:items-center tw:gap-1";
+  "tw:inline-flex tw:items-baseline tw:gap-1";
 
 /**
  * One muted line naming a mail input: sender · kind · outcome — who sent it, what
@@ -25,32 +22,16 @@ export function MailBadge({
   href,
   onOpen,
   agents,
-  showAvatar = true,
 }: {
   mail: MailMetadata;
   href?: string;
   onOpen?: (event: React.MouseEvent<HTMLAnchorElement>) => void;
   agents?: readonly Agent[];
-  showAvatar?: boolean;
 }) {
   const { t } = useI18n();
   const name = mail.fromAgentName || mail.fromAgentKey;
   const agent = agents?.find((item) => item.key === mail.fromAgentKey);
-  const avatar = showAvatar && agent ? (
-    <AgentIcon
-      type="agent"
-      icon={agent.icon}
-      mode={agent.mode}
-      props={{
-        icon: {
-          className: "tw:shrink-0",
-          width: AVATAR_SIZE,
-          height: AVATAR_SIZE,
-        },
-        avatar: { size: AVATAR_SIZE },
-      }}
-    />
-  ) : null;
+  const avatar = agent ? <MailSenderAvatar agent={agent} /> : null;
   const target =
     href ||
     (mail.fromChatId

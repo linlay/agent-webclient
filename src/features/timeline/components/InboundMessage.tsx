@@ -5,9 +5,9 @@ import type {
   TimelineInbound,
   TimelineNode,
 } from "../lib/timelineState";
-import { AgentIcon } from "@/shared/icons/agent";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { useI18n } from "@/shared/i18n";
+import { MailSenderAvatar } from "./MailSenderAvatar";
 import { useTimelineInteraction } from "./TimelineInteractionContext";
 import styles from "./InboundMessage.module.css";
 
@@ -58,17 +58,7 @@ export function InboundMessage({
     chat && interaction?.openChat ? interaction.getChatHref?.(chat) : undefined;
   // Avatar only when the sender is in the Agent directory; it sits with the name so the
   // link target and the identity read as one unit.
-  const avatar = agent ? (
-    <AgentIcon
-      icon={agent.icon}
-      mode={agent.mode}
-      type="agent"
-      props={{
-        icon: { className: styles.avatar, width: 30, height: 30 },
-        avatar: { size: 30 },
-      }}
-    />
-  ) : null;
+  const avatar = agent ? <MailSenderAvatar agent={agent} className={styles.avatar} /> : null;
   const sender =
     href && chat ? (
       <a
@@ -136,7 +126,7 @@ export function InboundMessage({
             : undefined
         }
       >
-        {timeNode && <span className={styles.time}>{timeNode}</span>}
+        {timeNode && <div className={styles.time}>{timeNode}</div>}
         <span className={styles.center}>
           <span className={styles.label}>{label}</span>
           {expandable && (

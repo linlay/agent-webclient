@@ -12,7 +12,7 @@
    display: flex;
    flex-wrap: wrap;
    justify-content: flex-start;
-   align-items: center;
+   align-items: baseline;
    gap: 4px 6px;
    min-width: 0;
    color: var(--text-muted);
@@ -28,6 +28,7 @@
 .row .time>div {
    margin-left: 0;
    padding-left: 0;
+   line-height: inherit;
    white-space: nowrap;
 }
 
@@ -53,10 +54,8 @@
 
 /* Sender avatar sits inside the name so the identity and its link read as one unit. */
 .avatar {
-   flex: none;
-   margin-right: 4px;
+   margin-inline-end: 4px;
    color: var(--text-sub);
-   vertical-align: middle;
 }
 
 a.sender {

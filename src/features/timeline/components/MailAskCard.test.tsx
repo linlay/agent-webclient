@@ -47,7 +47,7 @@ it.each(["done", "withdrawn"] as const)("refreshes an ask after mail.updated to 
     const senderLink = host.querySelector("a");
     expect(senderLink?.getAttribute("href")).toBe("/agent/worker?chatId=child");
     expect(senderLink?.textContent).toContain("worker");
-    expect(Boolean(senderLink?.querySelector("[data-agent-avatar]"))).toBe(status !== "withdrawn");
+    expect(senderLink?.querySelector('[data-agent-avatar][data-agent-pointer-disabled="true"]')).not.toBeNull();
     await act(async () => root.unmount());
     host.remove();
 });
