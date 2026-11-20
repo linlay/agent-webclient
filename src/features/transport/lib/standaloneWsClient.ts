@@ -12,7 +12,7 @@ import type {
   WsClient,
 } from "@/features/transport/lib/wsClient";
 
-async function resolveStandaloneAccessToken(
+export async function resolveStandaloneAccessToken(
   reason: WsAccessTokenRefreshReason = "missing",
 ): Promise<string> {
   if (isEmbedMode()) return ensureAccessToken(reason);

@@ -1,4 +1,5 @@
 import { readAgentWebclientHeaderLayoutBootstrap, type AgentWebclientHeaderLayout } from "@/shared/contracts/generated/agentWebclientBridge";
+import { buildFileViewerRoute } from "@/shared/utils/fileViewerRoute";
 
 export type SurfacePresentationContext = {
   lang?: string;
@@ -48,7 +49,7 @@ export type SurfaceRouteIntent =
       resourceId?: string;
       relativePath?: string;
     }
-  | { kind: "file"; agentKey: string; path: string; line?: number }
+  | { kind: "file"; agentKey: string; path: string; line?: number; col?: number }
   | {
       kind: "project";
       agentKey: string;
@@ -182,14 +183,23 @@ export function buildSurfaceRoute(
         set(params, "resourceId", intent.resourceId);
         set(params, "relativePath", intent.relativePath);
         break;
-      case "file":
-        if (!clean(intent.path)) return "";
-        pathname = `/file-viewer/${agentKey}`;
-        params.set("path", clean(intent.path));
-        if (Number.isFinite(intent.line) && Number(intent.line) > 0) {
-          params.set("line", String(Math.floor(Number(intent.line))));
+      case "file": {
+        const route = buildFileViewerRoute({
+          agentKey: intent.agentKey,
+          path: intent.path,
+          line: intent.line,
+          col: intent.col,
+        });
+        if (!route) return "";
+        const [pathPart, queryPart = ""] = route.split("?");
+        pathname = pathPart;
+        if (queryPart) {
+          for (const [k, v] of new URLSearchParams(queryPart).entries()) {
+            params.set(k, v);
+          }
         }
         break;
+      }
       case "project":
         if (clean(intent.runId) && !clean(intent.chatId)) return "";
         pathname = `/project/${agentKey}`;

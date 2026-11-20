@@ -82,7 +82,7 @@ export type OpenTargetIntent =
       toggle?: boolean;
       title?: string;
     } & AgentIntent)
-  | { version: 1; kind: "file"; agentKey: string; path: string; line?: number; toggle?: boolean; title?: string }
+  | { version: 1; kind: "file"; agentKey: string; path: string; line?: number; col?: number; toggle?: boolean; title?: string }
   | { version: 1; kind: "terminal"; agentKey: string; terminalKey?: string; title?: string }
   | ({ version: 1; kind: "project"; chatId?: string; runId?: string; path?: string; openFiles?: string[]; view?: "content" | "diff" } & AgentIntent)
   | ({ version: 1; kind: "file-diff"; chatId: string; runId: string; relativePath: string; title?: string } & AgentIntent)
@@ -221,7 +221,7 @@ export function toSurfaceRouteIntent(intent: OpenTargetIntent): SurfaceRouteInte
       });
     case "file": {
       const path = normalizeWorkspaceFileRequestPath(intent.path);
-      return path ? { kind: "file", agentKey, path, line: intent.line } : null;
+      return path ? { kind: "file", agentKey, path, line: intent.line, col: intent.col } : null;
     }
     case "terminal":
       return { kind: "terminal", agentKey, terminalKey: intent.terminalKey };
@@ -310,7 +310,7 @@ export function buildDesktopWorkPanelDescriptor(
   currentSearch = "",
   workspaceDir = "",
 ): WorkPanelItemDescriptor | null {
-  if (intent.version !== 1 || intent.kind === "terminal" || intent.kind === "history") return null;
+  if (intent.version !== 1 || intent.kind === "history") return null;
   if (intent.kind === "web") {
     try {
       const url = new URL(intent.url);
@@ -362,6 +362,19 @@ export function buildDesktopWorkPanelDescriptor(
 
   const agentKey = clean(intent.agentKey);
   if (!agentKey) return null;
+
+  if (intent.kind === "terminal") {
+    return {
+      kind: "webclient",
+      module: "terminal",
+      route,
+      context: {
+        agentKey,
+        ...(clean(intent.terminalKey) ? { terminalKey: clean(intent.terminalKey) } : {}),
+      },
+      ...(intent.title ? { title: intent.title } : {}),
+    };
+  }
 
   if (intent.kind === "overview" || intent.kind === "debug") {
     const chatId = clean(intent.chatId);

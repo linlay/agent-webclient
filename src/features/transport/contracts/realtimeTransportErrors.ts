@@ -17,7 +17,15 @@ export type RealtimeTransportErrorCode =
   | "stream_frame_too_large"
   | "run_identity_missing"
   | "terminal_identity_missing"
-  | "terminal_unsupported";
+  | "terminal_unsupported"
+  | "protocol_version_mismatch"
+  | "terminal_ws_handshake_failed"
+  | "forbidden"
+  | "terminal_not_found"
+  | "conflict"
+  | "too_many_requests"
+  | "internal_error"
+  | "unsupported";
 
 export class RealtimeTransportError extends Error {
   readonly code: RealtimeTransportErrorCode;

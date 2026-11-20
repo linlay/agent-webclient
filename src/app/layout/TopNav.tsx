@@ -194,7 +194,7 @@ export const TopNav: React.FC<{ surface?: "root" | "agent"; mobile?: boolean; on
   const currentWorker = resolveCurrentWorkerSummary(state);
   const desktopMode = isDesktopAppMode();
   const desktopHeaderLayout = useDesktopHeaderLayout(desktopMode && surface === "agent");
-  const showTerminalButton = !desktopMode && workerShowsTerminal(currentWorker);
+  const showTerminalButton = workerShowsTerminal(currentWorker);
   const terminalAgentStatuses = useTerminalAgentStatuses(showTerminalButton);
   const voiceEnabled = isVoiceEnabled() && state.voiceChat.capabilities?.enabled === true;
   const voiceModeAvailable = voiceEnabled && currentWorker?.type === "agent";

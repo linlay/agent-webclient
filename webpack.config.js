@@ -112,6 +112,22 @@ function isSseQueryRequest(req) {
   return url === '/api/query' || url.startsWith('/api/query?');
 }
 
+function createSameOriginWsProxyRule(contextPath) {
+  return {
+    context: [contextPath],
+    target: apiTarget,
+    changeOrigin: true,
+    ws: true,
+    onProxyReqWs(proxyReq, req) {
+      // Check the incoming browser origin before rewriting it for the upstream.
+      const origin = req.headers.origin;
+      if (origin === `http://${req.headers.host}` || origin === `https://${req.headers.host}`) {
+        proxyReq.setHeader('Origin', new URL(apiTarget).origin);
+      }
+    },
+  };
+}
+
 module.exports = (env, argv) => {
   const isProd = argv.mode === 'production';
   const webpackCacheDirectory = String(process.env.AGENT_WEBCLIENT_WEBPACK_CACHE_DIR || '').trim();
@@ -288,19 +304,8 @@ module.exports = (env, argv) => {
           changeOrigin: true,
           ws: true,
         },
-        {
-          context: ['/api/voice/ws'],
-          target: apiTarget,
-          changeOrigin: true,
-          ws: true,
-          onProxyReqWs(proxyReq, req) {
-            // Check the incoming browser origin before rewriting it for the upstream.
-            const origin = req.headers.origin;
-            if (origin === `http://${req.headers.host}` || origin === `https://${req.headers.host}`) {
-              proxyReq.setHeader('Origin', new URL(apiTarget).origin);
-            }
-          },
-        },
+        createSameOriginWsProxyRule('/api/voice/ws'),
+        createSameOriginWsProxyRule('/api/terminal/ws'),
         {
           context: ['/api'],
           target: apiTarget,

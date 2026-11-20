@@ -1084,36 +1084,6 @@ export const dataEndpoints = createEndpointRegistry({
     wsBackends: PLATFORM_AND_GATEWAY_WS_BACKENDS,
     payload: buildRunSubmitPayload,
   }),
-  terminalClose: defineEndpoint({
-    key: "terminal.close",
-    path: "/api/terminal/close",
-    method: "POST",
-    transport: "ws",
-  }),
-  terminalDetach: defineEndpoint({
-    key: "terminal.detach",
-    path: "/api/terminal/detach",
-    method: "POST",
-    transport: "ws",
-  }),
-  terminalInput: defineEndpoint({
-    key: "terminal.input",
-    path: "/api/terminal/input",
-    method: "POST",
-    transport: "ws",
-  }),
-  terminalOpen: defineEndpoint({
-    key: "terminal.open",
-    path: "/api/terminal/open",
-    method: "POST",
-    transport: "ws-stream",
-  }),
-  terminalResize: defineEndpoint({
-    key: "terminal.resize",
-    path: "/api/terminal/resize",
-    method: "POST",
-    transport: "ws",
-  }),
   terminalStatus: defineEndpoint({
     key: "terminal.status",
     path: "/api/terminal/status",
@@ -1125,6 +1095,12 @@ export const dataEndpoints = createEndpointRegistry({
     path: "/api/terminal/status/detach",
     method: "POST",
     transport: "ws",
+  }),
+  terminalWs: defineEndpoint({
+    key: "terminal.ws",
+    path: "/api/terminal/ws",
+    method: "GET",
+    transport: "terminal-ws",
   }),
   upload: defineEndpoint({
     key: "upload.file",

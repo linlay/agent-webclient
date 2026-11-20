@@ -46,6 +46,28 @@ describe('webpack devServer proxy', () => {
     expect(voiceApiRule).toBeUndefined();
   });
 
+  it('enables websocket proxying for terminal endpoint before /api with same-origin Origin rewriting', () => {
+    const { config } = loadApiProxyRule();
+    const proxyRules = Array.isArray(config.devServer?.proxy) ? config.devServer.proxy : [];
+    const terminalIndex = proxyRules.findIndex((rule: { context?: string[] }) =>
+      Array.isArray(rule.context) && rule.context.includes('/api/terminal/ws'));
+    const apiIndex = proxyRules.findIndex((rule: { context?: string[] }) =>
+      Array.isArray(rule.context) && rule.context.includes('/api'));
+
+    expect(terminalIndex).toBeGreaterThanOrEqual(0);
+    expect(terminalIndex).toBeLessThan(apiIndex);
+    const terminalRule = proxyRules[terminalIndex];
+    expect(terminalRule.ws).toBe(true);
+    expect(terminalRule.target).toBe('http://backend.example.com');
+
+    const proxyReq = { setHeader: jest.fn() };
+    terminalRule.onProxyReqWs(proxyReq, { headers: { origin: 'http://localhost:11948', host: 'localhost:11948' } });
+    expect(proxyReq.setHeader).toHaveBeenCalledWith('Origin', 'http://backend.example.com');
+    proxyReq.setHeader.mockClear();
+    terminalRule.onProxyReqWs(proxyReq, { headers: { origin: 'https://untrusted.example', host: 'localhost:11948' } });
+    expect(proxyReq.setHeader).not.toHaveBeenCalled();
+  });
+
   it('enables websocket proxying for query websocket endpoint', () => {
     process.env = {
       ...originalEnv,

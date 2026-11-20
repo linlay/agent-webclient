@@ -165,7 +165,7 @@ export function useOpenTarget(): (intent: OpenTargetIntent) => boolean {
     }
 
     const currentSearch = typeof window === "undefined" ? "" : window.location.search;
-    if (desktopMode && normalizedIntent.kind !== "terminal" && normalizedIntent.kind !== "history") {
+    if (desktopMode && normalizedIntent.kind !== "history") {
       return openDesktopWorkPanelTarget({
         intent: normalizedIntent,
         workPanel,

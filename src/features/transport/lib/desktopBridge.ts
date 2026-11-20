@@ -1,4 +1,5 @@
 import type {
+  AgentWebclientTerminalHostBridge,
   AgentWebclientWorkPanelBridge,
   DesktopPlatformFramePort,
 } from "@/shared/contracts/generated/agentWebclientBridge";
@@ -10,6 +11,7 @@ declare global {
   interface Window {
     __AGENT_WEBCLIENT_PLATFORM_FRAME_PORT__?: DesktopPlatformFramePort;
     __AGENT_WEBCLIENT_WORKPANEL_BRIDGE__?: AgentWebclientWorkPanelBridge;
+    __AGENT_WEBCLIENT_TERMINAL_HOST__?: AgentWebclientTerminalHostBridge;
   }
 }
 
@@ -46,6 +48,22 @@ export function supportsDesktopNativeDocument(
   value: AgentWebclientWorkPanelBridge | null | undefined,
 ): value is AgentWebclientWorkPanelBridge {
   return Boolean(value) && typeof (value as { openDocument?: unknown }).openDocument === "function";
+}
+
+export function isDesktopTerminalHostBridge(
+  value: unknown,
+): value is AgentWebclientTerminalHostBridge {
+  return isRecord(value)
+    && value.version === 1
+    && hasMethods(value, ["showContextMenu", "revealCwd"]);
+}
+
+export function readDesktopTerminalHostBridge(
+  win: Window | undefined = typeof window !== "undefined" ? window : undefined,
+): AgentWebclientTerminalHostBridge | null {
+  if (!win) return null;
+  const candidate = win.__AGENT_WEBCLIENT_TERMINAL_HOST__;
+  return isDesktopTerminalHostBridge(candidate) ? candidate : null;
 }
 
 export function readDesktopBridges(): {

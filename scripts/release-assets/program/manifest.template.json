@@ -111,6 +111,17 @@
           ]
         },
         {
+          "match": "exact",
+          "path": "/api/terminal/ws",
+          "targetEnv": "BASE_URL",
+          "http": false,
+          "websocket": true,
+          "auth": "agent-platform-access-token",
+          "stripRequestHeaders": [
+            "sec-websocket-extensions"
+          ]
+        },
+        {
           "match": "prefix",
           "path": "/api",
           "targetEnv": "BASE_URL",

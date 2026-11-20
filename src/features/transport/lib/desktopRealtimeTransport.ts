@@ -8,7 +8,7 @@ import type {
 } from "@/features/transport/contracts/realtimeTransport";
 import { PlatformPushTransport } from "@/features/transport/lib/platformPushTransport";
 import { PlatformRunTransport } from "@/features/transport/lib/platformRunTransport";
-import { UnsupportedTerminalTransport } from "@/features/transport/lib/unsupportedTerminalTransport";
+import { TerminalSocketTransport } from "@/features/transport/lib/terminalSocketTransport";
 import { DesktopFramePortDriver } from "@/features/transport/lib/desktopFramePortDriver";
 import { createDesktopSelectionExplainClient } from "@/features/transport/lib/desktopSelectionExplainClient";
 import { registerDesktopPlatformFrameClient } from "@/features/transport/lib/desktopPlatformFrameClientRegistry";
@@ -30,7 +30,7 @@ export class DesktopRealtimeTransport implements RealtimeTransport {
   readonly kind = "desktop" as const;
   readonly runs: PlatformRunTransport;
   readonly push: PlatformPushTransport;
-  readonly terminal = new UnsupportedTerminalTransport();
+  readonly terminal = new TerminalSocketTransport();
   private readonly client: DesktopFramePortDriver;
   private readonly unregisterPlatformFrameClient: () => void;
   private readonly handleVisibilityChange: () => void;
@@ -121,6 +121,7 @@ export class DesktopRealtimeTransport implements RealtimeTransport {
     }
     this.unsubscribeSurfaceLifecycle();
     this.unregisterPlatformFrameClient();
+    this.terminal.dispose();
     this.client.dispose();
   }
 }

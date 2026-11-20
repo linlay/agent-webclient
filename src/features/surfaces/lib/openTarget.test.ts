@@ -414,6 +414,19 @@ describe("canonical independent Surface targets", () => {
       kind: "web",
       url: "https://example.com/path",
     })).toMatchObject({ kind: "web", url: "https://example.com/path" });
+    expect(buildDesktopWorkPanelDescriptor({
+      version: 1,
+      kind: "terminal",
+      agentKey: "coder",
+      terminalKey: "main",
+      title: "Terminal",
+    })).toEqual({
+      kind: "webclient",
+      module: "terminal",
+      route: "/terminal/coder?terminalKey=main",
+      context: { agentKey: "coder", terminalKey: "main" },
+      title: "Terminal",
+    });
   });
 
   it("keeps runId only for selected Project run and diff", () => {

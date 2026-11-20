@@ -6,8 +6,12 @@ import type {
 import { StandaloneInboundRequestTransport } from "@/features/transport/lib/standaloneInboundRequestTransport";
 import { PlatformPushTransport } from "@/features/transport/lib/platformPushTransport";
 import { PlatformRunTransport } from "@/features/transport/lib/platformRunTransport";
-import { StandaloneTerminalTransport } from "@/features/transport/lib/standaloneTerminalTransport";
+import { TerminalSocketTransport } from "@/features/transport/lib/terminalSocketTransport";
+import { StandaloneTerminalStatusSubscriber } from "@/features/transport/lib/terminalStatusSubscriber";
+import { resolveStandaloneAccessToken } from "@/features/transport/lib/standaloneWsClient";
 import { StandaloneBtwStreamClient } from "@/features/transport/lib/standaloneBtwStreamClient";
+import { usesGatewaySession } from "@/shared/config/authMode";
+import { getClientDeviceId } from "@/shared/data/clientDeviceId";
 import {
   destroyWsClient,
   getWsClient,
@@ -17,10 +21,16 @@ import {
 export class StandaloneRealtimeTransport implements RealtimeTransport {
   readonly kind = "standalone" as const;
   private readonly btwClient = new StandaloneBtwStreamClient();
+  private readonly terminalStatus = new StandaloneTerminalStatusSubscriber();
   readonly runs = new PlatformRunTransport(undefined, { ensureBtwClient: async () => this.btwClient });
   readonly push = new PlatformPushTransport();
   readonly inbound = new StandaloneInboundRequestTransport();
-  readonly terminal = new StandaloneTerminalTransport();
+  readonly terminal = new TerminalSocketTransport({
+    resolveAccessToken: usesGatewaySession() ? undefined : resolveStandaloneAccessToken,
+    getDeviceId: getClientDeviceId,
+    subscribeStatus: (listener) => this.terminalStatus.subscribe(listener),
+    disposeStatus: () => this.terminalStatus.dispose(),
+  });
   private disposed = false;
 
   getStatus(): RealtimeConnectionStatus {

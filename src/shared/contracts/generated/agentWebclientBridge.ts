@@ -1,6 +1,6 @@
 // Generated from src/shared/contracts/agent-webclient-bridge.ts.
 // Do not edit this mirror directly.
-// sha256:ce6d044dc6a9f942f07878995fcedf6b3bb87a2bb06120f2ed1dc9c32e106158
+// sha256:969af5a037e6ff51be6eb3497902786dcd1d1a5646f4cbcb049fced78813c6fc
 
 /**
  * Canonical Desktop <-> Agent WebClient bridge contract.
@@ -450,6 +450,7 @@ export type WorkPanelProjectContext = {
 export type WorkPanelFileDiffContext = WorkPanelChatContext & { runId: string; path: string };
 export type WorkPanelAgentContext = { agentKey: string; chatId?: string };
 export type WorkPanelSkillContext = { id: string };
+export type WorkPanelTerminalContext = { agentKey: string; terminalKey?: string };
 
 export type WorkPanelContext =
   | WorkPanelChatContext
@@ -462,7 +463,8 @@ export type WorkPanelContext =
   | WorkPanelProjectContext
   | WorkPanelFileDiffContext
   | WorkPanelAgentContext
-  | WorkPanelSkillContext;
+  | WorkPanelSkillContext
+  | WorkPanelTerminalContext;
 
 export type WorkPanelWebclientModule =
   | "overview"
@@ -478,7 +480,8 @@ export type WorkPanelWebclientModule =
   | "view"
   | "agent"
   | "copilot"
-  | "skill";
+  | "skill"
+  | "terminal";
 
 type WorkPanelWebclientDescriptorBase = {
   kind: "webclient";
@@ -501,6 +504,7 @@ export type WorkPanelWebclientDescriptor = WorkPanelWebclientDescriptorBase & (
   | { module: "view"; context: WorkPanelViewContext }
   | { module: "agent" | "copilot"; context: WorkPanelAgentContext }
   | { module: "skill"; context: WorkPanelSkillContext }
+  | { module: "terminal"; context: WorkPanelTerminalContext }
 );
 
 export type WorkPanelItemDescriptor =
@@ -875,4 +879,50 @@ export type DesktopFileSaveResult = {
 export type DesktopFileSaveBridge = {
   version: 1;
   request(input: DesktopFileSaveRequest): Promise<DesktopFileSaveResult>;
+};
+
+// Independent native host bridge for interactive WorkPanel terminals.
+export const AGENT_WEBCLIENT_TERMINAL_HOST_GLOBAL = "__AGENT_WEBCLIENT_TERMINAL_HOST__" as const;
+export const AGENT_WEBCLIENT_TERMINAL_CONTEXT_MENU_CHANNEL = "desktop.terminal.contextMenu" as const;
+export const AGENT_WEBCLIENT_TERMINAL_REVEAL_CWD_CHANNEL = "desktop.terminal.revealCwd" as const;
+export const AGENT_WEBCLIENT_TERMINAL_SHORTCUT_EVENT = "desktop.terminal.shortcut" as const;
+
+export type AgentWebclientTerminalContextMenuAction =
+  | "copy"
+  | "paste"
+  | "clear"
+  | "restart"
+  | "reveal-cwd";
+
+export type AgentWebclientTerminalContextMenuRequest = {
+  hasSelection: boolean;
+  cwd?: string;
+};
+
+export type AgentWebclientTerminalContextMenuResult = {
+  action: AgentWebclientTerminalContextMenuAction | null;
+};
+
+export type AgentWebclientTerminalShortcutAction =
+  | "clear"
+  | "search"
+  | "copy"
+  | "paste";
+
+export type AgentWebclientTerminalShortcutEvent = {
+  action: AgentWebclientTerminalShortcutAction;
+};
+
+export type AgentWebclientTerminalHostBridge = {
+  readonly version: 1;
+  showContextMenu(
+    input: AgentWebclientTerminalContextMenuRequest,
+  ): Promise<AgentWebclientTerminalContextMenuResult>;
+  revealCwd(cwd: string): Promise<{ ok: boolean; message?: string }>;
+  readClipboardText?(): string;
+  writeClipboardText?(text: string): void;
+  getFilePath?(file: File): string;
+  onShortcut?(
+    listener: (event: AgentWebclientTerminalShortcutEvent) => void,
+  ): () => void;
 };

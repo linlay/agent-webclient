@@ -254,7 +254,7 @@ const realtimePrimitivePaths = [
 ];
 const desktopForbiddenTransportPaths = [
   "@/features/transport/lib/standaloneRealtimeTransport",
-  "@/features/transport/lib/standaloneTerminalTransport",
+  "@/features/transport/lib/terminalStatusSubscriber",
   "@/features/transport/lib/standaloneWsClient",
 ];
 for (const file of walk(sourceRoot).filter((candidate) => !isTestFile(candidate))) {
