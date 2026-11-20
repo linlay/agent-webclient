@@ -117,10 +117,12 @@ function MailAskHeader({
   mail,
   status,
   error,
+  showAvatar,
 }: {
   mail: MailMetadata;
   status?: string;
   error?: string;
+  showAvatar?: boolean;
 }) {
   const interaction = useTimelineInteraction();
   const agents = interaction?.agents;
@@ -133,6 +135,7 @@ function MailAskHeader({
       <MailBadge
         mail={mail}
         agents={agents}
+        showAvatar={showAvatar}
         href={href}
         onOpen={
           href && chat && interaction?.openChat
@@ -262,6 +265,7 @@ function MailAskContent({
         mail={mailMetadataFromRecord(mail)}
         status={status}
         error={error || loadError || undefined}
+        showAvatar={mail.status !== "withdrawn"}
       />
       {showNotice && (
         <Alert type="info" message={t("mailbox.unavailable")} />

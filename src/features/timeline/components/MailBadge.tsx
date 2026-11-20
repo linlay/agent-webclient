@@ -25,16 +25,18 @@ export function MailBadge({
   href,
   onOpen,
   agents,
+  showAvatar = true,
 }: {
   mail: MailMetadata;
   href?: string;
   onOpen?: (event: React.MouseEvent<HTMLAnchorElement>) => void;
   agents?: readonly Agent[];
+  showAvatar?: boolean;
 }) {
   const { t } = useI18n();
   const name = mail.fromAgentName || mail.fromAgentKey;
   const agent = agents?.find((item) => item.key === mail.fromAgentKey);
-  const avatar = agent ? (
+  const avatar = showAvatar && agent ? (
     <AgentIcon
       type="agent"
       icon={agent.icon}

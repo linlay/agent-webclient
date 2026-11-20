@@ -19,7 +19,7 @@ const owner = { kind: "agent", agentKey: "worker" };
 beforeEach(() => { detail.mockReset(); submit.mockReset(); });
 beforeAll(() => { Object.defineProperty(window, "matchMedia", { writable: true, value: () => ({ matches: false, addListener: () => { }, removeListener: () => { }, addEventListener: () => { }, removeEventListener: () => { } }) }); (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true; });
 const mail = { mailId: "m", kind: "ask" as const, status: "delivered" as const, createdAt: 1, toAgentKey: "lead", toChatId: "parent", fromAgentKey: "worker", fromChatId: "child", fromRunId: "run", awaitingId: "await", awaitingMode: "question", message: JSON.stringify({ questions: [{ id: "q", question: "Choose", options: [{ label: "Yes", value: "yes" }] }] }) };
-it("refreshes an ask card after mail.updated and disables resolved actions", async () => {
+it.each(["done", "withdrawn"] as const)("refreshes an ask after mail.updated to %s", async (status) => {
     detail.mockResolvedValue({ code: 0, data: mail } as any);
     const host = document.createElement("div");
     document.body.append(host);
@@ -34,15 +34,20 @@ it("refreshes an ask card after mail.updated and disables resolved actions", asy
     expect(host.textContent).toContain("worker");
     expect(host.querySelector("form")).not.toBeNull();
     expect(host.querySelector("a")?.getAttribute("href")).toBe("/agent/worker?chatId=child");
+    expect(host.querySelector("[data-agent-avatar]")).not.toBeNull();
     await act(async () => { host.querySelector("a")!.click(); });
     expect(openChat).toHaveBeenCalledWith({ chatId: "child", agentKey: "worker" });
     const before = detail.mock.calls.length;
     await act(async () => {window.dispatchEvent(new CustomEvent("agent:mail-updated", {detail: {mailId: "unrelated"}}));});
     expect(detail).toHaveBeenCalledTimes(before);
-    detail.mockResolvedValue({ code: 0, data: { ...mail, status: "done" } } as any);
+    detail.mockResolvedValue({ code: 0, data: { ...mail, status } } as any);
     await act(async () => { window.dispatchEvent(new CustomEvent("agent:mail-updated", {detail: {mailId: "m"}})); });
     expect(host.querySelector("form")).toBeNull();
-    expect(host.textContent).toContain("mailbox.status.done");
+    expect(host.textContent).toContain(`mailbox.status.${status}`);
+    const senderLink = host.querySelector("a");
+    expect(senderLink?.getAttribute("href")).toBe("/agent/worker?chatId=child");
+    expect(senderLink?.textContent).toContain("worker");
+    expect(Boolean(senderLink?.querySelector("[data-agent-avatar]"))).toBe(status !== "withdrawn");
     await act(async () => root.unmount());
     host.remove();
 });
