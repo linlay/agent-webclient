@@ -78,11 +78,16 @@ export function MailboxPanel() {
     void getMailDetail(mail.mailId).then(response => setDetail(current => current?.mailId === mail.mailId ? response.data : current)).catch(err => setError(String(err)));
   };
   const address = (mail: MailRecord) => {
-    const endpoint = (chatId: string, ownerKey: string, name: string, runId?: string) => {
+    const senderIsUser = mail.originType === "user";
+    const senderAgentName = senderIsUser ? undefined : mail.fromAgentName?.trim();
+    const endpoint = (chatId: string, ownerKey: string, runId?: string, isUser = false) => {
+      const agent = agents.find(item => item.key === ownerKey);
+      const recordedName = ownerKey === mail.fromAgentKey ? senderAgentName : undefined;
+      const name = isUser ? t("mailbox.user") : agent?.name?.trim() || recordedName || ownerKey;
       const chat = targetChats[chatId];
       const model = chat ? mailTargetModel(chat, runId) : undefined;
       const reasoning = chat ? mailTargetReasoning(chat, runId) : undefined;
-      const primary = agents.find(agent => agent.key === ownerKey)?.primaryChat?.chatId === chatId;
+      const primary = agent?.primaryChat?.chatId === chatId;
       const label = primary || chat?.primary === true ? "Primary" : chatLabels[chatId] || (chat?.primary === false ? "Work" : t("mailbox.unknown"));
       return <div className={styles.endpoint}>
         <Tooltip title={name}><span className={styles.agentName}>{name}</span></Tooltip>
@@ -96,9 +101,9 @@ export function MailboxPanel() {
       </div>;
     };
     return <div className={styles.address}>
-      {endpoint(mail.fromChatId, mail.fromAgentKey, mail.originType === "user" ? t("mailbox.user") : mail.fromAgentName || mail.fromAgentKey, mail.fromRunId)}
+      {endpoint(mail.fromChatId, mail.fromAgentKey, mail.fromRunId, senderIsUser)}
       <span className={styles.addressDivider} role="separator" aria-orientation="vertical" />
-      {endpoint(mail.toChatId, mail.toAgentKey, agents.find(agent => agent.key === mail.toAgentKey)?.name || mail.toAgentKey, mail.runId)}
+      {endpoint(mail.toChatId, mail.toAgentKey, mail.runId)}
     </div>;
   };
   return <section className={styles.page} aria-label={t("mailbox.title")}>
