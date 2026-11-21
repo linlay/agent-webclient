@@ -62,9 +62,9 @@ export function processRunEvent(
   }
 
   if (type === "request.query") {
-    const hidden = event.hidden === true ||
-      (event.hidden === undefined && toText(event.role) === "automation");
-    if (hidden) return commands;
+    const display = classifyInput(event, state.agentKey);
+    const automationLetter = display.kind === "inbound" && display.inbound.automation;
+    if (event.hidden === true && (!automationLetter || (event.lane && event.lane !== "main"))) return commands;
     const text = readRequestQueryText(event);
     const attachments = normalizeTimelineAttachments(
       readReferences(event),
@@ -76,7 +76,6 @@ export function processRunEvent(
     // Match request.steer: the request identity owns a single timeline node.
     if (state.getTimelineNode(`user_${suffix}`)) return commands;
     const taskBinding = applyTaskBindingToNode(event, state, undefined);
-    const display = classifyInput(event, state.agentKey);
     // A child Chat's reply is only marked; its body never enters the timeline.
     const childInbound = display.kind === "inbound" && display.inbound.child;
     commands.push({

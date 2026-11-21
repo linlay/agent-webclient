@@ -18,7 +18,6 @@ export type AutomationOptionalField =
   | "description"
   | "zoneId"
   | "role"
-  | "hidden"
   | "paramsText"
   | "referencesText";
 
@@ -37,7 +36,6 @@ export interface AutomationFormState {
   chatMode: AutomationChatMode;
   chatId: string;
   role: string;
-  hidden: "" | "true" | "false";
   paramsText: string;
   referencesText: string;
 }
@@ -63,7 +61,6 @@ export const EMPTY_AUTOMATION_FORM: AutomationFormState = {
   chatMode: "new",
   chatId: "",
   role: "",
-  hidden: "",
   paramsText: "",
   referencesText: "",
 };
@@ -149,12 +146,6 @@ export function automationFormFromDetail(
     chatMode: automation.query?.chatId ? "existing" : "new",
     chatId: automation.query?.chatId || "",
     role: automation.query?.role || "",
-    hidden:
-      automation.query?.hidden === true
-        ? "true"
-        : automation.query?.hidden === false
-          ? "false"
-          : "",
     referencesText: automation.query?.references === undefined ? "" : JSON.stringify(automation.query.references),
     paramsText:
       params && Object.keys(params).length > 0
@@ -191,9 +182,6 @@ export function buildDuplicateAutomationPayload(
       ...(automation.query?.references !== undefined ? {references: [...automation.query.references]} : {}),
       ...(automation.query?.role ? { role: automation.query.role } : {}),
       ...(automation.query?.params ? { params: { ...automation.query.params } } : {}),
-      ...(automation.query?.hidden !== undefined
-        ? { hidden: automation.query.hidden }
-        : {}),
     },
   }) as CreateAutomationRequest;
 }
@@ -226,8 +214,6 @@ function buildQuery(form: AutomationFormState): AutomationQueryRequest {
   if (role) query.role = role;
   const chatId = form.chatMode === "existing" ? form.chatId.trim() : "";
   if (chatId) query.chatId = chatId;
-  if (form.hidden === "true") query.hidden = true;
-  if (form.hidden === "false") query.hidden = false;
   if (form.paramsText.trim()) {
     query.params = JSON.parse(form.paramsText) as Record<string, unknown>;
   }

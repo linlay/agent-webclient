@@ -8,7 +8,7 @@ Automation 页面由 `/automations` 路由进入。`src/app/pages/automations/in
 - 按日期时间轴展示最近 Execution，覆盖 `running/success/failed/canceled` 四种状态、耗时和单行结果摘要。
 - 每条 Execution 行右侧固定显示“详情 / Detail”，包括无结果或无关联 Chat 的执行；点击后立即打开右侧 Drawer，并行按需加载完整执行结果和关联 Chat 快照。
 - 完整 `resultContent` 继续复用 `MarkdownContent`；历史 Chat 使用 `buildChatReplayProjection` 和现有 Timeline 展示模型渲染，不通过列表接口读取完整助手输出。
-- 支持创建和编辑 cron、zoneId、remainingRuns、agentKey 与 query payload；description、zoneId、query.role、query.hidden 均可省略。
+- 支持创建和编辑 cron、zoneId、remainingRuns、agentKey 与 query payload；description、zoneId、query.role 均可省略。
 - 支持启停、复制、删除自动化，并在选中项详情区的“更多设置”菜单提供“立即触发”；不提供伪造的 `/api/query` 单次运行或失败重试入口。
 - 为 message、role、hidden 和 params JSON 提供前端表单编辑与基本校验。
 
@@ -39,7 +39,7 @@ Drawer 不改变页面 URL、Desktop 外层路由、主 Chat 或已读状态，�
 - Automation 管理接口（包括原生立即触发）固定走 HTTP，不随对话 WebSocket transport 路由。
 - 完整结果只存在于单条 Execution 详情响应，历史列表只消费 `hasResult/resultPreview`。
 - Execution Drawer 是 Automation 页面内部临时状态，不支持刷新恢复、深链接或独立 Execution 路由。
-- 省略 `query.role` 时按 `automation` 执行，省略 `query.hidden` 时默认隐藏该 query 消息；显式 `hidden: false` 才在 Chat 时间线显示。省略 `zoneId` 时跟随 Platform 当前时区。
+- 自动化输入在聊天时间线显示为任务发出的来信，正文与附件默认折叠。省略 `zoneId` 时跟随 Platform 当前时区。
 
 ## 相关文件
 - `../src/app/pages/automations/index.tsx`

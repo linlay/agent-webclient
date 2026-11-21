@@ -61,7 +61,6 @@ export interface AutomationQueryResponse {
   chatId?: string;
   role?: string;
   params?: Record<string, unknown>;
-  hidden?: boolean;
 }
 
 export interface AutomationExecutionBrief {
@@ -118,7 +117,6 @@ export interface AutomationQueryRequest {
   chatId?: string;
   role?: string;
   params?: Record<string, unknown>;
-  hidden?: boolean;
 }
 
 export interface CreateAutomationRequest {

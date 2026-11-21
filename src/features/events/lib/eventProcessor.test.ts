@@ -379,37 +379,27 @@ describe('processStreamEvent', () => {
     expect(liveCommands).toEqual([expect.objectContaining({ cmd: 'USER_MESSAGE', nodeId: 'user_req_1', text: 'hello' })]);
   });
 
-  it('hides automation request.query nodes by default while honoring hidden=false', () => {
-    const hiddenByRole = processStreamEvent({
-      type: 'request.query',
-      origin: { type: 'user' },
-      requestId: 'req_hidden_default',
-      role: 'automation',
-      message: 'scheduled task',
-    }, buildProcessorState(createState()), {
-      mode: 'replay',
-      reasoningExpandedDefault: false,
-    });
-    const explicitlyVisible = processStreamEvent({
-      type: 'request.query',
-      origin: { type: 'user' },
-      requestId: 'req_visible',
-      role: 'automation',
-      hidden: false,
-      message: 'visible scheduled task',
-    }, buildProcessorState(createState()), {
-      mode: 'replay',
-      reasoningExpandedDefault: false,
-    });
+  it.each(["request.query", "request.steer"] as const)("renders an automation %s as a named letter in live and replay", type => {
+    for (const mode of ["live", "replay"] as const) {
+      for (const hidden of [true, false, undefined]) {
+        const commands = processStreamEvent({
+          type, hidden, message: "scheduled task", origin: { type: "automation", automationId: "daily", automationName: "指数行情" },
+        } as AgentEvent, buildProcessorState(createState()), { mode, reasoningExpandedDefault: false });
+        expect(commands).toContainEqual(expect.objectContaining({
+          cmd: "USER_MESSAGE", text: "scheduled task", inbound: { kind: "letter", child: false, automation: { name: "指数行情" } },
+        }));
+      }
+    }
+  });
 
-    expect(hiddenByRole).toEqual([]);
-    expect(explicitlyVisible).toEqual([
-      expect.objectContaining({
-        cmd: 'USER_MESSAGE',
-        nodeId: 'user_req_visible',
-        text: 'visible scheduled task',
-      }),
-    ]);
+  it("keeps an explicit user origin and hidden side lanes when replaying automation-era records", () => {
+    const process = (event: Partial<AgentEvent>) => processStreamEvent({
+      type: "request.query", message: "body", ...event,
+    } as AgentEvent, buildProcessorState(createState()), { mode: "replay", reasoningExpandedDefault: false });
+    const user = process({ role: "automation", origin: { type: "user" } });
+    expect(user).toContainEqual(expect.objectContaining({ cmd: "USER_MESSAGE", text: "body" }));
+    expect(user[0]).not.toHaveProperty("inbound", expect.anything());
+    expect(process({ origin: { type: "automation" }, lane: "btw", hidden: true })).toEqual([]);
   });
 
   it('renders run.error with platform i18n text and technical details', () => {

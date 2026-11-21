@@ -63,7 +63,7 @@ export interface RunTerminalInfo {
   timestamp?: number;
   /**
    * Run 的起点时间（同一 runId 的 request.query 时间戳优先，其次 run.start）。
-   * 自动化来信等 hidden 输入不生成用户提问节点，耗时的起点只能从这里取。
+   * hidden 输入不生成用户提问节点，耗时的起点只能从这里取。
    */
   startedAt?: number;
 }
@@ -380,7 +380,7 @@ export function buildTimelineDisplayItemsFromTerminals(
       if (terminal) {
         const completedAt =
           typeof terminal.timestamp === "number" ? terminal.timestamp : undefined;
-        // 提问节点缺失时（hidden 的自动化来信）退回到 run 起点，避免完全没有耗时。
+        // 提问节点缺失时（hidden 输入）退回到 run 起点，避免完全没有耗时。
         const startedAt =
           typeof activeQueryNode.ts === "number"
             ? activeQueryNode.ts
@@ -439,7 +439,7 @@ export function buildTimelineDisplayItemsFromTerminals(
       terminalType = undefined;
     }
 
-    // 提问节点缺失时（hidden 的自动化来信）退回到 run 起点，避免完全没有耗时。
+    // 提问节点缺失时（hidden 输入）退回到 run 起点，避免完全没有耗时。
     const startedAt =
       typeof queryNode?.ts === "number" ? queryNode.ts : terminal?.startedAt;
     const responseDurationMs =

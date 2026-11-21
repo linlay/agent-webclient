@@ -51,7 +51,6 @@ const AUTOMATION_OPTIONAL_FIELDS: AutomationOptionalField[] = [
   "description",
   "zoneId",
   "role",
-  "hidden",
   "paramsText",
   "referencesText",
 ];
@@ -181,7 +180,6 @@ export function AutomationFormFields({
       description: t("automationConsole.field.description"),
       zoneId: t("automationConsole.field.timezone"),
       role: t("automationConsole.field.role"),
-      hidden: t("automationConsole.field.hidden"),
       paramsText: t("automationConsole.field.params"),
       referencesText: t("composer.references"),
     }),
@@ -424,21 +422,6 @@ export function AutomationFormFields({
               options={[
                 { value: "", label: t("automationConsole.field.rolePlaceholder") },
                 ...AUTOMATION_ROLE_OPTIONS.map((role) => ({ value: role, label: role })),
-              ]}
-            />
-          </div>
-        ) : null}
-        {visibleOptionalFields.has("hidden") ? (
-          <div className="field-group">
-            <label htmlFor="automation-hidden-select">{t("automationConsole.field.hidden")}</label>
-            <Select
-              id="automation-hidden-select"
-              value={form.hidden}
-              onChange={(value) => onChange({ hidden: value })}
-              options={[
-                { value: "", label: t("automationConsole.hidden.unset") },
-                { value: "true", label: t("automationConsole.hidden.true") },
-                { value: "false", label: t("automationConsole.hidden.false") },
               ]}
             />
           </div>

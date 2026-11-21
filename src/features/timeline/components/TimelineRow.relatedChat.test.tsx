@@ -120,6 +120,16 @@ it.each(["reply", "notify"] as const)("hides a child %s even when it carries a t
   expect(html).toBe("");
 });
 
+it.each([["指数行情", "指数行情"], ["", "自动化任务"]])("labels a collapsed automation letter with its sender %s", (name, label) => {
+  const html = renderToStaticMarkup(<TimelineRow node={{
+    id: "automation", kind: "message", role: "user", text: "任务指令", ts: 100,
+    inbound: { kind: "letter", child: false, automation: { name } },
+  }} />);
+  expect(html.replace(/<[^>]+>/g, "")).toContain(`收到${label}的来信`);
+  expect(html).toContain('aria-expanded="false"');
+  expect(html).not.toContain("任务指令");
+});
+
 it("shows a static 14-pixel sender avatar before the linked name", () => {
   const html = renderToStaticMarkup(
     <TimelineInteractionProvider value={{ openChat: jest.fn(), getChatHref: chat => `/?chatId=${chat.chatId}` }}>

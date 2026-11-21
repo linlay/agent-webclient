@@ -2,7 +2,7 @@ import { isAwaitingAnswerLike, isAwaitingAskLike } from "@/shared/contracts/agen
 import type { AgentEvent } from "@/shared/contracts/agentEvents";
 import type { AppState } from "@/app/state/AppContext";
 import type { Chat } from "@/features/chats/lib/chatState";
-import { isAgentInput } from "@/features/events/lib/inputSource";
+import { isDeliveredInput } from "@/features/events/lib/inputSource";
 import { resolveChatSummaryActiveRun } from '@/features/chats/lib/chatRunState';
 import {
   readEventChatName,
@@ -128,8 +128,8 @@ export function upsertLiveChatSummary(input: {
       owner: owner || undefined,
       source: source || undefined,
       lastRunId: runId || undefined,
-      // Agent deliveries are internal; only the user's own text previews a Chat.
-      lastRunContent: isAgentInput(event) ? undefined : lastRunContent,
+      // Only the user's own input supplies the outgoing message preview.
+      lastRunContent: isDeliveredInput(event) ? undefined : lastRunContent,
       canContinue: resolveChatCanContinue(event),
       updatedAt,
       hasPendingAwaiting,

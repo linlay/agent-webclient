@@ -15,13 +15,13 @@ function readOrigin(event: AgentEvent): Record<string, unknown> | undefined {
   return origin && typeof origin === "object" ? origin as Record<string, unknown> : undefined;
 }
 
-/**
- * The Platform writes origin itself and marks every input the user did not
- * send; a user's own steer carries none. Automation keeps its hidden rules.
- */
-export function isAgentInput(event: AgentEvent): boolean {
-  const type = toText(readOrigin(event)?.type);
-  return type !== "" && type !== "user" && type !== "automation";
+function inputOriginType(event: AgentEvent): string {
+  return toText(readOrigin(event)?.type) || (event.role === "automation" ? "automation" : "");
+}
+
+export function isDeliveredInput(event: AgentEvent): boolean {
+  const type = inputOriginType(event);
+  return type !== "" && type !== "user";
 }
 
 /**
@@ -29,10 +29,15 @@ export function isAgentInput(event: AgentEvent): boolean {
  * receiving Run when the event itself omits it, as request.steer does.
  */
 export function classifyInput(event: AgentEvent, receiverAgentKey = ""): InputDisplay {
+  const origin = readOrigin(event);
+  if (inputOriginType(event) === "automation") {
+    return { kind: "inbound", inbound: {
+      kind: "letter", child: false, automation: { name: toText(origin?.automationName) },
+    } };
+  }
   const mail = readMailMetadata(event);
   if (mail?.kind === "ask") return { kind: "ask", mail };
-  if (!isAgentInput(event)) return { kind: "message" };
-  const origin = readOrigin(event);
+  if (!isDeliveredInput(event)) return { kind: "message" };
   const fromAgentKey = toText(origin?.agentKey);
   const receiver = toText(event.agentKey) || receiverAgentKey;
   const kind = mail?.kind ?? "letter";

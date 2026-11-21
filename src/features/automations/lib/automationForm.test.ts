@@ -26,7 +26,6 @@ const form: AutomationFormState = {
   chatMode: "new",
   chatId: "chat-stale",
   role: "assistant",
-  hidden: "",
   referencesText: "",
     paramsText: ""
 };
@@ -97,7 +96,7 @@ describe("automationForm", () => {
           cron: "0 18 * * 1-5",
     agentKey: "team-a",
           enabled: true,
-    query: { message: "生成今天的日报", hidden: true, accessLevel: "full_access" }
+    query: { message: "生成今天的日报", accessLevel: "full_access" }
         },
         "团队日报 副本",
       ),
@@ -105,8 +104,24 @@ describe("automationForm", () => {
       name: "团队日报 副本",
     agentKey: "team-a",
       enabled: false,
-    query: { message: "生成今天的日报", hidden: true, accessLevel: "full_access" }
+    query: { message: "生成今天的日报", accessLevel: "full_access" }
     });
+  });
+
+  it("drops legacy query visibility when editing or duplicating an existing task", () => {
+    const legacy = {
+      id: "daily", name: "Daily", enabled: true, cron: "0 9 * * *", agentKey: "agent",
+      query: { message: "Report", hidden: true, params: { hidden: "business value" } },
+    };
+    const draft = automationFormFromDetail(legacy);
+    for (const payload of [
+      buildCreateAutomationPayloadForSubmit(draft),
+      buildUpdateAutomationPayloadForSubmit(draft),
+      buildDuplicateAutomationPayload(legacy, "copy"),
+    ]) {
+      expect(payload.query).not.toHaveProperty("hidden");
+      expect(payload.query.params).toEqual({ hidden: "business value" });
+    }
   });
 
   it("normalizes source filenames and protects late source responses", () => {

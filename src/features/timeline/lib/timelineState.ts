@@ -138,10 +138,11 @@ export interface RelatedChat {
 	title?: string;
 }
 
-/** An Agent letter, reply or notification received by this Chat. */
+/** A letter, reply or notification received by this Chat. */
 export interface TimelineInbound {
 	kind: "letter" | "reply" | "notify";
-	fromAgentKey: string;
+	fromAgentKey?: string;
+	automation?: { name: string };
 	fromChatId?: string;
 	outcome?: string;
 	/** Internal delivery from this Agent's own child Chat: hidden from the timeline, never the body. */

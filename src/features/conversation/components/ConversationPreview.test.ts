@@ -42,13 +42,18 @@ jest.mock("react-virtuoso", () => {
 });
 
 jest.mock("@/features/timeline/components/TimelineRow", () => ({
-  TimelineRow: ({ node, metaNode }: { node?: { kind?: string; text?: string }; metaNode?: React.ReactNode }) =>
-    React.createElement(
+  TimelineRow: (props: React.ComponentProps<typeof import("@/features/timeline/components/TimelineRow").TimelineRow>) => {
+    if (props.node?.inbound) {
+      const { TimelineRow } = jest.requireActual<typeof import("@/features/timeline/components/TimelineRow")>("@/features/timeline/components/TimelineRow");
+      return React.createElement(TimelineRow, props);
+    }
+    return React.createElement(
       "div",
-      { "data-testid": "timeline-row", "data-node-kind": node?.kind || "tool-group" },
-      node?.text || node?.kind || "tool-group",
-      metaNode,
-    ),
+      { "data-testid": "timeline-row", "data-node-kind": props.node?.kind || "tool-group" },
+      props.node?.text || props.node?.kind || "tool-group",
+      props.metaNode,
+    );
+  },
   formatTimelineTime: () => ({ short: "", full: "" }),
 }));
 
@@ -300,7 +305,7 @@ describe("ConversationPreview", () => {
     expect(container.textContent).toContain("Answer one");
   });
 
-  it("keeps all user-visible runs when an automation query is hidden", () => {
+  it("replays a legacy hidden automation as an expandable letter alongside ordinary runs", () => {
     const events = completedChatEvents().map((event, index) =>
       index === 0
         ? {
@@ -314,6 +319,10 @@ describe("ConversationPreview", () => {
     renderTimeline({ chatId: "chat-history", events });
 
     expect(container.textContent).not.toContain("Internal automation request");
+    const toggle = container.querySelector<HTMLButtonElement>('[data-inbound="letter"] button[aria-expanded="false"]');
+    expect(toggle).not.toBeNull();
+    act(() => toggle!.click());
+    expect(container.textContent).toContain("Internal automation request");
     expect(container.textContent).toContain("Answer one");
     expect(container.textContent).toContain("Question two");
     expect(container.textContent).toContain("Answer two");
