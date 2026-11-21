@@ -54,7 +54,7 @@
 
 /* Sender avatar sits inside the name so the identity and its link read as one unit. */
 .avatar {
-   margin-inline-end: 4px;
+   margin-inline: 3px 1px;
    color: var(--text-sub);
 }
 
