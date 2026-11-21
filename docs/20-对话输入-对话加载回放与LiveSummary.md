@@ -26,7 +26,7 @@ Composer 单独检查当前 Agent，内存 `agentAvailability` 不进入 Chat �
 
 `useConversationActions` 拉取对话详情，并把详情事件按 replay 模式交给事件处理器；`useConversationEventHandler` 处理实时事件。两条路径生成相同的 `EventCommand`，再分别由 replay/live adapter 应用。历史 replay 完成后，`reconcileReplayAwaiting` 读取顶层 `/api/chat.awaiting`：没有顶层等待项时清空 replay 产生的活动队列；存在时按 `runId + awaitingId + mode` 精确匹配完整 ask，planning 先映射为前端 plan。该校准只改变 Composer 操作态，不删除历史 events 或 debug timeline；协议不一致时记录诊断并保持输入框解锁。
 
-详情存在 `activeRun` 时，从其 `lastSeq` 接入 Run 事件流更新当前对话。等待模型首响应、推理、工具执行和 HITL 均可能没有正文，不以正文缺失为条件定时请求 `/api/chat`。会话切换、显式刷新和断线重连后的恢复仍可加载详情；一次加载只保留有上限的请求失败重试，成功响应不安排后续历史刷新。
+详情存在 `activeRun` 时，从其 `lastSeq` 接入 Run 事件流更新当前对话。`activeRun.announcement` 随详情提交到当前进度行，实时活动继续更新这行文字。等待模型首响应、推理、工具执行和 HITL 均可能没有正文，不以正文缺失为条件定时请求 `/api/chat`。会话切换、显式刷新和断线重连后的恢复仍可加载详情；一次加载只保留有上限的请求失败重试，成功响应不安排后续历史刷新。
 
 同一 Chat 的 `awaiting.asking` Push 只提示“当前 Run 已进入等待”，不直接生成 Composer 交互卡。当前 Chat 没有匹配该 `awaitingId`（或该 `runId`）的 `activeAwaiting`/`pendingAwaitings`，且没有 attach 在这个询问中的 Run 上时，按 `chatId + awaitingId` 去重后触发一次 `agent:load-chat`（`forceReload`），由详情快照与 replay 校准补出交互卡；已 attach、正在切换 Chat 或已有本地等待项时不打断会话。平台顶层 `/api/chats` 摘要与详情不一致时仍以详情校准为准，前端不自行合成空卡片。
 

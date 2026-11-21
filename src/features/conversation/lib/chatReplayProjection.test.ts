@@ -1,10 +1,36 @@
 import { buildChatReplayProjection } from "@/features/conversation/lib/chatReplayProjection";
 import { buildRunRenderEntries } from "@/features/timeline/lib/timelineDisplay";
 import { formatToolPillTitle } from "@/features/timeline/components/ToolPill";
+import { RUN_ACTIVITY_NODE_ID } from "@/shared/ui/modelRetry";
 
 const EPOCH = 1_710_000_000_000;
 
 describe("buildChatReplayProjection", () => {
+  it("restores an active Run announcement before attach without adding a history event", () => {
+    const events = [{ type: "run.start", chatId: "chat_1", runId: "run_1", timestamp: EPOCH }];
+    const { state, events: replayed } = buildChatReplayProjection("chat_1", {
+      events,
+      activeRun: {
+        runId: "run_1",
+        announcement: { message: "等待两个子任务回信。", timestamp: EPOCH + 1 },
+      },
+    });
+
+    expect(state.timelineOrder.at(-1)).toBe(RUN_ACTIVITY_NODE_ID);
+    expect(state.timelineNodes.get(RUN_ACTIVITY_NODE_ID)).toMatchObject({
+      systemMessageLevel: "activity", runId: "run_1", text: "等待两个子任务回信。", ts: EPOCH + 1,
+    });
+    expect(replayed).toEqual(events);
+    expect(state.events).toEqual(events);
+  });
+
+  it.each([null, { runId: "run_1" }, {
+    runId: "run_1", announcement: { message: "Stale announcement", timestamp: 12 },
+  }])("leaves the activity line empty when the snapshot is unavailable or invalid", (activeRun) => {
+    const { state } = buildChatReplayProjection("chat_1", { activeRun });
+    expect(state.timelineNodes.has(RUN_ACTIVITY_NODE_ID)).toBe(false);
+  });
+
   it.each([undefined, "读取文件"])("preserves the file_read snapshot label through results (label=%s) and grouped tool titles", (toolLabel) => {
     const snapshot = {
       seq: 73,

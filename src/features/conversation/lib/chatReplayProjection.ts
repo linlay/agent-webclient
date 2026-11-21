@@ -1,4 +1,6 @@
 import type { AgentEvent } from "@/shared/contracts/agentEvents";
+import { setRunActivityTimeline } from "@/features/timeline/lib/timelineState";
+import { RUN_ACTIVITY_NODE_ID } from "@/shared/ui/modelRetry";
 import {
   createReplayState,
   reconcileReplayAwaiting,
@@ -10,6 +12,7 @@ import {
 } from "@/features/conversation/lib/conversationReplay";
 import {
   normalizeChatArtifactItems,
+  normalizeChatRunAnnouncement,
   normalizeChatPlan,
   normalizeLoadedChatEvents,
 } from "@/features/conversation/lib/conversationPayload";
@@ -54,6 +57,19 @@ export function buildChatReplayProjection(
           ),
       });
     }
+  }
+
+  const announcement = normalizeChatRunAnnouncement(chatData.activeRun);
+  if (announcement) {
+    Object.assign(state, setRunActivityTimeline(state, {
+      id: RUN_ACTIVITY_NODE_ID,
+      kind: "message",
+      role: "system",
+      systemMessageLevel: "activity",
+      runId: announcement.runId,
+      ts: announcement.timestamp,
+      text: announcement.message,
+    }));
   }
 
   return {

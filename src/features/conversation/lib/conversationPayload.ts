@@ -11,6 +11,16 @@ function isObjectRecord(value: unknown): value is Record<string, unknown> {
   return value != null && typeof value === "object";
 }
 
+export function normalizeChatRunAnnouncement(activeRun: unknown) {
+  if (!isObjectRecord(activeRun) || typeof activeRun.runId !== "string" || !activeRun.runId) return;
+  const announcement = activeRun.announcement;
+  if (!isObjectRecord(announcement) || typeof announcement.message !== "string") return;
+  const timestamp = readEpochMillis(announcement.timestamp);
+  const message = announcement.message.trim();
+  if (timestamp === undefined || !message) return;
+  return { runId: activeRun.runId, message, timestamp };
+}
+
 export function normalizeChatPlan(value: unknown): Plan | null | undefined {
   if (value === undefined) return undefined;
   if (value == null) return null;

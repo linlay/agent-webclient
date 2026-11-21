@@ -86,6 +86,7 @@ export interface ActiveRunInfo {
   lastSeq?: number | string;
   planningMode?: boolean;
   editingMode?: boolean;
+  announcement?: { message: string; timestamp: number };
   [key: string]: unknown;
 }
 
