@@ -9,6 +9,10 @@
     color: var(--ink-1);
 }
 
+:global(:root[data-page-background="host"]) .readonly-run-surface-overview {
+    background: var(--main-chat-surface);
+}
+
 .readonly-run-surface.is-embedded {
     height: 100%;
 }
