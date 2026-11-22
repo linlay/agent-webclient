@@ -84,6 +84,17 @@ export const ConversationMarkdownCode: React.FC<ConversationMarkdownCodeProps> =
   const canPreviewHtml = htmlPreview && language === "html" && streamStatus === "done";
   const autoPreviewHtml = canPreviewHtml && isCompleteHtmlDocument(text);
   const receivingHtml = htmlPreview && language === "html" && streamStatus === "loading" && isStreaming;
+  const svgSource = useMemo(() => {
+    if (!block || language !== "svg" || streamStatus !== "done" || !text.trim()) return null;
+    try {
+      return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(text)}`;
+    } catch {
+      return null;
+    }
+  }, [block, language, streamStatus, text]);
+  const [svgResult, setSvgResult] = useState<{ source: string; loaded: boolean } | null>(null);
+  const svgLoaded = svgResult?.source === svgSource && svgResult.loaded;
+  const svgFailed = svgResult?.source === svgSource && !svgResult.loaded;
   const [activeKey, setActiveKey] = useState<string | string[] | null>(null);
   const [copyStatus, setCopyStatus] = useState("");
   const copyRequest = useRef(0);
@@ -113,9 +124,20 @@ export const ConversationMarkdownCode: React.FC<ConversationMarkdownCodeProps> =
       ) : null}
       {canPreviewHtml ? <MarkdownHtmlPreview code={text} autoStart={autoPreviewHtml} /> : null}
       {receivingHtml ? <MarkdownHtmlReceiving /> : null}
+      {svgSource && !svgFailed ? (
+        <img
+          key={svgSource}
+          className={styles.SvgPreview}
+          src={svgSource}
+          alt={t("markdown.svgPreview")}
+          hidden={!svgLoaded}
+          onLoad={() => setSvgResult({ source: svgSource, loaded: true })}
+          onError={() => setSvgResult({ source: svgSource, loaded: false })}
+        />
+      ) : null}
       <Collapse
         className={CODE_COLLAPSE_CLASS_NAME}
-        activeKey={activeKey ?? (autoPreviewHtml || receivingHtml ? "" : getDefaultActiveKey(language))}
+        activeKey={activeKey ?? (svgLoaded || autoPreviewHtml || receivingHtml ? "" : getDefaultActiveKey(language))}
         onChange={setActiveKey}
         ghost
         expandIcon={({ isActive }) => (

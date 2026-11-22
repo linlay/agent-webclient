@@ -3180,6 +3180,7 @@ export const zhCNMessages = {
   "markdown.echartsReceiving": "图表配置接收中…",
   "markdown.echartsParseFailed": "ECharts 配置解析失败：{detail}",
   "markdown.copySuccess": "复制成功",
+  "markdown.svgPreview": "SVG 图形",
   "markdown.htmlPreview.title": "HTML 内容",
   "markdown.htmlPreview.show": "显示内容",
   "markdown.htmlPreview.receiving": "HTML 数据接收中…",

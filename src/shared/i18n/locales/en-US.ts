@@ -3010,6 +3010,7 @@ export const enUSMessages = {
   "markdown.echartsReceiving": "Receiving chart configuration...",
   "markdown.echartsParseFailed": "Failed to parse ECharts configuration: {detail}",
   "markdown.copySuccess": "Copied",
+  "markdown.svgPreview": "SVG graphic",
   "markdown.htmlPreview.title": "HTML content",
   "markdown.htmlPreview.show": "Show content",
   "markdown.htmlPreview.receiving": "Receiving HTML data…",

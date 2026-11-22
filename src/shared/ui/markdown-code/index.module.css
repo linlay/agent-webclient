@@ -12,6 +12,16 @@
   }
 }
 
+.SvgPreview {
+  align-self: flex-start;
+  max-width: 100%;
+  height: auto;
+}
+
+.SvgPreview[hidden] {
+  display: none;
+}
+
 .ExpandIcon,
 .ExpandIconOpen {
   display: inline-flex;
