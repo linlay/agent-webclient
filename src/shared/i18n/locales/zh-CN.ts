@@ -3200,6 +3200,8 @@ export const zhCNMessages = {
   "markdown.link.workspaceUnavailable": "此处无法打开项目文件",
   "markdown.link.chatFileUnavailable": "此处无法打开对话文件",
   "markdown.link.unsupported": "不支持的链接",
+  "markdown.link.externalUnsupported": "桌面端不支持这个外部链接。",
+  "markdown.link.externalDesktopUnavailable": "当前无法将链接交给桌面端处理。",
   "markdown.link.resolveFailed": "无法打开文件：{detail}",
   "agentConsole.field.wonders": "推荐问题",
   "agentConsole.prompt.expandEditor": "展开编辑",

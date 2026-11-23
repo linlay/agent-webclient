@@ -1,0 +1,16 @@
+.desktopLink {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  text-align: start;
+  text-decoration: underline;
+  text-underline-offset: .15em;
+  cursor: pointer;
+}
+
+.desktopLink:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}

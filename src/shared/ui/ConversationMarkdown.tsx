@@ -9,6 +9,7 @@ import { useI18n } from "@/shared/i18n";
 import styles from "./ConversationMarkdown.module.css";
 import { MarkdownStreamingContext } from "./MarkdownStreamingContext";
 import { markdownLocalMediaExtension } from "./markdownMedia";
+import { parseMarkdownExternalProtocolHref } from "./markdownWebLinks";
 import { isLiteralFileTarget } from "@/shared/utils/fileAddress";
 
 type MarkdownComponents = NonNullable<XMarkdownProps["components"]>;
@@ -48,14 +49,17 @@ type LiteralRendererThis = {
  * File targets keep the exact path the author wrote. marked URL-encodes link
  * destinations, and decoding that again cannot tell a literal "%20" in a file
  * name from an encoded space, so only the HTML attribute is escaped here.
+ * External protocol links carry the URL as data for the chat renderer.
  * Web and other links keep marked's default rendering.
  */
 const literalFileTargetRenderer = {
   link(this: LiteralRendererThis, token: LiteralLinkToken): string | false {
-    if (!isLiteralFileTarget(token.href)) return false;
+    const externalUrl = parseMarkdownExternalProtocolHref(token.href);
+    if (!externalUrl && !isLiteralFileTarget(token.href)) return false;
     const text = this.parser.parseInline(token.tokens || []);
     const title = token.title ? ` title="${escapeHtmlAttribute(token.title)}"` : "";
-    return `<a href="${escapeHtmlAttribute(token.href)}"${title}>${text}</a>`;
+    const attribute = externalUrl ? "data-external-href" : "href";
+    return `<a ${attribute}="${escapeHtmlAttribute(token.href)}"${title}>${text}</a>`;
   },
   image(this: LiteralRendererThis, token: LiteralLinkToken): string | false {
     if (!isLiteralFileTarget(token.href)) return false;

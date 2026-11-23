@@ -1940,7 +1940,7 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
       <ToolOutputTerminal output={output} themeMode={state.themeMode} />,
     renderContentView: (segment, chatId, binding, runId, sourceId) =>
       <ViewEmbed allowSidebar={surfaceMode === "main"} chatId={chatId} view={binding.view} viewError={binding.viewError} payloadRaw={segment.payloadRaw || "{}"} rawData={segment.payloadRaw} runId={runId} sourceId={sourceId} viewIndex={String(segment.index)} />,
-    renderMarkdown: (props) => <MarkdownContent {...props} htmlPreview />,
+    renderMarkdown: (props) => <MarkdownContent {...props} htmlPreview externalProtocolLinks />,
     renderMailAsk: (mailId, metadata) => <MailAskCard mailId={mailId} metadata={metadata} />,
     renderAttachment: (attachment, options) => <TimelineAttachmentView
       attachment={attachment}

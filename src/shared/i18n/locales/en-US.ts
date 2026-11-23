@@ -3030,6 +3030,8 @@ export const enUSMessages = {
   "markdown.link.workspaceUnavailable": "Project files cannot be opened here",
   "markdown.link.chatFileUnavailable": "Chat files cannot be opened here",
   "markdown.link.unsupported": "Unsupported link",
+  "markdown.link.externalUnsupported": "The desktop app does not support this external link.",
+  "markdown.link.externalDesktopUnavailable": "This link cannot be handed off to the desktop app right now.",
   "markdown.link.resolveFailed": "Could not open the file: {detail}",
   "agentConsole.field.wonders": "Wonders",
   "agentConsole.prompt.expandEditor": "Expand editor",

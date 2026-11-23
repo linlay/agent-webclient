@@ -17,6 +17,7 @@ import { MarkdownCode, type ConversationMarkdownCodeProps } from "@/features/vie
 import {
   ConversationMarkdown,
   type ConversationMarkdownComponents,
+  type ConversationMarkdownElementProps,
 } from "@/shared/ui/ConversationMarkdown";
 import { useI18n } from "@/shared/i18n";
 import {
@@ -25,6 +26,7 @@ import {
 } from "@/shared/ui/markdownWorkspaceLinks";
 import {
   getMarkdownWebLinkFallbackTitle,
+  parseMarkdownExternalProtocolHref,
   parseMarkdownWebHref,
   shouldOpenWebLinkInSidebar,
   type MarkdownWebLink,
@@ -41,11 +43,14 @@ import {
 } from "@/shared/ui/markdownMedia";
 import { useAuthenticatedResourceUrl } from "@/shared/ui/useAuthenticatedResourceUrl";
 import { useDesktopContextMenuTarget } from "@/shared/data/desktop/desktopContextMenu";
+import { openExternalLinkInDesktop } from "@/shared/data/desktop/desktopExternalLink";
+import { isAppMode } from "@/shared/utils/routing";
 import { copyText } from "@/shared/utils/copy";
 import { useAppMessage } from "@/shared/ui/useAppMessage";
 import { Image } from "antd";
 
 import { HtmlDraftPreviewContext } from "./HtmlDraftPreviewContext";
+import styles from "./MarkdownContent.module.css";
 
 export type { WorkspaceFileLink } from "@/shared/ui/markdownWorkspaceLinks";
 export type { MarkdownWebLink } from "@/shared/ui/markdownWebLinks";
@@ -54,6 +59,7 @@ export interface MarkdownContentProps {
   content: string;
   isStreaming?: boolean;
   htmlPreview?: boolean;
+  externalProtocolLinks?: boolean;
   chatId: string;
   agentKey?: string;
   teamChat?: boolean;
@@ -132,6 +138,41 @@ type AuthAnchorProps = React.AnchorHTMLAttributes<HTMLAnchorElement> & {
   onResourceFileLinkClick?: (link: ResourceFileLink) => void;
   onWebLinkClick?: (link: MarkdownWebLink) => void;
 };
+
+type MarkdownAnchorProps = React.AnchorHTMLAttributes<HTMLAnchorElement> &
+  Pick<ConversationMarkdownElementProps, "domNode" | "streamStatus"> & {
+    "data-external-href"?: string;
+  };
+
+function ExternalProtocolLink({ url, title, children }: {
+  url: string;
+  title?: string;
+  children: React.ReactNode;
+}) {
+  const { t } = useI18n();
+  const message = useAppMessage();
+
+  if (!isAppMode()) {
+    return <a href={url} rel="noreferrer" title={title}>{children}</a>;
+  }
+  return (
+    <button
+      type="button"
+      role="link"
+      className={styles.desktopLink}
+      title={title}
+      onClick={() => void openExternalLinkInDesktop(url).then((result) => {
+        if (result === "accepted") return;
+        const key = result === "unsupported"
+          ? "markdown.link.externalUnsupported"
+          : "markdown.link.externalDesktopUnavailable";
+        void message.warning(t(key));
+      })}
+    >
+      {children}
+    </button>
+  );
+}
 
 function getAnchorText(children: React.ReactNode): string {
   const parts: string[] = [];
@@ -490,6 +531,7 @@ export const MarkdownContent: React.FC<MarkdownContentProps> = ({
   content,
   isStreaming,
   htmlPreview = false,
+  externalProtocolLinks = false,
   chatId,
   agentKey,
   teamChat = false,
@@ -500,17 +542,29 @@ export const MarkdownContent: React.FC<MarkdownContentProps> = ({
 }) => {
   const markdownComponents = useMemo<ConversationMarkdownComponents>(
     () => ({
-        a: (anchorProps: React.AnchorHTMLAttributes<HTMLAnchorElement>) => (
-          <AuthAnchor
-            {...anchorProps}
-            chatId={chatId}
-            teamChat={teamChat}
-            linkBase={linkBase}
-            onWorkspaceFileLinkClick={onWorkspaceFileLinkClick}
-            onResourceFileLinkClick={onResourceFileLinkClick}
-            onWebLinkClick={onWebLinkClick}
-          />
-        ),
+        a: ({
+          "data-external-href": externalHref,
+          domNode: _domNode,
+          streamStatus,
+          ...anchorProps
+        }: MarkdownAnchorProps) => {
+          const url = externalProtocolLinks ? parseMarkdownExternalProtocolHref(externalHref) : null;
+          if (url) {
+            if (streamStatus === "loading") return <>{anchorProps.children}</>;
+            return <ExternalProtocolLink url={url} title={anchorProps.title}>{anchorProps.children}</ExternalProtocolLink>;
+          }
+          return (
+            <AuthAnchor
+              {...anchorProps}
+              chatId={chatId}
+              teamChat={teamChat}
+              linkBase={linkBase}
+              onWorkspaceFileLinkClick={onWorkspaceFileLinkClick}
+              onResourceFileLinkClick={onResourceFileLinkClick}
+              onWebLinkClick={onWebLinkClick}
+            />
+          );
+        },
         img: (rawImageProps: React.ImgHTMLAttributes<HTMLImageElement>) => {
           const imageProps = {
             ...rawImageProps,
@@ -525,7 +579,7 @@ export const MarkdownContent: React.FC<MarkdownContentProps> = ({
           );
         },
       }),
-    [agentKey, chatId, linkBase, onResourceFileLinkClick, onWebLinkClick, onWorkspaceFileLinkClick, teamChat],
+    [agentKey, chatId, externalProtocolLinks, linkBase, onResourceFileLinkClick, onWebLinkClick, onWorkspaceFileLinkClick, teamChat],
   );
 
   const previewContext = useMemo(() => ({ agentKey: agentKey || "", chatId }), [agentKey, chatId]);
