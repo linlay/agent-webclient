@@ -1,5 +1,5 @@
 import { Button, Checkbox, CheckboxRef, Flex, Input } from "antd/es";
-import { MaterialIcon } from "@/shared/ui/MaterialIcon";
+import { MaterialIcon, type MaterialIconName } from "@/shared/ui/MaterialIcon";
 import { getAgent, invalidateAgentDetail } from "@/shared/data";
 import { useOptionalAppContext } from "@/app/state/AppContext";
 import React, {
@@ -29,6 +29,18 @@ interface PlanDialogProps {
 interface PlanQuestionRef {
   check: (index: number) => void;
   getElements: () => NodeListOf<HTMLElement> | undefined;
+}
+
+const EXECUTION_ACCESS_ICON: Record<string, MaterialIconName> = {
+  ask_for_approval: "front_hand",
+  auto_approve: "verified_user",
+  full_access: "gpp_maybe",
+};
+
+function getExecutionAccessIconToneClass(level: string): string {
+  if (level === "auto_approve") return hitlDialogClassNames.planAccessIconWarn;
+  if (level === "full_access") return hitlDialogClassNames.planAccessIconDanger;
+  return "";
 }
 
 export const PlanDialog: React.FC<PlanDialogProps> = ({
@@ -152,10 +164,10 @@ export const PlanDialog: React.FC<PlanDialogProps> = ({
 
   return ready ? (
     <Flex className={hitlDialogClassNames.surface} vertical gap={4}>
-      {executionAccessLevel && <p>{t("planDialog.executionAccess", {level: t(`composer.query.access.${executionAccessLevel}`)})}</p>}
       <PlanQuestion
         ref={planQuestionRef}
         plan={plan}
+        executionAccessLevel={executionAccessLevel}
         readOnly={readOnly}
         reason={reason}
         onReasonChange={setReason}
@@ -183,12 +195,13 @@ const PlanQuestion = forwardRef<
   PlanQuestionRef,
   {
     plan: AIAwaitPlan;
+    executionAccessLevel?: string;
     readOnly: boolean;
     reason: string;
     onReasonChange: (nextReason: string) => void;
     onEnter: (nextDecision?: AIAwaitPlanDecision, nextReason?: string) => void;
   }
->(({ plan, readOnly, reason, onReasonChange, onEnter }, ref) => {
+>(({ plan, executionAccessLevel, readOnly, reason, onReasonChange, onEnter }, ref) => {
   const { t } = useI18n();
   const hostRef = useRef<HTMLDivElement>(null);
   const checkboxsRef = useRef<CheckboxRef[]>([]);
@@ -220,6 +233,28 @@ const PlanQuestion = forwardRef<
           <span className={hitlDialogClassNames.planQuestionHeading}>
             {plan.title || t("planDialog.titleFallback")}
           </span>
+          {executionAccessLevel && (
+            <span className={hitlDialogClassNames.planAccess}>
+              <span>{t("planDialog.executionAccessLabel")}</span>
+              <span className={hitlDialogClassNames.planAccessValue}>
+                <MaterialIcon
+                  name={
+                    EXECUTION_ACCESS_ICON[executionAccessLevel] ??
+                    "verified_user"
+                  }
+                  className={[
+                    hitlDialogClassNames.planAccessIcon,
+                    getExecutionAccessIconToneClass(executionAccessLevel),
+                  ]
+                    .filter(Boolean)
+                    .join(" ")}
+                />
+                <span className={hitlDialogClassNames.planAccessLevel}>
+                  {t(`composer.query.access.${executionAccessLevel}`)}
+                </span>
+              </span>
+            </span>
+          )}
         </Flex>
       </Flex>
       <Checkbox.Group

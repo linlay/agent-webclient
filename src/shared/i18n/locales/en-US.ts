@@ -76,7 +76,7 @@ export const enUSMessages = {
   "agents.access.default": "Default permission level",
   "agents.access.platformDefault": "Unspecified (platform default)",
   "agents.access.hint": "Used unless a specific permission level is selected. Unspecified means Ask for approval. Changing a running level does not save this setting.",
-  "planDialog.executionAccess": "Agent current default execution permission: {level}",
+  "planDialog.executionAccessLabel": "Agent current default execution permission:",
 
   "mailbox.ask.decision": "Approval decision",
   "mailbox.ask.required": "Choose or enter a value before confirming",

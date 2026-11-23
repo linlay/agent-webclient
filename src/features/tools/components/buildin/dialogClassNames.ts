@@ -20,6 +20,16 @@ export const hitlDialogClassNames = {
   timeoutRowWithOffset:
     "tw:ml-3.5 tw:whitespace-nowrap tw:text-xs tw:text-text-muted",
   questionWrapper: "tw:text-xs",
+  planAccess:
+    "tw:inline-flex tw:flex-wrap tw:items-center tw:gap-x-1 tw:gap-y-0.5 tw:text-xs tw:leading-normal tw:text-text-sub",
+  planAccessValue:
+    "tw:inline-flex tw:items-center tw:gap-1 tw:text-text-main",
+  planAccessLevel: "tw:font-medium",
+  planAccessIcon: "tw:flex-none tw:text-sm",
+  planAccessIconWarn:
+    "tw:text-[color-mix(in_srgb,var(--accent-warn)_78%,var(--text-sub))]",
+  planAccessIconDanger:
+    "tw:text-[color-mix(in_srgb,var(--accent-danger)_78%,var(--text-sub))]",
   questionHeader: "tw:gap-4 tw:px-2.5 tw:pb-2.5",
   planQuestionHeader: "tw:gap-4 tw:px-2.5 tw:py-1.5",
   questionText: "tw:min-w-0 tw:flex-1",

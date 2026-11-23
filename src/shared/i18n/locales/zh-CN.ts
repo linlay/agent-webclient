@@ -76,7 +76,7 @@ export const zhCNMessages = {
   "agents.access.default": "默认权限档位",
   "agents.access.platformDefault": "未配置（平台默认）",
   "agents.access.hint": "用户未明确选择权限时使用此值；未配置则请求审批。运行中切档不修改此配置。",
-  "planDialog.executionAccess": "Agent 当前默认执行权限：{level}",
+  "planDialog.executionAccessLabel": "Agent 当前默认执行权限：",
 
   "mailbox.ask.decision": "审批决定",
   "mailbox.ask.required": "请选择或填写后再确认",
