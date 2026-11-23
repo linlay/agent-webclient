@@ -5,6 +5,7 @@ import { parseComposerPrefillPayload, parseNewChatTimestamp } from "./AgentChatS
 import { ClientNavigationContext } from "@/shared/ui/ClientNavigationContext";
 import { toMobileRoute } from "@/shared/utils/mobileRoutes";
 import { useAppState } from "@/app/state/AppContext";
+import { useMobileViewportLock } from "./hooks/useMobileViewportLock";
 
 /** The parent route stays mounted while management and project pages are open. */
 export const MobileShell: React.FC = () => {
@@ -21,23 +22,7 @@ export const MobileShell: React.FC = () => {
   const initialized = useRef("");
   const query = new URLSearchParams(conversationSearch.current);
 
-  useEffect(() => {
-    const viewport = document.querySelector<HTMLMetaElement>('meta[name="viewport"]');
-    if (!viewport) return;
-    const previous = viewport.content;
-    // Draw under the notch, and make Chromium resize the layout viewport with the
-    // keyboard instead of only shrinking the visual viewport: Edge Android otherwise
-    // reports a viewport shorter than the visible area, leaving a blank strip under the
-    // composer. WebKit ignores the hint and keeps the visual-viewport path.
-    const parts = previous.split(",").map(part => part.trim()).filter(Boolean);
-    for (const [key, value] of [["viewport-fit", "cover"], ["interactive-widget", "resizes-content"]]) {
-      const index = parts.findIndex(part => part.split("=")[0].trim().toLowerCase() === key);
-      if (index >= 0) parts[index] = `${key}=${value}`;
-      else parts.push(`${key}=${value}`);
-    }
-    viewport.content = parts.join(", ");
-    return () => { viewport.content = previous; };
-  }, []);
+  useMobileViewportLock();
 
   useEffect(() => {
     if (location.pathname === "/mobile") document.title = defaultTitle.current;
