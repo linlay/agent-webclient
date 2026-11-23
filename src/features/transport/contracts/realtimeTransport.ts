@@ -166,9 +166,12 @@ export interface TerminalExecution {
 export interface TerminalOpenInput {
   agentKey: string;
   terminalKey: string;
+  cwd?: string;
+  profile?: string;
   cols: number;
   rows: number;
   onEvent: (event: AgentEvent) => void;
+  onOutput?: (chunk: Uint8Array, onWritten: () => void) => void;
   signal?: AbortSignal;
 }
 

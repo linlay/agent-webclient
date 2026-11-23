@@ -59,3 +59,10 @@ export function resolveTerminalAvailabilityKey(
     toText(workspaceKey),
   ].join("\u0000");
 }
+
+export function formatTerminalShellName(shell: unknown): string {
+  const normalized = toText(shell).replace(/\\/g, "/").replace(/\/+$/u, "");
+  if (!normalized) return "";
+  const basename = normalized.split("/").filter(Boolean).pop() || "";
+  return basename.replace(/\.(?:exe|cmd|bat)$/iu, "");
+}

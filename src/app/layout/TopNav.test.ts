@@ -1089,4 +1089,18 @@ describe("TopNav", () => {
 		expect(desktopRootHtml).toContain("dock_to_right");
 		expect(desktopRootHtml).toContain("scaleX(-1)");
 	});
+
+	it("renders the terminal button in Desktop root mode when worker showTerminal is enabled", () => {
+		globalWithStorage.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = { DESKTOP_APP: "true" };
+		const state = createInitialState();
+		state.agents = [{ key: "coder", name: "Coder", mode: "CODER", interactionConfig: { showTerminal: true } }];
+		state.workerSelectionKey = "agent:coder";
+		state.currentAgent = state.agents[0];
+		useAppState.mockReturnValue(state);
+
+		const html = renderToStaticMarkup(React.createElement(TopNav));
+
+		expect(html).toContain('data-material-icon="terminal"');
+		expect(mockUseTerminalAgentStatuses).toHaveBeenLastCalledWith(true);
+	});
 });

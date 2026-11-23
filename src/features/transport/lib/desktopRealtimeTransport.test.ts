@@ -899,4 +899,113 @@ describe("DesktopRealtimeTransport", () => {
       }
     }
   });
+
+  it("routes terminal through same-origin /api/terminal/ws without subprotocol or FramePort status traffic and disposes active terminals", async () => {
+    const originalWindow = (globalThis as { window?: unknown }).window;
+    const originalWebSocket = (globalThis as { WebSocket?: unknown }).WebSocket;
+    const sockets: Array<{
+      url: string;
+      protocols: unknown;
+      readyState: number;
+      binaryType: string;
+      sent: Uint8Array[];
+      closeCalls: number;
+      onopen: ((ev: Event) => void) | null;
+      onmessage: ((ev: MessageEvent) => void) | null;
+      onclose: ((ev: CloseEvent) => void) | null;
+      close: () => void;
+    }> = [];
+
+    class FakeDesktopTerminalSocket {
+      readonly url: string;
+      readonly protocols: unknown;
+      readyState = 1;
+      binaryType = "blob";
+      sent: Uint8Array[] = [];
+      closeCalls = 0;
+      onopen: ((ev: Event) => void) | null = null;
+      onmessage: ((ev: MessageEvent) => void) | null = null;
+      onerror: ((ev: Event) => void) | null = null;
+      onclose: ((ev: CloseEvent) => void) | null = null;
+      constructor(url: string, protocols?: string | string[]) {
+        this.url = url;
+        this.protocols = protocols;
+        sockets.push(this);
+      }
+      send(data: Uint8Array) {
+        this.sent.push(data);
+      }
+      close() {
+        this.closeCalls += 1;
+        this.readyState = 3;
+      }
+    }
+
+    Object.defineProperty(globalThis, "window", {
+      configurable: true,
+      value: {
+        location: {
+          href: "http://127.0.0.1:7080/terminal/coder",
+          origin: "http://127.0.0.1:7080",
+        },
+      },
+    });
+    Object.defineProperty(globalThis, "WebSocket", {
+      configurable: true,
+      value: FakeDesktopTerminalSocket,
+    });
+
+    const frameSession = new FakeDesktopPlatformSession();
+    const transport = new DesktopRealtimeTransport({
+      transportVersion: 2,
+      createSession: () => frameSession,
+    });
+
+    try {
+      const unsubStatus = transport.terminal.subscribeStatus(jest.fn());
+      expect(typeof unsubStatus).toBe("function");
+      unsubStatus();
+      expect(frameSession.sent).toHaveLength(0);
+
+      const execution = transport.terminal.open({
+        agentKey: "coder",
+        terminalKey: "main",
+        cols: 80,
+        rows: 24,
+        onEvent: jest.fn(),
+      });
+      await flush();
+
+      expect(sockets).toHaveLength(1);
+      const ws = sockets[0];
+      expect(ws.url).toBe("ws://127.0.0.1:7080/api/terminal/ws");
+      expect(ws.protocols).toBeUndefined();
+
+      ws.onopen?.(new Event("open"));
+      const openedPayload = new TextEncoder().encode(JSON.stringify({
+        type: "terminal.opened",
+        terminalId: "term-desktop-1",
+      }));
+      const frame = new Uint8Array(1 + openedPayload.length);
+      frame[0] = 0x82;
+      frame.set(openedPayload, 1);
+      ws.onmessage?.({ data: frame.buffer } as MessageEvent);
+      await expect(execution.accepted).resolves.toMatchObject({ terminalId: "term-desktop-1" });
+
+      transport.dispose();
+      expect(ws.closeCalls).toBe(1);
+    } finally {
+      transport.dispose();
+      for (const [key, value] of [
+        ["window", originalWindow],
+        ["WebSocket", originalWebSocket],
+      ] as const) {
+        if (value === undefined) {
+          delete (globalThis as Record<string, unknown>)[key];
+        } else {
+          Object.defineProperty(globalThis, key, { configurable: true, value });
+        }
+      }
+    }
+  });
 });

@@ -8,6 +8,7 @@ export type EndpointTransport =
   | "ws"
   | "ws-stream"
   | "resource"
+  | "terminal-ws"
   | "voice-ws";
 
 export interface EndpointCachePolicy {

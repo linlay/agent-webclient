@@ -116,6 +116,99 @@
     color: var(--ink-1);
 }
 
+.terminal-dock-profile-menu-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.terminal-dock-profile-trigger {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 24px;
+    padding: 0;
+    font-size: 11px;
+    line-height: 1;
+    color: var(--ink-2);
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+}
+
+.terminal-dock-profile-trigger:hover {
+    background: var(--bg-hover);
+    color: var(--ink-1);
+}
+
+.terminal-dock-profile-menu {
+    position: absolute;
+    top: calc(100% + 4px);
+    right: 0;
+    z-index: 20;
+    min-width: 150px;
+    padding: 4px;
+    background: var(--bg-elev-1);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.terminal-dock-profile-item {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    padding: 5px 8px;
+    font-size: 12px;
+    line-height: 1.3;
+    text-align: left;
+    color: var(--ink-1);
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.terminal-dock-profile-item:hover {
+    background: var(--bg-hover);
+}
+
+.terminal-dock-option-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 22px;
+    padding: 0 6px;
+    margin-left: 4px;
+    font-size: 11px;
+    line-height: 1;
+    color: var(--ink-2);
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.terminal-dock-option-toggle:hover {
+    background: var(--bg-hover);
+    color: var(--ink-1);
+}
+
+.terminal-dock-option-toggle-active {
+    color: var(--accent);
+    border-color: var(--accent);
+    background: var(--bg-elev-1);
+}
+
 .terminal-dock-close {
     display: flex;
     align-items: center;
@@ -157,6 +250,92 @@
     overflow: hidden;
 }
 
+.terminal-pane-host {
+    width: 100%;
+    height: 100%;
+}
+
+.terminal-search-bar {
+    position: absolute;
+    top: 8px;
+    right: 12px;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 6px;
+    background: var(--bg-elev-1);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.16);
+}
+
+.terminal-search-input {
+    width: 180px;
+    height: 22px;
+    padding: 0 6px;
+    font-size: 12px;
+    color: var(--ink-1);
+    background: var(--bg-base);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    outline: none;
+}
+
+.terminal-search-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    font-size: 12px;
+    color: var(--ink-2);
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.terminal-search-btn:hover {
+    background: var(--bg-hover);
+    color: var(--ink-1);
+}
+
+.terminal-exit-banner {
+    position: absolute;
+    left: 12px;
+    right: 12px;
+    bottom: 10px;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 6px 10px;
+    font-size: 12px;
+    color: var(--ink-1);
+    background: var(--bg-elev-1);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.16);
+}
+
+.terminal-exit-restart-btn {
+    padding: 3px 10px;
+    font-size: 12px;
+    color: var(--ink-1);
+    background: var(--bg-hover);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.terminal-exit-restart-btn:hover {
+    background: var(--colorFill);
+}
+
 .terminal-pane :global(.xterm) {
     height: 100%;
 }
@@ -184,4 +363,17 @@
 .terminal-dock-empty-add:hover {
     background: var(--bg-hover);
     color: var(--ink-1);
+}
+
+/* ---- Desktop WorkPanel 单终端原生布局 ---- */
+
+.terminal-single-body {
+    flex: 1;
+    min-height: 0;
+    position: relative;
+}
+
+.terminal-single-body .terminal-pane {
+    padding: 12px 16px;
+    box-sizing: border-box;
 }
