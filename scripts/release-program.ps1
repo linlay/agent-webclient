@@ -111,7 +111,8 @@ try {
     if ($LASTEXITCODE -ne 0) { throw "frontend build cache preparation failed" }
     Push-Location $BuildRoot
     try {
-        & npm run build
+        # Forward --no-cache through both npm scripts to Webpack only.
+        & npm run build '--' '--' '--no-cache'
         if ($LASTEXITCODE -ne 0) { throw "npm build failed" }
     } finally { Pop-Location }
     if (-not (Test-Path -LiteralPath (Join-Path $BuildRoot "dist/index.html") -PathType Leaf)) {
