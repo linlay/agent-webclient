@@ -36,6 +36,13 @@ export const CONVERSATION_SCROLL_SETTLE_DELAY_MS = 500;
  */
 export const CONVERSATION_SCROLL_BUTTON_REVEAL_DELAY_MS = 250;
 
+/**
+ * 用户展开/收起时间线里的局部区块（过程折叠、任务组、思考、工具明细）后，
+ * 等展开动画走完再做贴底决策。这类变更是“原地长高”：新增高度属于被点开的
+ * 那一块，应该向下延伸；按新输出贴底会把它整个塞进视口底部，已有内容被顶走。
+ */
+export const CONVERSATION_LOCAL_LAYOUT_SETTLE_MS = 400;
+
 /** 滚动事件里判断“仍在跟随区间”：和 atBottomThreshold 使用同一容差。 */
 export function isWithinConversationFollowThreshold(input: {
   scrollHeight: number;
@@ -85,7 +92,13 @@ export function shouldPinConversationToBottom(input: {
   restoring: boolean;
   /** 手指按住或刚抬起（惯性期）时不写 scrollTop，避免和原生触摸手势互相覆盖。 */
   userGestureActive: boolean;
+  /**
+   * 用户刚展开/收起过局部区块。原地长高不能按“新输出”贴底：贴底会把新增
+   * 高度全部吃进底部、已有内容整块向上顶，而不是让内容自然向下延伸。
+   */
+  userLayoutChangeActive?: boolean;
 }): boolean {
+  if (input.userLayoutChangeActive) return false;
   return (
     input.following &&
     input.restorationReady &&

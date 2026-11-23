@@ -5,6 +5,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { Simulate } from "react-dom/test-utils";
 import { TimelineRow } from "./TimelineRow";
 import { TimelineInteractionProvider } from "./TimelineInteractionContext";
+import { LOCAL_LAYOUT_TOGGLE_EVENT } from "@/shared/utils/localLayoutToggle";
 
 jest.mock("@/features/timeline/components/planning", () => ({ PlanningTimeline: () => null }));
 
@@ -50,6 +51,19 @@ it("toggles the body when the line itself is clicked", () => {
   act(() => { Simulate.click(view.line, { button: 0 }); });
   expect(view.expanded()).toBe(false);
   view.unmount();
+});
+
+it("reports the in-place expansion so the timeline keeps its position", () => {
+  const listener = jest.fn();
+  window.addEventListener(LOCAL_LAYOUT_TOGGLE_EVENT, listener);
+  const view = mountInbound();
+  try {
+    act(() => { Simulate.click(view.line, { button: 0 }); });
+    expect(listener).toHaveBeenCalledTimes(1);
+  } finally {
+    window.removeEventListener(LOCAL_LAYOUT_TOGGLE_EVENT, listener);
+    view.unmount();
+  }
 });
 
 it("toggles from the MaterialIcon button without double-toggling through the line", () => {

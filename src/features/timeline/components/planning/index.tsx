@@ -10,6 +10,7 @@ import { TimelineNode } from "@/features/timeline/lib/timelineState";
 import { useEffect, useRef, useState } from "react";
 import { useI18n } from "@/shared/i18n";
 import { useTimelineInteraction } from "../TimelineInteractionContext";
+import { notifyLocalLayoutToggle } from "@/shared/utils/localLayoutToggle";
 const presentationClasses = bindCssModuleClasses({ ...timelinePresentation });
 
 
@@ -57,6 +58,7 @@ export const PlanningTimeline: React.FC<PlanningTimelineProps> = ({ node, icon }
       expandIconPosition="end"
       className={presentationClasses("timeline-planning-collapse")}
       ghost
+      onChange={() => notifyLocalLayoutToggle()}
       items={[
         {
           key: "planning",
@@ -118,7 +120,11 @@ export const PlanningTimeline: React.FC<PlanningTimelineProps> = ({ node, icon }
                     size="sm"
                     variant="primary"
                     className="tw:rounded-[20px]"
-                    onClick={() => setExpanded(true)}
+                    onClick={() => {
+                      // 展开正文只改这个条目的高度，属于原地布局变化。
+                      notifyLocalLayoutToggle();
+                      setExpanded(true);
+                    }}
                   >
                     {t("planningTimeline.expand")}
                   </UiButton>

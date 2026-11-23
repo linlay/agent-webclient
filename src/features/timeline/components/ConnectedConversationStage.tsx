@@ -108,12 +108,14 @@ import {
   CONVERSATION_AT_BOTTOM_THRESHOLD_PX,
   CONVERSATION_GESTURE_SETTLE_MS,
   CONVERSATION_GESTURE_UP_PX,
+  CONVERSATION_LOCAL_LAYOUT_SETTLE_MS,
   CONVERSATION_SCROLL_BUTTON_REVEAL_DELAY_MS,
   CONVERSATION_SCROLL_SETTLE_DELAY_MS,
   isWithinConversationFollowThreshold,
   resolveConversationFollowIntent,
   shouldPinConversationToBottom,
 } from "@/features/timeline/lib/conversationFollow";
+import { LOCAL_LAYOUT_TOGGLE_EVENT } from "@/shared/utils/localLayoutToggle";
 import type { AgentSkill } from "@/shared/data/api/dto/agents";
 import { useAgentSkillsQuery } from "@/shared/data/query/queries";
 import timelineStyles from "./Timeline.module.css";
@@ -148,6 +150,10 @@ const CONVERSATION_STAGE_CLASS_NAME =
   "conversation-stage tw:relative tw:min-h-0 tw:flex-1 tw:overflow-hidden tw:animate-fade-slide-in";
 const CONVERSATION_STAGE_SCROLL_TO_BOTTOM_CLASS_NAME =
   presentationClasses("conversation-stage-scroll-to-bottom tw:rounded-full tw:pointer-events-auto");
+// 兜底选择器：展开/收起控件都会把展开态写在 aria-expanded 上（antd Collapse 的
+// header、时间线自己的折叠按钮）。已接 `notifyLocalLayoutToggle` 的模块不依赖它，
+// 它只负责接住还没显式上报的可展开控件，避免新模块漏配。
+const LOCAL_LAYOUT_TOGGLE_SELECTOR = ".ant-collapse-header, [aria-expanded]";
 // 按钮不能放在 Virtuoso 的 Footer 里：Footer 属于滚动内容，sticky 受虚拟列表
 // 视口容器（height:100%）限制，滚动一屏后就会跟着内容走。这里把它固定在
 // conversation-stage 自身的定位层里，Footer 只保留列表末尾的留白。
@@ -562,6 +568,10 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
   const touchStartRef = useRef<{ y: number; scrollTop: number } | null>(null);
   const lastTouchYRef = useRef<number | null>(null);
   const pinFrameRef = useRef<number | null>(null);
+  // 用户刚展开/收起过局部区块（过程折叠、任务组、思考、工具明细）到什么时候。
+  // 这类变更是原地长高，窗口内禁止自动贴底，窗口结束后按真实位置决定跟随。
+  const layoutChangeSettleUntilRef = useRef(0);
+  const layoutChangeSettleTimerRef = useRef<number | null>(null);
   const explicitScrollTimerRef = useRef<number | null>(null);
   const scrollToBottomRevealTimerRef = useRef<number | null>(null);
   const restorationReadyRef = useRef(false);
@@ -1004,20 +1014,6 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
     [deriveChatAction, readOnly],
   );
 
-  const toggleTaskGroup = useCallback((key: string) => {
-    setExpandedTaskGroups((current) => ({
-      ...current,
-      [key]: !current[key],
-    }));
-  }, []);
-
-  const toggleRunCollapse = useCallback((key: string) => {
-    setExpandedRunCollapses((current) => ({
-      ...current,
-      [key]: !current[key],
-    }));
-  }, []);
-
   const captureCurrentBookmark = useCallback(() => {
     const chatId = String(state.chatId || "").trim();
     if (!chatId || restoringRef.current) return;
@@ -1154,6 +1150,68 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
     }
   }, []);
 
+  const isLocalLayoutChangeSettling = useCallback(
+    () => Date.now() < layoutChangeSettleUntilRef.current,
+    [],
+  );
+
+  // 展开/收起过程折叠、任务组、思考、工具明细属于“原地长高”：新增高度应该
+  // 往下延伸，而不是被贴底塞进视口底部、把已有内容整块向上顶。因此窗口内不
+  // 自动贴底，窗口结束后按真实位置收尾——还在底部就继续跟随，长出去了就把
+  // 视口交给用户（亮出“回到底部”，不再被后续输出拽走）。
+  const beginLocalLayoutChange = useCallback(() => {
+    cancelPendingPin();
+    layoutChangeSettleUntilRef.current =
+      Date.now() + CONVERSATION_LOCAL_LAYOUT_SETTLE_MS;
+    if (layoutChangeSettleTimerRef.current !== null) {
+      window.clearTimeout(layoutChangeSettleTimerRef.current);
+    }
+    layoutChangeSettleTimerRef.current = window.setTimeout(() => {
+      layoutChangeSettleTimerRef.current = null;
+      layoutChangeSettleUntilRef.current = 0;
+      if (!scrollerRef.current) return;
+      if (restoringRef.current || isUserGestureActive()) return;
+      if (isScrollerAtBottom()) {
+        followActiveRef.current = true;
+        scrollUpDistanceRef.current = 0;
+        hideScrollToBottom();
+        return;
+      }
+      followActiveRef.current = false;
+      showScrollToBottom();
+    }, CONVERSATION_LOCAL_LAYOUT_SETTLE_MS);
+  }, [
+    cancelPendingPin,
+    hideScrollToBottom,
+    isScrollerAtBottom,
+    isUserGestureActive,
+    showScrollToBottom,
+  ]);
+
+  // 层级较深的展开控件（思考、工具、来源、等待、计划正文、长消息）自己广播
+  // 布局变化；作为兜底，舞台还会在点击捕获层识别 antd Collapse 的 header 和
+  // 任何 aria-expanded 控件，避免新增的可展开模块漏配。
+  useEffect(() => {
+    const handleLocalLayoutToggle = () => beginLocalLayoutChange();
+    window.addEventListener(LOCAL_LAYOUT_TOGGLE_EVENT, handleLocalLayoutToggle);
+    return () => {
+      window.removeEventListener(
+        LOCAL_LAYOUT_TOGGLE_EVENT,
+        handleLocalLayoutToggle,
+      );
+    };
+  }, [beginLocalLayoutChange]);
+
+  const handleStageClickCapture = useCallback(
+    (event: React.MouseEvent<HTMLDivElement>) => {
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+      if (!target.closest(LOCAL_LAYOUT_TOGGLE_SELECTOR)) return;
+      beginLocalLayoutChange();
+    },
+    [beginLocalLayoutChange],
+  );
+
   // 用户已经接管视口：取消排队中的贴底，并把下一帧的滚动基线对齐到当前位置，
   // 否则贴底写回底部会被当成“向下滚动”。
   const leaveFollow = useCallback(() => {
@@ -1164,6 +1222,22 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
     if (scroller) lastScrollerScrollTopRef.current = scroller.scrollTop;
     if (!isScrollerAtBottom()) showScrollToBottom();
   }, [cancelPendingPin, isScrollerAtBottom, showScrollToBottom]);
+
+  const toggleTaskGroup = useCallback((key: string) => {
+    beginLocalLayoutChange();
+    setExpandedTaskGroups((current) => ({
+      ...current,
+      [key]: !current[key],
+    }));
+  }, [beginLocalLayoutChange]);
+
+  const toggleRunCollapse = useCallback((key: string) => {
+    beginLocalLayoutChange();
+    setExpandedRunCollapses((current) => ({
+      ...current,
+      [key]: !current[key],
+    }));
+  }, [beginLocalLayoutChange]);
 
   // 手指抬起后接住惯性：只有真的停在底部才恢复跟随，别在用户还在看历史时
   // 被 atBottom 回调重新装填。
@@ -1385,34 +1459,25 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
   }, []);
 
   // followOutput 只对条目数量变化求值；流式回答是最后一条自己长高，
-  // 必须由总高度变化补一次贴底，否则缺口会一直累积。
+  // 必须由总高度变化补一次贴底，否则缺口会一直累积。用户展开局部区块期间
+  // 的高度变化是“原地长高”，交给内容自然向下延伸，不在这里补贴底。
   const handleTotalListHeightChanged = useCallback(() => {
     if (pinFrameRef.current !== null) return;
-    if (
-      !shouldPinConversationToBottom({
+    const shouldPin = () =>
+      shouldPinConversationToBottom({
         following: followActiveRef.current,
         restorationReady: restorationReadyRef.current,
         restoring: restoringRef.current,
         userGestureActive: isUserGestureActive(),
-      })
-    ) {
-      return;
-    }
+        userLayoutChangeActive: isLocalLayoutChangeSettling(),
+      });
+    if (!shouldPin()) return;
     pinFrameRef.current = window.requestAnimationFrame(() => {
       pinFrameRef.current = null;
-      if (
-        !shouldPinConversationToBottom({
-          following: followActiveRef.current,
-          restorationReady: restorationReadyRef.current,
-          restoring: restoringRef.current,
-          userGestureActive: isUserGestureActive(),
-        })
-      ) {
-        return;
-      }
+      if (!shouldPin()) return;
       pinConversationToBottom();
     });
-  }, [isUserGestureActive, pinConversationToBottom]);
+  }, [isLocalLayoutChangeSettling, isUserGestureActive, pinConversationToBottom]);
 
   const handleRangeChanged = useCallback(
     (range: ListRange) => {
@@ -1799,6 +1864,10 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
         window.clearTimeout(gestureSettleTimerRef.current);
         gestureSettleTimerRef.current = null;
       }
+      if (layoutChangeSettleTimerRef.current !== null) {
+        window.clearTimeout(layoutChangeSettleTimerRef.current);
+        layoutChangeSettleTimerRef.current = null;
+      }
       scrollerGestureCleanupRef.current?.();
       scrollerGestureCleanupRef.current = null;
     };
@@ -2136,6 +2205,7 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
     setExpanded: (nodeId, expanded) => {
       const node = state.timelineNodes.get(nodeId);
       if (!node) return;
+      beginLocalLayoutChange();
       if (node.kind === "thinking") {
         for (const [reasoningId, id] of state.reasoningNodeById) {
           if (id !== nodeId) continue;
@@ -2155,11 +2225,12 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
       openTarget({ version: 1, kind: "source", chatId: state.chatId,
         publishId, sourceId: source.id, source, title: source.title || source.name });
     },
-  }), [currentWorker, dispatch, isMainChatRunning, mainChatRuntime, message, t, openTarget, state, waitTransport, readOnly]);
+  }), [beginLocalLayoutChange, currentWorker, dispatch, isMainChatRunning, mainChatRuntime, message, t, openTarget, state, waitTransport, readOnly]);
 
   return (
     <TimelineInteractionProvider value={interaction}>
     <div className={CONVERSATION_STAGE_CLASS_NAME} ref={containerRef}
+      onClickCapture={handleStageClickCapture}
       {...fileDrop.handlers}>
       <div
         className="tw:absolute tw:inset-0 tw:flex tw:flex-col"
@@ -2212,7 +2283,7 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
               scrollerRef: handleScrollerRef,
               followOutput: (atBottom) =>
                 restorationReady && !restoringRef.current && followActiveRef.current &&
-                atBottom && !isUserGestureActive()
+                atBottom && !isUserGestureActive() && !isLocalLayoutChangeSettling()
                   ? "auto" : false,
               atBottomThreshold: CONVERSATION_AT_BOTTOM_THRESHOLD_PX,
               atBottomStateChange: handleAtBottomStateChange,

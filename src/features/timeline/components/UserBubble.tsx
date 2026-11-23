@@ -2,6 +2,7 @@ import React from "react";
 import { useTimelineContextMenuTarget } from "./TimelineInteractionContext";
 import { useI18n } from "@/shared/i18n";
 import { useTimelineCopy } from "./TimelineInteractionContext";
+import { notifyLocalLayoutToggle } from "@/shared/utils/localLayoutToggle";
 
 interface UserBubbleProps {
 	text: string;
@@ -80,7 +81,11 @@ export const UserBubble: React.FC<UserBubbleProps> = ({
 				<button
 					type="button"
 					className={USER_BUBBLE_TOGGLE_CLASS_NAME}
-					onClick={() => setExpanded((value) => !value)}
+					aria-expanded={expanded}
+					onClick={() => {
+						notifyLocalLayoutToggle();
+						setExpanded((value) => !value);
+					}}
 				>
 					{expanded
 						? t("timeline.userBubble.collapse")

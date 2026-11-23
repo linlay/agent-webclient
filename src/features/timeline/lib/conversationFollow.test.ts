@@ -127,6 +127,8 @@ describe("shouldPinConversationToBottom", () => {
       { following: true, restorationReady: false, restoring: false, userGestureActive: false },
       { following: true, restorationReady: true, restoring: true, userGestureActive: false },
       { following: true, restorationReady: true, restoring: false, userGestureActive: true },
+      // 用户展开局部区块的原地长高：向下延伸，不补贴底。
+      { following: true, restorationReady: true, restoring: false, userGestureActive: false, userLayoutChangeActive: true },
     ]) {
       expect(shouldPinConversationToBottom(blocked)).toBe(false);
     }

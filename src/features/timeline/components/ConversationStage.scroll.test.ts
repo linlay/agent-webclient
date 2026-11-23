@@ -17,6 +17,8 @@ import {
 } from "@/shared/contracts/agentEvents";
 import { SELECTED_TEXT_TARGET_REVEAL_EVENT } from "@/shared/data/desktop/selectedTextLocate";
 import { ConnectedConversationStage } from "@/features/timeline/components/ConnectedConversationStage";
+import { CONVERSATION_LOCAL_LAYOUT_SETTLE_MS } from "@/features/timeline/lib/conversationFollow";
+import { LOCAL_LAYOUT_TOGGLE_EVENT } from "@/shared/utils/localLayoutToggle";
 import {
   TimelineTextSearchProvider,
   useTimelineTextSearch,
@@ -77,6 +79,12 @@ jest.mock("@/features/timeline/components/TimelineRow", () => ({
       "div",
       { "data-testid": "timeline-row", "data-node-id": props.node?.id },
       props.node?.text,
+      // 行内展开控件：舞台靠 aria-expanded 识别“原地长高”的点击。
+      React.createElement(
+        "button",
+        { type: "button", "data-testid": "inline-expand", "aria-expanded": false },
+        "+",
+      ),
     ),
   TimelineActivityRow: (props: { text?: string }) =>
     React.createElement("div", { "data-testid": "timeline-activity-row" }, props.text),
@@ -113,13 +121,43 @@ jest.mock("antd", () => {
   const React = require("react");
   const passthrough = ({ children, ...props }: any) =>
     React.createElement("div", props, children);
-  // 折叠面板：把 activeKey 摊到 DOM 上，用例才能断言面板到底展开了没有。
-  const collapse = ({ children, activeKey, ...props }: any) =>
-    React.createElement(
+  // 折叠面板：把 activeKey 摊到 DOM 上，用例才能断言面板到底展开了没有；
+  // header 可点击，展开体只在 activeKey 命中时挂载（对齐 antd destroyOnHidden）。
+  const collapse = ({ children, activeKey, onChange, items, ...props }: any) => {
+    const activeKeys: string[] = activeKey || [];
+    return React.createElement(
       "div",
-      { ...props, "data-active-keys": JSON.stringify(activeKey || []) },
+      { ...props, "data-active-keys": JSON.stringify(activeKeys) },
       children,
+      ...(items || []).map((item: any) =>
+        React.createElement(
+          "div",
+          { key: item.key, "data-collapse-item": item.key },
+          React.createElement(
+            "button",
+            {
+              type: "button",
+              "data-collapse-header": item.key,
+              onClick: () =>
+                onChange?.(
+                  activeKeys.includes(item.key)
+                    ? activeKeys.filter((key) => key !== item.key)
+                    : [...activeKeys, item.key],
+                ),
+            },
+            item.label,
+          ),
+          activeKeys.includes(item.key)
+            ? React.createElement(
+                "div",
+                { "data-collapse-body": item.key },
+                item.children,
+              )
+            : null,
+        ),
+      ),
     );
+  };
   const Form = Object.assign(passthrough, { Item: passthrough });
   const Input = Object.assign(
     (props: any) => React.createElement("input", props),
@@ -1003,6 +1041,99 @@ describe("ConversationStage scroll restoration", () => {
       behavior: "auto",
       align: "end",
     });
+  });
+
+  it("treats any aria-expanded toggle as an in-place layout change", () => {
+    const transition = createTransition("restoring");
+    mockState = createChatState(transition);
+    mockStateRef.current = mockState;
+    renderStage();
+
+    mockState = createChatState(null);
+    mockStateRef.current = mockState;
+    renderStage();
+
+    setScrollerMetrics(2_000, 600);
+    userScrollTo(1_400);
+    expect(mockVirtuosoProps.followOutput(true)).toBe("auto");
+    mockScrollToIndex.mockReset();
+
+    const toggle = container.querySelector<HTMLButtonElement>(
+      '[data-testid="inline-expand"]',
+    );
+    expect(toggle).not.toBeNull();
+    act(() => toggle!.click());
+
+    setScrollerMetrics(2_320, 600);
+    act(() => mockVirtuosoProps.totalListHeightChanged(2_320));
+    expect(mockScrollToIndex).not.toHaveBeenCalled();
+  });
+
+  it("treats a reported in-place expansion (thinking, tools, planning) as a layout change", () => {
+    const transition = createTransition("restoring");
+    mockState = createChatState(transition);
+    mockStateRef.current = mockState;
+    renderStage();
+
+    mockState = createChatState(null);
+    mockStateRef.current = mockState;
+    renderStage();
+
+    setScrollerMetrics(2_000, 600);
+    userScrollTo(1_400);
+    expect(mockVirtuosoProps.followOutput(true)).toBe("auto");
+    mockScrollToIndex.mockReset();
+
+    // 思考 / 工具 / 来源 / 等待 / 计划正文的折叠体通过共享事件上报，不依赖 DOM 形状。
+    act(() => window.dispatchEvent(new Event(LOCAL_LAYOUT_TOGGLE_EVENT)));
+
+    setScrollerMetrics(2_360, 600);
+    act(() => mockVirtuosoProps.totalListHeightChanged(2_360));
+    expect(mockScrollToIndex).not.toHaveBeenCalled();
+
+    act(() => jest.advanceTimersByTime(CONVERSATION_LOCAL_LAYOUT_SETTLE_MS));
+    expect(
+      container.querySelector(".conversation-stage-scroll-to-bottom"),
+    ).not.toBeNull();
+  });
+
+  it("expands the process collapse downward instead of pinning it to the bottom", () => {
+    mockState = {
+      ...createCompletedRunState(),
+      chatTransition: createTransition("restoring"),
+      chatLoadSeq: 1,
+    };
+    mockStateRef.current = mockState;
+    renderStage();
+
+    mockState = createCompletedRunState();
+    mockStateRef.current = mockState;
+    renderStage();
+
+    const scroller = setScrollerMetrics(2_000, 600);
+    userScrollTo(1_400);
+    expect(mockVirtuosoProps.followOutput(true)).toBe("auto");
+    mockScrollToIndex.mockReset();
+
+    // 点开“过程”折叠：内容在条目内部原地长高，新增高度应该向下延伸。
+    const header = container.querySelector<HTMLButtonElement>(
+      '[data-collapse-header="run-entries"]',
+    );
+    expect(header).not.toBeNull();
+    act(() => header!.click());
+
+    setScrollerMetrics(2_480, 600);
+    act(() => mockVirtuosoProps.totalListHeightChanged(2_480));
+    expect(mockScrollToIndex).not.toHaveBeenCalled();
+    expect(scroller.scrollTop).toBe(1_400);
+
+    // 动画结束后视口已经离开底部：位置交给用户，后续高度变化不再拽回底部。
+    act(() => jest.advanceTimersByTime(CONVERSATION_LOCAL_LAYOUT_SETTLE_MS));
+    expect(
+      container.querySelector(".conversation-stage-scroll-to-bottom"),
+    ).not.toBeNull();
+    act(() => mockVirtuosoProps.totalListHeightChanged(2_520));
+    expect(mockScrollToIndex).not.toHaveBeenCalled();
   });
 
   it("keeps following when content growth alone reports not-at-bottom", () => {

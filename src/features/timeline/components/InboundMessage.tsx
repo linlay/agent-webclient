@@ -9,6 +9,7 @@ import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { useI18n } from "@/shared/i18n";
 import { MailSenderAvatar } from "./MailSenderAvatar";
 import { useTimelineInteraction } from "./TimelineInteractionContext";
+import { notifyLocalLayoutToggle } from "@/shared/utils/localLayoutToggle";
 import styles from "./InboundMessage.module.css";
 
 const SENDER_SLOT = "\u0000";
@@ -122,6 +123,7 @@ export function InboundMessage({
                   return;
                 const selection = window.getSelection?.();
                 if (selection && !selection.isCollapsed) return;
+                notifyLocalLayoutToggle();
                 setExpanded((value) => !value);
               }
             : undefined
@@ -140,7 +142,10 @@ export function InboundMessage({
                   ? t("timeline.userBubble.collapse")
                   : t("timeline.userBubble.expand")
               }
-              onClick={() => setExpanded((value) => !value)}
+              onClick={() => {
+                notifyLocalLayoutToggle();
+                setExpanded((value) => !value);
+              }}
             >
               <MaterialIcon
                 name="keyboard_arrow_down"
