@@ -13,6 +13,8 @@ export function SnapshotSteerMessage({ node, source }: {
   const interaction = useTimelineInteraction();
   const text = node.text || "";
   const attachments = (node.attachments || []).filter(attachment => attachment.name?.trim());
+  // 多个附件时图片退成文件卡片，和实时引导行保持同一种排版。
+  const attachmentOptions = attachments.length > 1 ? { displayMode: "file" as const } : {};
   const label = t(`timeline.steer.received.${source}`);
   if (!text.trim() && attachments.length === 0) return <>{label}</>;
 
@@ -29,7 +31,7 @@ export function SnapshotSteerMessage({ node, source }: {
           <div className="tw:flex tw:flex-wrap tw:gap-2">
             {attachments.map((attachment, index) => (
               <React.Fragment key={`${attachment.name}_${index}`}>
-                {interaction?.renderAttachment?.(attachment, {}) ?? <span>{attachment.name}</span>}
+                {interaction?.renderAttachment?.(attachment, attachmentOptions) ?? <span>{attachment.name}</span>}
               </React.Fragment>
             ))}
           </div>

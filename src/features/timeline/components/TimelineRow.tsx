@@ -458,16 +458,29 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
         ? null
         : <MailBadge mail={node.mail} agents={agents} />
       : getCommandMessageLabel(node.messageVariant);
-    const commandAttachments = (node.attachments || []).length > 0 ? (
+    const commandText = String(node.text || "").trim();
+    const steerAttachments = node.attachments || [];
+    // 多个附件时图片退成文件卡片：一张大图会把整行撑满，其它引用被挤到看不见。
+    const multipleAttachments = steerAttachments.length > 1;
+    const commandAttachments = steerAttachments.length > 0 ? (
       <div className="tw:flex tw:flex-wrap tw:gap-1">
-        {(node.attachments || []).map((attachment, index) => (
+        {steerAttachments.map((attachment, index) => (
           <React.Fragment key={attachment.id || index}>
-            {interaction?.renderAttachment?.(attachment, {}) ?? <span>{attachment.name}</span>}
+            {interaction?.renderAttachment?.(
+              attachment,
+              multipleAttachments
+                ? {
+                    displayMode: "file",
+                    subtitle: getTimelineAttachmentSubtitle(attachment, t, true),
+                  }
+                : {},
+            ) ?? <span>{attachment.name}</span>}
           </React.Fragment>
         ))}
       </div>
     ) : null;
-    const commandBubble = node.mail?.kind !== "ask" ? (
+    // 纯附件的引导没有正文：空气泡只是空壳，直接不渲染。
+    const commandBubble = node.mail?.kind !== "ask" && commandText ? (
       <UserBubble
         text={node.text || ""}
         targetId={node.id}
@@ -489,8 +502,9 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
             <>
               {compact ? (
                 <>
-                  {/* 附件与图标同一条左边缘，图标只和气泡（或指令名）同一行。 */}
-                  {commandAttachments}
+                  {/* 有正文：附件单独占一行，图标只与气泡（或指令名）同一行，
+                      附件与图标同一条左边缘。 */}
+                  {commandBubble ? commandAttachments : null}
                   <div className={TIMELINE_INLINE_ROW_CLASS_NAME}>
                     {iconSlot(commandIcon)}
                     <div>
@@ -498,7 +512,8 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
                         <div className={TIMELINE_COMMAND_LABEL_CLASS_NAME}>{commandLabel}</div>
                       )}
                       {mailAskNode}
-                      {commandBubble}
+                      {/* 无正文时没有气泡可对齐，图标直接排到附件左边。 */}
+                      {commandBubble ?? commandAttachments}
                     </div>
                   </div>
                 </>
