@@ -401,6 +401,32 @@ describe("ConversationStage scroll restoration", () => {
     });
   }
 
+  function userTouch(
+    type: "touchstart" | "touchmove" | "touchend" | "touchcancel",
+    clientY = 0,
+  ) {
+    const scroller = scrollerElement();
+    const event = new Event(type, { bubbles: true, cancelable: true });
+    Object.defineProperty(event, "touches", {
+      value:
+        type === "touchend" || type === "touchcancel"
+          ? []
+          : [{ clientY }],
+    });
+    act(() => {
+      scroller.dispatchEvent(event);
+    });
+  }
+
+  function userWheel(deltaY: number) {
+    const scroller = scrollerElement();
+    const event = new Event("wheel", { bubbles: true, cancelable: true });
+    Object.defineProperty(event, "deltaY", { value: deltaY });
+    act(() => {
+      scroller.dispatchEvent(event);
+    });
+  }
+
   function seedCompatibleBookmark(
     overrides: Partial<NonNullable<ReturnType<typeof getConversationScrollBookmark>>>,
   ) {
@@ -1029,6 +1055,164 @@ describe("ConversationStage scroll restoration", () => {
       behavior: "auto",
       align: "end",
     });
+  });
+
+  it("keeps a slow touch scroll from being re-pinned on every streamed chunk", () => {
+    const transition = createTransition("restoring");
+    mockState = createChatState(transition);
+    mockStateRef.current = mockState;
+    renderStage();
+
+    mockState = createChatState(null);
+    mockStateRef.current = mockState;
+    renderStage();
+
+    setScrollerMetrics(2_200, 600);
+    userScrollTo(1_600);
+    mockScrollToIndex.mockReset();
+
+    // 手机触摸把一次上滑拆成很多 1px 的 scroll 事件，单帧差值过不了 1px 阈值；
+    // 没有累计判定时，下一次内容生长会把用户刚攒起来的位移整个抹掉。
+    for (let offset = 1; offset <= 10; offset += 1) {
+      userScrollTo(1_600 - offset);
+    }
+    act(() => mockVirtuosoProps.totalListHeightChanged(2_300));
+    expect(mockScrollToIndex).not.toHaveBeenCalled();
+  });
+
+  it("stops following when the user touches down away from the bottom", () => {
+    const transition = createTransition("restoring");
+    mockState = createChatState(transition);
+    mockStateRef.current = mockState;
+    renderStage();
+
+    mockState = createChatState(null);
+    mockStateRef.current = mockState;
+    renderStage();
+
+    setScrollerMetrics(2_200, 600);
+    userScrollTo(1_500);
+    mockScrollToIndex.mockReset();
+
+    userTouch("touchstart", 400);
+    act(() => mockVirtuosoProps.totalListHeightChanged(2_400));
+    expect(mockScrollToIndex).not.toHaveBeenCalled();
+  });
+
+  it("does not write scrollTop while a touch gesture holds the viewport", () => {
+    const transition = createTransition("restoring");
+    mockState = createChatState(transition);
+    mockStateRef.current = mockState;
+    renderStage();
+
+    mockState = createChatState(null);
+    mockStateRef.current = mockState;
+    renderStage();
+
+    setScrollerMetrics(2_200, 600);
+    userScrollTo(1_600);
+    mockScrollToIndex.mockReset();
+
+    userTouch("touchstart", 400);
+    act(() => mockVirtuosoProps.totalListHeightChanged(2_400));
+    expect(mockScrollToIndex).not.toHaveBeenCalled();
+
+    // 真实上滑：浏览器先把位置带到 1500，touchmove 才看到方向。
+    userScrollTo(1_500);
+    userTouch("touchmove", 410);
+    userTouch("touchend");
+
+    // 手指已抬起，但惯性期未结束：即使已经回到最底部也不立刻接管视口。
+    userScrollTo(1_600);
+    act(() => mockVirtuosoProps.totalListHeightChanged(2_500));
+    expect(mockScrollToIndex).not.toHaveBeenCalled();
+
+    // 惯性结束且确实停在底部，才恢复跟随。
+    act(() => jest.advanceTimersByTime(600));
+    act(() => mockVirtuosoProps.totalListHeightChanged(2_600));
+    expect(mockScrollToIndex).toHaveBeenCalledWith({
+      index: "LAST",
+      behavior: "auto",
+      align: "end",
+    });
+  });
+
+  it("leaves follow on an upward touch drag even before the scroller moves", () => {
+    const transition = createTransition("restoring");
+    mockState = createChatState(transition);
+    mockStateRef.current = mockState;
+    renderStage();
+
+    mockState = createChatState(null);
+    mockStateRef.current = mockState;
+    renderStage();
+
+    setScrollerMetrics(2_200, 600);
+    userScrollTo(1_600);
+    mockScrollToIndex.mockReset();
+
+    userTouch("touchstart", 400);
+    userTouch("touchmove", 410);
+    // 浏览器随后只滚了 8px，仍在 24px 容差内，但意图已经是阅读历史。
+    userScrollTo(1_592);
+    act(() => mockVirtuosoProps.totalListHeightChanged(2_400));
+    expect(mockScrollToIndex).not.toHaveBeenCalled();
+  });
+
+  it("freezes streamed timeline updates while the user is scrolling", () => {
+    const transition = createTransition("restoring");
+    mockState = createChatState(transition);
+    mockStateRef.current = mockState;
+    renderStage();
+
+    mockState = createChatState(null);
+    mockStateRef.current = mockState;
+    renderStage();
+
+    setScrollerMetrics(2_200, 600);
+    userScrollTo(1_600);
+    userScrollTo(1_500);
+    expect(container.textContent).toContain("hello");
+
+    userTouch("touchstart", 400);
+    userTouch("touchmove", 410);
+
+    // 流式内容在滚动期间到达：DOM 必须停在冻结版本，不能换行。
+    const node = mockState.timelineNodes.get("query-1");
+    if (!node) throw new Error("query node missing");
+    mockState = {
+      ...mockState,
+      timelineNodes: new Map([["query-1", { ...node, text: "streamed update" }]]),
+    };
+    mockStateRef.current = mockState;
+    renderStage();
+    expect(container.textContent).toContain("hello");
+    expect(container.textContent).not.toContain("streamed update");
+
+    // 松手并经过惯性期后解冻，一次性补上最新内容。
+    userTouch("touchend");
+    act(() => jest.advanceTimersByTime(600));
+    renderStage();
+    expect(container.textContent).toContain("streamed update");
+  });
+
+  it("stops following on an upward wheel away from the bottom", () => {
+    const transition = createTransition("restoring");
+    mockState = createChatState(transition);
+    mockStateRef.current = mockState;
+    renderStage();
+
+    mockState = createChatState(null);
+    mockStateRef.current = mockState;
+    renderStage();
+
+    setScrollerMetrics(2_200, 600);
+    userScrollTo(1_200);
+    mockScrollToIndex.mockReset();
+
+    userWheel(-120);
+    act(() => mockVirtuosoProps.totalListHeightChanged(2_300));
+    expect(mockScrollToIndex).not.toHaveBeenCalled();
   });
 
   it("settles an explicit scroll-to-bottom request with auto correction", () => {

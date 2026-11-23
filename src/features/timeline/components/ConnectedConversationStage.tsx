@@ -106,6 +106,8 @@ import {
 } from "@/features/timeline/lib/conversationScrollBookmark";
 import {
   CONVERSATION_AT_BOTTOM_THRESHOLD_PX,
+  CONVERSATION_GESTURE_SETTLE_MS,
+  CONVERSATION_GESTURE_UP_PX,
   CONVERSATION_SCROLL_BUTTON_REVEAL_DELAY_MS,
   CONVERSATION_SCROLL_SETTLE_DELAY_MS,
   isWithinConversationFollowThreshold,
@@ -541,17 +543,29 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
     Record<string, boolean>
   >({});
   const [scrollToBottomVisible, setScrollToBottomVisible] = useState(false);
+  // 阅读历史时冻结时间线内容：手指滚动期间不再重渲染流式正文，
+  // 避免新内容导致整行位置变化。松手/惯性结束后再一次性补最新内容。
+  const [timelineFrozen, setTimelineFrozen] = useState(false);
   const [containerWidth, setContainerWidth] = useState(0);
   const isAtBottomRef = useRef(true);
   // 跟随意图独立于“当前是否在底部”：内容长高会让 atBottom 短暂变 false，
   // 但只有用户主动上滚才应该退出跟随。
   const followActiveRef = useRef(true);
   const lastScrollerScrollTopRef = useRef(0);
+  // 累计向上位移：手机触摸单帧只有不到 1px，单帧差值识别不了“慢慢上滑”。
+  const scrollUpDistanceRef = useRef(0);
+  // 手指手势与抬起后的惯性期。期间不自动写 scrollTop：程序化滚动和原生
+  // 触摸手势同时改 scrollTop 会让视口在两者之间反复跳动。active 表示手指按住，
+  // settleUntil 覆盖抬手后的惯性，moved 表示这次手势真的上滑过（纯点按不延长窗口）。
+  const gestureRef = useRef({ active: false, settleUntil: 0, moved: false });
+  const gestureSettleTimerRef = useRef<number | null>(null);
+  const touchStartRef = useRef<{ y: number; scrollTop: number } | null>(null);
+  const lastTouchYRef = useRef<number | null>(null);
   const pinFrameRef = useRef<number | null>(null);
   const explicitScrollTimerRef = useRef<number | null>(null);
   const scrollToBottomRevealTimerRef = useRef<number | null>(null);
   const restorationReadyRef = useRef(false);
-  const scrollerScrollListenerRef = useRef<(() => void) | null>(null);
+  const scrollerGestureCleanupRef = useRef<(() => void) | null>(null);
   const restoringRef = useRef(false);
   const restoreTargetModeRef = useRef<"anchor" | "bottom" | null>(null);
   const restoreAtBottomObservedRef = useRef(false);
@@ -803,6 +817,12 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
       return { kind: "standalone", key: item.key, item };
     });
   }, [displayItems]);
+
+  const frozenVirtualItemsRef = useRef(virtualItems);
+  if (!timelineFrozen) frozenVirtualItemsRef.current = virtualItems;
+  const renderedVirtualItems = timelineFrozen
+    ? frozenVirtualItemsRef.current
+    : virtualItems;
 
   const virtualItemKeys = useMemo(
     () => virtualItems.map((item) => item.key),
@@ -1110,6 +1130,62 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
     }, CONVERSATION_SCROLL_BUTTON_REVEAL_DELAY_MS);
   }, []);
 
+  const isUserGestureActive = useCallback(
+    () =>
+      gestureRef.current.active ||
+      Date.now() < gestureRef.current.settleUntil,
+    [],
+  );
+
+  const isScrollerAtBottom = useCallback(() => {
+    const scroller = scrollerRef.current;
+    if (!scroller) return false;
+    return isWithinConversationFollowThreshold({
+      scrollHeight: scroller.scrollHeight,
+      clientHeight: scroller.clientHeight,
+      scrollTop: scroller.scrollTop,
+    });
+  }, []);
+
+  const cancelPendingPin = useCallback(() => {
+    if (pinFrameRef.current !== null) {
+      window.cancelAnimationFrame(pinFrameRef.current);
+      pinFrameRef.current = null;
+    }
+  }, []);
+
+  // 用户已经接管视口：取消排队中的贴底，并把下一帧的滚动基线对齐到当前位置，
+  // 否则贴底写回底部会被当成“向下滚动”。
+  const leaveFollow = useCallback(() => {
+    cancelPendingPin();
+    scrollUpDistanceRef.current = 0;
+    followActiveRef.current = false;
+    const scroller = scrollerRef.current;
+    if (scroller) lastScrollerScrollTopRef.current = scroller.scrollTop;
+    if (!isScrollerAtBottom()) showScrollToBottom();
+  }, [cancelPendingPin, isScrollerAtBottom, showScrollToBottom]);
+
+  // 手指抬起后接住惯性：只有真的停在底部才恢复跟随，别在用户还在看历史时
+  // 被 atBottom 回调重新装填。
+  const settleUserGesture = useCallback(() => {
+    gestureSettleTimerRef.current = null;
+    gestureRef.current.settleUntil = 0;
+    setTimelineFrozen(false);
+    if (gestureRef.current.active || restoringRef.current) return;
+    if (!isScrollerAtBottom()) return;
+    followActiveRef.current = true;
+    scrollUpDistanceRef.current = 0;
+    hideScrollToBottom();
+  }, [hideScrollToBottom, isScrollerAtBottom]);
+  const settleUserGestureRef = useRef(settleUserGesture);
+  settleUserGestureRef.current = settleUserGesture;
+  const leaveFollowRef = useRef(leaveFollow);
+  leaveFollowRef.current = leaveFollow;
+  const isScrollerAtBottomRef = useRef(isScrollerAtBottom);
+  isScrollerAtBottomRef.current = isScrollerAtBottom;
+  const cancelPendingPinRef = useRef(cancelPendingPin);
+  cancelPendingPinRef.current = cancelPendingPin;
+
   const trackScrollerScroll = useCallback(() => {
     const scroller = scrollerRef.current;
     if (!scroller) return;
@@ -1117,6 +1193,12 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
     const previousScrollTop = lastScrollerScrollTopRef.current;
     lastScrollerScrollTopRef.current = scrollTop;
     if (restoringRef.current) return;
+    if (scrollTop < previousScrollTop) {
+      scrollUpDistanceRef.current += previousScrollTop - scrollTop;
+    } else if (scrollTop > previousScrollTop) {
+      // 向下滚动或程序化贴底把位置写回底部：累计清零。
+      scrollUpDistanceRef.current = 0;
+    }
     const atBottom = isWithinConversationFollowThreshold({
       scrollHeight: scroller.scrollHeight,
       clientHeight: scroller.clientHeight,
@@ -1127,6 +1209,7 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
       atBottom,
       scrollTop,
       previousScrollTop,
+      scrollUpDistancePx: scrollUpDistanceRef.current,
     });
     if (atBottom) {
       hideScrollToBottom();
@@ -1142,40 +1225,131 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
     (ref: HTMLElement | Window | null) => {
       const element = ref instanceof HTMLElement ? ref : null;
       if (scrollerRef.current === element) return;
-      if (scrollerRef.current && scrollerScrollListenerRef.current) {
-        scrollerRef.current.removeEventListener(
-          "scroll",
-          scrollerScrollListenerRef.current,
-        );
-      }
+      scrollerGestureCleanupRef.current?.();
+      scrollerGestureCleanupRef.current = null;
       scrollerRef.current = element;
-      scrollerScrollListenerRef.current = null;
       if (!element) return;
+      // 在真实滚动元素上关闭浏览器滚动锚定：流式增长时原生锚定会擅自改
+      // scrollTop，和虚拟列表的测量互相拉扯，表现为可见文字整行跳动。
+      element.style.setProperty("overflow-anchor", "none");
       lastScrollerScrollTopRef.current = element.scrollTop;
+      scrollUpDistanceRef.current = 0;
+      gestureRef.current = { active: false, settleUntil: 0, moved: false };
+      touchStartRef.current = null;
+      lastTouchYRef.current = null;
+
       const listener = () => trackScrollerScrollRef.current();
-      scrollerScrollListenerRef.current = listener;
+      const clearSettleTimer = () => {
+        if (gestureSettleTimerRef.current !== null) {
+          window.clearTimeout(gestureSettleTimerRef.current);
+          gestureSettleTimerRef.current = null;
+        }
+      };
+      // 触摸滚动时程序化写 scrollTop 会和原生手势抢推进权：手指按住、以及抬起后
+      // 的惯性期一律不贴底。用 touch/wheel 的方向做意图，不再依赖单帧像素差。
+      const onTouchStart = (event: TouchEvent) => {
+        const touch = event.touches[0];
+        gestureRef.current.active = true;
+        gestureRef.current.settleUntil = 0;
+        gestureRef.current.moved = false;
+        clearSettleTimer();
+        cancelPendingPinRef.current();
+        touchStartRef.current = touch
+          ? { y: touch.clientY, scrollTop: element.scrollTop }
+          : null;
+        lastTouchYRef.current = touch ? touch.clientY : null;
+        if (!isScrollerAtBottomRef.current()) leaveFollowRef.current();
+      };
+      const onTouchMove = (event: TouchEvent) => {
+        const touch = event.touches[0];
+        if (!touch) return;
+        const start = touchStartRef.current;
+        const previousY = lastTouchYRef.current;
+        lastTouchYRef.current = touch.clientY;
+        if (!start || previousY === null) return;
+        // 手指往下走 = 内容往上翻 = 看更早的消息；反方向不改变意图。
+        if (touch.clientY <= previousY) return;
+        if (touch.clientY - start.y < CONVERSATION_GESTURE_UP_PX) return;
+        // 已经滚到尽头时手指仍会带出橡皮筋但不产生位移，这种情况不算离开阅读位置。
+        const scrolledUp = start.scrollTop - element.scrollTop;
+        if (scrolledUp <= 0 && isScrollerAtBottomRef.current()) return;
+        gestureRef.current.moved = true;
+        setTimelineFrozen(true);
+        leaveFollowRef.current();
+      };
+      const finishTouch = () => {
+        gestureRef.current.active = false;
+        touchStartRef.current = null;
+        lastTouchYRef.current = null;
+        clearSettleTimer();
+        // 只是点按（没有上滑）不延长抑制窗口：否则点一下消息后的新内容会短暂不跟随。
+        if (!gestureRef.current.moved) {
+          gestureRef.current.settleUntil = 0;
+          setTimelineFrozen(false);
+          return;
+        }
+        gestureRef.current.settleUntil =
+          Date.now() + CONVERSATION_GESTURE_SETTLE_MS;
+        gestureSettleTimerRef.current = window.setTimeout(() => {
+          settleUserGestureRef.current();
+        }, CONVERSATION_GESTURE_SETTLE_MS);
+      };
+      const onTouchEnd = (event: TouchEvent) => {
+        if (event.touches.length > 0) return;
+        finishTouch();
+      };
+      const onWheel = (event: WheelEvent) => {
+        if (event.deltaY >= 0) return;
+        if (!isScrollerAtBottomRef.current()) leaveFollowRef.current();
+      };
+
       element.addEventListener("scroll", listener, { passive: true });
+      element.addEventListener("touchstart", onTouchStart, { passive: true });
+      element.addEventListener("touchmove", onTouchMove, { passive: true });
+      element.addEventListener("touchend", onTouchEnd, { passive: true });
+      element.addEventListener("touchcancel", onTouchEnd, { passive: true });
+      element.addEventListener("wheel", onWheel, { passive: true });
+      scrollerGestureCleanupRef.current = () => {
+        element.removeEventListener("scroll", listener);
+        element.removeEventListener("touchstart", onTouchStart);
+        element.removeEventListener("touchmove", onTouchMove);
+        element.removeEventListener("touchend", onTouchEnd);
+        element.removeEventListener("touchcancel", onTouchEnd);
+        element.removeEventListener("wheel", onWheel);
+        clearSettleTimer();
+        gestureRef.current = { active: false, settleUntil: 0, moved: false };
+      };
     },
     [],
   );
 
-  const handleIsScrolling = useCallback((scrolling: boolean) => {
-    if (scrolling) {
+  const handleIsScrolling = useCallback(
+    (scrolling: boolean) => {
+      if (scrolling) {
+        if (saveTimerRef.current !== null) {
+          window.clearTimeout(saveTimerRef.current);
+          saveTimerRef.current = null;
+        }
+        return;
+      }
+      if (restoringRef.current) return;
+      // 惯性结束且确实回到最底部（例如向下甩回底部）才恢复跟随。
+      if (!isUserGestureActive() && isScrollerAtBottom()) {
+        followActiveRef.current = true;
+        scrollUpDistanceRef.current = 0;
+        setTimelineFrozen(false);
+        hideScrollToBottom();
+      }
       if (saveTimerRef.current !== null) {
         window.clearTimeout(saveTimerRef.current);
-        saveTimerRef.current = null;
       }
-      return;
-    }
-    if (restoringRef.current) return;
-    if (saveTimerRef.current !== null) {
-      window.clearTimeout(saveTimerRef.current);
-    }
-    saveTimerRef.current = window.setTimeout(() => {
-      saveTimerRef.current = null;
-      captureCurrentBookmarkRef.current();
-    }, 150);
-  }, []);
+      saveTimerRef.current = window.setTimeout(() => {
+        saveTimerRef.current = null;
+        captureCurrentBookmarkRef.current();
+      }, 150);
+    },
+    [hideScrollToBottom, isScrollerAtBottom, isUserGestureActive],
+  );
 
   const handleAtBottomStateChange = useCallback((atBottom: boolean) => {
     if (restoringRef.current) {
@@ -1185,8 +1359,14 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
       return;
     }
     // 不在底部时不直接关跟随：高度增长、视口变矮也会让 atBottom 变 false，
-    // 只有真实的向上滚动（scroll 事件）才算用户离开底部。
-    if (atBottom) followActiveRef.current = true;
+    // 只有真实的向上滚动/触摸手势才算用户离开底部。
+    // 反过来，用户手势期间贴底被禁止，这时的 atBottom 可能来自上一帧的贴底或
+    // 手指回压，不能借此把刚取消的跟随重新装填。
+    if (atBottom && !isUserGestureActive()) {
+      followActiveRef.current = true;
+      scrollUpDistanceRef.current = 0;
+      setTimelineFrozen(false);
+    }
     isAtBottomRef.current = atBottom;
     if (atBottom) {
       hideScrollToBottom();
@@ -1194,7 +1374,7 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
       // 内容生长会在下一帧被贴底修复；先不亮按钮，避免每个 chunk 闪一下。
       revealScrollToBottomLater();
     }
-  }, [hideScrollToBottom, revealScrollToBottomLater]);
+  }, [hideScrollToBottom, isUserGestureActive, revealScrollToBottomLater]);
 
   const pinConversationToBottom = useCallback(() => {
     virtuosoRef.current?.scrollToIndex({
@@ -1213,6 +1393,7 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
         following: followActiveRef.current,
         restorationReady: restorationReadyRef.current,
         restoring: restoringRef.current,
+        userGestureActive: isUserGestureActive(),
       })
     ) {
       return;
@@ -1224,13 +1405,14 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
           following: followActiveRef.current,
           restorationReady: restorationReadyRef.current,
           restoring: restoringRef.current,
+          userGestureActive: isUserGestureActive(),
         })
       ) {
         return;
       }
       pinConversationToBottom();
     });
-  }, [pinConversationToBottom]);
+  }, [isUserGestureActive, pinConversationToBottom]);
 
   const handleRangeChanged = useCallback(
     (range: ListRange) => {
@@ -1292,6 +1474,8 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
     }
     followActiveRef.current = true;
     isAtBottomRef.current = true;
+    scrollUpDistanceRef.current = 0;
+    setTimelineFrozen(false);
     hideScrollToBottom();
     virtuosoRef.current?.scrollToIndex({
       index: "LAST",
@@ -1380,6 +1564,7 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
       showScrollToBottom();
     }
     followActiveRef.current = shouldRestoreBottom;
+    scrollUpDistanceRef.current = 0;
     restoreTargetModeRef.current = shouldRestoreBottom ? "bottom" : "anchor";
     restoreAtBottomObservedRef.current = false;
     let cancelled = false;
@@ -1448,6 +1633,7 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
       restoreTargetModeRef.current = null;
       restoreAtBottomObservedRef.current = false;
       followActiveRef.current = shouldRestoreBottom;
+      scrollUpDistanceRef.current = 0;
       const scroller = scrollerRef.current;
       lastScrollerScrollTopRef.current =
         scroller?.scrollTop ?? lastScrollerScrollTopRef.current;
@@ -1609,13 +1795,12 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
         window.clearTimeout(scrollToBottomRevealTimerRef.current);
         scrollToBottomRevealTimerRef.current = null;
       }
-      if (scrollerRef.current && scrollerScrollListenerRef.current) {
-        scrollerRef.current.removeEventListener(
-          "scroll",
-          scrollerScrollListenerRef.current,
-        );
-        scrollerScrollListenerRef.current = null;
+      if (gestureSettleTimerRef.current !== null) {
+        window.clearTimeout(gestureSettleTimerRef.current);
+        gestureSettleTimerRef.current = null;
       }
+      scrollerGestureCleanupRef.current?.();
+      scrollerGestureCleanupRef.current = null;
     };
   }, []);
 
@@ -2007,7 +2192,7 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
           ) : null
         ) : (
           <ConversationStage
-            items={virtualItems}
+            items={renderedVirtualItems}
             agents={state.agents}
             skills={activeAgentSkills}
             fallbackAgentKey={currentWorker?.type === "agent" ? currentWorker.sourceId : ""}
@@ -2026,7 +2211,8 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
               snapshot: matchingSnapshot,
               scrollerRef: handleScrollerRef,
               followOutput: (atBottom) =>
-                restorationReady && !restoringRef.current && followActiveRef.current && atBottom
+                restorationReady && !restoringRef.current && followActiveRef.current &&
+                atBottom && !isUserGestureActive()
                   ? "auto" : false,
               atBottomThreshold: CONVERSATION_AT_BOTTOM_THRESHOLD_PX,
               atBottomStateChange: handleAtBottomStateChange,

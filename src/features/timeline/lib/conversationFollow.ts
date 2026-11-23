@@ -14,6 +14,19 @@ export const CONVERSATION_AT_BOTTOM_THRESHOLD_PX = 24;
 /** 用户滚动与程序化贴底之间的判定容差。 */
 export const CONVERSATION_SCROLL_USER_DELTA_PX = 1;
 
+/**
+ * 单帧位移容差只适合滚轮/拖滚动条这类大跳变；手机触摸把一次上滑拆成很多
+ * 零点几像素的 scroll 事件，单帧差值永远跨不过 1px。累计上移超过这个距离
+ * 仍算用户上滚，避免贴底把用户缓慢攒起的位移反复清零。
+ */
+export const CONVERSATION_SCROLL_USER_ACCUM_PX = 4;
+
+/** 手指位移超过这个距离才认定为有意的上滑，过滤按住时的轻微抖动。 */
+export const CONVERSATION_GESTURE_UP_PX = 4;
+
+/** 手指抬起后留给惯性滚动的时间，期间不自动写 scrollTop。 */
+export const CONVERSATION_GESTURE_SETTLE_MS = 600;
+
 /** 显式“回到底部”的平滑动画结束后，用 auto 校正残余误差。 */
 export const CONVERSATION_SCROLL_SETTLE_DELAY_MS = 500;
 
@@ -43,12 +56,24 @@ export function resolveConversationFollowIntent(input: {
   atBottom: boolean;
   scrollTop: number;
   previousScrollTop: number;
+  /**
+   * 自上次向下滚动或程序化贴底以来累计的向上位移（px）。
+   * 触摸滚动每帧只有不到 1px，必须靠累计值识别意图。
+   */
+  scrollUpDistancePx?: number;
 }): boolean {
-  if (input.atBottom) return true;
+  const scrollUpDistancePx = input.scrollUpDistancePx ?? 0;
+  // 容差内的轻微上移不算离开，但真的累计上滚了就不能再被“仍在容差内”吞掉。
+  if (input.atBottom) {
+    return scrollUpDistancePx < CONVERSATION_SCROLL_USER_ACCUM_PX;
+  }
   if (
     input.scrollTop <
     input.previousScrollTop - CONVERSATION_SCROLL_USER_DELTA_PX
   ) {
+    return false;
+  }
+  if (scrollUpDistancePx >= CONVERSATION_SCROLL_USER_ACCUM_PX) {
     return false;
   }
   return input.following;
@@ -58,6 +83,13 @@ export function shouldPinConversationToBottom(input: {
   following: boolean;
   restorationReady: boolean;
   restoring: boolean;
+  /** 手指按住或刚抬起（惯性期）时不写 scrollTop，避免和原生触摸手势互相覆盖。 */
+  userGestureActive: boolean;
 }): boolean {
-  return input.following && input.restorationReady && !input.restoring;
+  return (
+    input.following &&
+    input.restorationReady &&
+    !input.restoring &&
+    !input.userGestureActive
+  );
 }

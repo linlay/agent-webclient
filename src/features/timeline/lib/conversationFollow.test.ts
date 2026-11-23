@@ -1,5 +1,6 @@
 import {
   CONVERSATION_AT_BOTTOM_THRESHOLD_PX,
+  CONVERSATION_SCROLL_USER_ACCUM_PX,
   isWithinConversationFollowThreshold,
   resolveConversationFollowIntent,
   shouldPinConversationToBottom,
@@ -59,6 +60,45 @@ describe("conversation follow intent", () => {
     ).toBe(false);
   });
 
+  it("stops following once slow touch scrolling accumulates enough distance", () => {
+    // 触摸滚动每帧只有不到 1px：单帧差值过不了阈值，只能靠累计位移。
+    let accumulated = 0;
+    for (let index = 0; index < 8; index += 1) {
+      accumulated += 0.5;
+      expect(
+        resolveConversationFollowIntent({
+          following: true,
+          atBottom: false,
+          scrollTop: 1_600 - accumulated,
+          previousScrollTop: 1_600 - accumulated + 0.5,
+          scrollUpDistancePx: accumulated,
+        }),
+      ).toBe(accumulated >= CONVERSATION_SCROLL_USER_ACCUM_PX ? false : true);
+    }
+  });
+
+  it("leaves the bottom when the user nudges up past the accumulated tolerance", () => {
+    // 还在 24px 容差内，但已经真实上滚，不能再被“就在底部”吞掉。
+    expect(
+      resolveConversationFollowIntent({
+        following: true,
+        atBottom: true,
+        scrollTop: 1_590,
+        previousScrollTop: 1_590,
+        scrollUpDistancePx: CONVERSATION_SCROLL_USER_ACCUM_PX,
+      }),
+    ).toBe(false);
+    expect(
+      resolveConversationFollowIntent({
+        following: true,
+        atBottom: true,
+        scrollTop: 1_590,
+        previousScrollTop: 1_590,
+        scrollUpDistancePx: CONVERSATION_SCROLL_USER_ACCUM_PX - 1,
+      }),
+    ).toBe(true);
+  });
+
   it("does not treat a downward scroll as leaving the bottom", () => {
     expect(
       resolveConversationFollowIntent({
@@ -66,24 +106,27 @@ describe("conversation follow intent", () => {
         atBottom: false,
         scrollTop: 1_200,
         previousScrollTop: 1_000,
+        scrollUpDistancePx: 0,
       }),
     ).toBe(true);
   });
 });
 
 describe("shouldPinConversationToBottom", () => {
-  it("pins only while following, ready and not restoring", () => {
+  it("pins only while following, ready, idle and not restoring", () => {
     expect(
       shouldPinConversationToBottom({
         following: true,
         restorationReady: true,
         restoring: false,
+        userGestureActive: false,
       }),
     ).toBe(true);
     for (const blocked of [
-      { following: false, restorationReady: true, restoring: false },
-      { following: true, restorationReady: false, restoring: false },
-      { following: true, restorationReady: true, restoring: true },
+      { following: false, restorationReady: true, restoring: false, userGestureActive: false },
+      { following: true, restorationReady: false, restoring: false, userGestureActive: false },
+      { following: true, restorationReady: true, restoring: true, userGestureActive: false },
+      { following: true, restorationReady: true, restoring: false, userGestureActive: true },
     ]) {
       expect(shouldPinConversationToBottom(blocked)).toBe(false);
     }
