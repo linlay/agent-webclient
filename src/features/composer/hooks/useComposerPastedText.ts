@@ -7,6 +7,7 @@ import {
   removePastedText,
   serializePastedTextDraft,
   shouldCollapsePastedText,
+  updatePastedText,
   updatePastedTextInput,
   type PastedTextDraft,
 } from "../lib/pastedText";
@@ -76,12 +77,18 @@ export function useComposerPastedText({ value, scopeKey, onChange, onFilePaste, 
     focusInput();
   }, [commit, draft, focusInput]);
 
-  const expandPaste = useCallback((id: string) => {
+  const updatePaste = useCallback((id: string, text: string) => {
+    commit(updatePastedText(draft, id, text));
+  }, [commit, draft]);
+
+  /** Optional `text` carries unsaved edits from the preview editor into the input. */
+  const expandPaste = useCallback((id: string, text?: string) => {
     const paste = draft.pastes.find(item => item.id === id);
     if (!paste) return;
-    commit(expandPastedText(draft, id));
-    focusInput(paste.offset + paste.text.length);
+    const content = text ?? paste.text;
+    commit(content ? expandPastedText(updatePastedText(draft, id, content), id) : removePastedText(draft, id));
+    focusInput(paste.offset + content.length);
   }, [commit, draft, focusInput]);
 
-  return { inputValue: draft.input, pastes: draft.pastes, captureSelection, handlePaste, handleInputChange, removePaste, expandPaste };
+  return { inputValue: draft.input, pastes: draft.pastes, captureSelection, handlePaste, handleInputChange, removePaste, updatePaste, expandPaste };
 }

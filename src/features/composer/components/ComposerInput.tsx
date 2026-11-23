@@ -79,7 +79,8 @@ export const ComposerInput: React.FC<ComposerInputProps> = ({
   const [inputExpanded, setInputExpanded] = useState(false);
   const pastedTextCards = (
     <ComposerPastedTexts pastes={pastedText.pastes} disabled={disabled || isFrontendActive}
-      inline={Boolean(renderAttachments)} onRemove={pastedText.removePaste} onExpand={pastedText.expandPaste} />
+      inline={Boolean(renderAttachments)} onRemove={pastedText.removePaste}
+      onSave={pastedText.updatePaste} onExpand={pastedText.expandPaste} />
   );
 
   return (

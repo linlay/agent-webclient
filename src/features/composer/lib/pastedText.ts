@@ -92,3 +92,10 @@ export function expandPastedText(draft: PastedTextDraft, id: string): PastedText
     }]),
   };
 }
+
+/** Replaces one card's text in place; an emptied card is removed. */
+export function updatePastedText(draft: PastedTextDraft, id: string, text: string): PastedTextDraft {
+  if (!draft.pastes.some(paste => paste.id === id)) return draft;
+  if (!text) return removePastedText(draft, id);
+  return { ...draft, pastes: draft.pastes.map(paste => paste.id === id ? { ...paste, text } : paste) };
+}

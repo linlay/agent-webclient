@@ -4,6 +4,7 @@ import {
   removePastedText,
   serializePastedTextDraft,
   shouldCollapsePastedText,
+  updatePastedText,
   updatePastedTextInput,
   type PastedTextDraft,
 } from "./pastedText";
@@ -238,5 +239,14 @@ describe("removing and expanding pasted text", () => {
       `Start ${firstText}${thirdText}/ ${secondText}End`,
     );
     expect(expandPastedText(original, "unknown")).toBe(original);
+  });
+
+  it("updates one card in place and removes it when emptied", () => {
+    const original = threePastes();
+    const updated = updatePastedText(original, "second", "edited");
+    expect(serializePastedTextDraft(updated)).toBe(`Start ${firstText}${thirdText}/ editedEnd`);
+    expect(updated.pastes.map(paste => paste.offset)).toEqual(original.pastes.map(paste => paste.offset));
+    expect(updatePastedText(original, "second", "").pastes.map(paste => paste.id)).not.toContain("second");
+    expect(updatePastedText(original, "unknown", "x")).toBe(original);
   });
 });

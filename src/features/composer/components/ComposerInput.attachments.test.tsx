@@ -102,11 +102,52 @@ describe("ComposerInput mixed image and pasted text", () => {
     expect(container.querySelector('[data-testid="image-card"]')).not.toBeNull();
   });
 
+  function openPreview() {
+    act(() => (container.querySelector('[aria-label="composer.pastedText.preview"]') as HTMLButtonElement).click());
+    return container.querySelector<HTMLTextAreaElement>('[role="dialog"] textarea')!;
+  }
+
+  function editPreview(editor: HTMLTextAreaElement, next: string) {
+    const setter = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")!.set!;
+    act(() => {
+      setter.call(editor, next);
+      editor.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+  }
+
+  function dialogButton(label: string) {
+    return Array.from(container.querySelectorAll<HTMLButtonElement>('[role="dialog"] button'))
+      .find(button => button.textContent === label)!;
+  }
+
+  it("edits the pasted text in place and keeps it collapsed after saving", () => {
+    paste();
+    const editor = openPreview();
+    expect(editor.value).toBe(text);
+    expect(dialogButton("composer.pastedText.save").disabled).toBe(true);
+    editPreview(editor, `${text}追加内容`);
+    act(() => dialogButton("composer.pastedText.save").click());
+    expect(canonical).toBe(`${text}追加内容`);
+    expect(container.querySelector("textarea")!.value).toBe("");
+    expect(container.querySelector('[role="dialog"]')).toBeNull();
+    expect(openPreview().value).toBe(`${text}追加内容`);
+  });
+
+  it("discards unsaved edits on cancel and carries them when moved to the input", () => {
+    paste();
+    editPreview(openPreview(), "草稿修改");
+    act(() => dialogButton("composer.pastedText.cancel").click());
+    expect(canonical).toBe(text);
+    editPreview(openPreview(), "放回的修改");
+    act(() => dialogButton("composer.pastedText.expand").click());
+    expect(canonical).toBe("放回的修改");
+    expect(container.querySelector("textarea")!.value).toBe("放回的修改");
+  });
+
   it("previews and expands the full original text while retaining its image", () => {
     paste();
-    act(() => (container.querySelector('[aria-label="composer.pastedText.preview"]') as HTMLButtonElement).click());
-    expect(container.querySelector("pre")!.textContent).toBe(text);
-    act(() => (container.querySelector('[role="dialog"] button') as HTMLButtonElement).click());
+    expect(openPreview().value).toBe(text);
+    act(() => dialogButton("composer.pastedText.expand").click());
     expect(container.querySelector("textarea")!.value).toBe(text);
     expect(canonical).toBe(text);
     expect(container.querySelector('[data-testid="image-card"]')).not.toBeNull();

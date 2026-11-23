@@ -39,36 +39,202 @@
     opacity: .45;
 }
 
-.details {
+.header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+    padding-right: 28px;
+}
+
+.headerIcon {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: color-mix(in srgb, var(--accent-electric) 12%, transparent);
+    color: var(--accent-electric);
+    font-size: 20px;
+}
+
+.headerCopy {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.headerTitle {
+    color: var(--ink-1);
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 1.35;
+}
+
+.headerMeta {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
     color: var(--ink-muted);
     font-size: 12px;
+    font-weight: 400;
     line-height: 1.4;
+    font-variant-numeric: tabular-nums;
+}
+
+.dot {
+    width: 3px;
+    height: 3px;
+    border-radius: 50%;
+    background: currentColor;
+    opacity: .6;
+}
+
+.dirty {
+    margin-left: 4px;
+    padding: 0 7px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--warn) 14%, transparent);
+    color: var(--warn);
+    font-size: 11px;
+    line-height: 18px;
+}
+
+.footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.hint {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    color: var(--ink-muted);
+    font-size: 12px;
+}
+
+.kbd {
+    display: inline-flex;
+    align-items: center;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 5px;
+    justify-content: center;
+    border: 1px solid var(--line-soft);
+    border-bottom-width: 2px;
+    border-radius: 5px;
+    background: var(--bg-elev-2);
+    color: var(--ink-2);
+    font: 11px/1 var(--font-sans, inherit);
 }
 
 .modal :global(.ant-modal-content) {
+    padding: 18px 16px 16px;
+    border-radius: 16px;
     background: var(--desktop-overlay-panel-bg);
     color: var(--ink-1);
 }
 
 .modal :global(.ant-modal-header) {
+    margin-bottom: 16px;
     background: transparent;
+}
+
+.modal :global(.ant-modal-close) {
+    top: 22px;
+    inset-inline-end: 14px;
+}
+
+.modal :global(.ant-modal-footer) {
+    margin-top: 16px;
 }
 
 .modal:global(.ant-modal) :global(.ant-modal-body) {
     display: block;
 }
 
+/* 编辑器卡片：无边框浅底，聚焦时不额外加描边或光晕。 */
+.editor {
+    position: relative;
+    overflow: hidden;
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--ink-1) 2.5%, var(--desktop-overlay-panel-bg, transparent));
+}
+
 .content {
-    max-height: min(55vh, 520px);
-    margin: 12px 0 0;
-    overflow: auto;
-    border: 1px solid var(--line-soft);
-    border-radius: 8px;
-    padding: 14px;
-    background: var(--bg-elev-2);
+    display: block;
+    box-sizing: border-box;
+    width: 100%;
+    height: min(58vh, 540px);
+    margin: 0;
+    resize: none;
+    border: 0;
+    padding: 12px 44px 12px 12px;
+    background: transparent;
     color: var(--ink-1);
     white-space: pre-wrap;
     overflow-wrap: anywhere;
+    overflow: auto;
     tab-size: 4;
-    font: 13px/1.6 var(--font-mono, monospace);
+    font: 12.5px/1.75 var(--font-mono, monospace);
+    outline: none;
+}
+
+.content:focus,
+.content:focus-visible {
+    outline: none;
+}
+
+.content::selection {
+    background: color-mix(in srgb, var(--accent-electric) 22%, transparent);
+}
+
+.content[readonly] {
+    cursor: default;
+}
+
+.copy {
+    position: absolute;
+    top: 10px;
+    right: 14px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border: 1px solid var(--line-soft);
+    border-radius: 8px;
+    background: var(--desktop-overlay-panel-bg, var(--bg-elev-2));
+    color: var(--ink-muted);
+    font-size: 16px;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity .15s ease, color .15s ease, border-color .15s ease;
+}
+
+.editor:hover .copy,
+.copy:focus-visible {
+    opacity: 1;
+}
+
+.copy:hover {
+    border-color: var(--line-strong);
+    color: var(--ink-1);
+}
+
+.copy:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--accent-electric) 70%, transparent);
+    outline-offset: 1px;
 }
