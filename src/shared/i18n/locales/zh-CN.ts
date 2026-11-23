@@ -7,6 +7,7 @@ export const zhCNMessages = {
   "mobile.backToChat": "返回对话",
   "mobile.openNavigation": "打开导航",
   "mobile.closeNavigation": "关闭导航",
+  "mobile.navigation": "导航",
   "mobile.sort": "整理顺序",
   "mobile.moveUp": "上移",
   "mobile.moveDown": "下移",

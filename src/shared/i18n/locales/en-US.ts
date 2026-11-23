@@ -7,6 +7,7 @@ export const enUSMessages = {
   "mobile.backToChat": "Back to chat",
   "mobile.openNavigation": "Open navigation",
   "mobile.closeNavigation": "Close navigation",
+  "mobile.navigation": "Navigation",
   "mobile.sort": "Reorder items",
   "mobile.moveUp": "Move up",
   "mobile.moveDown": "Move down",

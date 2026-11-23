@@ -5,6 +5,8 @@
   min-height: 0;
   isolation: isolate;
   overflow: hidden;
+  /* 横向滑动由壳层接管，避免浏览器把边缘滑动当成前进/后退。 */
+  overscroll-behavior-x: none;
   background: var(--main-chat-surface);
   color: var(--text-main);
 }
