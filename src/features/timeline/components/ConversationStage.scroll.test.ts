@@ -17,7 +17,6 @@ import {
 } from "@/shared/contracts/agentEvents";
 import { SELECTED_TEXT_TARGET_REVEAL_EVENT } from "@/shared/data/desktop/selectedTextLocate";
 import { ConnectedConversationStage } from "@/features/timeline/components/ConnectedConversationStage";
-import { CONVERSATION_LOCAL_LAYOUT_SETTLE_MS } from "@/features/timeline/lib/conversationFollow";
 import { LOCAL_LAYOUT_TOGGLE_EVENT } from "@/shared/utils/localLayoutToggle";
 import {
   TimelineTextSearchProvider,
@@ -1064,8 +1063,17 @@ describe("ConversationStage scroll restoration", () => {
     expect(toggle).not.toBeNull();
     act(() => toggle!.click());
 
+    // 展开即交出视口：followOutput 必须切成布尔 false，virtuoso 内部的
+    // “条目长高就贴底”只认布尔 false，返回 false 的函数挡不住它。
+    expect(mockVirtuosoProps.followOutput).toBe(false);
     setScrollerMetrics(2_320, 600);
     act(() => mockVirtuosoProps.totalListHeightChanged(2_320));
+    expect(mockScrollToIndex).not.toHaveBeenCalled();
+
+    // 迟到的布局（图片、终端、iframe）也不能把视口拽回底部。
+    act(() => jest.advanceTimersByTime(3_000));
+    setScrollerMetrics(2_760, 600);
+    act(() => mockVirtuosoProps.totalListHeightChanged(2_760));
     expect(mockScrollToIndex).not.toHaveBeenCalled();
   });
 
@@ -1091,7 +1099,14 @@ describe("ConversationStage scroll restoration", () => {
     act(() => mockVirtuosoProps.totalListHeightChanged(2_360));
     expect(mockScrollToIndex).not.toHaveBeenCalled();
 
-    act(() => jest.advanceTimersByTime(CONVERSATION_LOCAL_LAYOUT_SETTLE_MS));
+    // 展开瞬间 Virtuoso 可能还按旧高度报“到底”：不能因此恢复跟随。
+    act(() => mockVirtuosoProps.atBottomStateChange(true));
+    act(() => mockVirtuosoProps.totalListHeightChanged(2_400));
+    expect(mockScrollToIndex).not.toHaveBeenCalled();
+
+    // 视口确实离开底部：亮出“回到底部”，由用户决定是否回去。
+    act(() => mockVirtuosoProps.atBottomStateChange(false));
+    act(() => jest.advanceTimersByTime(250));
     expect(
       container.querySelector(".conversation-stage-scroll-to-bottom"),
     ).not.toBeNull();
@@ -1127,13 +1142,110 @@ describe("ConversationStage scroll restoration", () => {
     expect(mockScrollToIndex).not.toHaveBeenCalled();
     expect(scroller.scrollTop).toBe(1_400);
 
-    // 动画结束后视口已经离开底部：位置交给用户，后续高度变化不再拽回底部。
-    act(() => jest.advanceTimersByTime(CONVERSATION_LOCAL_LAYOUT_SETTLE_MS));
-    expect(
-      container.querySelector(".conversation-stage-scroll-to-bottom"),
-    ).not.toBeNull();
-    act(() => mockVirtuosoProps.totalListHeightChanged(2_520));
+    // 展开后保持视口位置：再晚的高度变化也不拽回底部。
+    act(() => jest.advanceTimersByTime(3_000));
+    act(() => mockVirtuosoProps.totalListHeightChanged(2_720));
     expect(mockScrollToIndex).not.toHaveBeenCalled();
+    expect(scroller.scrollTop).toBe(1_400);
+
+    // 用户自己滚回真实底部：交还视口，followOutput 恢复成函数并重新跟随。
+    act(() => {
+      scroller.dispatchEvent(new Event("wheel"));
+    });
+    scroller.scrollTop = 2_120;
+    act(() => {
+      scroller.dispatchEvent(new Event("scroll"));
+    });
+    expect(typeof mockVirtuosoProps.followOutput).toBe("function");
+    expect(mockVirtuosoProps.followOutput(true)).toBe("auto");
+    mockScrollToIndex.mockReset();
+    act(() => mockVirtuosoProps.totalListHeightChanged(2_760));
+    expect(mockScrollToIndex).toHaveBeenCalledWith({
+      index: "LAST",
+      behavior: "auto",
+      align: "end",
+    });
+  });
+
+  it("does not resume following from programmatic scrolls during an expansion", () => {
+    const transition = createTransition("restoring");
+    mockState = createChatState(transition);
+    mockStateRef.current = mockState;
+    renderStage();
+
+    mockState = createChatState(null);
+    mockStateRef.current = mockState;
+    renderStage();
+
+    const scroller = setScrollerMetrics(2_000, 600);
+    userScrollTo(1_400);
+    expect(mockVirtuosoProps.followOutput(true)).toBe("auto");
+
+    act(() => window.dispatchEvent(new Event(LOCAL_LAYOUT_TOGGLE_EVENT)));
+    expect(mockVirtuosoProps.followOutput).toBe(false);
+    mockScrollToIndex.mockReset();
+
+    // 程序化滚动（虚拟列表测量补偿）在底部附近派发 scroll：不能被当成用户回到底部。
+    act(() => {
+      scroller.dispatchEvent(new Event("scroll"));
+    });
+    act(() => mockVirtuosoProps.totalListHeightChanged(2_080));
+    expect(mockScrollToIndex).not.toHaveBeenCalled();
+    expect(mockVirtuosoProps.followOutput).toBe(false);
+
+    // 真正的用户滚动（滚轮）才交还视口并恢复正常跟随。
+    act(() => {
+      scroller.dispatchEvent(new Event("wheel"));
+    });
+    userScrollTo(1_400);
+    expect(typeof mockVirtuosoProps.followOutput).toBe("function");
+    expect(mockVirtuosoProps.followOutput(true)).toBe("auto");
+  });
+
+  it("restores the viewport when something scrolls right after an in-place expansion", () => {
+    const transition = createTransition("restoring");
+    mockState = createChatState(transition);
+    mockStateRef.current = mockState;
+    renderStage();
+
+    mockState = createChatState(null);
+    mockStateRef.current = mockState;
+    renderStage();
+
+    const scroller = setScrollerMetrics(2_000, 600);
+    userScrollTo(1_400);
+    mockScrollToIndex.mockReset();
+
+    act(() => window.dispatchEvent(new Event(LOCAL_LAYOUT_TOGGLE_EVENT)));
+
+    // 虚拟列表的测量补偿 / 原生滚动锚定把视口推到底部：保护期内必须还原。
+    act(() => {
+      scroller.scrollTop = 1_700;
+      scroller.dispatchEvent(new Event("scroll"));
+    });
+    expect(scroller.scrollTop).toBe(1_400);
+  });
+
+  it("lets the user scroll during the expansion guard window", () => {
+    const transition = createTransition("restoring");
+    mockState = createChatState(transition);
+    mockStateRef.current = mockState;
+    renderStage();
+
+    mockState = createChatState(null);
+    mockStateRef.current = mockState;
+    renderStage();
+
+    const scroller = setScrollerMetrics(2_000, 600);
+    userScrollTo(1_400);
+
+    act(() => window.dispatchEvent(new Event(LOCAL_LAYOUT_TOGGLE_EVENT)));
+    // 真实滚动意图（滚轮/拖滚动条/键盘）立即撤销保护，用户自己决定位置。
+    act(() => {
+      scroller.dispatchEvent(new Event("wheel"));
+    });
+    userScrollTo(900);
+    expect(scroller.scrollTop).toBe(900);
   });
 
   it("keeps following when content growth alone reports not-at-bottom", () => {

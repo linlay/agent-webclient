@@ -13,6 +13,7 @@ import { UiButton } from "@/shared/ui/UiButton";
 import { SCROLLBAR_THIN_CLASS_NAME } from "@/shared/styles/scrollbarClassNames";
 import { Flex, Tooltip } from "antd";
 import { TimelineCollapse } from "@/shared/ui/TimelineCollapse";
+import { notifyLocalLayoutToggle } from "@/shared/utils/localLayoutToggle";
 import { useTimelineInteraction } from "./TimelineInteractionContext";
 import { toolOutputText } from "@/features/events/lib/toolOutputState";
 import "@/features/tools/components/ToolTimeline.module.css";
@@ -622,12 +623,14 @@ export const ToolPill: React.FC<ToolPillProps> = ({ node, toolGroup, icon }) => 
                         variant="ghost"
                         size="sm"
                         iconOnly
-                        onClick={() =>
+                        onClick={() => {
+                          // 换行会重新排布结果文本、改变条目高度：按原地布局变化处理。
+                          notifyLocalLayoutToggle();
                           setWrapMap((current) => ({
                             ...current,
                             [record.key]: !isWrap,
-                          }))
-                        }
+                          }));
+                        }}
                       >
                         <MaterialIcon
                           name={

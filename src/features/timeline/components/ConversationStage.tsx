@@ -57,7 +57,11 @@ export interface ConversationStageProps {
     ref?: React.Ref<VirtuosoHandle>;
     snapshot?: StateSnapshot;
     scrollerRef?: (element: HTMLElement | Window | null) => void;
-    followOutput?: (atBottom: boolean) => "auto" | false;
+    /**
+     * 传 `false` 会连 react-virtuoso 内部的“条目长高就贴底”一起关掉；
+     * 局部展开期间必须用它，返回 false 的函数挡不住那条内部路径。
+     */
+    followOutput?: false | ((atBottom: boolean) => "auto" | false);
     atBottomStateChange?: (atBottom: boolean) => void;
     totalListHeightChanged?: (height: number) => void;
     atBottomThreshold?: number;

@@ -108,7 +108,7 @@ import {
   CONVERSATION_AT_BOTTOM_THRESHOLD_PX,
   CONVERSATION_GESTURE_SETTLE_MS,
   CONVERSATION_GESTURE_UP_PX,
-  CONVERSATION_LOCAL_LAYOUT_SETTLE_MS,
+  CONVERSATION_LAYOUT_GUARD_MS,
   CONVERSATION_SCROLL_BUTTON_REVEAL_DELAY_MS,
   CONVERSATION_SCROLL_SETTLE_DELAY_MS,
   isWithinConversationFollowThreshold,
@@ -549,6 +549,10 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
     Record<string, boolean>
   >({});
   const [scrollToBottomVisible, setScrollToBottomVisible] = useState(false);
+  // 用户展开局部区块期间把 followOutput 直接切成布尔 false：函数值挡不住
+  // react-virtuoso 内部的“条目长高就贴底”（scrolling to bottom due to
+  // increased size），那条路径会在条目长高后自己 scrollTo 到列表底部。
+  const [layoutFrozen, setLayoutFrozen] = useState(false);
   // 阅读历史时冻结时间线内容：手指滚动期间不再重渲染流式正文，
   // 避免新内容导致整行位置变化。松手/惯性结束后再一次性补最新内容。
   const [timelineFrozen, setTimelineFrozen] = useState(false);
@@ -568,10 +572,22 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
   const touchStartRef = useRef<{ y: number; scrollTop: number } | null>(null);
   const lastTouchYRef = useRef<number | null>(null);
   const pinFrameRef = useRef<number | null>(null);
-  // 用户刚展开/收起过局部区块（过程折叠、任务组、思考、工具明细）到什么时候。
-  // 这类变更是原地长高，窗口内禁止自动贴底，窗口结束后按真实位置决定跟随。
-  const layoutChangeSettleUntilRef = useRef(0);
-  const layoutChangeSettleTimerRef = useRef<number | null>(null);
+  // 用户展开/收起条目内局部区块后，视口归用户：不再按新输出贴底，直到用户
+  // 自己回到真实底部。用状态而不是固定时间窗，是因为展开内容的高度经常晚到
+  // （工具输出终端、图片、VIEW iframe），一次性判定会在窗口过期后又贴回底部。
+  const layoutOwnedRef = useRef(false);
+  // 展开瞬间的最小免贴底保护期：Virtuoso 可能还拿旧高度报“仍在底部”，
+  // 这段时间即使跟随被误恢复也不允许贴底。
+  const layoutGuardUntilRef = useRef(0);
+  // 展开瞬间的滚动位置硬保护：保护期内任何非用户写 scrollTop 都还原到锚点，
+  // 兜住虚拟列表测量补偿、原生滚动锚定等我们控制不到的程序化滚动。
+  const layoutAnchorTopRef = useRef(0);
+  const layoutAnchorUntilRef = useRef(0);
+  const layoutAnchorRestoresRef = useRef(0);
+  // 用户是否真的开始了滚动（滚轮、拖动、触摸滑、键盘、拖滚动条）。只有真实
+  // 滚动才允许结束“视口归用户”和撤销位置保护：展开瞬间 Virtuoso/测量补偿
+  // 也会派发 scroll 事件，不能把它们当成用户回到顶部。
+  const userScrollIntentRef = useRef(false);
   const explicitScrollTimerRef = useRef<number | null>(null);
   const scrollToBottomRevealTimerRef = useRef<number | null>(null);
   const restorationReadyRef = useRef(false);
@@ -702,6 +718,8 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
       if (taskGroupKey && !expandedTaskGroups[taskGroupKey]) {
         expandTaskGroup(taskGroupKey);
       }
+      // 定位/引用跳转是用户主动导航，撤销展开瞬间的位置硬保护。
+      layoutAnchorUntilRef.current = 0;
       virtuosoRef.current?.scrollToIndex({
         index: virtualIndex,
         behavior,
@@ -879,6 +897,9 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
     followActiveRef.current = bookmarkMatchesTimeline
       ? currentBookmark.atBottom
       : true;
+    layoutOwnedRef.current = false;
+    layoutGuardUntilRef.current = 0;
+    setLayoutFrozen(false);
   }, [containerWidth]);
   const transition = state.chatTransition;
   const sharedPresentation = useConversationSurface();
@@ -1150,43 +1171,47 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
     }
   }, []);
 
-  const isLocalLayoutChangeSettling = useCallback(
-    () => Date.now() < layoutChangeSettleUntilRef.current,
+  const isLocalLayoutChangeProtected = useCallback(
+    () =>
+      layoutOwnedRef.current ||
+      Date.now() < layoutGuardUntilRef.current,
     [],
   );
 
-  // 展开/收起过程折叠、任务组、思考、工具明细属于“原地长高”：新增高度应该
-  // 往下延伸，而不是被贴底塞进视口底部、把已有内容整块向上顶。因此窗口内不
-  // 自动贴底，窗口结束后按真实位置收尾——还在底部就继续跟随，长出去了就把
-  // 视口交给用户（亮出“回到底部”，不再被后续输出拽走）。
+  // 展开/收起过程折叠、任务组、思考、工具、来源、等待、计划正文、来信、长消息
+  // 属于“原地长高”：新增高度应该往下延伸，而不是被贴底塞进视口底部、把已有
+  // 内容整块向上顶。用户动过条目内布局就把视口交给他：取消排队中的贴底、
+  // 退出跟随，直到用户自己重新回到真实底部。
   const beginLocalLayoutChange = useCallback(() => {
     cancelPendingPin();
-    layoutChangeSettleUntilRef.current =
-      Date.now() + CONVERSATION_LOCAL_LAYOUT_SETTLE_MS;
-    if (layoutChangeSettleTimerRef.current !== null) {
-      window.clearTimeout(layoutChangeSettleTimerRef.current);
+    layoutOwnedRef.current = true;
+    layoutGuardUntilRef.current = Date.now() + CONVERSATION_LAYOUT_GUARD_MS;
+    userScrollIntentRef.current = false;
+    followActiveRef.current = false;
+    scrollUpDistanceRef.current = 0;
+    const scroller = scrollerRef.current;
+    if (scroller) {
+      lastScrollerScrollTopRef.current = scroller.scrollTop;
+      layoutAnchorTopRef.current = scroller.scrollTop;
+      layoutAnchorUntilRef.current = Date.now() + CONVERSATION_LAYOUT_GUARD_MS;
+      layoutAnchorRestoresRef.current = 0;
     }
-    layoutChangeSettleTimerRef.current = window.setTimeout(() => {
-      layoutChangeSettleTimerRef.current = null;
-      layoutChangeSettleUntilRef.current = 0;
-      if (!scrollerRef.current) return;
-      if (restoringRef.current || isUserGestureActive()) return;
-      if (isScrollerAtBottom()) {
-        followActiveRef.current = true;
-        scrollUpDistanceRef.current = 0;
-        hideScrollToBottom();
-        return;
-      }
-      followActiveRef.current = false;
-      showScrollToBottom();
-    }, CONVERSATION_LOCAL_LAYOUT_SETTLE_MS);
-  }, [
-    cancelPendingPin,
-    hideScrollToBottom,
-    isScrollerAtBottom,
-    isUserGestureActive,
-    showScrollToBottom,
-  ]);
+    setLayoutFrozen(true);
+  }, [cancelPendingPin]);
+
+  // 用户自己重新贴底（滚动/触摸/显式请求）时交还视口，恢复正常跟随。
+  const releaseLocalLayoutOwnership = useCallback(() => {
+    userScrollIntentRef.current = false;
+    layoutOwnedRef.current = false;
+    layoutGuardUntilRef.current = 0;
+    layoutAnchorUntilRef.current = 0;
+    setLayoutFrozen(false);
+  }, []);
+
+  // 用户自己开始滚动（滚轮、触摸、拖滚动条、键盘）就撤销位置硬保护。
+  const cancelLayoutAnchorLock = useCallback(() => {
+    layoutAnchorUntilRef.current = 0;
+  }, []);
 
   // 层级较深的展开控件（思考、工具、来源、等待、计划正文、长消息）自己广播
   // 布局变化；作为兜底，舞台还会在点击捕获层识别 antd Collapse 的 header 和
@@ -1248,9 +1273,10 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
     if (gestureRef.current.active || restoringRef.current) return;
     if (!isScrollerAtBottom()) return;
     followActiveRef.current = true;
+    releaseLocalLayoutOwnership();
     scrollUpDistanceRef.current = 0;
     hideScrollToBottom();
-  }, [hideScrollToBottom, isScrollerAtBottom]);
+  }, [hideScrollToBottom, isScrollerAtBottom, releaseLocalLayoutOwnership]);
   const settleUserGestureRef = useRef(settleUserGesture);
   settleUserGestureRef.current = settleUserGesture;
   const leaveFollowRef = useRef(leaveFollow);
@@ -1263,10 +1289,30 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
   const trackScrollerScroll = useCallback(() => {
     const scroller = scrollerRef.current;
     if (!scroller) return;
+    // 展开后的保护期内，非用户滚动一律还原到锚点：展开只应向下长高。
+    const anchorUntil = layoutAnchorUntilRef.current;
+    if (anchorUntil !== 0) {
+      if (
+        Date.now() > anchorUntil ||
+        layoutAnchorRestoresRef.current >= 40
+      ) {
+        layoutAnchorUntilRef.current = 0;
+      } else if (scroller.scrollTop !== layoutAnchorTopRef.current) {
+        layoutAnchorRestoresRef.current += 1;
+        const anchor = layoutAnchorTopRef.current;
+        scroller.scrollTop = anchor;
+        lastScrollerScrollTopRef.current = anchor;
+        scrollUpDistanceRef.current = 0;
+        return;
+      }
+    }
     const scrollTop = scroller.scrollTop;
     const previousScrollTop = lastScrollerScrollTopRef.current;
     lastScrollerScrollTopRef.current = scrollTop;
     if (restoringRef.current) return;
+    // 展开期间只接受用户滚动的输入：程序化滚动/测量补偿不改变跟随意图，
+    // 也不结束“视口归用户”，否则展开瞬间就会被判定为“回到底部”。
+    if (layoutOwnedRef.current && !userScrollIntentRef.current) return;
     if (scrollTop < previousScrollTop) {
       scrollUpDistanceRef.current += previousScrollTop - scrollTop;
     } else if (scrollTop > previousScrollTop) {
@@ -1285,13 +1331,17 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
       previousScrollTop,
       scrollUpDistancePx: scrollUpDistanceRef.current,
     });
+    // 用户自己滚回底部：交还视口，恢复正常跟随。
+    if (followActiveRef.current && userScrollIntentRef.current) {
+      releaseLocalLayoutOwnership();
+    }
     if (atBottom) {
       hideScrollToBottom();
     } else if (!followActiveRef.current) {
       // 用户已经主动停在非底部位置：立即给按钮反馈，不走防抖。
       showScrollToBottom();
     }
-  }, [hideScrollToBottom, showScrollToBottom]);
+  }, [hideScrollToBottom, releaseLocalLayoutOwnership, showScrollToBottom]);
   const trackScrollerScrollRef = useRef(trackScrollerScroll);
   trackScrollerScrollRef.current = trackScrollerScroll;
 
@@ -1307,6 +1357,10 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
       // scrollTop，和虚拟列表的测量互相拉扯，表现为可见文字整行跳动。
       element.style.setProperty("overflow-anchor", "none");
       lastScrollerScrollTopRef.current = element.scrollTop;
+      layoutOwnedRef.current = false;
+      layoutGuardUntilRef.current = 0;
+      layoutAnchorUntilRef.current = 0;
+      setLayoutFrozen(false);
       scrollUpDistanceRef.current = 0;
       gestureRef.current = { active: false, settleUntil: 0, moved: false };
       touchStartRef.current = null;
@@ -1335,6 +1389,8 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
         if (!isScrollerAtBottomRef.current()) leaveFollowRef.current();
       };
       const onTouchMove = (event: TouchEvent) => {
+        userScrollIntentRef.current = true;
+        layoutAnchorUntilRef.current = 0;
         const touch = event.touches[0];
         if (!touch) return;
         const start = touchStartRef.current;
@@ -1373,11 +1429,24 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
         finishTouch();
       };
       const onWheel = (event: WheelEvent) => {
+        userScrollIntentRef.current = true;
+        layoutAnchorUntilRef.current = 0;
         if (event.deltaY >= 0) return;
         if (!isScrollerAtBottomRef.current()) leaveFollowRef.current();
       };
+      // 拖滚动条时事件目标是滚动元素本身；点条目里的按钮/折叠头不算滚动意图。
+      const onPointerDown = (event: PointerEvent) => {
+        layoutAnchorUntilRef.current = 0;
+        if (event.target === element) userScrollIntentRef.current = true;
+      };
+      const onKeyDown = () => {
+        userScrollIntentRef.current = true;
+        layoutAnchorUntilRef.current = 0;
+      };
 
       element.addEventListener("scroll", listener, { passive: true });
+      element.addEventListener("pointerdown", onPointerDown, { passive: true });
+      element.addEventListener("keydown", onKeyDown);
       element.addEventListener("touchstart", onTouchStart, { passive: true });
       element.addEventListener("touchmove", onTouchMove, { passive: true });
       element.addEventListener("touchend", onTouchEnd, { passive: true });
@@ -1390,6 +1459,8 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
         element.removeEventListener("touchend", onTouchEnd);
         element.removeEventListener("touchcancel", onTouchEnd);
         element.removeEventListener("wheel", onWheel);
+        element.removeEventListener("pointerdown", onPointerDown);
+        element.removeEventListener("keydown", onKeyDown);
         clearSettleTimer();
         gestureRef.current = { active: false, settleUntil: 0, moved: false };
       };
@@ -1408,8 +1479,13 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
       }
       if (restoringRef.current) return;
       // 惯性结束且确实回到最底部（例如向下甩回底部）才恢复跟随。
-      if (!isUserGestureActive() && isScrollerAtBottom()) {
+      if (
+        !isUserGestureActive() &&
+        isScrollerAtBottom() &&
+        (!layoutOwnedRef.current || userScrollIntentRef.current)
+      ) {
         followActiveRef.current = true;
+        releaseLocalLayoutOwnership();
         scrollUpDistanceRef.current = 0;
         setTimelineFrozen(false);
         hideScrollToBottom();
@@ -1422,7 +1498,12 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
         captureCurrentBookmarkRef.current();
       }, 150);
     },
-    [hideScrollToBottom, isScrollerAtBottom, isUserGestureActive],
+    [
+      hideScrollToBottom,
+      isScrollerAtBottom,
+      isUserGestureActive,
+      releaseLocalLayoutOwnership,
+    ],
   );
 
   const handleAtBottomStateChange = useCallback((atBottom: boolean) => {
@@ -1436,7 +1517,10 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
     // 只有真实的向上滚动/触摸手势才算用户离开底部。
     // 反过来，用户手势期间贴底被禁止，这时的 atBottom 可能来自上一帧的贴底或
     // 手指回压，不能借此把刚取消的跟随重新装填。
-    if (atBottom && !isUserGestureActive()) {
+    // 展开瞬间 Virtuoso 可能还按旧高度报“到底”，此时不能恢复跟随，否则下一
+    // 次高度变化就会补一帧贴底、把刚展开的内容顶走。真正的重新贴底由用户的
+    // 滚动/触摸/“回到底部”驱动。
+    if (atBottom && !isUserGestureActive() && !layoutOwnedRef.current) {
       followActiveRef.current = true;
       scrollUpDistanceRef.current = 0;
       setTimelineFrozen(false);
@@ -1469,7 +1553,7 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
         restorationReady: restorationReadyRef.current,
         restoring: restoringRef.current,
         userGestureActive: isUserGestureActive(),
-        userLayoutChangeActive: isLocalLayoutChangeSettling(),
+        userLayoutChangeActive: isLocalLayoutChangeProtected(),
       });
     if (!shouldPin()) return;
     pinFrameRef.current = window.requestAnimationFrame(() => {
@@ -1477,7 +1561,7 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
       if (!shouldPin()) return;
       pinConversationToBottom();
     });
-  }, [isLocalLayoutChangeSettling, isUserGestureActive, pinConversationToBottom]);
+  }, [isLocalLayoutChangeProtected, isUserGestureActive, pinConversationToBottom]);
 
   const handleRangeChanged = useCallback(
     (range: ListRange) => {
@@ -1507,6 +1591,7 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
         (item) => item.kind === "query" && item.anchorId === normalizedAnchorId,
       );
       if (index >= 0 && virtuosoRef.current) {
+        layoutAnchorUntilRef.current = 0;
         virtuosoRef.current.scrollToIndex({
           index,
           behavior: "smooth",
@@ -1538,6 +1623,10 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
       return;
     }
     followActiveRef.current = true;
+    layoutOwnedRef.current = false;
+    layoutGuardUntilRef.current = 0;
+    layoutAnchorUntilRef.current = 0;
+    setLayoutFrozen(false);
     isAtBottomRef.current = true;
     scrollUpDistanceRef.current = 0;
     setTimelineFrozen(false);
@@ -1629,6 +1718,9 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
       showScrollToBottom();
     }
     followActiveRef.current = shouldRestoreBottom;
+    layoutOwnedRef.current = false;
+    layoutGuardUntilRef.current = 0;
+    setLayoutFrozen(false);
     scrollUpDistanceRef.current = 0;
     restoreTargetModeRef.current = shouldRestoreBottom ? "bottom" : "anchor";
     restoreAtBottomObservedRef.current = false;
@@ -1698,6 +1790,9 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
       restoreTargetModeRef.current = null;
       restoreAtBottomObservedRef.current = false;
       followActiveRef.current = shouldRestoreBottom;
+      layoutOwnedRef.current = false;
+      layoutGuardUntilRef.current = 0;
+      setLayoutFrozen(false);
       scrollUpDistanceRef.current = 0;
       const scroller = scrollerRef.current;
       lastScrollerScrollTopRef.current =
@@ -1841,6 +1936,13 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
     virtualItemKeys,
   ]);
 
+  // 切会话时不继承“视口归用户”：新会话按书签/底部重新决定跟随。
+  useEffect(() => {
+    layoutOwnedRef.current = false;
+    layoutGuardUntilRef.current = 0;
+    setLayoutFrozen(false);
+  }, [state.chatId]);
+
   useEffect(() => {
     return () => {
       statusTimerRef.current.forEach((timer) => window.clearTimeout(timer));
@@ -1863,10 +1965,6 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
       if (gestureSettleTimerRef.current !== null) {
         window.clearTimeout(gestureSettleTimerRef.current);
         gestureSettleTimerRef.current = null;
-      }
-      if (layoutChangeSettleTimerRef.current !== null) {
-        window.clearTimeout(layoutChangeSettleTimerRef.current);
-        layoutChangeSettleTimerRef.current = null;
       }
       scrollerGestureCleanupRef.current?.();
       scrollerGestureCleanupRef.current = null;
@@ -2281,9 +2379,10 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
               ref: virtuosoRef,
               snapshot: matchingSnapshot,
               scrollerRef: handleScrollerRef,
-              followOutput: (atBottom) =>
-                restorationReady && !restoringRef.current && followActiveRef.current &&
-                atBottom && !isUserGestureActive() && !isLocalLayoutChangeSettling()
+              followOutput: layoutFrozen
+                ? false
+                : (atBottom) => restorationReady && !restoringRef.current &&
+                  followActiveRef.current && atBottom && !isUserGestureActive()
                   ? "auto" : false,
               atBottomThreshold: CONVERSATION_AT_BOTTOM_THRESHOLD_PX,
               atBottomStateChange: handleAtBottomStateChange,

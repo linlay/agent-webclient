@@ -37,11 +37,11 @@ export const CONVERSATION_SCROLL_SETTLE_DELAY_MS = 500;
 export const CONVERSATION_SCROLL_BUTTON_REVEAL_DELAY_MS = 250;
 
 /**
- * 用户展开/收起时间线里的局部区块（过程折叠、任务组、思考、工具明细）后，
- * 等展开动画走完再做贴底决策。这类变更是“原地长高”：新增高度属于被点开的
- * 那一块，应该向下延伸；按新输出贴底会把它整个塞进视口底部，已有内容被顶走。
+ * 用户展开/收起局部区块后的最小免贴底时长。展开期间 Virtuoso 的 atBottom
+ * 回调可能还在用旧高度报“仍在底部”，这段时间不恢复贴底，避免刚展开就被
+ * 补一帧贴底、把已有内容向上顶走。
  */
-export const CONVERSATION_LOCAL_LAYOUT_SETTLE_MS = 400;
+export const CONVERSATION_LAYOUT_GUARD_MS = 1200;
 
 /** 滚动事件里判断“仍在跟随区间”：和 atBottomThreshold 使用同一容差。 */
 export function isWithinConversationFollowThreshold(input: {
@@ -93,8 +93,10 @@ export function shouldPinConversationToBottom(input: {
   /** 手指按住或刚抬起（惯性期）时不写 scrollTop，避免和原生触摸手势互相覆盖。 */
   userGestureActive: boolean;
   /**
-   * 用户刚展开/收起过局部区块。原地长高不能按“新输出”贴底：贴底会把新增
-   * 高度全部吃进底部、已有内容整块向上顶，而不是让内容自然向下延伸。
+   * 用户展开/收起过局部区块、视口暂归用户（直到他重新回到真实底部）。原地
+   * 长高不能按“新输出”贴底：贴底会把新增高度全部吃进底部、已有内容整块向上
+   * 顶，而不是让内容自然向下延伸。用状态而不是固定时间窗，是为了接住晚到的
+   * 高度（工具输出终端、图片、VIEW iframe），避免窗口过期后又贴回底部。
    */
   userLayoutChangeActive?: boolean;
 }): boolean {
