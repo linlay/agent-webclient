@@ -54,7 +54,7 @@ jest.mock("@/features/timeline/components/TimelineRow", () => ({
       props.metaNode,
     );
   },
-  formatTimelineTime: () => ({ short: "", full: "" }),
+  formatTimelineTime: (ts?: number) => (ts ? { short: "09:30", full: "2026/11/09 09:30" } : { short: "", full: "" }),
 }));
 
 jest.mock("@/features/timeline/components/TimelineRenderEntryView", () => {
@@ -331,6 +331,30 @@ describe("ConversationPreview", () => {
         run.getAttribute("data-run-id"),
       ),
     ).toEqual(["run-1", "run-2"]);
+  });
+
+  it("keeps the archive letter's time but drops its copy control", () => {
+    const events = completedChatEvents().map((event, index) =>
+      index === 0
+        ? {
+            ...event,
+            role: "automation",
+            hidden: true,
+            message: "Internal automation request",
+          }
+        : event,
+    );
+    renderTimeline({ chatId: "chat-history", events });
+
+    const letter = container.querySelector<HTMLElement>('[data-inbound="letter"]');
+    expect(letter).not.toBeNull();
+    // Agent-delivered input is internal: a read-only preview must not offer copying
+    // it, while the timestamp still anchors the row.
+    expect(
+      letter!.querySelectorAll('[aria-label="timeline.toolPill.copy.action"]'),
+    ).toHaveLength(0);
+    expect(letter!.querySelector(".timeline-row-time")?.textContent).toBe("09:30");
+    expect(letter!.textContent).not.toContain("Internal automation request");
   });
 
   it("keeps a running chat snapshot in the full history without special treatment", () => {
