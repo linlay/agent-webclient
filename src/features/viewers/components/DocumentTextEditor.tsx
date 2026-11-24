@@ -50,6 +50,7 @@ const MarkdownPreview: React.FC<{
 export type MarkdownViewMode = "source" | "preview" | "split";
 export type DocumentSaveMode = "overwrite" | "new-artifact";
 export type DocumentSaveProfile = "workspace-file" | "artifact" | "reference";
+export type DocumentLineLocation = { line: number; revision: number };
 
 export function defaultDocumentViewMode(previewable: boolean): MarkdownViewMode {
   return previewable ? "preview" : "source";
@@ -167,6 +168,7 @@ export const DocumentTextEditor: React.FC<{
   saveProfile: DocumentSaveProfile;
   revision: string;
   reloadToken?: number;
+  lineLocation?: DocumentLineLocation;
   closeGuardKey?: string;
   onAnnotationCountChange?: (count: number) => void;
   /** Read-only viewing keeps the document but hides editing and selection annotations. */
@@ -189,6 +191,7 @@ export const DocumentTextEditor: React.FC<{
   saveProfile,
   revision,
   reloadToken = 0,
+  lineLocation,
   closeGuardKey = "",
   onAnnotationCountChange,
   onChange,
@@ -199,11 +202,13 @@ export const DocumentTextEditor: React.FC<{
   const isHtml = kind === "document-html";
   const previewable = markdown || isHtml;
   const message = useAppMessage();
-  const [mode, setMode] = React.useState<MarkdownViewMode>(
-    defaultDocumentViewMode(previewable),
-  );
+  const defaultMode = lineLocation ? "source" : defaultDocumentViewMode(previewable);
+  const [mode, setMode] = React.useState<MarkdownViewMode>(defaultMode);
   const editorRef = React.useRef<MonacoTypes.editor.IStandaloneCodeEditor | null>(null);
   const decorationsRef = React.useRef<MonacoTypes.editor.IEditorDecorationsCollection | null>(null);
+  const lineDecorationRef = React.useRef<MonacoTypes.editor.IEditorDecorationsCollection | null>(null);
+  const lineLocationRef = React.useRef(lineLocation);
+  lineLocationRef.current = lineLocation;
   const previewRef = React.useRef<HTMLDivElement | null>(null);
   const [selection, setSelection] = React.useState<MonacoTypes.Selection | null>(null);
   const [previewSelection, setPreviewSelection] = React.useState("");
@@ -224,7 +229,7 @@ export const DocumentTextEditor: React.FC<{
     })),
   });
   React.useEffect(() => {
-    setMode(defaultDocumentViewMode(previewable));
+    setMode(lineLocationRef.current ? "source" : defaultDocumentViewMode(previewable));
     htmlReview.reset();
   }, [htmlReview.reset, kind, name, previewable]);
 
@@ -246,8 +251,8 @@ export const DocumentTextEditor: React.FC<{
     // documents to their default preview; the read-only viewer has no toolbar.
     setAnnotations([]);
     setSaveDialogOpen(false);
-    setMode(defaultDocumentViewMode(previewable));
-  }, [editing, previewable]);
+    setMode(defaultMode);
+  }, [defaultMode, editing]);
 
   const textAnnotationCount = annotations.filter((annotation) => !annotation.invalid).length;
   React.useEffect(() => {
@@ -293,9 +298,32 @@ export const DocumentTextEditor: React.FC<{
     })) as Array<{ range: MonacoTypes.IRange; options: MonacoTypes.editor.IModelDecorationOptions }>);
   }, [annotations, mode]);
 
+  const revealLine = React.useCallback(() => {
+    const editor = editorRef.current;
+    const line = lineLocationRef.current?.line;
+    const decorations = lineDecorationRef.current;
+    if (!editor || !decorations) return;
+    if (!line || line > (editor.getModel()?.getLineCount() ?? 0)) {
+      decorations.clear();
+      return;
+    }
+    decorations.set([{
+      range: { startLineNumber: line, endLineNumber: line, startColumn: 1, endColumn: 1 },
+      options: { isWholeLine: true, className: styles.targetLine },
+    }]);
+    editor.revealLineInCenter(line);
+  }, []);
+
+  React.useEffect(() => {
+    if (lineLocation) setMode("source");
+    revealLine();
+  }, [lineLocation, revealLine]);
+
   const mountEditor = React.useCallback((editor: MonacoTypes.editor.IStandaloneCodeEditor) => {
     editorRef.current = editor;
     decorationsRef.current = editor.createDecorationsCollection();
+    lineDecorationRef.current = editor.createDecorationsCollection();
+    revealLine();
     const selectionSubscription = editor.onDidChangeCursorSelection((event) => {
       setSelection(event.selection.isEmpty() ? null : event.selection);
     });
@@ -319,9 +347,10 @@ export const DocumentTextEditor: React.FC<{
       selectionSubscription.dispose();
       contentSubscription.dispose();
       decorationsRef.current = null;
+      lineDecorationRef.current = null;
       editorRef.current = null;
     });
-  }, []);
+  }, [revealLine]);
 
   const capturePreviewSelection = React.useCallback(() => {
     const root = previewRef.current;

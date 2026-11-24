@@ -15,6 +15,7 @@ import {
   AGENT_WEBCLIENT_WORKPANEL_RESOURCE_DOWNLOAD_ACTION,
   AGENT_WEBCLIENT_WORKPANEL_RESOURCE_DOWNLOAD_VERSION,
   isAgentWebclientSurfaceKind,
+  parseAgentWebclientWorkPanelFileLocationAction,
   parseAgentWebclientVisualSnapshot,
 } from "./agentWebclientBridge";
 
@@ -46,11 +47,32 @@ describe("generated Agent WebClient bridge contract", () => {
     );
     expect(isAgentWebclientSurfaceKind("agent-management")).toBe(true);
     expect(source).toContain(
-      "sha256:ce6d044dc6a9f942f07878995fcedf6b3bb87a2bb06120f2ed1dc9c32e106158",
+      "sha256:4702910863c6c629aebd6c1efbf5f641858067fa80697a4c72c9897b2c31629c",
     );
     expect(createHash("sha256").update(canonicalSource).digest("hex")).toBe(
-      "3fd7a7cf26933ce3685ca553a9acbca6518d43e014e3a5e20f601dc57a1b8edd",
+      "c6671110b394bd852b73ebba250ef974b76df56d87c7b9b33ddcd67942cfec23",
     );
+  });
+
+  it("accepts only versioned file locations with positive integer lines and revisions", () => {
+    const action = {
+      action: "workPanel.file.revealLine",
+      version: 1,
+      targetKey: "file:agent:src/shell_bash.yml",
+      line: 13,
+      revision: 2,
+    };
+    expect(parseAgentWebclientWorkPanelFileLocationAction(action)).toEqual(action);
+    for (const invalid of [
+      { ...action, line: 0 },
+      { ...action, line: 13.5 },
+      { ...action, revision: 0 },
+      { ...action, version: 2 },
+      { ...action, targetKey: "resource:other" },
+      { ...action, extra: true },
+    ]) {
+      expect(parseAgentWebclientWorkPanelFileLocationAction(invalid)).toBeNull();
+    }
   });
 
   it("retains pinned skin visuals alongside the selection explanation role", () => {

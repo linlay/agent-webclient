@@ -2,3 +2,7 @@
   min-width: 0;
   padding: 16px;
 }
+
+.targetLine {
+  background-color: color-mix(in srgb, var(--accent-electric) 16%, transparent);
+}
