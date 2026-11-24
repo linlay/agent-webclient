@@ -87,7 +87,7 @@ const LEFT_SIDEBAR_TOP_ROW_CLASS =
   "worker-navigation-header tw:flex tw:h-9 tw:min-h-9 tw:shrink-0 tw:items-center tw:justify-between tw:gap-3 tw:px-3 tw:py-0";
 
 const CHAT_LIST_CLASS =
-  "chat-list tw:min-h-0 tw:flex-1 tw:overflow-y-auto tw:[-ms-overflow-style:none] tw:[scrollbar-width:none] tw:[&::-webkit-scrollbar]:hidden";
+  "chat-list tw:min-h-0 tw:flex-1 tw:overflow-y-auto";
 
 const WORKER_COLLAPSED_ICON_BASE_CLASS =
   "worker-collapsed-icon tw:flex tw:h-auto tw:w-full tw:flex-col tw:items-center tw:justify-center tw:gap-0.5 tw:border-0 tw:bg-transparent tw:!p-0.5 tw:text-ink-2 tw:shadow-none tw:hover:!bg-accent-soft";

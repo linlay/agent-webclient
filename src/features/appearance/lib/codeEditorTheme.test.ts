@@ -12,6 +12,9 @@ it("composites transparent editor colors against the input surface and preserves
   expect(result.colors["editorGutter.background"]).toBe("#e4eef8");
   expect(result.colors["editor.foreground"]).toBe("#123456");
   expect(result.colors["editor.lineHighlightBackground"]).toBe("#cdd6df");
+  expect(result.colors["scrollbarSlider.background"]).toBe("#c0ccdb");
+  expect(result.colors["scrollbarSlider.hoverBackground"]).toBe("#c0ccdb");
+  expect(result.colors["scrollbarSlider.activeBackground"]).toBe("#c0ccdb");
   expect(Object.values(result.colors).every(color => /^#[0-9a-f]{6}$/.test(color))).toBe(true);
 });
 

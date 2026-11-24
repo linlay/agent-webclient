@@ -251,6 +251,7 @@
     overflow: auto;
     scrollbar-width: none;
     -ms-overflow-style: none;
+    --app-scrollbar-overlay: off;
 }
 
 :global(.timeline-query-anchor-rail)::-webkit-scrollbar {

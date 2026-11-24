@@ -22,7 +22,6 @@ import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
 import { copyText } from "@/shared/utils/copy";
 import { useI18n } from "@/shared/i18n";
-import { SCROLLBAR_THIN_CLASS_NAME } from "@/shared/styles/scrollbarClassNames";
 import { useOpenTarget } from "@/features/surfaces/hooks/useOpenTarget";
 import type { BTWSessionState } from "@/features/btw/lib/btwTypes";
 import { resolveBTWSendMessage } from "@/features/btw/lib/btwSend";
@@ -36,10 +35,8 @@ const BTW_HEADER_CLASS =
 const BTW_STATUS_CLASS =
   "btw-tab-status tw:inline-flex tw:min-w-0 tw:items-center tw:gap-1.5 tw:text-xs tw:font-semibold tw:text-ink-muted";
 const BTW_STATUS_RUNNING_CLASS = "tw:text-accent-electric-strong";
-const BTW_BODY_CLASS = [
-  "btw-tab-body tw:min-h-0 tw:flex-1 tw:overflow-y-auto tw:px-3 tw:py-3",
-  SCROLLBAR_THIN_CLASS_NAME,
-].join(" ");
+const BTW_BODY_CLASS =
+  "btw-tab-body tw:min-h-0 tw:flex-1 tw:overflow-y-auto tw:px-3 tw:py-3";
 const BTW_TIMELINE_CLASS =
   "btw-tab-timeline tw:flex tw:min-h-full tw:flex-col tw:gap-2.5";
 const BTW_RUN_CLASS =

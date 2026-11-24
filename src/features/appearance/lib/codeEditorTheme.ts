@@ -9,6 +9,8 @@ export function createCodeEditorAppearanceTheme(mode: ThemeMode, read: (name: st
   // solid reading surface as native inputs, not on the underlying photograph.
   const hex = (color: string) => "#" + opaqueColor(color, input).match(/\d+/g)!.map(channel => Number(channel).toString(16).padStart(2, "0")).join("");
   const color = (token: string) => hex(read(token) || input);
+  // The overlay standard composites a fixed slate thumb onto the editor surface.
+  const scrollbarThumb = hex(read("--app-scrollbar-thumb") || "rgba(148, 163, 184, 0.45)");
   return {
     base: mode === "dark" ? "vs-dark" : "vs",
     inherit: true,
@@ -35,9 +37,9 @@ export function createCodeEditorAppearanceTheme(mode: ThemeMode, read: (name: st
       "editorSuggestWidget.foreground": color("--ink"),
       "editorSuggestWidget.selectedBackground": color("--nav-selected-bg"),
       "editorSuggestWidget.border": color("--control-border"),
-      "scrollbarSlider.background": color("--line"),
-      "scrollbarSlider.hoverBackground": color("--line-strong"),
-      "scrollbarSlider.activeBackground": color("--nav-selected-bg"),
+      "scrollbarSlider.background": scrollbarThumb,
+      "scrollbarSlider.hoverBackground": scrollbarThumb,
+      "scrollbarSlider.activeBackground": scrollbarThumb,
       "focusBorder": color("--accent"),
     },
   };

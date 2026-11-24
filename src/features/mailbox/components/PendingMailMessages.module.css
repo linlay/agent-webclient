@@ -14,6 +14,7 @@
   overflow-y: auto;
   overscroll-behavior: contain;
   scrollbar-width: none;
+  --app-scrollbar-overlay: off;
 }
 
 .messages::-webkit-scrollbar {

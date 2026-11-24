@@ -620,7 +620,6 @@
     flex: 1;
     min-height: 0;
     max-height: none;
-    scrollbar-gutter: stable;
 }
 @media (prefers-reduced-motion: reduce) {
     .composer-add-menu-panel {

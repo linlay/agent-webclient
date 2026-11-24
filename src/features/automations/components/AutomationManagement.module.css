@@ -67,6 +67,7 @@
     overflow-x: auto;
     overflow-y: hidden;
     scrollbar-width: none;
+    --app-scrollbar-overlay: off;
 }
 
 :global(.automation-section-nav-links)::-webkit-scrollbar {

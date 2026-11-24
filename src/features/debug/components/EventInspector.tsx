@@ -15,7 +15,6 @@ import {
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import type { MaterialIconName } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
-import { SCROLLBAR_THIN_CLASS_NAME } from "@/shared/styles/scrollbarClassNames";
 import { useI18n } from "@/shared/i18n";
 import "./EventPopover.module.css";
 import {
@@ -94,11 +93,8 @@ const EVENT_POPOVER_COPY_MENU_CLASS_NAME =
 const EVENT_POPOVER_COPY_MENU_ITEM_CLASS_NAME =
 	"event-popover-copy-menu-item tw:w-full tw:!justify-start tw:whitespace-nowrap tw:!text-[11px]";
 
-const EVENT_POPOVER_BODY_CLASS_NAME = [
-	"event-popover-body",
-	"tw:m-0 tw:max-h-[50vh] tw:flex-1 tw:overflow-auto tw:whitespace-pre-wrap tw:break-all tw:px-3 tw:py-2.5 tw:font-code tw:text-[10px] tw:font-normal tw:leading-[1.48] tw:text-ink-2",
-	SCROLLBAR_THIN_CLASS_NAME,
-].join(" ");
+const EVENT_POPOVER_BODY_CLASS_NAME =
+	"event-popover-body tw:m-0 tw:max-h-[50vh] tw:flex-1 tw:overflow-auto tw:whitespace-pre-wrap tw:break-all tw:px-3 tw:py-2.5 tw:font-code tw:text-[10px] tw:font-normal tw:leading-[1.48] tw:text-ink-2";
 
 function resolveRawJsonlChatId(
 	event: AgentEvent | null,

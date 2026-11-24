@@ -64,7 +64,6 @@ import { formatResponseDuration } from "@/shared/utils/formatResponseDuration";
 import { readEpochMillis } from "@/shared/utils/platformTime";
 import { UiButton } from "@/shared/ui/UiButton";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
-import { SCROLLBAR_THIN_CLASS_NAME } from "@/shared/styles/scrollbarClassNames";
 import { resolveCurrentWorkerSummary } from "@/features/workers/lib/currentWorker";
 import { resolvePreferredAgentKey } from "@/features/workers/lib/queryRouting";
 import { ToolOutputTerminal } from "@/features/terminal/components/ToolOutputTerminal";
@@ -190,10 +189,8 @@ const TIMELINE_STACK_CLASS_NAME =
   "timeline-stack tw:relative tw:m-auto tw:min-h-full tw:w-full tw:max-w-[800px]";
 const TIMELINE_STACK_EMPTY_CLASS_NAME =
   "is-empty tw:flex tw:items-end tw:justify-center";
-const TIMELINE_EMPTY_SCROLL_CLASS_NAME = [
-  "messages-scroll tw:h-full tw:flex tw:flex-col tw:overflow-y-auto tw:bg-transparent tw:px-5 tw:pb-[26px] tw:pt-5",
-  SCROLLBAR_THIN_CLASS_NAME,
-].join(" ");
+const TIMELINE_EMPTY_SCROLL_CLASS_NAME =
+  "messages-scroll tw:h-full tw:flex tw:flex-col tw:overflow-y-auto tw:bg-transparent tw:px-5 tw:pb-[26px] tw:pt-5";
 const TIMELINE_QUERY_ANCHOR_RAIL_CLASS_NAME = "timeline-query-anchor-rail";
 const TIMELINE_QUERY_ANCHOR_PREVIEW_CLASS_NAME =
   "timeline-query-anchor-preview tw:max-w-[360px] tw:text-xs";

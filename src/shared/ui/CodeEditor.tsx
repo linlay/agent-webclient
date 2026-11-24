@@ -558,6 +558,11 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
           hover: { enabled: "off" },
           fixedOverflowWidgets: true,
           find: { addExtraSpaceOnTop: false },
+          scrollbar: {
+            verticalScrollbarSize: 6,
+            horizontalScrollbarSize: 6,
+            useShadows: false,
+          },
           ...options,
         }}
       />

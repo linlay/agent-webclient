@@ -4,7 +4,6 @@ import React, { useEffect, useRef, useState } from "react";
 import type { TimelineNode } from "@/features/timeline/lib/timelineState";
 import { useI18n } from "@/shared/i18n";
 import { useTimelineInteraction } from "./TimelineInteractionContext";
-import { SCROLLBAR_THIN_CLASS_NAME } from "@/shared/styles/scrollbarClassNames";
 import { formatToolDuration } from "@/features/timeline/lib/timelineDuration";
 import { Skeleton } from "@/shared/components/skeleton";
 import { TimelineCollapse } from "@/shared/ui/TimelineCollapse";
@@ -75,7 +74,7 @@ export const ThinkingBlock: React.FC<ThinkingBlockProps> = ({ node, icon }) => {
       destroyOnHidden
       onExpand={() => interaction?.setExpanded?.(node.id, !expanded)}
     >
-      <div className={[presentationClasses("thinking-detail"), SCROLLBAR_THIN_CLASS_NAME].join(" ")}>
+      <div className={presentationClasses("thinking-detail")}>
         {node.errorDetail && <div role="status">{node.errorDetail.message}</div>}
         {text}
       </div>

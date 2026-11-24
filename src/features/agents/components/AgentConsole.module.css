@@ -453,6 +453,7 @@
     overflow-x: auto;
     overflow-y: hidden;
     scrollbar-width: none;
+    --app-scrollbar-overlay: off;
 }
 
 :global(.agent-section-nav-links)::-webkit-scrollbar {
@@ -990,7 +991,6 @@
 :global(.agent-capability-scroll) {
     max-height: min(360px, 42vh);
     overflow-y: auto;
-    scrollbar-gutter: stable;
     overscroll-behavior: contain;
 }
 

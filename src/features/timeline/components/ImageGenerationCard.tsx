@@ -4,7 +4,6 @@ import { buildImageGenerationDisplay } from "../lib/imageGenerationDisplay";
 import { BusyInk } from "@/shared/ui/BusyInk";
 import { useI18n } from "@/shared/i18n";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
-import { SCROLLBAR_THIN_CLASS_NAME } from "@/shared/styles/scrollbarClassNames";
 import { ToolPill } from "./ToolPill";
 import { useTimelineInteraction } from "./TimelineInteractionContext";
 import styles from "./ImageGenerationCard.module.css";
@@ -73,7 +72,7 @@ export function ImageGenerationCard({ nodes }: { nodes: TimelineNode[] }) {
         <div
           ref={gridRef}
           id={gridId}
-          className={`${styles.grid} ${SCROLLBAR_THIN_CLASS_NAME}`}
+          className={styles.grid}
           tabIndex={0}
           role="region"
           aria-label={t("timeline.image.title")}

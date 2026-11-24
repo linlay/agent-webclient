@@ -13,7 +13,6 @@ import {
 } from "@/features/events/lib/debugEventDisplay";
 import { t } from "@/shared/i18n";
 import { buildConversationSharePath } from "@/shared/data/conversationSharePath";
-import { SCROLLBAR_THIN_CLASS_NAME } from "@/shared/styles/scrollbarClassNames";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { EventInspector } from "@/features/debug/components/EventInspector";
 import { UiButton } from "@/shared/ui/UiButton";
@@ -40,11 +39,7 @@ function formatDebugTime(timestamp?: number): string {
 const DEBUG_PANEL_CLASS_NAME =
   "debug-panel tw:flex tw:h-full tw:flex-col tw:overflow-hidden";
 
-const DEBUG_EVENT_LIST_CLASS_NAME = [
-  "list",
-  "tw:flex-1 tw:overflow-y-auto tw:p-2",
-  SCROLLBAR_THIN_CLASS_NAME,
-].join(" ");
+const DEBUG_EVENT_LIST_CLASS_NAME = "list tw:flex-1 tw:overflow-y-auto tw:p-2";
 
 const DEBUG_EVENTS_TAB_CLASS_NAME =
   "debug-events-tab tw:h-full tw:overflow-y-auto tw:pb-2";
