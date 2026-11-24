@@ -21,8 +21,8 @@ export function SkillIcon({ icon, size = 18, glyphSize, fallback = "bolt" }: { i
     };
   }, [url]);
   const src = loaded?.url === url ? loaded.src : "";
-  return <span className={styles.icon} style={{ width: size, height: size }} aria-hidden="true">
+  return <span className={`${styles.icon} ${!src ? styles.fallback : ""}`} style={{ width: size, height: size }} aria-hidden="true">
     {src ? <img src={src} alt="" onError={() => setLoaded(previous => previous?.src === src ? null : previous)} />
-      : <MaterialIcon name={fallback} style={{ fontSize: glyphSize ?? size }} />}
+      : <MaterialIcon name={fallback} className={styles.glyph} style={glyphSize ? { width: glyphSize, height: glyphSize } : undefined} />}
   </span>;
 }
