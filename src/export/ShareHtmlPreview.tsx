@@ -30,7 +30,8 @@ export function ShareHtmlPreview({ attachment, attachments, omittedResources, li
   useEffect(() => {
     const container = host.current;
     const sharePath = conversationSharePath(window.location.pathname);
-    if (!container || !sharePath || !preview) { setFailed(true); return; }
+    const assetSet = document.querySelector<HTMLMetaElement>('meta[name="conversation-export-asset-set"]')?.content ?? "";
+    if (!container || !sharePath || !preview || !/^[a-f0-9]{64}$/u.test(assetSet)) { setFailed(true); return; }
     setFailed(false);
     const frame = document.createElement("iframe");
     frame.title = attachment.name;
@@ -96,7 +97,8 @@ export function ShareHtmlPreview({ attachment, attachments, omittedResources, li
         fail(); // Navigation during delivery must never transfer bytes to a new document.
       }
     };
-    frame.src = preview + "?embed=1";
+    // The Hub may switch its current template after this parent page was loaded.
+    frame.src = preview + "?embed=1&assetSet=" + assetSet;
     container.append(frame);
     return close;
   }, [attachment, attachments, omittedResources, preview, labels]);

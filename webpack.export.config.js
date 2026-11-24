@@ -43,6 +43,8 @@ module.exports = {
     path: path.resolve(__dirname, "dist/export-build"),
     filename: "[name].js",
     chunkFilename: "forbidden-[name].js",
+    // Lazy chunks and imported icons inherit runtime.js's immutable version directory.
+    publicPath: "auto",
     clean: true,
   },
   resolve: {
@@ -58,6 +60,7 @@ module.exports = {
         use: {
           loader: "ts-loader",
           options: {
+            onlyCompileBundledFiles: true,
             compilerOptions: { sourceMap: false },
           },
         },
