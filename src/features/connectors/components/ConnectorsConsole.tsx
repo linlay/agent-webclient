@@ -3,12 +3,13 @@ import { CreateMenuButton } from "@/shared/ui/CreateMenuButton";
 import { useResourceAssistant } from "@/features/resource-assistant/hooks/useResourceAssistant";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 
-import { message, Spin, Dropdown, Flex, Tooltip } from "antd";
+import { message, Spin, Flex, Tooltip } from "antd";
 import type { MenuProps } from "antd";
 import { useOptionalAppContext } from "@/app/state/AppContext";
 import { getAdminAgentConnectors, setAdminAgentConnector, type ConnectorType } from "@/shared/data";
 import { useI18n } from "@/shared/i18n";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
+import { RowMoreMenu } from "@/shared/ui/RowMoreMenu";
 import { UiButton } from "@/shared/ui/UiButton";
 import { isDesktopAppMode } from "@/shared/utils/routing";
 import { useCatalogOrder } from "@/features/catalog-order/hooks/useCatalogOrder";
@@ -258,7 +259,13 @@ export function ConnectorsConsole({
     };
     const isItemSelected = !showUnassigned && selected?.id === item.id;
     return (
-      <div key={item.id} className={styles.itemWrap}>
+      <RowMoreMenu
+        key={item.id}
+        className={styles.itemWrap}
+        items={menuItems}
+        onSelect={onMenuClick}
+        label={moreLabel}
+      >
         <button
           type="button"
           className={styles.listItem}
@@ -321,24 +328,7 @@ export function ConnectorsConsole({
             </span>
           </span>
         </button>
-        <Dropdown
-          trigger={["click"]}
-          menu={{ items: menuItems, onClick: onMenuClick }}
-          getPopupContainer={(trigger) => trigger.parentElement || trigger}
-        >
-          <button
-            type="button"
-            className={styles.itemMore}
-            aria-label={moreLabel}
-            title={moreLabel}
-            aria-haspopup="menu"
-            onMouseDown={(event) => event.preventDefault()}
-            onClick={(event) => event.stopPropagation()}
-          >
-            <MaterialIcon name="more_horiz" />
-          </button>
-        </Dropdown>
-      </div>
+      </RowMoreMenu>
     );
   };
 

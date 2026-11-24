@@ -153,32 +153,17 @@
   min-width: 0;
 }
 
-.itemMore {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  right: 0;
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  width: 50px;
-  border: 0;
-  border-radius: 0;
-  background: linear-gradient(to left, var(--bg-base) 50%, transparent);
-  color: var(--ink-muted);
-  cursor: pointer;
+/* 更多按钮叠加在行右端，展开菜单或 hover 时淡出被覆盖的版本号与标签，位置保持不变。 */
+.itemWrap[data-has-actions]:hover .version,
+.itemWrap[data-has-actions]:has(:focus-visible) .version,
+.itemWrap[data-has-actions][data-menu-open] .version,
+.itemWrap[data-has-actions]:hover .pinBadge,
+.itemWrap[data-has-actions]:has(:focus-visible) .pinBadge,
+.itemWrap[data-has-actions][data-menu-open] .pinBadge,
+.itemWrap[data-has-actions]:hover .badges,
+.itemWrap[data-has-actions]:has(:focus-visible) .badges,
+.itemWrap[data-has-actions][data-menu-open] .badges {
   opacity: 0;
-  pointer-events: none;
-}
-
-.itemMore:hover {
-  color: var(--ink-1);
-}
-
-.itemWrap:hover .itemMore,
-.itemWrap:has(:focus-visible) .itemMore {
-  opacity: 1;
-  pointer-events: auto;
 }
 
 .listItem:hover {
@@ -209,6 +194,7 @@
   align-items: center;
   flex-wrap: wrap;
   gap: 7px;
+  transition: opacity 0.12s ease;
 }
 
 .resizeHandle {
@@ -585,12 +571,14 @@
   flex: 0 0 auto;
   font-size: 13px;
   color: var(--ink-muted);
+  transition: opacity 0.12s ease;
 }
 
 .version {
   flex-shrink: 0;
   color: var(--ink-muted);
   font: 11px ui-monospace, SFMono-Regular, Consolas, monospace;
+  transition: opacity 0.12s ease;
 }
 
 .itemFooter {

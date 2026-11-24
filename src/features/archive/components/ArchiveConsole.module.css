@@ -212,41 +212,19 @@
     line-height: 1.6;
 }
 
-:global(.archive-list-item) {
-    position: relative;
+/* 更多按钮叠加在行右端：标题尾部以遮罩淡出，文字位置保持不变。 */
+:global(.archive-list-item)[data-has-actions]:hover :global(.archive-list-item-head) strong,
+:global(.archive-list-item)[data-has-actions]:has(:focus-visible) :global(.archive-list-item-head) strong,
+:global(.archive-list-item)[data-has-actions][data-menu-open] :global(.archive-list-item-head) strong {
+    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 36px), transparent calc(100% - 18px));
+    mask-image: linear-gradient(to right, #000 calc(100% - 36px), transparent calc(100% - 18px));
 }
 
-:global(.archive-list-item-actions) {
-    position: absolute;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    display: flex;
-    align-items: center;
-    gap: 2px;
-    padding: 0 8px 0 24px;
-    background: linear-gradient(90deg, transparent, var(--bg-hover) 32%);
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.15s ease;
-}
-
-:global(.archive-list-item):hover :global(.archive-list-item-actions),
-:global(.archive-list-item):focus-within :global(.archive-list-item-actions),
-:global(.archive-list-item):has(:focus-visible) :global(.archive-list-item-actions) {
-    opacity: 1;
-    pointer-events: auto;
-}
-
+/* 触屏没有 hover，更多按钮常显，标题同样需要让出尾部。 */
 @media (hover: none) {
-    :global(.archive-list-item-actions) {
-        opacity: 1;
-        pointer-events: auto;
-    }
-}
 
-@media (prefers-reduced-motion: reduce) {
-    :global(.archive-list-item-actions) {
-        transition: none;
+    :global(.archive-list-item)[data-has-actions] :global(.archive-list-item-head) strong {
+        -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 36px), transparent calc(100% - 18px));
+        mask-image: linear-gradient(to right, #000 calc(100% - 36px), transparent calc(100% - 18px));
     }
 }

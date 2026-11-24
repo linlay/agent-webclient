@@ -57,35 +57,41 @@ jest.mock("antd", () => ({
   Dropdown: ({
     children,
     menu,
+    trigger,
   }: {
     children: React.ReactNode;
+    trigger?: string[];
     menu?: {
       items?: Array<{ key?: string; label?: React.ReactNode; type?: string }>;
-      onClick?: (info: { key: string }) => void;
+      onClick?: (info: { key: string; domEvent?: any }) => void;
     };
   }) => {
     const react = require("react");
+    const isContext = Array.isArray(trigger) && trigger.includes("contextMenu");
     const items = (menu?.items ?? []).filter((item) => item.type !== "divider");
     return react.createElement(
       react.Fragment,
       null,
       children,
-      react.createElement(
-        "div",
-        { "data-testid": "dropdown-menu" },
-        items.map((item) =>
-          react.createElement(
-            "button",
-            {
-              key: String(item.key),
-              type: "button",
-              "data-menu-key": item.key,
-              onClick: () => menu?.onClick?.({ key: String(item.key) }),
-            },
-            item.label,
+      isContext
+        ? react.createElement("span", { "data-testid": "context-menu" })
+        : react.createElement(
+            "div",
+            { "data-testid": "dropdown-menu" },
+            items.map((item) =>
+              react.createElement(
+                "button",
+                {
+                  key: String(item.key),
+                  type: "button",
+                  "data-menu-key": item.key,
+                  onClick: (event: any) =>
+                    menu?.onClick?.({ key: String(item.key), domEvent: event }),
+                },
+                item.label,
+              ),
+            ),
           ),
-        ),
-      ),
     );
   },
   Spin: ({ children }: { children: React.ReactNode }) => children,
@@ -309,7 +315,7 @@ test("keeps the group header quiet and puts group actions in a dropdown", async 
   await act(async () => root.unmount());
 });
 
-test("keeps archived row actions icon-only for hover reveal", async () => {
+test("puts archived row actions into the shared hover more menu", async () => {
   const onRestore = jest.fn();
   const onDelete = jest.fn();
   const onSelect = jest.fn();
@@ -321,33 +327,42 @@ test("keeps archived row actions icon-only for hover reveal", async () => {
   });
 
   const row = container.querySelector('[role="option"]');
-  expect(row?.querySelector(`[aria-label="${t("archive.item.more")}"]`)).toBeNull();
-  const actions = row?.querySelector(".archive-list-item-actions");
-  const buttons = Array.from(actions?.querySelectorAll("button") ?? []);
-  const labels = [
+  const more = row?.querySelector('button[aria-haspopup="menu"]');
+  expect(more).not.toBeNull();
+  // 每行同时注册右键菜单（与更多按钮共用同一份菜单项）
+  expect(container.querySelectorAll('[data-testid="context-menu"]')).toHaveLength(
+    container.querySelectorAll('[role="option"]').length,
+  );
+  // 不再平铺三个内联按钮，菜单承载恢复 / 还原并打开 / 删除
+  const menuButtons = Array.from(row?.querySelectorAll("[data-menu-key]") ?? []);
+  expect(menuButtons.map((button) => button.textContent)).toEqual([
     t("archive.action.restore"),
     t("archive.action.restoreAndOpen"),
     t("archive.action.delete"),
-  ];
-  expect(buttons.map((button) => button.getAttribute("aria-label"))).toEqual(
-    labels,
-  );
-  // Icon-only buttons: the copy only appears in the hover tooltip.
-  expect(buttons.map((button) => button.textContent)).toEqual(["", "", ""]);
-  expect(
-    Array.from(actions?.querySelectorAll("[data-tooltip-title]") ?? []).map(
-      (element) => element.getAttribute("data-tooltip-title"),
-    ),
-  ).toEqual(labels);
+  ]);
+  expect(row?.querySelector(".archive-list-item-actions")).toBeNull();
 
-  click(buttons[0]);
+  click(more);
+  expect(onRestore).not.toHaveBeenCalled();
+  click(row?.querySelector('[data-menu-key="restore"]') ?? null);
   expect(onRestore).toHaveBeenCalledWith("a1", false);
-  click(buttons[1]);
+  click(row?.querySelector('[data-menu-key="restoreAndOpen"]') ?? null);
   expect(onRestore).toHaveBeenCalledWith("a1", true);
-  click(buttons[2]);
+  click(row?.querySelector('[data-menu-key="delete"]') ?? null);
   expect(onDelete).toHaveBeenCalledWith("a1");
   // Row actions must not also open the chat.
   expect(onSelect).not.toHaveBeenCalled();
+
+  await act(async () => root.unmount());
+});
+
+test("omits restore-and-open from the row menu when unsupported", async () => {
+  const { container, root } = await renderPane({ canRestoreAndOpen: false });
+
+  const row = container.querySelector('[role="option"]');
+  expect(row?.querySelector('[data-menu-key="restore"]')).not.toBeNull();
+  expect(row?.querySelector('[data-menu-key="restoreAndOpen"]')).toBeNull();
+  expect(row?.querySelector('[data-menu-key="delete"]')).not.toBeNull();
 
   await act(async () => root.unmount());
 });

@@ -12,6 +12,7 @@ import { ArchiveFilter } from "@/features/archive/components/ArchiveFilter";
 import { AgentIcon } from "@/shared/icons/agent";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
+import { RowMoreMenu } from "@/shared/ui/RowMoreMenu";
 import { t } from "@/shared/i18n";
 
 export interface ArchiveListPaneProps {
@@ -213,81 +214,73 @@ export const ArchiveListPane: React.FC<ArchiveListPaneProps> = (props) => {
                     aria-label={`${groupName} · ${t("archive.list.ariaLabel")}`}
                     className="archive-list tw:flex tw:flex-col"
                   >
-                    {group.items.map((item) => (
-                      <div
-                        key={item.chatId}
-                        role="option"
-                        aria-selected={item.chatId === props.selectedChatId}
-                        tabIndex={0}
-                        className={`archive-list-item tw:flex tw:w-full tw:cursor-pointer tw:flex-col tw:rounded-none tw:border-0 tw:bg-transparent tw:px-2.5 tw:py-2 tw:text-left tw:text-ink-1 tw:hover:bg-bg-hover tw:[&.is-active]:bg-[var(--bg-selected)] tw:[&.is-active]:text-[var(--nav-selected-text)] ${item.chatId === props.selectedChatId ? "is-active" : ""}`}
-                        onClick={() => props.onSelect(item.chatId)}
-                        onKeyDown={(event) => {
-                          if (event.key === "Enter" || event.key === " ") {
-                            event.preventDefault();
-                            props.onSelect(item.chatId);
-                          }
-                        }}
-                      >
-                        <span className="archive-list-item-head tw:flex tw:min-w-0 tw:items-center">
-                          <strong className="tw:min-w-0 tw:flex-1 tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:text-[13px]">
-                            {item.chatName || item.chatId}
-                          </strong>
-                        </span>
-                        <span className="archive-list-meta tw:mt-1 tw:flex tw:flex-wrap tw:gap-x-1.5 tw:gap-y-1">
-                          <span className="archive-list-meta-item tw:whitespace-nowrap tw:text-[11px] tw:text-ink-muted">
-                            {formatArchiveTimestamp(item.lastRunAt)}
-                          </span>
-                        </span>
-                        <span
-                          className="archive-list-item-actions"
-                          onClick={(event) => event.stopPropagation()}
-                          onKeyDown={(event) => event.stopPropagation()}
-                        >
-                          <Tooltip title={t("archive.action.restore")}>
-                            <UiButton
-                              size="mini"
-                              variant="ghost"
-                              iconOnly
-                              aria-label={t("archive.action.restore")}
-                              onClick={() =>
-                                props.onRestore(item.chatId, false)
+                    {group.items.map((item) => {
+                      const itemMenuItems: MenuProps["items"] = [
+                        {
+                          key: "restore",
+                          icon: <MaterialIcon name="undo" />,
+                          label: t("archive.action.restore"),
+                        },
+                        ...(props.canRestoreAndOpen
+                          ? [
+                              {
+                                key: "restoreAndOpen",
+                                icon: <MaterialIcon name="open_in_new" />,
+                                label: t("archive.action.restoreAndOpen"),
+                              },
+                            ]
+                          : []),
+                        { type: "divider" as const },
+                        {
+                          key: "delete",
+                          icon: <MaterialIcon name="delete" />,
+                          label: t("archive.action.delete"),
+                          danger: true,
+                        },
+                      ];
+                      const onItemMenuClick: MenuProps["onClick"] = ({
+                        key,
+                        domEvent,
+                      }) => {
+                        domEvent.stopPropagation();
+                        if (key === "restore") props.onRestore(item.chatId, false);
+                        else if (key === "restoreAndOpen") props.onRestore(item.chatId, true);
+                        else if (key === "delete") props.onDelete(item.chatId);
+                      };
+                      return (
+                        <RowMoreMenu
+                          key={item.chatId}
+                          className={`archive-list-item tw:flex tw:w-full tw:cursor-pointer tw:flex-col tw:rounded-none tw:border-0 tw:bg-transparent tw:px-2.5 tw:py-2 tw:text-left tw:text-ink-1 tw:hover:bg-bg-hover tw:[&.is-active]:bg-[var(--bg-selected)] tw:[&.is-active]:text-[var(--nav-selected-text)] ${item.chatId === props.selectedChatId ? "is-active" : ""}`}
+                          rowProps={{
+                            role: "option",
+                            "aria-selected": item.chatId === props.selectedChatId,
+                            tabIndex: 0,
+                            onClick: () => props.onSelect(item.chatId),
+                            onKeyDown: (event) => {
+                              if (event.key === "Enter" || event.key === " ") {
+                                event.preventDefault();
+                                props.onSelect(item.chatId);
                               }
-                            >
-                              <MaterialIcon name="undo" />
-                            </UiButton>
-                          </Tooltip>
-                          {props.canRestoreAndOpen ? (
-                            <Tooltip
-                              title={t("archive.action.restoreAndOpen")}
-                            >
-                              <UiButton
-                                size="mini"
-                                variant="ghost"
-                                iconOnly
-                                aria-label={t("archive.action.restoreAndOpen")}
-                                onClick={() =>
-                                  props.onRestore(item.chatId, true)
-                                }
-                              >
-                                <MaterialIcon name="open_in_new" />
-                              </UiButton>
-                            </Tooltip>
-                          ) : null}
-                          <Tooltip title={t("archive.action.delete")}>
-                            <UiButton
-                              size="mini"
-                              variant="ghost"
-                              iconOnly
-                              color="danger"
-                              aria-label={t("archive.action.delete")}
-                              onClick={() => props.onDelete(item.chatId)}
-                            >
-                              <MaterialIcon name="delete" />
-                            </UiButton>
-                          </Tooltip>
-                        </span>
-                      </div>
-                    ))}
+                            },
+                          }}
+                          items={itemMenuItems}
+                          onSelect={onItemMenuClick}
+                          label={t("archive.item.more")}
+                          ariaLabel={`${item.chatName || item.chatId}: ${t("archive.item.more")}`}
+                        >
+                          <span className="archive-list-item-head tw:flex tw:min-w-0 tw:items-center">
+                            <strong className="tw:min-w-0 tw:flex-1 tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:text-[13px]">
+                              {item.chatName || item.chatId}
+                            </strong>
+                          </span>
+                          <span className="archive-list-meta tw:mt-1 tw:flex tw:flex-wrap tw:gap-x-1.5 tw:gap-y-1">
+                            <span className="archive-list-meta-item tw:whitespace-nowrap tw:text-[11px] tw:text-ink-muted">
+                              {formatArchiveTimestamp(item.lastRunAt)}
+                            </span>
+                          </span>
+                        </RowMoreMenu>
+                      );
+                    })}
                   </div>
                 </section>
               );

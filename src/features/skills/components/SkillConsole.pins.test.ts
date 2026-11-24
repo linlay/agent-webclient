@@ -32,7 +32,7 @@ const names = () => Array.from(container.querySelectorAll(".skill-console-list-i
 const clickPin = async (name: string, pinned = false) => {
   const wrap = Array.from(container.querySelectorAll(".skill-console-list-item-wrap"))
     .find(node => node.querySelector("strong")?.textContent === name);
-  act(() => { wrap!.querySelector<HTMLButtonElement>('[aria-label="更多"]')!.click(); });
+  act(() => { wrap!.querySelector<HTMLButtonElement>('button[aria-haspopup="menu"]')!.click(); });
   const label = pinned ? "取消置顶" : "置顶";
   const menuItem = Array.from(document.querySelectorAll(".ant-dropdown:not(.ant-dropdown-hidden) .ant-dropdown-menu-item"))
     .find(node => node.textContent === label) as HTMLElement;
@@ -106,7 +106,7 @@ it.each(["直接编辑", "通过对话编辑"])("edits the clicked skill from it
   onSelect.mockClear();
   expect(container.querySelector('button[aria-label="编辑技能"]')).toBeNull();
   const wrap = Array.from(container.querySelectorAll(".skill-console-list-item-wrap")).find(node => node.querySelector("strong")?.textContent === "PDF")!;
-  await act(async () => wrap.querySelector<HTMLButtonElement>('[aria-label="更多"]')!.click());
+  await act(async () => wrap.querySelector<HTMLButtonElement>('button[aria-haspopup="menu"]')!.click());
   const menuItem = Array.from(document.querySelectorAll<HTMLElement>(".ant-dropdown:not(.ant-dropdown-hidden) .ant-dropdown-menu-item")).find(node => node.textContent === label)!;
   await act(async () => menuItem.click());
   if (label === "直接编辑") {
