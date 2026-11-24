@@ -30,6 +30,7 @@ import { useAppRuntimes } from "@/app/layout/hooks/useAppRuntimes";
 import { useDeriveChatAction } from "@/features/conversation/hooks/useDeriveChatAction";
 import { useRunFeedbackAction } from "@/features/conversation/hooks/useRunFeedbackAction";
 import { getAgent } from "@/shared/data";
+import { isDesktopAppMode } from "@/shared/utils/routing";
 import { ApiError } from "@/shared/data/api/http";
 import { useI18n } from "@/shared/i18n";
 import { buildSurfaceRoute, readSurfacePresentationContext } from "@/features/surfaces/lib/surfaceRoutes";
@@ -230,19 +231,28 @@ const AGENT_ROUTE_ROW_CLASS_BY_STATE = {
   empty: "timeline-empty-layout tw:grid-rows-[auto_minmax(0,2fr)_minmax(0,3fr)_auto]",
 } as const;
 
-const AgentRouteLoadingPage: React.FC<{ title: string; overlay?: boolean }> = ({ title, overlay = false }) => {
+const AgentRouteLoadingPage: React.FC<{ title: string; overlay?: boolean; delayHint: boolean }> = ({ title, overlay = false, delayHint }) => {
+  const [delayElapsed, setDelayElapsed] = useState(false);
+  useEffect(() => {
+    if (!delayHint) return;
+    const timer = setTimeout(() => setDelayElapsed(true), 200);
+    return () => clearTimeout(timer);
+  }, [delayHint]);
+
   const Component = overlay ? "div" : "main";
   return (
     <Component
       className={overlay ? AGENT_ROUTE_LOADING_OVERLAY_CLASS : AGENT_ROUTE_LOADING_PAGE_CLASS}
       aria-busy="true"
     >
-      <div className={AGENT_ROUTE_LOADING_CARD_CLASS}>
-        <div className={AGENT_ROUTE_LOADING_SPINNER_CLASS} aria-hidden="true" />
-        <div className={AGENT_ROUTE_LOADING_COPY_CLASS}>
-          <strong>{title}</strong>
+      {(!delayHint || delayElapsed) && (
+        <div className={AGENT_ROUTE_LOADING_CARD_CLASS}>
+          <div className={AGENT_ROUTE_LOADING_SPINNER_CLASS} aria-hidden="true" />
+          <div className={AGENT_ROUTE_LOADING_COPY_CLASS}>
+            <strong>{title}</strong>
+          </div>
         </div>
-      </div>
+      )}
     </Component>
   );
 };
@@ -844,7 +854,11 @@ const AgentChatShellContent: React.FC = () => {
         onRetry={handleRetryRouteAgent}
       />;
     }
-    return <AgentRouteLoadingPage title={t("agentRoute.loading.agent")} />;
+    return <AgentRouteLoadingPage
+      key={routeNewChatTimestamp}
+      title={t("agentRoute.loading.agent")}
+      delayHint={Boolean(routeNewChatTimestamp) && isDesktopAppMode()}
+    />;
   }
 
   const rowClass = isTimelineEmpty

@@ -310,6 +310,27 @@ describe("whole conversation surface navigation", () => {
     expect(context.state.chatTransition.error).toContain(`history failure ${status}`);
     expect(container.querySelector('[role="alert"]')).not.toBeNull();
   });
+  it.each([50, 250])("delays the Desktop New Chat hint while agent details take %i ms", async (latency) => {
+    const previousConfig = globalThis.__AGENT_WEBCLIENT_RUNTIME_CONFIG__;
+    globalThis.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = { ...previousConfig, DESKTOP_APP: true };
+    try {
+      const pending = deferred();
+      getAgent.mockReturnValue(pending.promise);
+      await act(async () => navigate("/agent/next?newChat=1788739200000"));
+      expect(getAgent).toHaveBeenCalledWith("next");
+      expect(container.querySelector(".agent-route-loading-card")).toBeNull();
+      await act(async () => jest.advanceTimersByTime(latency));
+      expect(Boolean(container.querySelector(".agent-route-loading-card"))).toBe(latency >= 200);
+      expect(container.querySelector('[data-testid="composer"]')).toBeNull();
+
+      await act(async () => pending.resolve({ data: { key: "next", name: "Next", mode: "CODER" } }));
+      expect(container.querySelector('[data-testid="composer"]')).not.toBeNull();
+      await act(async () => jest.advanceTimersByTime(200));
+      expect(container.querySelector(".agent-route-loading-card")).toBeNull();
+    } finally {
+      globalThis.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = previousConfig;
+    }
+  });
   it("does not treat a stale promotion marker as proof of a loaded conversation", async () => {
     await act(async () => navigate("/agent/demo?newChat=1788739200000"));
     getChat.mockResolvedValueOnce(response("B"));
