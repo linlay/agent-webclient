@@ -45,7 +45,7 @@ jest.mock("antd", () => {
             root?: string;
         };
     }) => React.createElement("div", { className: classNames?.root }, children,
-      open || mockMobileMenuOpen && React.isValidElement(content) && (content.props as { className?: string }).className === "mobile-topbar-tools" ? content : null)
+      open || mockMobileMenuOpen && React.isValidElement(content) && (content.props as { className?: string }).className === "mobile-topbar-menu" ? content : null)
 	};
 });
 
@@ -118,8 +118,53 @@ describe("TopNav", () => {
 		expect(html).not.toContain("WebSocket 握手失败");
 	});
 
-  it.each(["GENERAL", "BOT"])("mobile keeps BOT restart behind the guarded sidebar action (%s)", mode => {
-    mockMobileMenuOpen = true;
+  it("shows only a status dot in the mobile top nav", () => {
+    const state = createInitialState();
+    useAppState.mockReturnValue(state);
+
+    const idleHtml = renderToStaticMarkup(React.createElement(TopNav, { mobile: true }));
+    expect(idleHtml).toContain("mobile-status-dot is-idle");
+    expect(idleHtml).toContain('title="待命"');
+    expect(idleHtml).not.toContain(">待命<");
+
+    useAppState.mockReturnValue({
+      ...state,
+      events: [{ type: "run.error" }] as any,
+    });
+    const errorHtml = renderToStaticMarkup(React.createElement(TopNav, { mobile: true }));
+    expect(errorHtml).toContain("mobile-status-dot is-error");
+    expect(errorHtml).not.toContain(">运行异常<");
+  });
+
+  it("swaps the mobile navigation button for the usage control when usage is available", () => {
+    const state = createInitialState();
+    state.workerSelectionKey = "agent:demo";
+    state.currentAgent = { key: "demo", name: "Demo", mode: "GENERAL" };
+    useAppState.mockReturnValue(state);
+
+    const navigationHtml = renderToStaticMarkup(React.createElement(TopNav, { mobile: true }));
+    expect(navigationHtml).toContain('aria-label="打开导航"');
+    expect(navigationHtml).not.toContain('aria-label="打开用量统计"');
+
+    useAppState.mockReturnValue({
+      ...state,
+      usageSnapshot: {
+        type: "usage.snapshot",
+        chatId: "chat_1",
+        runId: "run_1",
+        usage: { chat: { totalTokens: 3700 } },
+      },
+    });
+    const usageHtml = renderToStaticMarkup(React.createElement(TopNav, { mobile: true }));
+    expect(usageHtml).not.toContain('aria-label="打开导航"');
+    expect(usageHtml).toContain('aria-label="打开用量统计"');
+    expect(usageHtml.match(/aria-label="打开用量统计"/g)).toHaveLength(1);
+    // 用量入口占据左侧槽位，中间只保留名称与状态点。
+    expect(usageHtml.indexOf('aria-label="打开用量统计"'))
+      .toBeLessThan(usageHtml.indexOf("current-worker-card"));
+  });
+
+  it.each(["GENERAL", "BOT"])("mobile keeps the start-new-conversation action beside the more button (%s)", mode => {
     const state = createInitialState();
     state.workerSelectionKey = "agent:demo";
     state.currentAgent = { key: "demo", name: "Demo", mode };
@@ -127,24 +172,39 @@ describe("TopNav", () => {
     const html = renderToStaticMarkup(React.createElement(TopNav, { mobile: true }));
     expect(html).toContain('aria-label="打开导航"');
     if (mode === "BOT") expect(html).not.toContain('aria-label="开始新对话"');
-    else expect(html).toContain('aria-label="开始新对话"');
+    else {
+      expect(html).toContain('aria-label="开始新对话"');
+      // 新对话是顶栏直接动作，不依赖菜单展开，并排在“更多”左侧。
+      expect(html.indexOf('aria-label="开始新对话"'))
+        .toBeLessThan(html.indexOf('aria-label="更多操作"'));
+    }
   });
 
-  it("keeps the mobile right sidebar directly reachable with the more menu closed", () => {
+  it("keeps the mobile right sidebar behind the more menu", () => {
     const state = createInitialState();
     state.workerSelectionKey = "agent:demo";
     state.currentAgent = { key: "demo", name: "Demo", mode: "GENERAL" };
     useAppState.mockReturnValue(state);
-    const html = renderToStaticMarkup(React.createElement(TopNav, { mobile: true }));
-    expect(html).toContain('aria-label="打开右侧栏"');
-    expect(html).toContain('aria-expanded="false"');
-    expect(html).toContain('aria-label="更多操作"');
-    expect(html.indexOf('aria-label="更多操作"')).toBeLessThan(html.indexOf('aria-label="打开右侧栏"'));
-    expect(html.match(/mobile-header-action/g)).toHaveLength(3);
-    expect(html).not.toContain('aria-label="开始新对话"');
+    const menuClosedHtml = renderToStaticMarkup(React.createElement(TopNav, { mobile: true }));
+
+    expect(menuClosedHtml).toContain('aria-label="更多操作"');
+    expect(menuClosedHtml).not.toContain('aria-label="打开右侧栏"');
+
+    mockMobileMenuOpen = true;
+    const menuOpenHtml = renderToStaticMarkup(React.createElement(TopNav, { mobile: true }));
+
+    expect(menuOpenHtml).toContain('aria-label="打开右侧栏"');
+    expect(menuOpenHtml).toContain('aria-expanded="false"');
+    expect(menuOpenHtml).toContain("mobile-topbar-menu-row");
+    expect(menuOpenHtml).toContain('aria-label="开始新对话"');
+    expect(menuOpenHtml).toContain("桌面版");
+    expect(menuOpenHtml.indexOf('aria-label="更多操作"'))
+      .toBeLessThan(menuOpenHtml.indexOf('aria-label="打开右侧栏"'));
+    expect(menuOpenHtml.match(/mobile-header-action/g)).toHaveLength(3);
   });
 
   it("reflects an open mobile panel even when the active panel is debug", () => {
+    mockMobileMenuOpen = true;
     const state = createInitialState();
     state.rightSidebarOpen = true;
     state.rightSidebarOpenTab = "debug";

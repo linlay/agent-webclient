@@ -1,6 +1,7 @@
 import type { AIUsageStats } from "@/shared/contracts/agentEvents";
 import {
   buildUsageMetrics,
+  hasUsageControlContent,
   type UsageMetric,
 } from "@/features/usage/lib/usageMetrics";
 
@@ -95,5 +96,22 @@ describe("buildUsageMetrics percent projection", () => {
       expect(metric.percent).toBeNull();
       expect(metric.value).toBeUndefined();
     });
+  });
+});
+
+describe("hasUsageControlContent", () => {
+  it("requires a snapshot, compact usage, or an active run", () => {
+    expect(hasUsageControlContent({})).toBe(false);
+    expect(hasUsageControlContent({ usageSnapshot: null, compactUsage: null, running: false })).toBe(false);
+    expect(hasUsageControlContent({ running: true })).toBe(true);
+    expect(hasUsageControlContent({ compactUsage: { totalTokens: 10 } })).toBe(true);
+    expect(hasUsageControlContent({
+      usageSnapshot: {
+        type: "usage.snapshot",
+        chatId: "chat_1",
+        runId: "run_1",
+        usage: { chat: { totalTokens: 10 } },
+      },
+    })).toBe(true);
   });
 });

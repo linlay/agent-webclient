@@ -11,15 +11,20 @@
   color: var(--text-main);
 }
 .conversation { display: flex; flex-direction: column; width: 100%; height: 100%; min-width: 0; min-height: 0; }
-.conversation > :global(.top-nav) { flex: none; height: auto; min-height: 52px; padding: env(safe-area-inset-top, 0px) 8px 0; background: var(--shell-page-bg); border-bottom: 1px solid var(--line-soft); }
+.conversation > :global(.top-nav) { flex: none; height: auto; min-height: 52px; padding: env(safe-area-inset-top, 0px) 8px 0; background: var(--shell-page-bg); }
 .conversation :global(.top-nav-inner) { min-height: 52px; gap: 4px; }
-.conversation :global(.nav-left) { flex: none; width: 92px; height: 44px; }
+.conversation :global(.nav-left) { display: flex; flex: none; align-items: center; width: 92px; height: 44px; }
 .conversation :global(.nav-center) { flex: 1; min-width: 0; justify-content: center; padding: 0; }
 .conversation :global(.current-worker-card) { min-width: 0; gap: 3px; justify-content: center; padding: 0; }
 .conversation :global(.current-worker-name) { max-width: 36vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; }
-.conversation :global(.status-pill) { padding-left: 14px; padding-right: 3px; font-size: 12px; }
+/* 手机顶栏的状态只用圆点表达，点的大小与配色沿用桌面 status-pill 的语义。 */
+.conversation :global(.mobile-status-dot) { flex: none; width: 8px; height: 8px; margin: 0 2px; border-radius: 999px; background: color-mix(in srgb, var(--ink-muted) 90%, white); }
+.conversation :global(.mobile-status-dot.is-running) { background: var(--accent-electric); animation: status-pulse 1s ease-in-out infinite; }
+.conversation :global(.mobile-status-dot.is-error) { background: var(--accent-danger); }
 .conversation :global(.usage-trigger.ui-btn.ui-btn-sm) { height: 44px; min-height: 44px; font-size: 14px; }
-.conversation :global(.status-pill)::before { left: 4px; width: 6px; height: 6px; }
+/* 用量入口与打开导航共用左侧位置：入口收在 92px 槽内，避免挤压标题区。 */
+.conversation :global(.nav-left) :global(.usage-trigger.ui-btn.ui-btn-sm) { max-width: 92px; padding: 0 4px; font-size: 13px; }
+.conversation :global(.nav-left) :global(.usage-trigger) :global(.ui-btn-label) { min-width: 0; overflow: hidden; white-space: nowrap; }
 .conversation :global(.conversation-stage) { flex: 1; min-width: 0; min-height: 0; }
 .conversation :global(.messages-scroll) { padding: 12px 10px; }
 .conversation[data-new-chat]::before, .conversation[data-new-chat]::after { content: ""; flex: 1 1 0; min-height: 8px; }
@@ -124,10 +129,68 @@
 .root :global(.command-modal-card):global(.is-automation-console) { height: 100%; max-height: none; min-height: 0; }
 .root :global(.mobile-terminal) { position: absolute; inset: 0; height: 100%; z-index: 45; background: var(--bg-base); padding-top: env(safe-area-inset-top, 0px); }
 
+.conversation :global(.mobile-topbar-actions) { display: flex; flex: none; align-items: center; gap: 2px; }
+
 /* These popups are portaled. Their named roots scope the mobile treatment. */
-:global(.mobile-topbar-tools) { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; max-width: min(320px, calc(100vw - 32px)); }
-:global(.mobile-topbar-tools) :global(.nav-group) { flex-wrap: wrap; gap: 6px; }
-:global(.mobile-topbar-tools) :global(.ui-btn):global(.is-icon-only) { min-width: 44px; min-height: 44px; }
+/* 更多操作卡片沿用 iOS 操作表的分组行样式：大圆角、行内图标加文案、行间细分隔线。 */
+:global(.mobile-topbar-menu-popover) :global(.ant-popover-inner) {
+  padding: 0;
+  border: 1px solid color-mix(in srgb, var(--line-soft) 88%, transparent);
+  border-radius: 18px;
+  overflow: hidden;
+  background: var(--control-popover-bg);
+  box-shadow: var(--shadow-strong);
+}
+:global(.mobile-topbar-menu) {
+  display: flex;
+  flex-direction: column;
+  width: max-content;
+  min-width: 216px;
+  max-width: calc(100vw - 24px);
+}
+:global(.mobile-topbar-menu-row) {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 52px;
+  padding: 0 18px;
+  border: 0;
+  background: transparent;
+  color: var(--text-main);
+  font: inherit;
+  font-size: 16px;
+  line-height: 1.3;
+  text-align: left;
+  white-space: nowrap;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+:global(.mobile-topbar-menu-row)::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 18px;
+  right: 18px;
+  height: 1px;
+  background: var(--line-soft);
+}
+:global(.mobile-topbar-menu-row):first-child::before { display: none; }
+:global(.mobile-topbar-menu-row):active { background: var(--bg-hover); }
+:global(.mobile-topbar-menu-row):disabled { color: var(--text-muted); cursor: default; }
+:global(.mobile-topbar-menu-icon) { flex: 0 0 auto; width: 22px; height: 22px; font-size: 22px; color: var(--ink-1); }
+:global(.mobile-topbar-menu-label) { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+:global(.mobile-topbar-menu-row)[data-active="true"],
+:global(.mobile-topbar-menu-row)[data-active="true"] :global(.mobile-topbar-menu-icon) { color: var(--accent-electric-strong); }
+:global(.mobile-topbar-menu-row):disabled :global(.mobile-topbar-menu-icon) { color: var(--text-muted); }
+:global(.mobile-topbar-menu-search) { padding: 8px; }
+/* 卡片宽度由标签决定，搜索框在窄屏上收缩而不是撑破卡片。 */
+:global(.mobile-topbar-menu-search) :global(.ant-input) { width: auto; min-width: 0; flex: 1 1 auto; }
+@media (hover: hover) {
+  :global(.mobile-topbar-menu-row:hover) { background: var(--bg-hover); }
+  :global(.mobile-topbar-menu-row:disabled:hover) { background: transparent; }
+}
 @media (max-height: 500px) {
   .conversation :global(.bottom-dock) { max-height: 75%; }
   .conversation :global(.composer-wonders) { display: none; }

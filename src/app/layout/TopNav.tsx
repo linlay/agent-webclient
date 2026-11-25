@@ -24,14 +24,19 @@ import {
 } from "@/shared/config/featureFlags";
 import { formatPlatformErrorForDisplay } from "@/shared/data/errors/platformError";
 import { useI18n } from "@/shared/i18n";
-import { MaterialIcon } from "@/shared/ui/MaterialIcon";
+import { MaterialIcon, type MaterialIconName } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
 import { TimelineTextSearchControl } from "@/features/timeline/components/TimelineTextSearchControl";
+import { useTimelineTextSearch } from "@/features/timeline/components/TimelineTextSearchProvider";
 import { Divider, Popover } from "antd";
 import { useSettingsOverlayState } from "@/features/settings/components/SettingsOverlayProvider";
 import { useMemoryOverlayState } from "@/features/memory/components/MemoryOverlayProvider";
 import { useCommandOverlayOpen } from "@/features/command-center/components/CommandOverlayProvider";
 import { UsageContextControl } from "@/features/usage/components/UsageContextControl";
+import {
+  hasUsageControlContent,
+  resolveLatestCompactUsage,
+} from "@/features/usage/lib/usageMetrics";
 import { useGlobalSearchOpen } from "@/features/search/components/GlobalSearchOverlayProvider";
 import { useTerminalAgentStatuses } from "@/features/terminal/hooks/useActiveTerminalAgents";
 import { resolveMainChatRuntime } from "@/features/runs/lib/runRuntimeState";
@@ -163,6 +168,49 @@ export function resolveTopNavStatus(
   };
 }
 
+interface MobileMenuRowProps {
+  icon: MaterialIconName;
+  label: string;
+  onSelect: () => void;
+  active?: boolean;
+  disabled?: boolean;
+  /** Keeps the menu open so the row can expand into an inline control. */
+  keepOpen?: boolean;
+  ariaLabel?: string;
+  ariaExpanded?: boolean;
+  iconStyle?: React.CSSProperties;
+}
+
+/**
+ * 手机端更多操作菜单的单行条目：图标加文案，行间用细分隔线分开。
+ * 菜单卡片、行高与命中区域由 `MobileLayout.module.css` 的 `.mobile-topbar-menu*` 定义。
+ */
+const MobileMenuRow: React.FC<MobileMenuRowProps> = ({
+  icon,
+  label,
+  onSelect,
+  active = false,
+  disabled = false,
+  keepOpen = false,
+  ariaLabel,
+  ariaExpanded,
+  iconStyle,
+}) => (
+  <button
+    type="button"
+    className="mobile-topbar-menu-row"
+    aria-label={ariaLabel || label}
+    aria-expanded={ariaExpanded}
+    data-active={active ? "true" : undefined}
+    data-menu-keep-open={keepOpen ? "true" : undefined}
+    disabled={disabled}
+    onClick={onSelect}
+  >
+    <MaterialIcon name={icon} className="mobile-topbar-menu-icon" style={iconStyle} />
+    <span className="mobile-topbar-menu-label">{label}</span>
+  </button>
+);
+
 export const TopNav: React.FC<{ surface?: "root" | "agent"; mobile?: boolean; onOpenNavigation?: () => void }> = ({
   surface = "root", mobile = false, onOpenNavigation,
 }) => {
@@ -210,6 +258,26 @@ export const TopNav: React.FC<{ surface?: "root" | "agent"; mobile?: boolean; on
     : undefined;
   const isCurrentWorkerTerminalActive = Boolean(currentWorkerTerminalStatus);
   const isCurrentWorkerTerminalBusy = currentWorkerTerminalStatus === "busy";
+  // 手机端把顶栏操作收进“更多”菜单，行内条目与桌面图标按钮共用同一套可用性判断。
+  const textSearch = useTimelineTextSearch();
+  const canSearchTimeline = Boolean(textSearch && textSearch.searchableNodeIds.size > 0);
+  const showNewConversationAction = Boolean(
+    currentWorker?.raw &&
+      !supportsPrimaryChat(String(currentWorker.raw.mode || "")),
+  );
+  // 手机端左侧位置与导航按钮互斥：有可展示的用量时让位给用量入口。
+  const compactUsage = React.useMemo(
+    () => resolveLatestCompactUsage(state.events),
+    [state.events],
+  );
+  const showMobileUsageControl = Boolean(
+    mobile &&
+      hasUsageControlContent({
+        usageSnapshot: state.usageSnapshot,
+        compactUsage,
+        running: isMainChatRunning,
+      }),
+  );
   const isMacPlatform = React.useMemo(
     () =>
       typeof navigator !== "undefined" &&
@@ -323,6 +391,56 @@ export const TopNav: React.FC<{ surface?: "root" | "agent"; mobile?: boolean; on
       tab,
     });
   };
+  const handleOpenProject = () => openTarget({
+    version: 1,
+    kind: "project",
+    agentKey: currentWorker?.sourceId,
+    chatId: state.chatId || undefined,
+  });
+  const handleToggleTerminal = () => {
+    if (surface === "root") {
+      dispatch({ type: "SET_TERMINAL_DOCK_OPEN", open: !ui.terminalDockOpen });
+      return;
+    }
+    if (!currentWorker) return;
+    openTarget({
+      version: 1,
+      kind: "terminal",
+      agentKey: currentWorker.sourceId,
+      terminalKey: "main",
+    });
+  };
+  const handleOpenMobileSidebar = () => {
+    if (state.rightSidebarOpen) dispatch({ type: "CLOSE_RIGHT_SIDEBAR" });
+    else toggleRightSidebar("overview");
+  };
+  const handleStartNewConversation = () => {
+    window.dispatchEvent(new CustomEvent("agent:start-new-conversation", {
+      detail: {
+        ...(currentWorker ? { agentKey: currentWorker.sourceId } : {}),
+        preserveWorkerContext: true,
+        focusComposerOnComplete: false,
+      },
+    }));
+  };
+  const handleOpenDesktopView = () => {
+    window.location.assign(buildClientLayoutHref("/", window.location.search, state.chatId));
+  };
+  const closeMobileMenu = () => {
+    setToolsOpen(false);
+    // 搜索框只存在于菜单卡片内，收起菜单时一并结束搜索，避免留下无入口的高亮。
+    textSearch?.closeSearch();
+  };
+  const handleMobileMenuOpenChange = (open: boolean) => {
+    if (open) setToolsOpen(true);
+    else closeMobileMenu();
+  };
+  const handleMobileMenuClick = (event: React.MouseEvent<HTMLDivElement>) => {
+    const target = event.target as HTMLElement;
+    // 菜单行点击后收起菜单；需要就地展开的行（如搜索）通过 data 标记保留菜单。
+    if (!target.closest("button") || target.closest("[data-menu-keep-open]")) return;
+    closeMobileMenu();
+  };
   const debugButton = debugPanelEnabled ? (
     <UiButton
       className={TOP_NAV_ICON_BUTTON_CLASS}
@@ -353,18 +471,14 @@ export const TopNav: React.FC<{ surface?: "root" | "agent"; mobile?: boolean; on
     : statusLabel;
   const sidebarButton = (
     <UiButton
-      className={mobile ? "mobile-header-action" : TOP_NAV_ICON_BUTTON_CLASS}
+      className={TOP_NAV_ICON_BUTTON_CLASS}
       size="sm"
       variant="ghost"
       iconOnly
-      aria-label={mobile ? t(state.rightSidebarOpen ? "mobile.closeContent" : "mobile.openContent") : t("copilot.panel.overview")}
-      title={mobile ? t(state.rightSidebarOpen ? "mobile.closeContent" : "mobile.openContent") : t("copilot.panel.overview")}
-      aria-expanded={mobile ? state.rightSidebarOpen : undefined}
-      active={surface === "root" && state.rightSidebarOpen && (mobile || state.rightSidebarOpenTab !== "debug")}
-      onClick={() => {
-        if (mobile && state.rightSidebarOpen) dispatch({ type: "CLOSE_RIGHT_SIDEBAR" });
-        else toggleRightSidebar("overview");
-      }}
+      aria-label={t("copilot.panel.overview")}
+      title={t("copilot.panel.overview")}
+      active={surface === "root" && state.rightSidebarOpen && state.rightSidebarOpenTab !== "debug"}
+      onClick={() => toggleRightSidebar("overview")}
     >
       <MaterialIcon name={surface === "root" ? "dock_to_right" : "open_in_new"}
         className="tw:text-[16px]" style={surface === "root" ? { transform: "scaleX(-1)" } : undefined} />
@@ -384,14 +498,7 @@ export const TopNav: React.FC<{ surface?: "root" | "agent"; mobile?: boolean; on
                 iconOnly
                 aria-label={t("topNav.project.open")}
                 title={t("topNav.project.open")}
-                onClick={() =>
-                  openTarget({
-                    version: 1,
-                    kind: "project",
-                    agentKey: currentWorker?.sourceId,
-                    chatId: state.chatId || undefined,
-                  })
-                }
+                onClick={handleOpenProject}
               >
                 <MaterialIcon name="folder_open" />
               </UiButton>
@@ -488,21 +595,7 @@ export const TopNav: React.FC<{ surface?: "root" | "agent"; mobile?: boolean; on
                     ? t("topNav.terminal.close")
                     : t("topNav.terminal.open")
                 }
-                onClick={() =>
-                  surface === "root"
-                    ? dispatch({
-                        type: "SET_TERMINAL_DOCK_OPEN",
-                        open: !ui.terminalDockOpen,
-                      })
-                    : currentWorker
-                      ? openTarget({
-                          version: 1,
-                          kind: "terminal",
-                          agentKey: currentWorker.sourceId,
-                          terminalKey: "main",
-                        })
-                      : undefined
-                }
+                onClick={handleToggleTerminal}
               >
                 <MaterialIcon name="terminal" />
                 {isCurrentWorkerTerminalActive ? (
@@ -520,18 +613,84 @@ export const TopNav: React.FC<{ surface?: "root" | "agent"; mobile?: boolean; on
                 ) : null}
               </UiButton>
             ) : null}
-            {!mobile && sidebarButton}
+            {sidebarButton}
           </div>
         );
+  const mobileDebugPanelActive =
+    state.rightSidebarOpen && state.rightSidebarOpenTab === "debug";
+  const mobileTerminalDockActive = surface === "root" && ui.terminalDockOpen;
+  const mobileMenu = (
+    <div className="mobile-topbar-menu" onClick={handleMobileMenuClick}>
+      {canSearchTimeline ? (
+        textSearch?.open ? (
+          <div className="mobile-topbar-menu-search" data-menu-keep-open="true">
+            <TimelineTextSearchControl />
+          </div>
+        ) : (
+          <MobileMenuRow
+            icon="search"
+            label={t("timeline.textSearch.open")}
+            keepOpen
+            onSelect={() => textSearch?.openSearch()}
+          />
+        )
+      ) : null}
+      <MobileMenuRow
+        icon={surface === "root" ? "dock_to_right" : "open_in_new"}
+        iconStyle={surface === "root" ? { transform: "scaleX(-1)" } : undefined}
+        label={t(state.rightSidebarOpen ? "mobile.closeContent" : "mobile.openContent")}
+        ariaExpanded={state.rightSidebarOpen}
+        active={state.rightSidebarOpen}
+        onSelect={handleOpenMobileSidebar}
+      />
+      {showProjectButton ? (
+        <MobileMenuRow icon="folder_open" label={t("topNav.project.open")}
+          onSelect={handleOpenProject} />
+      ) : null}
+      {showTerminalButton ? (
+        <MobileMenuRow icon="terminal"
+          label={t(mobileTerminalDockActive ? "topNav.terminal.close" : "topNav.terminal.open")}
+          active={mobileTerminalDockActive} onSelect={handleToggleTerminal} />
+      ) : null}
+      {voiceModeAvailable ? (
+        <MobileMenuRow
+          icon={conversation.inputMode === "voice" ? "call_end" : "call"}
+          label={t(conversation.inputMode === "voice" ? "topNav.voice.hangup" : "topNav.voice.open")}
+          active={conversation.inputMode === "voice"}
+          disabled={voiceToggleDisabled}
+          onSelect={handleToggleVoiceMode}
+        />
+      ) : null}
+      {showMuteControl ? (
+        <MobileMenuRow
+          icon={ui.audioMuted ? "volume_off" : "volume_up"}
+          label={t(ui.audioMuted ? "topNav.audio.unmute" : "topNav.audio.mute")}
+          active={ui.audioMuted}
+          onSelect={handleToggleAudioMuted}
+        />
+      ) : null}
+      {debugPanelEnabled ? (
+        <MobileMenuRow icon="bug_report"
+          label={t(mobileDebugPanelActive ? "topNav.debug.close" : "topNav.debug.open")}
+          active={mobileDebugPanelActive} onSelect={() => toggleRightSidebar("debug")} />
+      ) : null}
+      <MobileMenuRow icon="open_in_new" label={t("mobile.desktop")}
+        onSelect={handleOpenDesktopView} />
+    </div>
+  );
   return (
     <nav className={TOP_NAV_CLASS}
       data-desktop-sidebar-collapsed={desktopHeaderLayout.sidebarCollapsed ? "true" : undefined}
       style={desktopHeaderLayout.headerLeftInset ? { paddingLeft: desktopHeaderLayout.headerLeftInset } : undefined}>
       <div className={TOP_NAV_INNER_CLASS}>
         <div className={NAV_LEFT_CLASS}>
-          {mobile ? <UiButton className="mobile-header-action" variant="ghost" size="sm" iconOnly aria-label={t("mobile.openNavigation")} onClick={onOpenNavigation}>
-            <MaterialIcon name="dock_to_right" />
-          </UiButton> : state.chatId && <TimelineTextSearchControl appearance="input" />}
+          {mobile ? (showMobileUsageControl ? (
+            <UsageContextControl presentation="mobile" />
+          ) : (
+            <UiButton className="mobile-header-action" variant="ghost" size="sm" iconOnly aria-label={t("mobile.openNavigation")} onClick={onOpenNavigation}>
+              <MaterialIcon name="dock_to_right" />
+            </UiButton>
+          )) : state.chatId && <TimelineTextSearchControl appearance="input" />}
         </div>
 
         <div className={NAV_CENTER_CLASS}>
@@ -540,35 +699,49 @@ export const TopNav: React.FC<{ surface?: "root" | "agent"; mobile?: boolean; on
             <strong className={CURRENT_WORKER_NAME_CLASS}>
               {currentWorker?.displayName || t("topNav.noSelection")}
             </strong>
-            <span
-              className={resolveStatusPillClassName(statusClass)}
-              id="api-status"
-              title={statusTitle}
-              aria-label={statusTitle}
-            >
-              {statusLabel}
-            </span>
-            <UsageContextControl presentation={mobile ? "mobile" : undefined} />
+            {mobile ? (
+              // 手机端顶栏只保留状态圆点，状态文字仍在 title/aria-label 中保留。
+              <span
+                className={`mobile-status-dot ${statusClass}`}
+                id="api-status"
+                role="img"
+                title={statusTitle}
+                aria-label={statusTitle}
+              />
+            ) : (
+              <span
+                className={resolveStatusPillClassName(statusClass)}
+                id="api-status"
+                title={statusTitle}
+                aria-label={statusTitle}
+              >
+                {statusLabel}
+              </span>
+            )}
+            {mobile ? null : <UsageContextControl />}
           </div>
           }
         </div>
 
-        {mobile ? <Popover open={toolsOpen} onOpenChange={setToolsOpen} trigger="click" placement="bottomRight" content={<div className="mobile-topbar-tools"
-          onClick={event => { if ((event.target as HTMLElement).closest("button")) setToolsOpen(false); }}>
-          {currentWorker?.raw && !supportsPrimaryChat(String(currentWorker.raw.mode || "")) && <UiButton variant="ghost" size="sm" iconOnly aria-label={t("topNav.newConversation")}
-          onClick={() => window.dispatchEvent(new CustomEvent("agent:start-new-conversation", {
-            detail: { ...(currentWorker ? { agentKey: currentWorker.sourceId } : {}), preserveWorkerContext: true, focusComposerOnComplete: false },
-          }))}><MaterialIcon name="edit_square" /></UiButton>}
-          <TimelineTextSearchControl buttonClassName={TOP_NAV_ICON_BUTTON_CLASS} />
-          {tools}
-          <UiButton variant="ghost" size="sm"
-            onClick={() => window.location.assign(buildClientLayoutHref("/", window.location.search, state.chatId))}>
-            {t("mobile.desktop")}
-          </UiButton>
-        </div>}>
-          <UiButton className="mobile-header-action" variant="ghost" size="sm" iconOnly aria-label={t("leftSidebar.moreActions")}><MaterialIcon name="more_horiz" /></UiButton>
-        </Popover> : tools}
-        {mobile && sidebarButton}
+        {mobile ? (
+          <div className="mobile-topbar-actions">
+            {showNewConversationAction ? (
+              <UiButton className="mobile-header-action" variant="ghost" size="sm" iconOnly
+                aria-label={t("topNav.newConversation")} title={t("topNav.newConversation")}
+                onClick={handleStartNewConversation}>
+                <MaterialIcon name="edit_square" />
+              </UiButton>
+            ) : null}
+            <Popover open={toolsOpen} onOpenChange={handleMobileMenuOpenChange} trigger="click"
+              placement="bottomRight" arrow={false}
+              classNames={{ root: "mobile-topbar-menu-popover" }} content={mobileMenu}>
+              <UiButton className="mobile-header-action" variant="ghost" size="sm" iconOnly
+                aria-label={t("leftSidebar.moreActions")} aria-expanded={toolsOpen}>
+                <MaterialIcon name="more_horiz" />
+              </UiButton>
+            </Popover>
+          </div>
+        ) : tools}
       </div>
     </nav>
   );
