@@ -323,3 +323,29 @@
         right: 24px;
     }
 }
+
+/* 移动端设置菜单：面板由 BottomSheet 承担，这里只管菜单自身的尺寸与滚动。 */
+:global(.worker-settings-sheet) :global(.sidebar-settings-menu) {
+    max-height: calc(var(--mobile-height, 100dvh) - 120px);
+    padding: 4px 16px max(10px, env(safe-area-inset-bottom, 0px));
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    background: var(--bg-base);
+}
+
+:global(.worker-settings-sheet) :global(.sidebar-settings-item):global(.ui-btn) {
+    min-height: 44px;
+    padding: 8px 10px;
+}
+
+:global(.worker-settings-sheet) :global(.sidebar-settings-item-label) {
+    font-size: 15px;
+}
+
+:global(.worker-settings-sheet) :global(.sidebar-settings-section-title) {
+    margin: 0 2px 6px;
+}
+
+:global(.layout-mobile[data-keyboard-open]) :global(.worker-settings-sheet) :global(.sidebar-settings-menu) {
+    max-height: calc(var(--mobile-height, 100dvh) - 80px);
+}

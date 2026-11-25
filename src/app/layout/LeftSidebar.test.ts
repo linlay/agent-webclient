@@ -19,6 +19,7 @@ import type { WorkerRow } from "@/features/workers/lib/workerState";
 import { I18nProvider } from "@/shared/i18n";
 
 const antdButtonProps: Array<Record<string, unknown>> = [];
+const antdDrawerProps: Array<Record<string, unknown>> = [];
 const antdCollapseProps: Array<Record<string, unknown>> = [];
 const uiButtonProps: Array<Record<string, unknown> & { text: string }> = [];
 const dropdownMenuProps: Array<Record<string, unknown>> = [];
@@ -217,6 +218,11 @@ jest.mock("antd", () => {
   Modal.confirm = (...args: unknown[]) => mockModalConfirm(...args);
   Modal.useModal = () => [{ confirm: jest.fn() }, null];
 
+  const Drawer = ({ open, children, ...props }: any) => {
+    antdDrawerProps.push(props);
+    return open ? React.createElement("div", { className: "mock-drawer" }, children) : null;
+  };
+
   const Popover = ({ children, content, classNames }: any) =>
     React.createElement(
       "div",
@@ -236,6 +242,7 @@ jest.mock("antd", () => {
     Badge,
     Checkbox,
     Collapse,
+    Drawer,
     Dropdown,
     Flex,
     Input,
@@ -539,6 +546,7 @@ describe("LeftSidebar", () => {
   beforeEach(() => {
     antdButtonProps.length = 0;
     antdCollapseProps.length = 0;
+    antdDrawerProps.length = 0;
     uiButtonProps.length = 0;
     dropdownMenuProps.length = 0;
     selectProjectFolder.mockReset();
@@ -642,6 +650,23 @@ describe("LeftSidebar", () => {
     expect(html).toMatch(
       /class="[^\"]*\bui-icon-hover-24-target\b[^\"]*" data-material-icon="settings"/,
     );
+  });
+
+  it("opens the settings menu as a bottom sheet on mobile", () => {
+    globalWithStorage.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
+      SETTINGS_MENU_ENABLED: "true"
+    };
+
+    const html = renderSidebar(true);
+
+    expect(html).toContain('aria-haspopup="dialog"');
+    const sheet = antdDrawerProps.find((props) =>
+      String(props.rootClassName).includes("worker-settings-sheet"));
+    expect(sheet?.placement).toBe("bottom");
+    expect(sheet?.height).toBe("auto");
+    // 面板没有标题栏：关闭靠遮罩、Esc 和下拉手势。
+    expect(sheet?.closable).toBe(false);
+    expect(sheet?.title).toBeUndefined();
   });
 
   it("opens registry config in a new page from the settings menu", () => {

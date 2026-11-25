@@ -28,6 +28,7 @@ import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
 import { usePanelResize } from "@/shared/ui/usePanelResize";
 import { CopyInfoModal } from "@/shared/ui/CopyInfoModal";
+import { BottomSheet } from "@/shared/ui/BottomSheet";
 import {
   isQuickActionsEnabled,
   isSettingsMenuEnabled,
@@ -664,6 +665,30 @@ export const WorkerNavigator: React.FC<WorkerNavigatorProps> = ({
     )
     : undefined;
 
+  // 设置入口在移动端是底部抽屉的触发器，桌面端则是气泡菜单的锚点。
+  const settingsTrigger = (
+    <UiButton
+      className={presentationClasses("icon-btn ui-icon-hover-24")}
+      id="settings-btn"
+      variant="ghost"
+      aria-label={t("leftSidebar.openSettingsMenu")}
+      aria-haspopup={mobile ? "dialog" : "menu"}
+      aria-expanded={settingsMenuOpen}
+      onClick={mobile ? () => setSettingsMenuOpen(open => !open) : undefined}
+    >
+      <MaterialIcon
+        name="settings"
+        className="ui-icon-hover-24-target"
+      />
+      {expanded && (
+        <>
+          <span>{t("leftSidebar.settings")}</span>
+          {settingsSummary}
+        </>
+      )}
+    </UiButton>
+  );
+
   return (
     <SidebarTouchContext.Provider value={mobile && sorting}>
       <aside
@@ -903,37 +928,34 @@ export const WorkerNavigator: React.FC<WorkerNavigatorProps> = ({
           </Spin>
         </div>
         {settingsMenuEnabled ? (
-          <Popover
-            open={settingsMenuOpen}
-            trigger={expanded ? "click" : "hover"}
-            placement="top"
-            arrow={false}
-            classNames={{
-              root: "sidebar-settings-popover",
-            }}
-            onOpenChange={setSettingsMenuOpen}
-            content={renderSettingsMenu(() => setSettingsMenuOpen(false))}
-          >
-            <UiButton
-              className={presentationClasses("icon-btn ui-icon-hover-24")}
-              id="settings-btn"
-              variant="ghost"
-              aria-label={t("leftSidebar.openSettingsMenu")}
-              aria-haspopup="menu"
-              aria-expanded={settingsMenuOpen}
+          mobile ? (
+            <>
+              {settingsTrigger}
+              <BottomSheet
+                open={settingsMenuOpen}
+                onClose={() => setSettingsMenuOpen(false)}
+                ariaLabel={t("leftSidebar.settings")}
+                getContainer=".layout-mobile"
+                rootClassName="worker-settings-sheet"
+              >
+                {renderSettingsMenu(() => setSettingsMenuOpen(false))}
+              </BottomSheet>
+            </>
+          ) : (
+            <Popover
+              open={settingsMenuOpen}
+              trigger={expanded ? "click" : "hover"}
+              placement="top"
+              arrow={false}
+              classNames={{
+                root: "sidebar-settings-popover",
+              }}
+              onOpenChange={setSettingsMenuOpen}
+              content={renderSettingsMenu(() => setSettingsMenuOpen(false))}
             >
-              <MaterialIcon
-                name="settings"
-                className="ui-icon-hover-24-target"
-              />
-              {expanded && (
-                <>
-                  <span>{t("leftSidebar.settings")}</span>
-                  {settingsSummary}
-                </>
-              )}
-            </UiButton>
-          </Popover>
+              {settingsTrigger}
+            </Popover>
+          )
         ) : null}
       </aside>
 

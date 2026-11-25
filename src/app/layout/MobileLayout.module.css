@@ -15,7 +15,7 @@
 .conversation :global(.top-nav-inner) { min-height: 52px; gap: 4px; }
 .conversation :global(.nav-left) { display: flex; flex: none; align-items: center; width: 92px; height: 44px; }
 .conversation :global(.nav-center) { flex: 1; min-width: 0; justify-content: center; padding: 0; }
-.conversation :global(.current-worker-card) { min-width: 0; gap: 3px; justify-content: center; padding: 0; }
+.conversation :global(.current-worker-card) { min-width: 0; max-width: 100%; gap: 3px; justify-content: center; padding: 0; }
 .conversation :global(.current-worker-name) { max-width: 36vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; }
 /* 手机顶栏的状态只用圆点表达，点的大小与配色沿用桌面 status-pill 的语义。 */
 .conversation :global(.mobile-status-dot) { flex: none; width: 8px; height: 8px; margin: 0 2px; border-radius: 999px; background: color-mix(in srgb, var(--ink-muted) 90%, white); }
@@ -101,7 +101,8 @@
 .navigation :global(.left-sidebar) :global(.ui-list-item) { min-height: 44px; }
 .page { z-index: 1005; }
 .panel { z-index: 1010; }
-.panel :global(.right-sidebar) { width: 100%; min-width: 0; height: 100%; transform: none; border: 0; box-shadow: none; }
+/* 右侧栏不再画标题栏，顶部安全区改由内容自己让出，避免标签栏压到状态栏下。 */
+.panel :global(.right-sidebar) { width: 100%; min-width: 0; height: 100%; box-sizing: border-box; transform: none; border: 0; box-shadow: none; padding-top: env(safe-area-inset-top, 0px); }
 .panel :global(.right-sidebar) { font-size: 15px; }
 .panel :global(.x-markdown) { --font-size: 16px; font-size: 16px; line-height: 1.65; }
 .panel :global(.content-viewer-text) { font-size: 15px; }
@@ -129,7 +130,8 @@
 .root :global(.command-modal-card):global(.is-automation-console) { height: 100%; max-height: none; min-height: 0; }
 .root :global(.mobile-terminal) { position: absolute; inset: 0; height: 100%; z-index: 45; background: var(--bg-base); padding-top: env(safe-area-inset-top, 0px); }
 
-.conversation :global(.mobile-topbar-actions) { display: flex; flex: none; align-items: center; gap: 2px; }
+/* 顶栏左右两个槽位同宽（左侧是导航／用量槽），标题才会落在整条栏的几何中心。 */
+.conversation :global(.mobile-topbar-actions) { display: flex; flex: none; align-items: center; justify-content: flex-end; gap: 2px; width: 92px; }
 
 /* These popups are portaled. Their named roots scope the mobile treatment. */
 /* 更多操作卡片沿用 iOS 操作表的分组行样式：大圆角、行内图标加文案、行间细分隔线。 */

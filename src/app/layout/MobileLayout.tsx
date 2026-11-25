@@ -76,8 +76,7 @@ export function MobileLayout({ children, conversationSearch, overlays }: { child
       <LeftSidebar mobile onClose={closeNavigation} />
     </MobileSwipeDrawer>
     <MobileSwipeDrawer ref={contentDrawer} side="right" open={state.rightSidebarOpen}
-      onClose={closeContent} title={t("mobile.content")} closeLabel={t("mobile.closeContent")}
-      className={styles.panel}>
+      onClose={closeContent} ariaLabel={t("mobile.content")} className={styles.panel}>
       <RightSidebar mobile />
     </MobileSwipeDrawer>
     <Drawer rootClassName={`${styles.drawer} ${styles.page}`} title={t("mobile.backToChat")}

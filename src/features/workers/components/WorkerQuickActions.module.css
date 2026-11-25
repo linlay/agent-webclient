@@ -20,10 +20,8 @@
   gap: 2px;
 }
 
-.utilityRow :global(.ui-btn.ui-btn-sm) {
-  justify-content: center;
-  padding-inline: 4px;
-}
+/* 快捷操作与「新建对话」共用同一条左导轨：图标起点对齐，行内仍按三等分排布。 */
+.utilityRow :global(.ui-btn.ui-btn-sm) { justify-content: flex-start; }
 
 .actions .utilityRow :global(.ui-btn-label) { gap: 6px; }
 .newChat { width: 100%; }

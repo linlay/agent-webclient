@@ -166,6 +166,7 @@ describe("TopNav", () => {
 
   it.each(["GENERAL", "BOT"])("mobile keeps the start-new-conversation action beside the more button (%s)", mode => {
     const state = createInitialState();
+    state.chatId = "chat_demo";
     state.workerSelectionKey = "agent:demo";
     state.currentAgent = { key: "demo", name: "Demo", mode };
     useAppState.mockReturnValue(state);
@@ -180,8 +181,20 @@ describe("TopNav", () => {
     }
   });
 
+  it("hides the start-new-conversation action while no conversation is open", () => {
+    const state = createInitialState();
+    state.workerSelectionKey = "agent:demo";
+    state.currentAgent = { key: "demo", name: "Demo", mode: "GENERAL" };
+    useAppState.mockReturnValue(state);
+    expect(state.chatId).toBe("");
+    const html = renderToStaticMarkup(React.createElement(TopNav, { mobile: true }));
+    expect(html).toContain('aria-label="更多操作"');
+    expect(html).not.toContain('aria-label="开始新对话"');
+  });
+
   it("keeps the mobile right sidebar behind the more menu", () => {
     const state = createInitialState();
+    state.chatId = "chat_demo";
     state.workerSelectionKey = "agent:demo";
     state.currentAgent = { key: "demo", name: "Demo", mode: "GENERAL" };
     useAppState.mockReturnValue(state);

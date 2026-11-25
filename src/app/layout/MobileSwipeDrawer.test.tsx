@@ -61,7 +61,7 @@ afterEach(async () => {
 
 async function renderDrawer(
   open: boolean,
-  props: { title?: string; onClose?: () => void } = {},
+  props: { ariaLabel?: string; onClose?: () => void } = {},
 ) {
   const ref = React.createRef<MobileSwipeDrawerHandle>();
   const onClose = props.onClose ?? jest.fn();
@@ -71,8 +71,7 @@ async function renderDrawer(
       side="right"
       open={nextOpen}
       onClose={onClose}
-      title={props.title}
-      closeLabel="Close panel"
+      ariaLabel={props.ariaLabel ?? "Content panel"}
     >
       <button data-testid="inside">Inside</button>
     </MobileSwipeDrawer>
@@ -124,16 +123,25 @@ it("follows the finger and returns to the logical state on cancel", async () => 
   expect(drawer.ref.current?.progressPx()).toBe(PANEL_WIDTH);
 });
 
-it("closes through the mask and the header control", async () => {
-  const drawer = await renderDrawer(true, { title: "Content" });
+it("names the dialog without drawing a title bar", async () => {
+  // 面板内容自带标签栏与关闭入口，抽屉不再额外画标题行。
+  await renderDrawer(true);
+  await act(async () => {});
+  expect(
+    host.querySelector<HTMLElement>("[role='dialog']")?.getAttribute("aria-label"),
+  ).toBe("Content panel");
+  expect(host.querySelectorAll("button")).toHaveLength(1);
+});
+
+it("closes through the mask and Escape", async () => {
+  const drawer = await renderDrawer(true);
+  await act(async () => {});
   await act(async () => {
     host.querySelector<HTMLElement>("[data-mobile-swipe-mask='right']")!.click();
   });
   expect(drawer.onClose).toHaveBeenCalledTimes(1);
   await act(async () => {
-    host
-      .querySelector<HTMLButtonElement>("button[aria-label='Close panel']")!
-      .click();
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
   });
   expect(drawer.onClose).toHaveBeenCalledTimes(2);
 });

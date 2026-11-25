@@ -261,8 +261,10 @@ export const TopNav: React.FC<{ surface?: "root" | "agent"; mobile?: boolean; on
   // 手机端把顶栏操作收进“更多”菜单，行内条目与桌面图标按钮共用同一套可用性判断。
   const textSearch = useTimelineTextSearch();
   const canSearchTimeline = Boolean(textSearch && textSearch.searchableNodeIds.size > 0);
+  // 「开始新对话」是已有对话里的另起一个入口：当前没有对话时不展示。
   const showNewConversationAction = Boolean(
-    currentWorker?.raw &&
+    state.chatId &&
+      currentWorker?.raw &&
       !supportsPrimaryChat(String(currentWorker.raw.mode || "")),
   );
   // 手机端左侧位置与导航按钮互斥：有可展示的用量时让位给用量入口。

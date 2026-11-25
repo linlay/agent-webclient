@@ -1,0 +1,52 @@
+/* 面板本身承担背景与圆角：抽屉内容层保持透明，下拉时只移动面板。 */
+.panel {
+    display: flex;
+    flex-direction: column;
+    max-height: calc(var(--mobile-height, 100dvh) - 40px);
+    overflow: hidden;
+    border-radius: 18px 18px 0 0;
+    background: var(--bg-base);
+    box-shadow: 0 -10px 30px rgb(15 23 42 / 18%);
+    will-change: transform;
+}
+
+/* 面板没有可见标题，读屏名称通过 aria-labelledby 指向这段文本。 */
+.srOnly {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+.gripRow {
+    display: flex;
+    flex: none;
+    justify-content: center;
+    padding: 8px 0 2px;
+}
+
+.grip {
+    width: 36px;
+    height: 4px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--ink-muted) 45%, transparent);
+}
+
+.content {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .panel {
+        will-change: auto;
+    }
+}
