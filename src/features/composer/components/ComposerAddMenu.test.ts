@@ -108,6 +108,7 @@ describe("AddMenuTrigger", () => {
     container.remove();
     jest.useRealTimers();
     Object.defineProperty(window, "innerWidth", { configurable: true, value: 1024 });
+    window.history.replaceState({}, "", "/");
   });
 
   const render = () => act(() => root.render(React.createElement(AddMenuTrigger, props)));
@@ -570,6 +571,70 @@ describe("AddMenuTrigger", () => {
     const restored = [...container.querySelectorAll<HTMLButtonElement>('[role="menuitem"]')]
       .find((button) => button.textContent?.includes("composer.addMenu.section.skills"))!;
     expect(document.activeElement).toBe(restored);
+  });
+
+  it("keeps the desktop add menu on the anchored popover", () => {
+    render();
+    openMenu();
+
+    expect(container.querySelector(".composer-add-menu-sheet")).toBeNull();
+    expect(container.querySelector("[data-composer-add-menu]")).not.toBeNull();
+  });
+
+  it("keeps a wide mobile sheet stacked and does not auto focus its search input", async () => {
+    window.history.replaceState({}, "", "/mobile");
+    container.classList.add("layout-mobile");
+    Object.defineProperty(window, "innerWidth", { configurable: true, value: 1024 });
+    render();
+    openMenu();
+    const skills = [...container.querySelectorAll<HTMLButtonElement>('[role="menuitem"]')]
+      .find((button) => button.textContent?.includes("composer.addMenu.section.skills"))!;
+    act(() => skills.click());
+
+    await act(async () => { await new Promise((resolve) => setTimeout(resolve, 0)); });
+    expect(container.querySelector(".composer-add-menu-sheet")).not.toBeNull();
+    expect(container.querySelector<HTMLElement>("[data-composer-add-menu]")?.getAttribute("data-layout")).toBe("stacked");
+    expect(container.querySelector<HTMLElement>("[data-composer-add-menu]")?.getAttribute("data-view")).toBe("detail");
+    const input = container.querySelector('input[placeholder="composer.addMenu.search.skills"]');
+    expect(input).not.toBeNull();
+    expect(document.activeElement).not.toBe(input);
+  });
+
+  it("does not auto focus a stacked detail search input on mobile", async () => {
+    window.history.replaceState({}, "", "/mobile");
+    container.classList.add("layout-mobile");
+    Object.defineProperty(window, "innerWidth", { configurable: true, value: 420 });
+    render();
+    openMenu();
+    const skills = [...container.querySelectorAll<HTMLButtonElement>('[role="menuitem"]')]
+      .find((button) => button.textContent?.includes("composer.addMenu.section.skills"))!;
+    act(() => skills.click());
+
+    await act(async () => { await new Promise((resolve) => setTimeout(resolve, 0)); });
+    expect(container.querySelector<HTMLElement>("[data-composer-add-menu]")?.getAttribute("data-view")).toBe("detail");
+    const input = container.querySelector('input[placeholder="composer.addMenu.search.skills"]');
+    expect(input).not.toBeNull();
+    expect(document.activeElement).not.toBe(input);
+  });
+
+  it("returns to the nav on a right swipe inside a mobile detail pane", async () => {
+    window.history.replaceState({}, "", "/mobile");
+    container.classList.add("layout-mobile");
+    Object.defineProperty(window, "innerWidth", { configurable: true, value: 420 });
+    render();
+    openMenu();
+    const skills = [...container.querySelectorAll<HTMLButtonElement>('[role="menuitem"]')]
+      .find((button) => button.textContent?.includes("composer.addMenu.section.skills"))!;
+    act(() => skills.click());
+    await act(async () => { await new Promise((resolve) => setTimeout(resolve, 0)); });
+
+    const detail = container.querySelector<HTMLElement>(".composer-add-menu-view")!;
+    act(() => {
+      Simulate.touchStart(detail, { touches: [{ clientX: 220, clientY: 200 }] });
+      Simulate.touchEnd(detail, { changedTouches: [{ clientX: 320, clientY: 206 }] });
+    });
+
+    expect(container.querySelector<HTMLElement>("[data-composer-add-menu]")?.getAttribute("data-view")).toBe("nav");
   });
 
   it("closes the floating pane before the menu on Escape", async () => {

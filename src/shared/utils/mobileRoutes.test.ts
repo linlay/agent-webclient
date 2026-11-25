@@ -1,4 +1,4 @@
-import { buildClientLayoutHref, isFullClientPath, isMobilePath, toMobileRoute } from "./mobileRoutes";
+import { allowsComposerAutoFocus, buildClientLayoutHref, isFullClientPath, isMobilePath, toMobileRoute } from "./mobileRoutes";
 
 describe("mobile route handoffs", () => {
   it("preserves the active chat and global settings when switching layout", () => {
@@ -33,5 +33,12 @@ describe("mobile route handoffs", () => {
     expect(isMobilePath("/mobile-other")).toBe(false);
     expect(isFullClientPath("/copilot/demo")).toBe(false);
     expect(isFullClientPath("/embed/demo")).toBe(false);
+  });
+  it("keeps the software keyboard closed for automatic focus on mobile only", () => {
+    expect(allowsComposerAutoFocus("/mobile")).toBe(false);
+    expect(allowsComposerAutoFocus("/mobile/project/demo")).toBe(false);
+    expect(allowsComposerAutoFocus("/")).toBe(true);
+    expect(allowsComposerAutoFocus("/copilot/demo")).toBe(true);
+    expect(allowsComposerAutoFocus("/embed/demo")).toBe(true);
   });
 });

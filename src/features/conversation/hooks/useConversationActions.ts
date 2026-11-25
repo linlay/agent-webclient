@@ -42,6 +42,7 @@ import type { ChatTransition } from "@/features/conversation/lib/conversationSta
 import { useI18n } from "@/shared/i18n";
 import { readEpochMillis } from "@/shared/utils/platformTime";
 import { readDesktopChatRouteRevision } from "@/shared/hooks/useDesktopRouteChange";
+import { allowsComposerAutoFocus } from "@/shared/utils/mobileRoutes";
 
 /**
  * Replay state — mutable structure used during synchronous event replay.
@@ -294,6 +295,7 @@ export function useConversationActions() {
   }, [dispatch, stateRef]);
 
   const focusComposerSoon = useCallback(() => {
+    if (!allowsComposerAutoFocus()) return;
     window.requestAnimationFrame(() => {
       window.dispatchEvent(new CustomEvent("agent:focus-composer"));
     });
@@ -557,7 +559,8 @@ export function useConversationActions() {
           (runtime.running || current.currentChatActiveRun?.runId)
             ? "background"
             : "blocking",
-        focusComposerOnReady: Boolean(options.focusComposerOnComplete),
+        focusComposerOnReady:
+          Boolean(options.focusComposerOnComplete) && allowsComposerAutoFocus(),
         error: "",
       };
       dispatch({ type: "BEGIN_CHAT_TRANSITION", transition });

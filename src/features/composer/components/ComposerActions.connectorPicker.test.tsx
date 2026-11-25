@@ -86,9 +86,11 @@ const baseProps = {
   ],
 };
 
-function renderActions() {
+function renderActions(path = "/") {
   (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
+  window.history.replaceState({}, "", path);
   const container = document.createElement("div");
+  if (path === "/mobile") container.classList.add("layout-mobile");
   document.body.append(container);
   const root = createRoot(container);
   const render = (overrides: Record<string, unknown> = {}) =>
@@ -108,6 +110,7 @@ function renderActions() {
   render();
   return {
     root,
+    container,
     render,
     trigger,
     picker,
@@ -137,6 +140,17 @@ describe("ComposerActions connector picker", () => {
 
       view.render({ currentAgentKey: "agent-b", currentChatId: "chat-b" });
       expect(view.picker()).toBeNull();
+    } finally {
+      act(() => view.root.unmount());
+    }
+  });
+
+  it("uses the bottom sheet for the connector picker on mobile", () => {
+    const view = renderActions("/mobile");
+    try {
+      view.openPicker();
+      expect(view.container.querySelector(".composer-connector-picker-sheet")).not.toBeNull();
+      expect(view.picker()).not.toBeNull();
     } finally {
       act(() => view.root.unmount());
     }

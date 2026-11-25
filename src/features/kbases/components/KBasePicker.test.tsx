@@ -5,8 +5,20 @@ import {KBasePicker} from "./KBasePicker";
 import {KBaseSelectionTags} from "./KBaseSelectionTags";
 import type {SelectedKBase} from "../lib/kbasesState";
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
+afterEach(() => { jest.useRealTimers(); window.history.replaceState({}, "", "/"); });
 jest.mock("antd", () => ({Input: jest.requireActual("react").forwardRef(({allowClear, variant, prefix, ...props}: any, ref: any) => <input {...props} ref={ref} />), Spin: () => null}));
 jest.mock("@/shared/ui/UiButton", () => ({UiButton: ({children, variant, size, ...props}: any) => <button {...props}>{children}</button>}));
+it("does not auto focus the search field on mobile", () => {
+ jest.useFakeTimers();
+ window.history.replaceState({}, "", "/mobile");
+ const host = document.createElement("div"); document.body.append(host); const root = createRoot(host);
+ const catalog = {status: "success" as const, refresh: jest.fn(), data: {agentKey: "a", capability: {available: true}, libraries: []}};
+ act(() => { root.render(<KBasePicker catalog={catalog} selected={[]} onChange={() => undefined} />); });
+ act(() => { jest.advanceTimersByTime(60); });
+ expect(document.activeElement).not.toBe(host.querySelector("input"));
+ act(() => root.unmount()); host.remove();
+});
+
 it("searches and multi-selects readable old indexes", () => {
  const host = document.createElement("div"); document.body.append(host); const root = createRoot(host);
  const refresh = jest.fn();
