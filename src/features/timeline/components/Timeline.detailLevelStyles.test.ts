@@ -21,6 +21,8 @@ describe("simple detail level renders icons inline instead of a column", () => {
     expect(styles).toContain("width: 18px; height: 18px;");
     expect(styles).toContain(":global(.timeline-inline-row)");
     expect(styles).toContain(":global(.timeline-label-with-icon)");
+    // 活动头像按 32px 绘制，行内活动行的图标-文案间距要单独放宽。
+    expect(styles).toContain(":global(.timeline-inline-row-activity) { gap: 16px; }");
   });
 
   it("no longer needs negative-margin compensation", () => {

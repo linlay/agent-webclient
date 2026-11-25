@@ -51,6 +51,7 @@ export const materialIconSymbolIds = {
   draft: "material-symbol-drafts",
   edit: "material-symbol-edit",
   edit_square: "material-symbol-edit-square",
+  egg_face: "material-symbol-egg-face",
   error: "material-symbol-error",
   export: "material-symbol-export",
   expand_content: "material-symbol-expand-content",

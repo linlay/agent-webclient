@@ -9,15 +9,20 @@ export interface RunActivityIconProps extends Partial<RunActivityAppearance> {
   motion?: AgentWorkMotion;
   animated?: boolean;
   cycleDurationMs?: number;
+  /** Square box of the SVG in CSS pixels. The viewBox keeps the drawing ratio, so no transform is needed. */
+  size?: number;
   className?: string;
   style?: React.CSSProperties;
 }
 
+const DEFAULT_SIZE = 32;
+
 /** Each activity owns one independent work clock and never joins the pointer/idle runtime. */
 export function RunActivityIcon({ variant = "general", color, motion, animated = true,
-  cycleDurationMs = 4000, className, style }: RunActivityIconProps) {
+  cycleDurationMs = 4000, size = DEFAULT_SIZE, className, style }: RunActivityIconProps) {
   const element = useRef<SVGSVGElement>(null);
   const interval = Number.isFinite(cycleDurationMs) ? Math.max(4000, cycleDurationMs) : 4000;
+  const box = Number.isFinite(size) && size > 0 ? size : DEFAULT_SIZE;
   useEffect(() => {
     const svg = element.current;
     if (!svg) return;
@@ -50,7 +55,7 @@ export function RunActivityIcon({ variant = "general", color, motion, animated =
   return <span className={[styles.icon, className].filter(Boolean).join(" ")}
     style={{ ...style, ...(color ? { color } : {}) }} aria-hidden="true"
     data-run-activity-icon="" data-variant={variant} data-animated={animated}>
-    <svg ref={element} style={{ width: 32, height: 32 }} viewBox="20 35 160 145" fill="currentColor" focusable="false" data-work-motion={motion || "focus"}>
+    <svg ref={element} style={{ width: box, height: box }} viewBox="20 35 160 145" fill="currentColor" focusable="false" data-work-motion={motion || "focus"}>
       <ellipse data-agent-shadow="" className={styles.avatarShadow} cx="100" cy={variant === "team" ? 172 : 162}
         rx="56" ry={variant === "team" ? 6 : 9} fill="currentColor" />
       <g data-agent-motion="" className={styles.avatarMotion}>

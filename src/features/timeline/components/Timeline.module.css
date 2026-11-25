@@ -378,11 +378,7 @@
     font-size: 18px;
 }
 
-/* 活动行头像内联尺寸是 32px，行内槽位放不下，缩到 18px 视觉尺寸。 */
-:global(.timeline-inline-icon) :global([data-run-activity-icon]) svg {
-    transform: scale(0.5625);
-    transform-origin: center;
-}
+/* 活动行头像的尺寸由 RunActivityIcon 的 size 决定（默认 32px），这里不做缩放；行内槽暂不传 size。 */
 
 /* 折叠头部：图标 + 文案同一行。 */
 :global(.timeline-label-with-icon) {
@@ -402,6 +398,12 @@
 :global(.timeline-inline-row) > :last-child {
     flex: 1 1 auto;
     min-width: 0;
+}
+
+/* 活动头像按默认 32px 绘制，比 18px 行内槽宽出约 7px；放宽这一行的间距，
+   让头像右侧溢出后仍与文案保持明显间隙，而不是被 8px 间距吃掉贴在一起。 */
+:global(.timeline-inline-row-activity) {
+    gap: 16px;
 }
 
 /* wait 卡片比图标高：图标随卡片中线居中，而不是贴着卡片首行。 */

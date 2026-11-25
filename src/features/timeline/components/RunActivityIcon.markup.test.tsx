@@ -25,6 +25,23 @@ it("passes the conversation appearance to normal activity and leaves retry messa
   expect(activity).toContain("color:#36a280");
   expect(render("info")).not.toContain("data-run-activity-icon");
 });
+it("sizes the SVG through width/height instead of a transform", () => {
+  const html = renderToStaticMarkup(<RunActivityIcon size={18} />);
+  expect(html).toContain("width:18px");
+  expect(html).toContain("height:18px");
+  expect(html).not.toContain("scale(");
+});
+it("keeps the default size for the inline activity icon in simple detail", () => {
+  const html = renderToStaticMarkup(
+    <TimelineInteractionProvider value={{ detailLevel: "simple", activityAppearance: { variant: "code" } }}>
+      <TimelineActivityRow text="正在思考…" />
+    </TimelineInteractionProvider>);
+  expect(html).toContain("timeline-inline-icon");
+  // 32px 头像需要比普通行更宽的图标-文案间距。
+  expect(html).toContain("timeline-inline-row-activity");
+  expect(html).toContain("width:32px");
+  expect(html).not.toContain("scale(");
+});
 it("renders the empty-run transition through the same activity row", () => {
   const html = renderToStaticMarkup(
     <TimelineInteractionProvider value={{ activityAppearance: { variant: "code", color: "var(--accent-electric)" } }}>

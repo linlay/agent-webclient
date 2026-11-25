@@ -101,6 +101,7 @@ const TIMELINE_ROW_TIME_CLASS_NAME =
 const TIMELINE_INLINE_ICON_CLASS_NAME = "timeline-inline-icon";
 const TIMELINE_INLINE_ROW_CLASS_NAME = "timeline-inline-row";
 const TIMELINE_INLINE_ROW_CENTERED_CLASS_NAME = `${TIMELINE_INLINE_ROW_CLASS_NAME} timeline-inline-row-center`;
+const TIMELINE_INLINE_ROW_ACTIVITY_CLASS_NAME = `${TIMELINE_INLINE_ROW_CLASS_NAME} timeline-inline-row-activity`;
 const TIMELINE_COMMAND_LABEL_CLASS_NAME =
   "timeline-command-label tw:mt-[9px] tw:font-code tw:text-[11px] tw:font-bold tw:leading-none tw:tracking-[0.06em] tw:text-accent-electric-strong tw:uppercase tw:empty:hidden";
 
@@ -118,8 +119,11 @@ const TimelineInlineRow: React.FC<{
   children: React.ReactNode;
   /** 卡片类行：图标与卡片垂直居中，而不是贴在卡片首行。 */
   centered?: boolean;
-}> = ({ icon, children, centered = false }) => (
-  <div className={centered ? TIMELINE_INLINE_ROW_CENTERED_CLASS_NAME : TIMELINE_INLINE_ROW_CLASS_NAME}>
+  /** 活动头像按 32px 绘制、宽于 18px 行内槽，需要比普通行更大的图标-文案间距。 */
+  activity?: boolean;
+}> = ({ icon, children, centered = false, activity = false }) => (
+  <div className={activity ? TIMELINE_INLINE_ROW_ACTIVITY_CLASS_NAME
+    : centered ? TIMELINE_INLINE_ROW_CENTERED_CLASS_NAME : TIMELINE_INLINE_ROW_CLASS_NAME}>
     <span className={TIMELINE_INLINE_ICON_CLASS_NAME}>{icon}</span>
     <div>{children}</div>
   </div>
@@ -153,7 +157,7 @@ export function TimelineActivityRow({
         aria-live="polite"
       >
         {compact ? (
-          <TimelineInlineRow icon={activityIcon}>{textNode}</TimelineInlineRow>
+          <TimelineInlineRow icon={activityIcon} activity>{textNode}</TimelineInlineRow>
         ) : (
           textNode
         )}
