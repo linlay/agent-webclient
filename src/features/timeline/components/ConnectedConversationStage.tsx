@@ -2214,7 +2214,7 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
             <MaterialIcon name="thumb_down" />
           </UiButton>
         </Popover>)}
-      {!readOnly && <UiButton className={TIMELINE_RUN_ACTION_BUTTON_CLASS_NAME} variant="ghost" size="sm" iconOnly
+      {!readOnly && item.terminalType === "run.complete" && <UiButton className={TIMELINE_RUN_ACTION_BUTTON_CLASS_NAME} variant="ghost" size="sm" iconOnly
         loading={derivingRunId === runId} title={t("timeline.run.deriveChat")}
         aria-label={t("timeline.run.deriveChat")} disabled={deriveChatAction.isDisabled(runId)}
         onClick={() => handleDeriveChat(runId)}><MaterialIcon name="fork_chat" /></UiButton>}

@@ -2736,6 +2736,7 @@ export const zhCNMessages = {
   "timeline.run.interruptedNeutral": "本次运行已中断",
   "timeline.run.deriveChat": "派生新对话",
   "timeline.run.deriveChatSuccess": "已派生新对话",
+  "timeline.run.deriveChatResourcesUnavailable": "已派生新对话，有 {count} 个历史资源无法恢复",
   "timeline.run.deriveChatFailed": "派生新对话失败",
   "timeline.feedback.downvote": "点踩",
   "timeline.feedback.clearDownvote": "取消点踩",

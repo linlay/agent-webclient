@@ -4,7 +4,6 @@ import {
   deriveChatFromRun,
   isDeriveChatActionDisabled,
 } from "@/features/chats/lib/chatDerivation";
-import { resolveMainChatRuntime } from "@/features/runs/lib/runRuntimeState";
 import { useI18n } from "@/shared/i18n";
 import { useAppMessage } from "@/shared/ui/useAppMessage";
 
@@ -30,24 +29,13 @@ export function dispatchDerivedChatNavigation(chatId: string): void {
 }
 
 export function useDeriveChatAction() {
-  const { state, dispatch, stateRef, activeQuerySessionRequestIdRef, querySessionsRef } =
-    useAppContext();
+  const { state: { chatId }, dispatch } = useAppContext();
   const { t } = useI18n();
   const message = useAppMessage();
-  const running = resolveMainChatRuntime(
-    stateRef,
-    activeQuerySessionRequestIdRef,
-    querySessionsRef,
-  ).running;
 
   const isDisabled = useCallback(
-    (runId: string) => isDeriveChatActionDisabled({
-      chatId: state.chatId,
-      runId,
-      running,
-      activeAwaiting: state.activeAwaiting,
-    }),
-    [running, state.activeAwaiting, state.chatId],
+    (runId: string) => isDeriveChatActionDisabled({ chatId, runId }),
+    [chatId],
   );
 
   const execute = useCallback(
@@ -55,9 +43,15 @@ export function useDeriveChatAction() {
       if (isDisabled(runId)) return;
 
       try {
-        const derivedChatId = await deriveChatFromRun(state.chatId, runId);
-        dispatchDerivedChatNavigation(derivedChatId);
-        message.success(t("timeline.run.deriveChatSuccess"));
+        const derived = await deriveChatFromRun(chatId, runId);
+        dispatchDerivedChatNavigation(derived.chatId);
+        if (derived.unavailableResources.length > 0) {
+          message.warning(t("timeline.run.deriveChatResourcesUnavailable", {
+            count: derived.unavailableResources.length,
+          }));
+        } else {
+          message.success(t("timeline.run.deriveChatSuccess"));
+        }
       } catch (error) {
         const errorMessage = (error as Error)?.message || String(error);
         message.error(t("timeline.run.deriveChatFailed"));
@@ -67,7 +61,7 @@ export function useDeriveChatAction() {
         });
       }
     },
-    [dispatch, isDisabled, message, state.chatId, t],
+    [dispatch, isDisabled, message, chatId, t],
   );
 
   return useMemo(() => ({ isDisabled, execute }), [isDisabled, execute]);

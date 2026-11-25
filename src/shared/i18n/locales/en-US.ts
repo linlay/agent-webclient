@@ -2599,6 +2599,7 @@ export const enUSMessages = {
   "timeline.run.interruptedNeutral": "This run was interrupted.",
   "timeline.run.deriveChat": "Derive new chat",
   "timeline.run.deriveChatSuccess": "New chat derived",
+  "timeline.run.deriveChatResourcesUnavailable": "New chat derived. {count} historical files could not be recovered.",
   "timeline.run.deriveChatFailed": "Failed to derive new chat",
   "timeline.feedback.downvote": "Thumbs down",
   "timeline.feedback.clearDownvote": "Clear downvote",
