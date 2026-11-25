@@ -310,26 +310,52 @@ describe("whole conversation surface navigation", () => {
     expect(context.state.chatTransition.error).toContain(`history failure ${status}`);
     expect(container.querySelector('[role="alert"]')).not.toBeNull();
   });
-  it.each([50, 250])("delays the Desktop New Chat hint while agent details take %i ms", async (latency) => {
-    const previousConfig = globalThis.__AGENT_WEBCLIENT_RUNTIME_CONFIG__;
-    globalThis.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = { ...previousConfig, DESKTOP_APP: true };
-    try {
+  describe("Desktop New Chat", () => {
+    let previousConfig: typeof globalThis.__AGENT_WEBCLIENT_RUNTIME_CONFIG__;
+    beforeEach(() => {
+      previousConfig = globalThis.__AGENT_WEBCLIENT_RUNTIME_CONFIG__;
+      globalThis.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = { ...previousConfig, DESKTOP_APP: true };
+    });
+    afterEach(() => { globalThis.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = previousConfig; });
+
+    it.each([50, 3_000])("keeps the new chat layout while agent details take %i ms", async (latency) => {
       const pending = deferred();
       getAgent.mockReturnValue(pending.promise);
       await act(async () => navigate("/agent/next?newChat=1788739200000"));
-      expect(getAgent).toHaveBeenCalledWith("next");
-      expect(container.querySelector(".agent-route-loading-card")).toBeNull();
+      const skeleton = container.querySelector('main.timeline-empty-layout[aria-busy="true"]');
+      expect(skeleton).not.toBeNull();
       await act(async () => jest.advanceTimersByTime(latency));
-      expect(Boolean(container.querySelector(".agent-route-loading-card"))).toBe(latency >= 200);
+      expect(container.contains(skeleton)).toBe(true);
+      expect(container.querySelector(".agent-route-loading-page")).toBeNull();
+      expect(container.textContent).not.toContain("old timeline A");
       expect(container.querySelector('[data-testid="composer"]')).toBeNull();
 
       await act(async () => pending.resolve({ data: { key: "next", name: "Next", mode: "CODER" } }));
+      expect(context.state.workerSelectionKey).toBe("agent:next");
+      expect(container.contains(skeleton)).toBe(false);
       expect(container.querySelector('[data-testid="composer"]')).not.toBeNull();
-      await act(async () => jest.advanceTimersByTime(200));
-      expect(container.querySelector(".agent-route-loading-card")).toBeNull();
-    } finally {
-      globalThis.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = previousConfig;
-    }
+    });
+
+    it("recovers a late worker selection without restarting the new chat", async () => {
+      await act(async () => navigate("/agent/demo?newChat=1788739200000"));
+      const events = jest.spyOn(window, "dispatchEvent");
+      await act(async () => context.dispatch({ type: "SET_WORKER_SELECTION_KEY", workerKey: "agent:other" }));
+      expect(context.state.workerSelectionKey).toBe("agent:demo");
+      expect(container.querySelector('[data-testid="composer"]')).not.toBeNull();
+      expect(events.mock.calls.map(([event]) => event.type)).not.toContain("agent:start-new-conversation");
+    });
+
+    it("replaces the skeleton with the retry action when the request times out", async () => {
+      getAgent.mockReturnValueOnce(deferred().promise);
+      await act(async () => navigate("/agent/next?newChat=1788739200000"));
+      await act(async () => jest.advanceTimersByTime(15_000));
+      const retry = container.querySelector<HTMLButtonElement>("main button");
+      expect(retry).not.toBeNull();
+      getAgent.mockResolvedValue({ data: { key: "next", name: "Next", mode: "CODER" } });
+      await act(async () => retry!.click());
+      expect(context.state.workerSelectionKey).toBe("agent:next");
+      expect(container.querySelector('[data-testid="composer"]')).not.toBeNull();
+    });
   });
   it("does not treat a stale promotion marker as proof of a loaded conversation", async () => {
     await act(async () => navigate("/agent/demo?newChat=1788739200000"));
