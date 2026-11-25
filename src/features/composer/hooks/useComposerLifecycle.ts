@@ -8,6 +8,7 @@ import {
   type AgentWebclientComposerDraftAction,
 } from "@/shared/contracts/generated/agentWebclientBridge";
 import { DESKTOP_COMPOSER_REVIEW_DRAFT_EVENT } from "@/shared/data/desktop/desktopContextMenu";
+import { allowsComposerAutoFocus } from "@/shared/utils/mobileRoutes";
 
 function emitComposerDraftResult(requestId: string, ok: boolean, code?: string) {
   window.dispatchEvent(new CustomEvent(AGENT_WEBCLIENT_WORKPANEL_PREVIEW_REVIEW_PAGE_EVENT, {
@@ -107,6 +108,9 @@ export function useComposerLifecycle({
   }, [chatId, setInputValue, stageReviewAttachment, textareaRef]);
 
   useEffect(() => {
+    // /mobile is touch-first: entering or switching a Chat must not raise the
+    // software keyboard until the user taps the Composer.
+    if (!allowsComposerAutoFocus()) return;
     textareaRef.current?.focus({ preventScroll: true });
   }, [chatId, textareaRef]);
 

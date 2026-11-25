@@ -6,7 +6,6 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import {
   advanceSwipeSpring,
   type SwipeSide,
@@ -39,9 +38,8 @@ export interface MobileSwipeDrawerProps {
   side: MobileSwipeDrawerSide;
   open: boolean;
   onClose: () => void;
-  title?: string;
-  closeLabel?: string;
-  ariaLabel?: string;
+  /** Accessible name for the dialog; the panel content owns its own header. */
+  ariaLabel: string;
   className?: string;
   children: React.ReactNode;
 }
@@ -57,7 +55,7 @@ export const MobileSwipeDrawer = forwardRef<
   MobileSwipeDrawerHandle,
   MobileSwipeDrawerProps
 >(function MobileSwipeDrawer(
-  { side, open, onClose, title, closeLabel, ariaLabel, className, children },
+  { side, open, onClose, ariaLabel, className, children },
   ref,
 ) {
   const layerRef = useRef<HTMLDivElement>(null);
@@ -321,8 +319,6 @@ export const MobileSwipeDrawer = forwardRef<
 
   useEffect(() => cancelAnimation, [cancelAnimation]);
 
-  const dialogLabel = ariaLabel || title || closeLabel;
-
   return (
     <div
       ref={layerRef}
@@ -344,23 +340,9 @@ export const MobileSwipeDrawer = forwardRef<
         className={styles.panel}
         role="dialog"
         aria-modal={engaged ? true : undefined}
-        aria-label={dialogLabel}
+        aria-label={ariaLabel}
         tabIndex={-1}
       >
-        {title ? (
-          <div className={styles.header}>
-            <button
-              type="button"
-              className={styles.close}
-              aria-label={closeLabel || title}
-              title={closeLabel || title}
-              onClick={() => closeRef.current()}
-            >
-              <MaterialIcon name="close" />
-            </button>
-            <span className={styles.title}>{title}</span>
-          </div>
-        ) : null}
         <div className={styles.body}>{children}</div>
       </div>
     </div>

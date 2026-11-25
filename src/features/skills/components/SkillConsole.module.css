@@ -75,3 +75,19 @@
 :global(.skill-package-folder:focus:not(:focus-visible)) { outline:none; }
 :global(.skill-package-folder:focus-visible), :global(.skill-package-member-list button:focus-visible) { outline:2px solid var(--ink-muted); outline-offset:-2px; }
 :global(.skill-package-member-list button:hover:not(:disabled)) { background:var(--bg-hover); }
+
+/* 标题区（名称 + id）可能延伸到行右端：更多按钮显现时用遮罩淡出被覆盖的尾部，文字位置不变。 */
+:global(.skill-console-list-item-wrap)[data-has-actions]:hover :global(.skill-console-list-item-title),
+:global(.skill-console-list-item-wrap)[data-has-actions]:has(:focus-visible) :global(.skill-console-list-item-title),
+:global(.skill-console-list-item-wrap)[data-has-actions][data-menu-open] :global(.skill-console-list-item-title) {
+    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 36px), transparent calc(100% - 18px));
+    mask-image: linear-gradient(to right, #000 calc(100% - 36px), transparent calc(100% - 18px));
+}
+
+@media (hover: none) {
+
+    :global(.skill-console-list-item-wrap)[data-has-actions] :global(.skill-console-list-item-title) {
+        -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 36px), transparent calc(100% - 18px));
+        mask-image: linear-gradient(to right, #000 calc(100% - 36px), transparent calc(100% - 18px));
+    }
+}

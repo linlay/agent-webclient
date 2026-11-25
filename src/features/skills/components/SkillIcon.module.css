@@ -1,2 +1,7 @@
 .icon { display: inline-flex; flex: 0 0 auto; align-items: center; justify-content: center; color: var(--accent); }
 .icon img { display: block; width: 100%; height: 100%; object-fit: contain; border-radius: 3px; }
+
+/* Default mark mirrors ConnectorIcon: 10% accent tile, 25% radius, glyph at 65%. */
+.fallback { border-radius: 25%; background: color-mix(in srgb, var(--accent) 10%, transparent); }
+.fallback .glyph { width: 65%; height: 65%; }
+.fallback .glyph :global(.material-icon-svg) { width: 100%; height: 100%; }

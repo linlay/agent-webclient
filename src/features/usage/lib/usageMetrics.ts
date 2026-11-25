@@ -234,6 +234,18 @@ export function resolveLatestCompactUsage(events: AppState["events"]): AIUsageSt
   return null;
 }
 
+/**
+ * 头部用量入口只在有内容可展示时出现（用量快照、压缩用量或运行中）。
+ * 桌面端据此决定是否在标题区渲染入口，手机端据此决定左侧位置显示用量还是导航。
+ */
+export function hasUsageControlContent(input: {
+  usageSnapshot?: AIUsageSnapshotEvent | null;
+  compactUsage?: AIUsageStats | null;
+  running?: boolean;
+}): boolean {
+  return Boolean(input.usageSnapshot) || Boolean(input.compactUsage) || Boolean(input.running);
+}
+
 export function resolveContextPercent(snapshot: AIUsageSnapshotEvent | null): UsageContextPercent | null {
   const currentSize = readUsageNumber(snapshot?.contextWindow?.currentSize);
   const maxSize = readUsageNumber(snapshot?.contextWindow?.maxSize);

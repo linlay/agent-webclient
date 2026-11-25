@@ -52,6 +52,18 @@ it("navigates models in the same pane, retains refresh and back, and selects wit
   expect(select).toHaveBeenCalledWith(expect.objectContaining({ key: "model:b" }));
   expect(openChange).toHaveBeenLastCalledWith(false, { source: "menu" });
 });
+it("renders the mobile model pane inside the shared headerless bottom sheet", async () => {
+  await open();
+  const dialog = document.querySelector<HTMLElement>('[role="dialog"]')!;
+  expect(dialog).not.toBeNull();
+  // 面板本身不画标题栏：关闭靠遮罩、Esc 与下拉手势。
+  expect(document.querySelector(".ant-drawer-header")).toBeNull();
+  expect(document.querySelector(".ant-drawer-title")).toBeNull();
+  const labelledBy = dialog.getAttribute("aria-labelledby");
+  expect(labelledBy).toBeTruthy();
+  expect(document.getElementById(labelledBy!)?.textContent).toBe("composer.query.model.title");
+});
+
 it("keeps reasoning choices directly selectable in mobile", async () => {
   await open();
   await act(async () => item("High").click());

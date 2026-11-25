@@ -14,6 +14,8 @@ Agent 管理台由 `/agents` 路由进入，页面壳层为 `src/app/pages/agent
 
 `AgentConsole` 只编排页面状态、请求生命周期、脏状态保护和各编辑 surface；`AgentListPane` 负责筛选、选择与拖拽排序，`AgentEditor` 负责结构化表单，`AgentCapabilitiesEditor` 负责 Context/Tool/Skill，`AgentSourceEditor` 负责源码，`AgentCreateModal` 与 `useAgentImport` 负责直接创建和 ZIP 导入。表单与后端 definition 的归一化、校验和双向映射集中在 React-free 的 `lib/agentDefinition.ts`。
 
+列表项不再用悬浮 Popover 展示名称、Key、模型、模式、工具与技能数量摘要，列表只保留紧凑信息，完整内容以右侧详情为准。功能入口收进列表项右侧的「更多操作」（Agent、技能、连接器与归档列表共用 `shared/ui/RowMoreMenu`，按钮样式与点击/右键交互保持一致）：与侧栏 `PrimaryChatNavigation` 的更多按钮一致，只在行 hover、键盘聚焦或菜单展开时显现，点击打开下拉菜单，含「通过对话编辑」和「删除」（删除为危险项并有分隔线）；右键列表项直接打开同一套菜单，菜单定位在指针处且不改变当前选中项；排序保存或删除进行中菜单项禁用。按钮不常驻占位、也不挤压文字：列表项内容位置始终不变，按钮叠加在行右端，并让被覆盖的右侧 Key 与模式徽标淡出，鼠标移开或菜单关闭后淡入恢复；没有可执行操作时不渲染按钮，也不触发淡出。invalid Agent 的“无效”标签保留，诊断信息挂在标签提示上。
+
 ## 连接器与工具分层
 
 已有 Agent 在“上下文与能力”中通过 `/api/admin/agent` 的 `connectorBindings` 读取预置、声明和实际生效挂载的并集，使用 `/api/admin/connectors` 的 `tools` 展示连接器名称、说明、归属工具和能力。连接器默认收起，点击或键盘展开后显示工具名称、说明及搜索（超过 8 项），CLI、VIEW、技能和 MCP 同步状态分别解释。预置带锁且只读；未生效、等待重载、目录缺失和空列表有独立状态。切换 Agent、目录更新和页面重新可见时刷新，并忽略旧请求响应。MCP 服务按 agentKey 过滤，避免显示其他 Agent 的工具。

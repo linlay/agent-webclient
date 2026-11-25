@@ -50,7 +50,11 @@
 .documentsBody { flex: 1; min-height: 0; overflow: auto; padding: 0 16px 16px; }
 .root :global(.ant-table) { font-size: 12px; background: transparent; }
 .root :global(.ant-table-cell) { padding: 8px 10px !important; }
-.root .documentLink { height: auto; max-width: 100%; padding: 2px 0; font-size: 12px; text-align: left; white-space: normal; }
+/* Plain button link: the only hover affordance is the underline, so the accent
+   color and the box stay unchanged (antd's link variant repaints the text
+   lighter on hover and the global button:hover paints an accent border). */
+.root .documentLink { display: inline-flex; align-items: center; gap: 8px; max-width: 100%; padding: 2px 0; border: 1px solid transparent; border-radius: 0; background: transparent; color: var(--accent); font: inherit; font-size: 12px; text-align: left; white-space: normal; }
+.documentLink:hover .documentLinkText { text-decoration: underline; text-underline-offset: 2px; }
 .documentLink > span { overflow-wrap: anywhere; }
 .collectionLink { max-width: 100%; overflow: hidden; text-overflow: ellipsis; padding: 2px 6px; border: 0; border-radius: 4px; font: inherit; font-size: 11px; background: var(--bg-hover); color: var(--ink-2); cursor: pointer; }
 .collectionLink:hover { color: var(--accent-electric-strong); background: var(--bg-selected); }

@@ -3185,4 +3185,42 @@ describe('replayEvent tool migration', () => {
     ]
     });
   });
+
+  it('focuses the Composer after a blank conversation on the desktop shell', () => {
+    const { actions } = renderChatActions();
+
+    actions?.activateBlankConversation({ focusComposerOnComplete: true });
+
+    expect(globalWithBrowserApis.window?.dispatchEvent).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'agent:focus-composer' }),
+    );
+  });
+
+  it('suppresses automatic Composer focus on the mobile shell', () => {
+    globalWithBrowserApis.window!.location.pathname = '/mobile';
+    const { actions } = renderChatActions();
+
+    actions?.activateBlankConversation({ focusComposerOnComplete: true });
+
+    expect(globalWithBrowserApis.window?.dispatchEvent).not.toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'agent:focus-composer' }),
+    );
+  });
+
+  it('drops the deferred Composer focus from a mobile chat transition', () => {
+    globalWithBrowserApis.window!.location.pathname = '/mobile';
+    const { actions } = renderChatActions();
+
+    const transition = actions?.prepareChat('chat-route', { focusComposerOnComplete: true });
+
+    expect(transition?.focusComposerOnReady).toBe(false);
+  });
+
+  it('keeps the deferred Composer focus from a desktop chat transition', () => {
+    const { actions } = renderChatActions();
+
+    const transition = actions?.prepareChat('chat-route', { focusComposerOnComplete: true });
+
+    expect(transition?.focusComposerOnReady).toBe(true);
+  });
 });

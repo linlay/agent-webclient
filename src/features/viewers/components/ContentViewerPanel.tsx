@@ -33,8 +33,10 @@ import { useAuthenticatedResourceUrl } from "@/shared/ui/useAuthenticatedResourc
 import {
   useDesktopContextMenuTarget,
   useDesktopCurrentResourceDownload,
+  useDesktopFileLocation,
   useDesktopTextEditMode,
 } from "@/shared/data/desktop/desktopContextMenu";
+import type { AgentWebclientWorkPanelFileLocationAction } from "@/shared/contracts/generated/agentWebclientBridge";
 import { useDesktopHtmlPreviewReview } from "@/features/viewers/hooks/useDesktopHtmlPreviewReview";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import {
@@ -376,6 +378,24 @@ export const ContentViewerPanel: React.FC<ContentViewerPanelProps> = ({
   const textContainerRef = React.useRef<HTMLPreElement | null>(null);
   const panelRef = React.useRef<HTMLDivElement | null>(null);
   const contextTargetId = React.useId();
+  const targetKey = getViewerTargetKey(target);
+  const [desktopFileLocation, setDesktopFileLocation] =
+    React.useState<AgentWebclientWorkPanelFileLocationAction>();
+  useDesktopFileLocation(target.type === "file" && hasDesktopHostBridge()
+    ? (location) => {
+        if (location.targetKey !== targetKey) return;
+        setDesktopFileLocation((previous) =>
+          previous?.targetKey === location.targetKey && previous.revision >= location.revision
+            ? previous
+            : location);
+      }
+    : null);
+  const routeLine = target.type === "file" ? target.line : undefined;
+  const lineLocation = React.useMemo(() => {
+    if (desktopFileLocation?.targetKey === targetKey) return desktopFileLocation;
+    return routeLine ? { line: routeLine, revision: 0 } : undefined;
+  }, [desktopFileLocation, routeLine, targetKey]);
+  const targetLine = lineLocation?.line;
   // Links in a document resolve against the document's own agent and Chat,
   // never the foreground conversation. A Workspace file has no Chat unless its
   // surface supplies one.
@@ -704,21 +724,22 @@ export const ContentViewerPanel: React.FC<ContentViewerPanelProps> = ({
   }, [fullscreenRequest]);
 
   React.useEffect(() => {
-    if (target.type !== "file" || !target.line || contentKind !== "text" || textLoading || textError) {
+    if (!lineLocation || contentKind !== "text" || textLoading || textError) {
       return;
     }
     const container = textContainerRef.current;
     if (!container) return;
 
     const lineElement = container.querySelector<HTMLElement>(
-      `[data-viewer-line="${target.line}"]`,
+      `[data-viewer-line="${lineLocation.line}"]`,
     );
     if (!lineElement) return;
 
-    window.requestAnimationFrame(() => {
+    const frame = window.requestAnimationFrame(() => {
       lineElement.scrollIntoView({ block: "center" });
     });
-  }, [contentKind, target, textContent, textError, textLoading]);
+    return () => window.cancelAnimationFrame(frame);
+  }, [contentKind, lineLocation, textContent, textError, textLoading]);
 
   const editableTextDocument =
     documentKind === "document-html" ||
@@ -840,16 +861,10 @@ export const ContentViewerPanel: React.FC<ContentViewerPanelProps> = ({
       busy: editableTextDocument ? documentSaving : browserImageState.busy,
       annotationCount: editableTextDocument ? documentAnnotationCount : browserImageState.annotationCount,
       textEditable: textDocumentKind && !textTruncated,
-      targetKey: target.type === "file"
-        ? `file:${target.agentKey}:${target.path}`
-        : `resource:${target.url}`,
+      targetKey,
     });
-  }, [browserImageEditable, browserImageState, documentAnnotationCount, documentDirty, documentSaving, editableTextDocument, target, textDocumentKind, textTruncated]);
+  }, [browserImageEditable, browserImageState, documentAnnotationCount, documentDirty, documentSaving, editableTextDocument, targetKey, textDocumentKind, textTruncated]);
 
-  const targetLine =
-    target.type === "file" && Number.isFinite(target.line) && Number(target.line) > 0
-      ? Math.floor(Number(target.line))
-      : undefined;
   const textLines = React.useMemo(
     () => buildViewerTextLines(textContent, targetLine),
     [targetLine, textContent],
@@ -1019,7 +1034,7 @@ export const ContentViewerPanel: React.FC<ContentViewerPanelProps> = ({
               saveProfile={documentSaveProfile}
               revision={documentRevision}
               reloadToken={documentReloadRequest}
-              closeGuardKey={getViewerTargetKey(target)}
+              closeGuardKey={targetKey}
               onAnnotationCountChange={setDocumentAnnotationCount}
               onChange={setTextContent}
               onReload={handleDocumentReload}
@@ -1065,7 +1080,8 @@ export const ContentViewerPanel: React.FC<ContentViewerPanelProps> = ({
               saveProfile={documentSaveProfile}
               revision={documentRevision}
               reloadToken={documentReloadRequest}
-              closeGuardKey={getViewerTargetKey(target)}
+              lineLocation={lineLocation}
+              closeGuardKey={targetKey}
               onAnnotationCountChange={setDocumentAnnotationCount}
               onChange={setTextContent}
               onReload={handleDocumentReload}

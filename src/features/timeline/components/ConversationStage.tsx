@@ -6,7 +6,6 @@ import type { TaskItemMeta } from "@/features/tasks/lib/tasksState";
 import type { AgentSkill } from "@/shared/data/api/dto/agents";
 import { useI18n } from "@/shared/i18n";
 import { formatResponseDuration } from "@/shared/utils/formatResponseDuration";
-import { SCROLLBAR_THIN_CLASS_NAME } from "@/shared/styles/scrollbarClassNames";
 import { TimelineRow } from "./TimelineRow";
 import { TimelineRenderEntryView } from "./TimelineRenderEntryView";
 import { RunTerminalNotice } from "./RunTerminalNotice";
@@ -173,7 +172,7 @@ export function ConversationStage({
     totalListHeightChanged={viewport?.totalListHeightChanged}
     rangeChanged={viewport?.rangeChanged}
     isScrolling={viewport?.isScrolling}
-    className={`conversation-stage-virtuoso tw:h-full ${SCROLLBAR_THIN_CLASS_NAME}`}
+    className="conversation-stage-virtuoso tw:h-full"
     id={viewport?.scrollerId || "messages"}
     data-desktop-workspace-arrow-keys="allow"
     data-detail-level={detailLevel}

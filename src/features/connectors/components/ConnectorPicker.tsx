@@ -10,6 +10,7 @@ import { useConnectorPickerCatalog } from "../hooks/useConnectorPickerCatalog";
 import { filterConnectorOptions, findConnectorSelectionConflict, connectorSelectionConflictFromError, connectorSelectionConflictNames, connectorOptionStatus, orderConnectorsBuiltinLast } from "../lib/connectorSelection";
 import { ConnectorIcon } from "./ConnectorIcon";
 import { ConnectorChatError } from "../lib/connectorChat";
+import { isMobilePath } from "@/shared/utils/mobileRoutes";
 import styles from "./ConnectorPicker.module.css";
 
 export interface ConnectorPickerProps {
@@ -62,6 +63,8 @@ export function ConnectorPicker({ agentKey, search, onSearchChange, selectedIds,
     onSelectionChange(item, selected);
   };
   useEffect(() => {
+    // /mobile 的 BottomSheet 由用户点按后再聚焦，打开面板时不弹出软键盘。
+    if (isMobilePath(typeof window === "undefined" ? undefined : window.location?.pathname)) return;
     const timer = window.setTimeout(() => searchRef.current?.focus(), 50);
     return () => window.clearTimeout(timer);
   }, []);

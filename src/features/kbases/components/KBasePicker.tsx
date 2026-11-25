@@ -8,6 +8,7 @@ import pickerTypography from "@/shared/ui/PickerTypography.module.css";
 import type { KBaseCatalog } from "../hooks/useKBaseOptions";
 import type { SelectedKBase } from "../lib/kbasesState";
 import { MAX_KBASE_REFERENCES, normalizeKbaseIds } from "../lib/kbaseSelection";
+import { isMobilePath } from "@/shared/utils/mobileRoutes";
 import styles from "./KBasePicker.module.css";
 
 export function KBasePicker({ catalog, selected, onChange, disabled: selectionDisabled = false }: {
@@ -21,6 +22,8 @@ export function KBasePicker({ catalog, selected, onChange, disabled: selectionDi
   const searchRef = useRef<InputRef>(null);
   useEffect(() => { catalog.refresh(); }, [catalog.refresh]);
   useEffect(() => {
+    // /mobile 的 BottomSheet 由用户点按后再聚焦，打开面板时不弹出软键盘。
+    if (isMobilePath(typeof window === "undefined" ? undefined : window.location?.pathname)) return;
     const timer = window.setTimeout(() => searchRef.current?.focus(), 50);
     return () => window.clearTimeout(timer);
   }, []);

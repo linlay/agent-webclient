@@ -55,7 +55,20 @@ beforeEach(() => {
   document.body.append(container);
   root = createRoot(container);
 });
-afterEach(async () => { await act(async () => root.unmount()); container.remove(); jest.useRealTimers(); });
+afterEach(async () => { await act(async () => root.unmount()); container.remove(); jest.useRealTimers(); window.history.replaceState({}, "", "/"); });
+
+it("does not auto focus the search field on mobile", async () => {
+  window.history.replaceState({}, "", "/mobile");
+  await mount();
+  act(() => { jest.advanceTimersByTime(60); });
+  expect(document.activeElement).not.toBe(container.querySelector("input"));
+});
+
+it("auto focuses the search field on the desktop shell", async () => {
+  await mount();
+  act(() => { jest.advanceTimersByTime(60); });
+  expect(document.activeElement).toBe(container.querySelector("input"));
+});
 
 it("displays a package brand icon through the authenticated Blob loader", async () => {
   const originalCreate = URL.createObjectURL;

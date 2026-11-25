@@ -5,6 +5,7 @@ import {
   AGENT_WEBCLIENT_COMPOSER_DRAFT_VERSION,
   AGENT_WEBCLIENT_WORKPANEL_DOCUMENT_EDIT_MODE_ACTION,
   AGENT_WEBCLIENT_WORKPANEL_DOCUMENT_EDIT_MODE_VERSION,
+  parseAgentWebclientWorkPanelFileLocationAction,
   AGENT_WEBCLIENT_WORKPANEL_PREVIEW_REVIEW_ACTION,
   AGENT_WEBCLIENT_WORKPANEL_PREVIEW_REVIEW_VERSION,
   AGENT_WEBCLIENT_WORKPANEL_RESOURCE_DOWNLOAD_ACTION,
@@ -16,6 +17,7 @@ import {
   type AgentWebclientSelectionActionErrorCode,
   type AgentWebclientSelectionActionId,
   type AgentWebclientWorkPanelDocumentEditModeAction,
+  type AgentWebclientWorkPanelFileLocationAction,
   type AgentWebclientWorkPanelPreviewReviewAction,
 } from "@/shared/contracts/generated/agentWebclientBridge";
 import {
@@ -73,6 +75,7 @@ let currentPreviewReviewHandler: ((action: AgentWebclientWorkPanelPreviewReviewA
 let currentDocumentEditModeHandler:
   | ((action: AgentWebclientWorkPanelDocumentEditModeAction) => void)
   | null = null;
+let currentFileLocationHandler: ((action: AgentWebclientWorkPanelFileLocationAction) => void) | null = null;
 type DesktopSelectionActionHandlerResult = {
   ok: boolean;
   code?: AgentWebclientSelectionActionErrorCode;
@@ -219,6 +222,22 @@ export function useDesktopTextEditMode(
       if (currentDocumentEditModeHandler === registeredHandler) {
         currentDocumentEditModeHandler = null;
       }
+    };
+  }, [enabled]);
+}
+
+export function useDesktopFileLocation(
+  handler: ((action: AgentWebclientWorkPanelFileLocationAction) => void) | null,
+) {
+  const handlerRef = useRef(handler);
+  handlerRef.current = handler;
+  const enabled = handler !== null;
+  useEffect(() => {
+    if (!enabled) return;
+    const registeredHandler = (action: AgentWebclientWorkPanelFileLocationAction) => handlerRef.current?.(action);
+    currentFileLocationHandler = registeredHandler;
+    return () => {
+      if (currentFileLocationHandler === registeredHandler) currentFileLocationHandler = null;
     };
   }, [enabled]);
 }
@@ -645,6 +664,11 @@ export function initializeDesktopContextMenuBridge() {
     SERVICE_WEBVIEW_BRIDGE_ACTION_CHANNEL,
     (_event, value) => {
       if (!isRecord(value)) return;
+      const fileLocation = currentFileLocationHandler && parseAgentWebclientWorkPanelFileLocationAction(value);
+      if (fileLocation) {
+        currentFileLocationHandler?.(fileLocation);
+        return;
+      }
       if (value.action === "contextMenu.resolve") handleResolve(value);
       if (value.action === "contextMenu.execute") handleExecute(value);
       if (value.action === AGENT_WEBCLIENT_SELECTION_ACTION) {

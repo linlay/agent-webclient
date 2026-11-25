@@ -14,7 +14,10 @@ export const FileViewerPage: React.FC = () => {
   const agentKey = String(routeAgentKey || "").trim();
   const path = searchParams.get("path") || "";
   const line = Number(searchParams.get("line") || 0);
-  const target = buildFileViewerTargetFromRoute({ agentKey, path, line });
+  const target = React.useMemo(
+    () => buildFileViewerTargetFromRoute({ agentKey, path, line }),
+    [agentKey, path, line],
+  );
   return (
     <IndependentSurfaceFrame
       kind="file"

@@ -3,6 +3,17 @@ export function isMobilePath(pathname: string | undefined): boolean {
   return pathname === "/mobile" || Boolean(pathname?.startsWith("/mobile/"));
 }
 
+/**
+ * Programmatic Composer focus stays off on the touch-first mobile shell so the
+ * software keyboard never opens just from entering, switching or reloading a
+ * conversation. Explicit focus requests (search, command palette, host bridge)
+ * bypass this guard.
+ */
+export function allowsComposerAutoFocus(pathname?: string): boolean {
+  const current = pathname ?? (typeof window === "undefined" ? undefined : window.location?.pathname);
+  return !isMobilePath(current);
+}
+
 export function isFullClientPath(pathname: string): boolean {
   return pathname === "/" || isMobilePath(pathname);
 }

@@ -41,6 +41,22 @@
     min-height: 0;
 }
 
+/* 移动端 BottomSheet 内复用同一面板：占满底部面板宽度，并给下拉手柄和 Home 指示条留出高度。 */
+.composer-add-menu-sheet .composer-add-menu-panel {
+    width: 100%;
+    max-height: calc(var(--mobile-height, 100dvh) - 88px);
+}
+
+.composer-add-menu-sheet .composer-add-menu-nav,
+.composer-add-menu-sheet .composer-add-menu-detail {
+    padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+}
+
+/* 二级面板允许纵向滚动，横向手势留给右滑返回一级。 */
+.composer-add-menu-sheet .composer-add-menu-view[role="dialog"] {
+    touch-action: pan-y;
+}
+
 /* 宽屏：导航与二级面板是两个独立浮层。导航高度只由条目决定，
    二级面板挂在导航项上、有自己的高度，切换面板不会带走一级菜单。 */
 .composer-add-menu-panel[data-layout="split"] > .composer-add-menu-nav {
@@ -523,6 +539,12 @@
     padding: 0;
 }
 
+/* 移动端连接器 BottomSheet：占满宽度，并让列表在软键盘和安全区之上滚动。 */
+.composer-connector-picker-sheet .composer-connector-picker-sheet-content {
+    width: 100%;
+    padding: 4px 10px calc(10px + env(safe-area-inset-bottom, 0px));
+}
+
 
 .composer-popover-overlay :global(.ant-popover-inner-content) {
     padding: 0;
@@ -620,7 +642,6 @@
     flex: 1;
     min-height: 0;
     max-height: none;
-    scrollbar-gutter: stable;
 }
 @media (prefers-reduced-motion: reduce) {
     .composer-add-menu-panel {

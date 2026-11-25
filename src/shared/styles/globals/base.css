@@ -562,7 +562,8 @@ textarea {
     cursor: row-resize !important;
 }
 
-/* Compat owner: browser scrollbar pseudo-elements. Component-scoped scrollbars use Tailwind arbitrary variants. */
+/* Native fallback for the standalone export entry and for the short window
+   before the app overlay installs; the app entry hides these once ready. */
 ::-webkit-scrollbar {
     width: 4px;
     height: 4px;

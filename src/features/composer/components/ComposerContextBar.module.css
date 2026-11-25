@@ -52,8 +52,10 @@
   outline-offset: 2px;
 }
 
-.agent:hover {
-  background: var(--bg-hover);
+/* 悬停或菜单展开时，激活底色交给整条上下文栏渲染，铺满 bar 的全部内边距 */
+.bar:has(.agent:hover:not(:disabled)),
+.bar:has(.agent[aria-expanded="true"]:not(:disabled)) {
+  background: linear-gradient(var(--bg-hover), var(--bg-hover)), var(--new-chat-input-surface);
 }
 
 .agent:disabled {

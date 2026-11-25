@@ -15,19 +15,13 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import {
-  Divider,
-  Flex,
-  Input,
-  Popover,
-  Spin,
-  Tag,
-  Tooltip,
-} from "antd";
+import { Input, Spin, Tag, Tooltip } from "antd";
+import type { MenuProps } from "antd";
 import type { Agent } from "@/features/agents/lib/agentState";
 import { AgentIcon } from "@/shared/icons/agent";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
+import { RowMoreMenu } from "@/shared/ui/RowMoreMenu";
 
 export interface AgentListSummary {
   mode: string;
@@ -124,146 +118,112 @@ const SortableAgentListItem: React.FC<{
     id: sortableId,
     disabled: disabled || !agentKey,
   });
-  const popoverContent = (
-    <Flex vertical>
-      <div className="agent-console-list-item-details">
-        <span className="agent-console-list-item-detail">
-          <span>{t("agentConsole.field.name")}</span>
-          <span>{name}</span>
-        </span>
-        <span className="agent-console-list-item-detail">
-          <span>{t("agentConsole.field.key")}</span>
-          <span>{agentKey || "--"}</span>
-        </span>
-        <span className="agent-console-list-item-detail">
-          <span>{t("agentConsole.field.modelKey")}</span>
-          <span>{summary.modelKey}</span>
-        </span>
-        <span className="agent-console-list-item-detail">
-          <span>{t("agentConsole.field.mode")}</span>
-          <span>{summary.mode}</span>
-        </span>
-        <span className="agent-console-list-item-detail">
-          <span>{t("agentConsole.field.tools")}</span>
-          <span>{summary.toolsCount}</span>
-        </span>
-        <span className="agent-console-list-item-detail">
-          <span>{t("agentConsole.field.skills")}</span>
-          <span>{summary.skillsCount}</span>
-        </span>
-        {invalid && diagnostic ? (
-          <span className="agent-console-list-item-diagnostic">
-            {diagnostic}
-          </span>
-        ) : null}
-      </div>
-      {onEditConversation || onDelete ? (
-        <Flex className="agent-console-list-item-actions" align="center">
-          {onEditConversation && (
-            <Tooltip title={t("resourceAssistant.conversationEdit")}>
-              <UiButton
-                variant="ghost"
-                size="sm"
-                onClick={() => onEditConversation(agent)}
-              >
-                <MaterialIcon name="question_answer" />
-              </UiButton>
-            </Tooltip>
-          )}
-          <Divider type="vertical" style={{ margin: 0 }} />
-          {onDelete && (
-            <Tooltip title={t("agentConsole.action.delete")}>
-              <UiButton
-                variant="ghost"
-                size="sm"
-                onClick={() => onDelete(agent)}
-                style={{ color: "var(--accent-danger)" }}
-              >
-                <MaterialIcon name="delete" />
-              </UiButton>
-            </Tooltip>
-          )}
-        </Flex>
-      ) : null}
-    </Flex>
-  );
-  const itemNode = (
-    <div data-agent-identity=""
-      ref={setNodeRef}
-      style={{ transform: CSS.Transform.toString(transform), transition }}
-      role="button"
-      tabIndex={0}
-      className={`agent-console-list-item ${active ? "is-active" : ""} ${dragging ? "is-dragging" : ""} ${invalid ? "is-invalid" : ""}`}
-      onClick={() => onSelect(agentKey)}
-      onKeyDown={(event) => {
-        if (event.target !== event.currentTarget) return;
-        if (event.key === "Enter" || event.key === " ") {
-          event.preventDefault();
-          onSelect(agentKey);
-        }
-      }}
-    >
-      <span className="agent-console-list-item-icon-col">
-        <span
-          ref={setActivatorNodeRef}
-          className={`agent-console-list-item-icon ${disabled || !agentKey ? "" : "is-drag-handle"}`}
-          aria-label={t("agentConsole.list.dragHandle", { name })}
-          {...attributes}
-          {...listeners}
-        >
-          <AgentIcon
-            icon={agent.icon} mode={agent.mode}
-            type="agent"
-            props={{
-              icon: {
-                width: 28,
-                height: 28,
-                className: "agent-console-list-item-svg",
-              },
-              avatar: { size: 28, icon: <MaterialIcon name="smart_toy" /> },
-            }}
-          />
-        </span>
-      </span>
-      <span className="agent-console-list-item-main">
-        <span className="agent-console-list-item-row agent-console-list-item-head">
-          <strong>{name}</strong>
-          <span className="agent-console-list-item-head-meta">
-            {invalid ? (
-              <Tag color="error" style={{ marginRight: 0 }}>
-                {t("agentConsole.status.invalid")}
-              </Tag>
-            ) : (
-              agentKey || "--"
-            )}
-          </span>
-        </span>
-        <span className="agent-console-list-item-row agent-console-list-item-meta">
-          <span>{summary.modelKey}</span>
-          <span className="agent-console-list-item-counts">
-            <ModeBadge mode={summary.mode} />
-          </span>
-        </span>
-      </span>
-    </div>
-  );
-  // 选中项的详情已展开在右侧，不再叠加悬浮摘要
-  if (active) return itemNode;
+  const moreLabel = t("leftSidebar.moreActions");
+  const menuItems: MenuProps["items"] = [
+    ...(onEditConversation
+      ? [
+          {
+            key: "edit-conversation",
+            icon: <MaterialIcon name="question_answer" />,
+            label: t("resourceAssistant.conversationEdit"),
+            disabled,
+          },
+        ]
+      : []),
+    ...(onEditConversation && onDelete ? [{ type: "divider" as const }] : []),
+    ...(onDelete
+      ? [
+          {
+            key: "delete",
+            icon: <MaterialIcon name="delete" />,
+            label: t("agentConsole.action.delete"),
+            danger: true,
+            disabled,
+          },
+        ]
+      : []),
+  ];
+  const handleMenuClick: MenuProps["onClick"] = ({ key, domEvent }) => {
+    domEvent.stopPropagation();
+    if (disabled) return;
+    if (key === "edit-conversation") onEditConversation?.(agent);
+    if (key === "delete") onDelete?.(agent);
+  };
   return (
-    <Popover
-      placement="rightTop"
-      trigger="hover"
-      content={popoverContent}
-      arrow={false}
-      styles={{
-        body: {
-          background: "var(--management-page-surface)",
-          padding: 0,
-        },
-      }}
+    // 行容器承接拖拽变换，并作为右键菜单的触发区域；
+    // 更多按钮的样式与点击/右键交互由共享 RowMoreMenu 统一提供。
+    <RowMoreMenu
+      items={menuItems}
+      onSelect={handleMenuClick}
+      label={moreLabel}
+      ariaLabel={`${name}: ${moreLabel}`}
+      disabled={disabled}
+      className="agent-console-list-item-wrap"
+      rowRef={setNodeRef}
+      rowStyle={{ transform: CSS.Transform.toString(transform), transition }}
     >
-      {itemNode}
-    </Popover>
+      <div
+        data-agent-identity=""
+        role="button"
+        tabIndex={0}
+        className={`agent-console-list-item ${active ? "is-active" : ""} ${dragging ? "is-dragging" : ""} ${invalid ? "is-invalid" : ""}`}
+        onClick={() => onSelect(agentKey)}
+        onKeyDown={(event) => {
+          if (event.target !== event.currentTarget) return;
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            onSelect(agentKey);
+          }
+        }}
+      >
+        <span className="agent-console-list-item-icon-col">
+          <span
+            ref={setActivatorNodeRef}
+            className={`agent-console-list-item-icon ${disabled || !agentKey ? "" : "is-drag-handle"}`}
+            aria-label={t("agentConsole.list.dragHandle", { name })}
+            {...attributes}
+            {...listeners}
+          >
+            <AgentIcon
+              icon={agent.icon} mode={agent.mode}
+              type="agent"
+              props={{
+                icon: {
+                  width: 28,
+                  height: 28,
+                  className: "agent-console-list-item-svg",
+                },
+                avatar: { size: 28, icon: <MaterialIcon name="smart_toy" /> },
+              }}
+            />
+          </span>
+        </span>
+        <span className="agent-console-list-item-main">
+          <span className="agent-console-list-item-row agent-console-list-item-head">
+            <strong>{name}</strong>
+            <span className="agent-console-list-item-head-meta">
+              {invalid ? (
+                <Tooltip title={diagnostic || undefined}>
+                  <span>
+                    <Tag color="error" style={{ marginRight: 0 }}>
+                      {t("agentConsole.status.invalid")}
+                    </Tag>
+                  </span>
+                </Tooltip>
+              ) : (
+                agentKey || "--"
+              )}
+            </span>
+          </span>
+          <span className="agent-console-list-item-row agent-console-list-item-meta">
+            <span>{summary.modelKey}</span>
+            <span className="agent-console-list-item-counts">
+              <ModeBadge mode={summary.mode} />
+            </span>
+          </span>
+        </span>
+      </div>
+    </RowMoreMenu>
   );
 };
 

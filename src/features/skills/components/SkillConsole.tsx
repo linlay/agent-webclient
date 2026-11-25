@@ -53,6 +53,7 @@ import { FileIcon } from "@/shared/components/file-icon";
 import { CodeEditor } from "@/shared/ui/CodeEditor";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
+import { RowMoreMenu } from "@/shared/ui/RowMoreMenu";
 import { useAdminSkillCatalog } from "@/features/skills/hooks/useAdminSkillCatalog";
 import { SkillKindFilters } from "@/features/skills/components/SkillKindFilters";
 import { orderSkillCatalogItems, type SkillKindFilter } from "@/features/skills/lib/skillCatalogView";
@@ -211,12 +212,10 @@ const SKILL_LIST_ITEM_META_CLASS_NAME =
   "skill-console-list-item-meta tw:text-[11px] tw:leading-[1.35] tw:text-ink-muted";
 const SKILL_LIST_ITEM_WRAP_CLASS_NAME =
   "skill-console-list-item-wrap tw:group tw:relative tw:min-w-0";
-const SKILL_LIST_ITEM_MORE_CLASS_NAME =
-  "skill-console-list-item-more tw:absolute tw:top-0 tw:right-0 tw:flex tw:h-full tw:w-10 tw:items-center tw:justify-center tw:rounded-[3px] tw:border-0 tw:bg-transparent tw:p-0 tw:text-ink-muted tw:opacity-0 tw:pointer-events-none tw:cursor-pointer tw:hover:bg-bg-hover tw:hover:text-ink-1 tw:group-hover:opacity-100 tw:group-hover:pointer-events-auto tw:group-has-[:focus-visible]:opacity-100 tw:group-has-[:focus-visible]:pointer-events-auto";
 const SKILL_LIST_ITEM_STATUS_CLASS_NAME =
-  "skill-console-list-item-status tw:flex-none tw:pointer-events-none";
+  "skill-console-list-item-status tw:flex-none tw:pointer-events-none tw:transition-opacity tw:group-hover:opacity-0 tw:group-has-[:focus-visible]:opacity-0 tw:group-data-[menu-open]:opacity-0";
 const SKILL_LIST_ITEM_VERSION_CLASS_NAME =
-  "skill-console-list-item-version tw:font-code tw:text-[10px] tw:leading-none tw:text-ink-muted";
+  "skill-console-list-item-version tw:font-code tw:text-[10px] tw:leading-none tw:text-ink-muted tw:transition-opacity tw:group-hover:opacity-0 tw:group-has-[:focus-visible]:opacity-0 tw:group-data-[menu-open]:opacity-0";
 const SKILL_DETAIL_CLASS_NAME =
   "skill-console-detail tw:flex tw:min-h-0 tw:min-w-0 tw:flex-col tw:overflow-hidden tw:max-[860px]:overflow-visible";
 const SKILL_DETAIL_ACTIONS_CLASS_NAME =
@@ -312,19 +311,7 @@ export const SkillListItemVersion: React.FC<{ version?: string }> = ({
   );
 };
 
-export const SkillListItemActions: React.FC<{
-  item: AdminSkillSummary;
-  pinned: boolean;
-  busy: boolean;
-  pinsDisabled: boolean;
-  t: SkillConsoleTranslate;
-  onTogglePin: (skillId: string) => void;
-  onValidateSkill: (skillId: string) => void;
-  onDownloadSkill: (skillId: string) => void;
-  onDeleteSkill: (item: AdminSkillSummary) => void;
-  onEditSkill?: (item: AdminSkillSummary) => void;
-  onEditSkillConversation?: (item: AdminSkillSummary) => void;
-}> = ({
+export function buildSkillListItemMenu({
   item,
   pinned,
   busy,
@@ -336,8 +323,19 @@ export const SkillListItemActions: React.FC<{
   onDeleteSkill,
   onEditSkill,
   onEditSkillConversation,
-}) => {
-  const moreLabel = t("skillConsole.action.more");
+}: {
+  item: AdminSkillSummary;
+  pinned: boolean;
+  busy: boolean;
+  pinsDisabled: boolean;
+  t: SkillConsoleTranslate;
+  onTogglePin: (skillId: string) => void;
+  onValidateSkill: (skillId: string) => void;
+  onDownloadSkill: (skillId: string) => void;
+  onDeleteSkill: (item: AdminSkillSummary) => void;
+  onEditSkill?: (item: AdminSkillSummary) => void;
+  onEditSkillConversation?: (item: AdminSkillSummary) => void;
+}): { items: MenuProps["items"]; onClick: MenuProps["onClick"] } {
   const menuItems: MenuProps["items"] = [
     ...(onEditSkill ? [{ key: "edit", icon: <MaterialIcon name="edit" />, label: t("resourceAssistant.directEdit"), disabled: busy }] : []),
     ...(onEditSkillConversation ? [{ key: "edit-conversation", icon: <MaterialIcon name="question_answer" />, label: t("resourceAssistant.conversationEdit"), disabled: busy }] : []),
@@ -378,8 +376,7 @@ export const SkillListItemActions: React.FC<{
       disabled: busy,
     },
   ];
-
-  const onMenuClick: MenuProps["onClick"] = ({ domEvent, key }) => {
+  const onClick: MenuProps["onClick"] = ({ domEvent, key }) => {
     domEvent.stopPropagation();
     if (key === "edit") {
       onEditSkill?.(item);
@@ -395,34 +392,8 @@ export const SkillListItemActions: React.FC<{
       onDeleteSkill(item);
     }
   };
-
-  return (
-    <Dropdown
-      trigger={["click"]}
-      menu={{ items: menuItems, onClick: onMenuClick }}
-      getPopupContainer={(trigger) => trigger.parentElement || trigger}
-    >
-      <button
-        type="button"
-        className={SKILL_LIST_ITEM_MORE_CLASS_NAME}
-        aria-label={moreLabel}
-        title={moreLabel}
-        aria-haspopup="menu"
-        onMouseDown={(event) => event.preventDefault()}
-        onClick={(event) => event.stopPropagation()}
-        style={{
-          background:
-            "linear-gradient(to left, var(--bg-base) 40%, transparent)",
-        }}
-      >
-        <MaterialIcon
-          name="more_horiz"
-          className="tw:h-[14px] tw:w-[14px] tw:text-[14px]"
-        />
-      </button>
-    </Dropdown>
-  );
-};
+  return { items: menuItems, onClick };
+}
 
 function formatSize(value: number | undefined): string {
   if (value === undefined || value === null) return "--";
@@ -2465,8 +2436,40 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
 
   const renderSkillItem = (item: AdminSkillSummary) => {
     const itemPinned = pinnedSkillIds.includes(item.id.toLowerCase());
+    const itemBusy = validating || downloadingSkill || deletingSkill || assistant.opening;
+    const skillMenu = buildSkillListItemMenu({
+      item,
+      pinned: itemPinned,
+      busy: itemBusy,
+      pinsDisabled,
+      t,
+      onTogglePin: (skillId) => {
+        void toggleSkillPin(skillId);
+      },
+      onValidateSkill: (skillId) => {
+        void handleValidateSkillId(skillId);
+      },
+      onDownloadSkill: (skillId) => {
+        void handleDownloadSkillById(skillId);
+      },
+      onDeleteSkill: handleDeleteSkillListItem,
+      onEditSkill: (target) => {
+        if (target.id === selectedSkillId) focusEditableField(editorRegion.current);
+        else handleSelectSkill(target);
+      },
+      onEditSkillConversation: async (target) => {
+        if (await confirmDiscardBeforeAdding()) void assistant.open({ kind: "skill", target: { id: target.id, name: skillDisplayName(target) } });
+      },
+    });
     return (
-      <div key={`skill:${item.id}`} className={SKILL_LIST_ITEM_WRAP_CLASS_NAME}>
+      <RowMoreMenu
+        key={`skill:${item.id}`}
+        className={SKILL_LIST_ITEM_WRAP_CLASS_NAME}
+        items={skillMenu.items}
+        onSelect={skillMenu.onClick}
+        label={t("skillConsole.action.more")}
+        ariaLabel={`${skillDisplayName(item)}: ${t("skillConsole.action.more")}`}
+      >
         <button
           type="button"
           className={`${SKILL_LIST_ITEM_CLASS_NAME} ${
@@ -2484,7 +2487,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
                 className="tw:w-full"
               >
                 <Typography.Text
-                  className={[libraryPresentation.typography, "tw:flex-1 tw:group-hover:pe-[22px] tw:group-has-[:focus-visible]:pe-[22px]"].filter(Boolean).join(" ")}
+                  className={[libraryPresentation.typography, "tw:flex-1"].filter(Boolean).join(" ")}
                   ellipsis
                   title={skillDisplayName(item)}
                 >
@@ -2493,7 +2496,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
                 {itemPinned && (
                   <MaterialIcon
                     name="push_pin"
-                    className="tw:h-[14px] tw:w-[14px] tw:flex-none tw:text-[14px] tw:text-ink-muted"
+                    className="tw:h-[14px] tw:w-[14px] tw:flex-none tw:text-[14px] tw:text-ink-muted tw:transition-opacity tw:group-hover:opacity-0 tw:group-has-[:focus-visible]:opacity-0 tw:group-data-[menu-open]:opacity-0"
                     title={t("skillConsole.action.pin")}
                     aria-label={t("skillConsole.action.pin")}
                   />
@@ -2525,31 +2528,7 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
             </span>
           </span>
         </button>
-        <SkillListItemActions
-          item={item}
-          pinned={itemPinned}
-          busy={validating || downloadingSkill || deletingSkill || assistant.opening}
-          pinsDisabled={pinsDisabled}
-          t={t}
-          onTogglePin={(skillId) => {
-            void toggleSkillPin(skillId);
-          }}
-          onValidateSkill={(skillId) => {
-            void handleValidateSkillId(skillId);
-          }}
-          onDownloadSkill={(skillId) => {
-            void handleDownloadSkillById(skillId);
-          }}
-          onDeleteSkill={handleDeleteSkillListItem}
-          onEditSkill={(item) => {
-            if (item.id === selectedSkillId) focusEditableField(editorRegion.current);
-            else handleSelectSkill(item);
-          }}
-          onEditSkillConversation={async (item) => {
-            if (await confirmDiscardBeforeAdding()) void assistant.open({ kind: "skill", target: { id: item.id, name: skillDisplayName(item) } });
-          }}
-        />
-      </div>
+      </RowMoreMenu>
     );
   };
 

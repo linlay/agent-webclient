@@ -1,0 +1,91 @@
+/*
+ * Overlay scrollbar foundation for every app-owned scroll container.
+ *
+ * Desktop's sidebar thumb is the visual reference: a 6px pill with no track
+ * that appears while scrolling and hides 800ms later. `overlayScrollbars.ts`
+ * owns the behaviour; this file owns the skin and hides the native scrollbar
+ * only after the overlay has installed successfully (so a script failure keeps
+ * the native fallback instead of removing all scroll indicators).
+ *
+ * Imported by the app entry only: the standalone conversation export keeps its
+ * native viewport scrollbar and gutter.
+ */
+
+html[data-overlay-scrollbars="ready"],
+html[data-overlay-scrollbars="ready"] * {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+html[data-overlay-scrollbars="ready"]::-webkit-scrollbar,
+html[data-overlay-scrollbars="ready"] *::-webkit-scrollbar,
+html[data-overlay-scrollbars="ready"]::-webkit-scrollbar-track,
+html[data-overlay-scrollbars="ready"] *::-webkit-scrollbar-track,
+html[data-overlay-scrollbars="ready"]::-webkit-scrollbar-thumb,
+html[data-overlay-scrollbars="ready"] *::-webkit-scrollbar-thumb,
+html[data-overlay-scrollbars="ready"]::-webkit-scrollbar-corner,
+html[data-overlay-scrollbars="ready"] *::-webkit-scrollbar-corner {
+  display: none;
+  width: 0;
+  height: 0;
+  background: transparent;
+}
+
+.app-scrollbar-thumb {
+  position: fixed;
+  z-index: 2147483600;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: var(--app-scrollbar-thumb, rgba(148, 163, 184, 0.45));
+  opacity: 0;
+  pointer-events: none;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.app-scrollbar-thumb.is-visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.app-scrollbar-thumb[data-scrollbar-axis="vertical"] {
+  width: var(--app-scrollbar-size, 6px);
+}
+
+.app-scrollbar-thumb[data-scrollbar-axis="horizontal"] {
+  height: var(--app-scrollbar-size, 6px);
+}
+
+/* Ant Design virtual lists keep their own overlay thumb; align its skin. */
+:root {
+  --rc-virtual-list-scrollbar-bg: var(--app-scrollbar-thumb, rgba(148, 163, 184, 0.45));
+}
+
+.rc-virtual-list-scrollbar-vertical {
+  width: var(--app-scrollbar-size, 6px) !important;
+}
+
+.rc-virtual-list-scrollbar-horizontal {
+  height: var(--app-scrollbar-size, 6px) !important;
+}
+
+/* xterm draws its own VS Code-style overlay. Keep its scroll behaviour but
+   align the slider skin, and let the manager skip the native viewport. */
+.xterm .xterm-viewport {
+  --app-scrollbar-overlay: off;
+}
+
+.xterm .xterm-scrollable-element > .scrollbar.vertical {
+  width: var(--app-scrollbar-size, 6px) !important;
+}
+
+.xterm .xterm-scrollable-element > .scrollbar.horizontal {
+  height: var(--app-scrollbar-size, 6px) !important;
+}
+
+.xterm .xterm-scrollable-element > .scrollbar > .slider {
+  background: var(--app-scrollbar-thumb, rgba(148, 163, 184, 0.45)) !important;
+}

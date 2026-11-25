@@ -1,6 +1,6 @@
 // Generated from src/shared/contracts/agent-webclient-bridge.ts.
 // Do not edit this mirror directly.
-// sha256:969af5a037e6ff51be6eb3497902786dcd1d1a5646f4cbcb049fced78813c6fc
+// sha256:4702910863c6c629aebd6c1efbf5f641858067fa80697a4c72c9897b2c31629c
 
 /**
  * Canonical Desktop <-> Agent WebClient bridge contract.
@@ -143,6 +143,9 @@ export const AGENT_WEBCLIENT_WORKPANEL_PREVIEW_REVIEW_PAGE_EVENT =
 export const AGENT_WEBCLIENT_WORKPANEL_DOCUMENT_EDIT_MODE_ACTION =
   "workPanel.document.editMode" as const;
 export const AGENT_WEBCLIENT_WORKPANEL_DOCUMENT_EDIT_MODE_VERSION = 1 as const;
+export const AGENT_WEBCLIENT_WORKPANEL_FILE_LOCATION_ACTION =
+  "workPanel.file.revealLine" as const;
+export const AGENT_WEBCLIENT_WORKPANEL_FILE_LOCATION_VERSION = 1 as const;
 export const AGENT_WEBCLIENT_COMPOSER_DRAFT_ACTION =
   "workPanel.composer.insertDraft" as const;
 export const AGENT_WEBCLIENT_COMPOSER_DRAFT_VERSION = 1 as const;
@@ -215,6 +218,35 @@ export type AgentWebclientWorkPanelDocumentEditModeAction = {
   version: typeof AGENT_WEBCLIENT_WORKPANEL_DOCUMENT_EDIT_MODE_VERSION;
   enabled: boolean;
 };
+
+export type WorkPanelFileLocation = { line: number; revision: number };
+
+export type AgentWebclientWorkPanelFileLocationAction = WorkPanelFileLocation & {
+  action: typeof AGENT_WEBCLIENT_WORKPANEL_FILE_LOCATION_ACTION;
+  version: typeof AGENT_WEBCLIENT_WORKPANEL_FILE_LOCATION_VERSION;
+  targetKey: string;
+};
+
+export function parseAgentWebclientWorkPanelFileLocationAction(
+  value: unknown,
+): AgentWebclientWorkPanelFileLocationAction | null {
+  if (!value || typeof value !== "object") return null;
+  const input = value as Record<string, unknown>;
+  if (input.action !== AGENT_WEBCLIENT_WORKPANEL_FILE_LOCATION_ACTION ||
+    input.version !== AGENT_WEBCLIENT_WORKPANEL_FILE_LOCATION_VERSION ||
+    typeof input.targetKey !== "string" || !input.targetKey.startsWith("file:") ||
+    input.targetKey.length > 4096 ||
+    typeof input.line !== "number" || !Number.isSafeInteger(input.line) || input.line < 1 ||
+    typeof input.revision !== "number" || !Number.isSafeInteger(input.revision) || input.revision < 1 ||
+    Object.keys(input).length !== 5) return null;
+  return {
+    action: input.action,
+    version: input.version,
+    targetKey: input.targetKey,
+    line: input.line,
+    revision: input.revision,
+  };
+}
 
 export type AgentWebclientComposerDraftAction = {
   action: typeof AGENT_WEBCLIENT_COMPOSER_DRAFT_ACTION;
@@ -548,6 +580,7 @@ export type WorkPanelItem = {
   itemId: string;
   stableKey: string;
   descriptor: WorkPanelItemDescriptor;
+  fileLocation?: WorkPanelFileLocation;
   title: string;
   closable: boolean;
   pinned: boolean;

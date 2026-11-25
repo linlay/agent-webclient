@@ -31,6 +31,7 @@ import {
   formatOutputTokensPerSecond,
   formatUsageNumber,
   formatUsagePercent,
+  hasUsageControlContent,
   hasUsageStatsData,
   resolveChatCacheHitPercent,
   resolveChatEstimatedCost,
@@ -406,8 +407,11 @@ export const UsageContextControl: React.FC<{
   const currentWorker = resolveCurrentWorkerSummary(state);
   const usageSnapshot = state.usageSnapshot;
   const compactUsage = resolveLatestCompactUsage(state.events);
-  const showUsageControl =
-    Boolean(usageSnapshot) || Boolean(compactUsage) || isMainChatRunning;
+  const showUsageControl = hasUsageControlContent({
+    usageSnapshot,
+    compactUsage,
+    running: isMainChatRunning,
+  });
   const usageTotal = resolveDisplayTotal(usageSnapshot);
   const { submitCompactCommand, submittingCommand } =
     useBackgroundCommandActions({

@@ -1,0 +1,41 @@
+/* 行容器：承接按钮的绝对定位，并把「是否展开菜单」暴露给同域样式。 */
+.row {
+    position: relative;
+}
+
+/*
+ * 类名重复一次提高特异性，压过 globals 中 .ui-btn 的 position: relative 等基础样式。
+ * 按钮叠加在行右端，不添加内边距，因此不会推移任何内容。
+ */
+.row .button.button {
+    position: absolute;
+    top: 50%;
+    right: 4px;
+    transform: translateY(-50%);
+    color: var(--ink-muted);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.12s ease;
+}
+
+.row:hover .button.button,
+.row:has(:focus-visible) .button.button,
+.row[data-menu-open] .button.button {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+@media (hover: none) {
+
+    .row .button.button {
+        opacity: 1;
+        pointer-events: auto;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+    .row .button.button {
+        transition: none;
+    }
+}

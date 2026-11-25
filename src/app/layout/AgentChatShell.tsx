@@ -30,6 +30,7 @@ import { useAppRuntimes } from "@/app/layout/hooks/useAppRuntimes";
 import { useDeriveChatAction } from "@/features/conversation/hooks/useDeriveChatAction";
 import { useRunFeedbackAction } from "@/features/conversation/hooks/useRunFeedbackAction";
 import { getAgent } from "@/shared/data";
+import { isDesktopAppMode } from "@/shared/utils/routing";
 import { ApiError } from "@/shared/data/api/http";
 import { useI18n } from "@/shared/i18n";
 import { buildSurfaceRoute, readSurfacePresentationContext } from "@/features/surfaces/lib/surfaceRoutes";
@@ -215,8 +216,6 @@ const NEW_CHAT_CREATED_EVENT = "agent:new-chat-created";
 
 const AGENT_ROUTE_LOADING_PAGE_CLASS =
   "agent-route-loading-page tw:grid tw:min-h-screen tw:place-items-center tw:bg-[var(--shell-page-bg)] tw:p-6 tw:text-ink-1";
-const AGENT_ROUTE_LOADING_OVERLAY_CLASS =
-  "agent-route-loading-page agent-route-loading-overlay tw:absolute tw:inset-0 tw:z-20 tw:grid tw:place-items-center tw:bg-[var(--shell-page-bg)] tw:p-6 tw:text-ink-1";
 const AGENT_ROUTE_LOADING_CARD_CLASS =
   "agent-route-loading-card tw:inline-flex tw:min-w-[min(320px,100%)] tw:items-center tw:gap-3.5 tw:px-5 tw:py-[18px]";
 const AGENT_ROUTE_LOADING_SPINNER_CLASS =
@@ -230,22 +229,29 @@ const AGENT_ROUTE_ROW_CLASS_BY_STATE = {
   empty: "timeline-empty-layout tw:grid-rows-[auto_minmax(0,2fr)_minmax(0,3fr)_auto]",
 } as const;
 
-const AgentRouteLoadingPage: React.FC<{ title: string; overlay?: boolean }> = ({ title, overlay = false }) => {
-  const Component = overlay ? "div" : "main";
+const AgentRouteLoadingPage: React.FC<{ title: string }> = ({ title }) => (
+  <main className={AGENT_ROUTE_LOADING_PAGE_CLASS} aria-busy="true">
+    <div className={AGENT_ROUTE_LOADING_CARD_CLASS}>
+      <div className={AGENT_ROUTE_LOADING_SPINNER_CLASS} aria-hidden="true" />
+      <div className={AGENT_ROUTE_LOADING_COPY_CLASS}><strong>{title}</strong></div>
+    </div>
+  </main>
+);
+
+function DesktopNewChatSkeleton({ label }: { label: string }) {
   return (
-    <Component
-      className={overlay ? AGENT_ROUTE_LOADING_OVERLAY_CLASS : AGENT_ROUTE_LOADING_PAGE_CLASS}
-      aria-busy="true"
-    >
-      <div className={AGENT_ROUTE_LOADING_CARD_CLASS}>
-        <div className={AGENT_ROUTE_LOADING_SPINNER_CLASS} aria-hidden="true" />
-        <div className={AGENT_ROUTE_LOADING_COPY_CLASS}>
-          <strong>{title}</strong>
-        </div>
+    <main className={`${AGENT_ROUTE_SHELL_BASE_CLASS} ${AGENT_ROUTE_ROW_CLASS_BY_STATE.empty}`}
+      aria-busy="true" aria-label={label}>
+      <div className="tw:col-start-2 tw:row-start-1 tw:h-9" aria-hidden="true" />
+      <div className="conversation-stage tw:flex tw:items-end tw:justify-center tw:pb-[26px]" aria-hidden="true">
+        <div className="tw:h-7 tw:w-48 tw:rounded-lg tw:bg-[var(--line-soft)]" />
       </div>
-    </Component>
+      <div className={presentationClasses("bottom-dock")} aria-hidden="true">
+        <div className={presentationClasses("bottom-dock-inner composer-pill tw:h-36 tw:rounded-[var(--control-radius-lg)] tw:border tw:border-border")} />
+      </div>
+    </main>
   );
-};
+}
 
 const AGENT_ROUTE_ERROR_CARD_CLASS =
   "tw:inline-flex tw:min-w-[min(360px,100%)] tw:flex-col tw:items-center tw:gap-4 tw:px-6 tw:py-6";
@@ -352,6 +358,7 @@ const AgentChatShellContent: React.FC = () => {
     () => parseNewChatTimestamp(searchParams.get("newChat")),
     [searchParams],
   );
+  const desktopNewChat = !chatId && Boolean(routeNewChatTimestamp) && isDesktopAppMode();
   const composerPrefillPayload = useMemo(
     () => parseComposerPrefillPayload(searchParams),
     [searchParams],
@@ -727,6 +734,15 @@ const AgentChatShellContent: React.FC = () => {
     };
   }, [agentKey, chatId, dispatch, routeAgentNeedsHydration, hydrationRetryCount, t]);
 
+  // The sidebar refresh can select another worker after the route details arrive.
+  // Reconcile the selection without reinitializing the conversation or its draft.
+  const shouldSelectRouteWorker = !desktopNewChat || !routeAgentReady;
+  useEffect(() => {
+    if (!chatId && agentKey && routeAgentHydrated && shouldSelectRouteWorker) {
+      dispatch({ type: "SET_WORKER_SELECTION_KEY", workerKey: routeWorkerKey });
+    }
+  }, [agentKey, chatId, dispatch, routeAgentHydrated, routeWorkerKey, shouldSelectRouteWorker]);
+
   useEffect(() => {
     if (chatId) {
       lastInitializedAgentKeyRef.current = "";
@@ -736,7 +752,6 @@ const AgentChatShellContent: React.FC = () => {
     }
     if (!agentKey || !routeAgentHydrated) return;
 
-    dispatch({ type: "SET_WORKER_SELECTION_KEY", workerKey: routeWorkerKey });
     dispatch({ type: "SET_WORKER_PRIORITY_KEY", workerKey: routeWorkerKey });
     dispatch({ type: "SET_PENDING_NEW_CHAT_AGENT_KEY", agentKey });
 
@@ -844,7 +859,10 @@ const AgentChatShellContent: React.FC = () => {
         onRetry={handleRetryRouteAgent}
       />;
     }
-    return <AgentRouteLoadingPage title={t("agentRoute.loading.agent")} />;
+    const label = t("agentRoute.loading.agent");
+    return desktopNewChat
+      ? <DesktopNewChatSkeleton label={label} />
+      : <AgentRouteLoadingPage title={label} />;
   }
 
   const rowClass = isTimelineEmpty

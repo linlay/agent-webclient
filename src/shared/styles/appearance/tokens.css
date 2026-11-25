@@ -10,6 +10,9 @@
     --ink-muted: #86909c;
     --line: #e5e6eb;
     --line-strong: #c9cdd4;
+    /* Overlay scrollbar foundation; intentionally identical in light and dark. */
+    --app-scrollbar-size: 6px;
+    --app-scrollbar-thumb: rgba(148, 163, 184, 0.45);
     --accent: #2663eb;
     --accent-strong: #1d4ed8;
     --accent-lime: #00b42a;

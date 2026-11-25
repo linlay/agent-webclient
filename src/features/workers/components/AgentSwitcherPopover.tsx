@@ -1,9 +1,10 @@
 import React, { useState, useRef, useMemo, useEffect } from "react";
-import { Drawer, Input, Popover } from "antd";
+import { Input, Popover } from "antd";
 import type { InputRef } from "antd";
 import { AgentIcon } from "@/shared/icons/agent";
 import { useI18n } from "@/shared/i18n";
 import { isMobilePath } from "@/shared/utils/mobileRoutes";
+import { BottomSheet } from "@/shared/ui/BottomSheet";
 import type { CurrentWorkerSummary } from "../lib/currentWorker";
 import {
   filterTimelineAgentOptions,
@@ -218,19 +219,14 @@ export const AgentSwitcherPopover: React.FC<{
               if (!disabled && !event.defaultPrevented) setOpen(!expanded);
             },
           })}
-          <Drawer
+          <BottomSheet
             open={expanded}
             onClose={() => setOpen(false)}
-            placement="bottom"
-            height="auto"
-            title={t("composer.context.selectAgent")}
+            ariaLabel={t("composer.context.selectAgent")}
             getContainer=".layout-mobile"
-            rootClassName={styles.sheet}
-            rootStyle={{ position: "absolute" }}
-            styles={{ body: { padding: 0, overflow: "hidden" } }}
           >
             {menu}
-          </Drawer>
+          </BottomSheet>
         </>
       ) : (
         <Popover

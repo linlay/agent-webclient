@@ -28,6 +28,8 @@ import { useConnectorPickerCatalog } from "@/features/connectors/hooks/useConnec
 import { ConnectorIcon } from "@/features/connectors/components/ConnectorIcon";
 import { AgentConnectorPicker } from "@/features/connectors/components/AgentConnectorPicker";
 import { orderConnectorsBuiltinLast } from "@/features/connectors/lib/connectorSelection";
+import { isMobilePath } from "@/shared/utils/mobileRoutes";
+import { BottomSheet } from "@/shared/ui/BottomSheet";
 import { useOptionalAppContext } from "@/app/state/AppContext";
 const presentationClasses = bindCssModuleClasses({
   ...timelinePresentation,
@@ -211,8 +213,10 @@ const ComposerActionsPure: React.FC<
       window.location.pathname.startsWith("/copilot"),
     [],
   );
+  const mobile = isMobilePath(typeof window === "undefined" ? undefined : window.location?.pathname);
 
   const [connectorPickerOpen, setConnectorPickerOpen] = useState(false);
+  const [connectorPickerSession, setConnectorPickerSession] = useState(0);
   const [connectorSearch, setConnectorSearch] = useState("");
   // Desktop 的侧栏与 Composer 分处宿主和 guest 两个文档，切换对话的点击
   // 不会进入 guest，antd Popover 收不到 outside-click；而会话切换一开始
@@ -268,6 +272,65 @@ const ComposerActionsPure: React.FC<
     </UiButton>
   );
 
+  const handleConnectorTriggerClick = () => {
+    if (!mobile) return;
+    if (connectorPickerOpen) {
+      setConnectorPickerOpen(false);
+      return;
+    }
+    setConnectorPickerSession(session => session + 1);
+    setConnectorPickerOpen(true);
+  };
+  const connectorPickerContent = (
+    <div
+      className={
+        mobile
+          ? presentationClasses("composer-connector-picker-sheet-content")
+          : undefined
+      }
+      style={mobile ? undefined : { width: 240 }}
+      onClick={(event) => event.stopPropagation()}
+    >
+      <AgentConnectorPicker
+        key={mobile ? connectorPickerSession : undefined}
+        agentKey={currentAgentKey || ""}
+        search={connectorSearch}
+        onSearchChange={setConnectorSearch}
+        disabled={addMenuDisabled}
+      />
+    </div>
+  );
+  const connectorStackButton = (
+    <button
+      type="button"
+      className={presentationClasses("composer-connector-stack-btn")}
+      // 数量与序号交给 CSS 计算堆叠/展开偏移，展开只改 transform 不占布局
+      style={{
+        "--connector-avatar-count": connectorStackItems.length,
+      } as React.CSSProperties}
+      data-expanded={connectorPickerOpen ? "true" : undefined}
+      disabled={interactionDisabled}
+      aria-label={t("composer.addMenu.section.connectors")}
+      aria-haspopup={mobile ? "dialog" : "menu"}
+      aria-expanded={connectorPickerOpen}
+      onClick={handleConnectorTriggerClick}
+    >
+      <span className={presentationClasses("composer-connector-avatar-stack")}>
+        {connectorStackItems.map((connector, index) => (
+          <span
+            key={connector.id}
+            className={presentationClasses("composer-connector-avatar-item")}
+            style={{
+              "--connector-avatar-index": index,
+            } as React.CSSProperties}
+            title={connector.name || connector.id}
+          >
+            <ConnectorIcon item={connector} size={16} />
+          </span>
+        ))}
+      </span>
+    </button>
+  );
   return (
     <Flex vertical style={{ width: "100%" }}>
       {isCopilot && (
@@ -347,68 +410,39 @@ const ComposerActionsPure: React.FC<
                 </Tooltip>
               )}
               {enabledConnectors.length > 0 && (
-                <Popover
-                  open={connectorPickerOpen}
-                  onOpenChange={setConnectorPickerOpen}
-                  trigger={["click"]}
-                  placement="topLeft"
-                  arrow={false}
-                  destroyOnHidden
-                  classNames={{
-                    root: presentationClasses(
-                      "composer-connector-picker-popover",
-                    ),
-                  }}
-                  content={
-                    <div
-                      style={{ width: 240 }}
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <AgentConnectorPicker
-                        key={currentAgentKey}
-                        agentKey={currentAgentKey || ""}
-                        search={connectorSearch}
-                        onSearchChange={setConnectorSearch}
-                        disabled={addMenuDisabled}
-                      />
-                    </div>
-                  }
-                >
-                  <button
-                    type="button"
-                    className={presentationClasses(
-                      "composer-connector-stack-btn",
-                    )}
-                    // 数量与序号交给 CSS 计算堆叠/展开偏移，展开只改 transform 不占布局
-                    style={{
-                      "--connector-avatar-count": connectorStackItems.length,
-                    } as React.CSSProperties}
-                    data-expanded={connectorPickerOpen ? "true" : undefined}
-                    disabled={interactionDisabled}
-                    aria-label={t("composer.addMenu.section.connectors")}
-                  >
-                    <span
-                      className={presentationClasses(
-                        "composer-connector-avatar-stack",
+                mobile ? (
+                  <>
+                    {connectorStackButton}
+                    <BottomSheet
+                      open={connectorPickerOpen}
+                      onClose={() => setConnectorPickerOpen(false)}
+                      ariaLabel={t("composer.addMenu.section.connectors")}
+                      getContainer=".layout-mobile"
+                      rootClassName={presentationClasses(
+                        "composer-connector-picker-sheet",
                       )}
                     >
-                      {connectorStackItems.map((connector, index) => (
-                        <span
-                          key={connector.id}
-                          className={presentationClasses(
-                            "composer-connector-avatar-item",
-                          )}
-                          style={{
-                            "--connector-avatar-index": index,
-                          } as React.CSSProperties}
-                          title={connector.name || connector.id}
-                        >
-                          <ConnectorIcon item={connector} size={16} />
-                        </span>
-                      ))}
-                    </span>
-                  </button>
-                </Popover>
+                      {connectorPickerContent}
+                    </BottomSheet>
+                  </>
+                ) : (
+                  <Popover
+                    open={connectorPickerOpen}
+                    onOpenChange={setConnectorPickerOpen}
+                    trigger={["click"]}
+                    placement="topLeft"
+                    arrow={false}
+                    destroyOnHidden
+                    classNames={{
+                      root: presentationClasses(
+                        "composer-connector-picker-popover",
+                      ),
+                    }}
+                    content={connectorPickerContent}
+                  >
+                    {connectorStackButton}
+                  </Popover>
+                )
               )}
               {editingMode && canUseEditingMode ? (
                 <Tooltip title={t("composer.editingMode.tooltip")}>

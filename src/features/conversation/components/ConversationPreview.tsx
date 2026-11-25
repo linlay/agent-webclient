@@ -117,11 +117,15 @@ export const ConversationPreview: React.FC<ConversationPreviewProps> = ({
 
   const queryMeta = (item: Extract<TimelineDisplayItem, { kind: "query" }>) => {
     const time = formatTimelineTime(item.node.ts);
+    const timeNode = time.short && <div className={presentationClasses("timeline-row-time tw:ml-auto tw:shrink-0 tw:pl-2 tw:text-[12px] tw:leading-none tw:text-ink-muted")} title={time.full}>{time.short}</div>;
+    // Agent-delivered input is not the user's to copy; previews keep its time only,
+    // matching the live stage's meta row.
+    if (item.node.inbound) return timeNode || null;
     return <div className="timeline-meta-row tw:flex tw:min-w-0 tw:flex-nowrap tw:items-center tw:gap-3">
       <UiButton variant="ghost" size="sm" iconOnly title={t("timeline.toolPill.copy.action")}
         aria-label={t("timeline.toolPill.copy.action")}
         onClick={() => void copy(item.node.text || "")}><MaterialIcon name="content_copy" /></UiButton>
-      {time.short && <div className={presentationClasses("timeline-row-time tw:ml-auto tw:shrink-0 tw:pl-2 tw:text-[12px] tw:leading-none tw:text-ink-muted")} title={time.full}>{time.short}</div>}
+      {timeNode}
     </div>;
   };
   const runMeta = (item: Extract<TimelineDisplayItem, { kind: "run" }>, duration: string) => {

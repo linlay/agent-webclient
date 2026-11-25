@@ -22,7 +22,22 @@ import { PackageSkillTree } from "./PackageSkillTree";
 import { packageMembers, skillIdentity } from "../lib/skillPackages";
 import { SkillKindFilters } from "@/features/skills/components/SkillKindFilters";
 import { orderSkillCatalogItems, type SkillKindFilter } from "@/features/skills/lib/skillCatalogView";
+import { isMobilePath } from "@/shared/utils/mobileRoutes";
+import { shouldGoBackFromSwipe } from "../lib/addMenuSwipe";
+import { BottomSheet } from "@/shared/ui/BottomSheet";
 const presentationClasses = bindCssModuleClasses({ ...composerPresentation });
+
+// 手机版打开二级面板时不自动聚焦搜索框，避免直接弹出软键盘；列表项和返回按钮仍可保留焦点。
+const TEXT_INPUT_SELECTOR = "input, textarea, [contenteditable='true']";
+function allowsDetailAutoFocus(target: HTMLElement | null | undefined): boolean {
+  if (!target) return false;
+  const mobile = isMobilePath(typeof window === "undefined" ? undefined : window.location?.pathname);
+  return !mobile || !target.matches(TEXT_INPUT_SELECTOR);
+}
+
+function isEditableSwipeTarget(target: EventTarget | null): boolean {
+  return target instanceof Element && Boolean(target.closest(TEXT_INPUT_SELECTOR));
+}
 
 
 import { KBasePicker } from "@/features/kbases/components/KBasePicker";
@@ -177,7 +192,7 @@ const AddMenuSectionDetail: React.FC<
     const target =
       root.querySelector<HTMLElement>("input") ||
       root.querySelector<HTMLElement>(".composer-add-menu-detail-item");
-    target?.focus();
+    if (allowsDetailAutoFocus(target)) target?.focus();
     props.onAutoFocusConsumed?.();
   }, [props.autoFocus]);
   const [kindFilter, setKindFilter] = useState<SkillKindFilter>(null);
@@ -489,7 +504,7 @@ const AddMenuSectionDetail: React.FC<
 };
 
 const AddMenuPanel: React.FC<
-  AddMenuTriggerProps & { onClose: () => void; maxWidth?: number }
+  AddMenuTriggerProps & { onClose: () => void; maxWidth?: number; forceStacked?: boolean; open?: boolean }
 > = (props) => {
   const { t } = useI18n();
   const [section, setSection] = useState<Section | null>(null);
@@ -501,6 +516,7 @@ const AddMenuPanel: React.FC<
   const restoreFocusTo = useRef<Section | null>(null);
   const focusDetailRequest = useRef(false);
   const hoverTimer = useRef<number | undefined>(undefined);
+  const detailSwipeStart = useRef<{ x: number; y: number; editable: boolean } | null>(null);
   // 并排布局要求最宽的二级面板也能放在导航右侧；否则退回单栏逐级。
   const widestDetailWidth = sectionNav.reduce(
     (widest, entry) =>
@@ -512,11 +528,21 @@ const AddMenuPanel: React.FC<
   const availableWidth =
     props.maxWidth ?? (typeof window === "undefined" ? 0 : window.innerWidth);
   // 二级面板是独立浮层，至少还要留出浮层之间的间距。
-  const split = availableWidth >= NAV_WIDTH + widestDetailWidth + SPLIT_GAP;
+  const split = !props.forceStacked && availableWidth >= NAV_WIDTH + widestDetailWidth + SPLIT_GAP;
   // 切换面板时重置搜索词，与原先面板销毁重建的行为保持一致
   useEffect(() => {
     setSearch("");
   }, [section]);
+  // BottomSheet 关闭后保留内容以走完下滑动画，下一次打开前回到一级导航和空搜索词。
+  useEffect(() => {
+    if (props.open !== false) return;
+    setSection(null);
+    setSearch("");
+    setMotion("forward");
+    focusDetailRequest.current = false;
+    restoreFocusTo.current = null;
+    window.clearTimeout(hoverTimer.current);
+  }, [props.open]);
   // 返回一级时把焦点交还给原来的入口；单栏模式进入二级时把焦点交给搜索框。
   // 并排模式由二级面板自己处理自动聚焦，悬停预览不抢输入焦点。
   useEffect(() => {
@@ -537,7 +563,7 @@ const AddMenuPanel: React.FC<
       detail?.querySelector<HTMLElement>("input") ||
       detail?.querySelector<HTMLElement>(".composer-add-menu-detail-item") ||
       panel.querySelector<HTMLElement>(".composer-add-menu-back");
-    if (!target) return;
+    if (!target || !allowsDetailAutoFocus(target)) return;
     const timer = window.setTimeout(() => target.focus(), 0);
     return () => window.clearTimeout(timer);
   }, [section, split]);
@@ -602,6 +628,34 @@ const AddMenuPanel: React.FC<
     window.clearTimeout(hoverTimer.current);
     setMotion("back");
     setSection(null);
+  };
+  const handleDetailTouchStart = (event: React.TouchEvent<HTMLDivElement>) => {
+    if (!props.forceStacked || !section || event.touches.length !== 1) {
+      detailSwipeStart.current = null;
+      return;
+    }
+    const touch = event.touches[0];
+    detailSwipeStart.current = {
+      x: touch.clientX,
+      y: touch.clientY,
+      editable: isEditableSwipeTarget(event.target),
+    };
+  };
+  const handleDetailTouchEnd = (event: React.TouchEvent<HTMLDivElement>) => {
+    const start = detailSwipeStart.current;
+    detailSwipeStart.current = null;
+    const touch = event.changedTouches[0];
+    if (!start || !touch || !props.forceStacked || !section) return;
+    if (shouldGoBackFromSwipe({
+      dx: touch.clientX - start.x,
+      dy: touch.clientY - start.y,
+      startedInEditable: start.editable,
+    })) {
+      closeSection(section);
+    }
+  };
+  const cancelDetailSwipe = () => {
+    detailSwipeStart.current = null;
   };
   // 宽屏悬停预览：延迟一小段再展开，避免鼠标扫过时连续切换；不抢输入焦点。
   const previewSection = (entry: Section) => {
@@ -796,6 +850,9 @@ const AddMenuPanel: React.FC<
           className={presentationClasses("composer-add-menu-view")}
           role="dialog"
           aria-label={t(sectionMeta[section].key)}
+          onTouchStart={handleDetailTouchStart}
+          onTouchEnd={handleDetailTouchEnd}
+          onTouchCancel={cancelDetailSwipe}
         >
           <div className={presentationClasses("composer-add-menu-header")}>
             <UiButton
@@ -823,23 +880,75 @@ export const AddMenuTrigger: React.FC<AddMenuTriggerProps> = (props) => {
   const [open, setOpen] = useState(false);
   const [menuMaxWidth, setMenuMaxWidth] = useState<number | undefined>();
   const triggerRef = useRef<HTMLButtonElement>(null);
+  const mobile = isMobilePath(typeof window === "undefined" ? undefined : window.location?.pathname);
   const measureMenuMaxWidth = () => {
     const rect = triggerRef.current?.getBoundingClientRect();
     if (!rect) return;
     setMenuMaxWidth(Math.max(180, Math.floor(window.innerWidth - rect.left - 12)));
   };
   useEffect(() => {
-    if (!open) return;
+    if (!open || mobile) return;
     measureMenuMaxWidth();
     window.addEventListener("resize", measureMenuMaxWidth);
     return () => window.removeEventListener("resize", measureMenuMaxWidth);
-  }, [open]);
+  }, [mobile, open]);
   // 切换 chat/agent 会改变整壳布局（空会话与会话的 grid 行结构不同），
   // 挂在 body 的 Popover 不会跟随 trigger 按钮重新对齐；且旧菜单数据
   // （chat 列表、技能、连接器）按原 chat/agent 请求，切换后直接关闭。
   useEffect(() => {
     setOpen(false);
   }, [props.currentChatId, props.currentAgentKey]);
+  const trigger = (
+    <UiButton
+      ref={triggerRef}
+      onClick={() => {
+        if (mobile) {
+          setOpen(current => !current);
+          return;
+        }
+        measureMenuMaxWidth();
+      }}
+      className={presentationClasses(`composer-plus-btn tw:!grid tw:!h-8 tw:!min-h-8 tw:!w-8 tw:!min-w-8 tw:!place-items-center tw:!rounded-lg tw:!border-0 tw:!p-0 tw:!text-ink-2 tw:hover:!bg-bg-hover ${open ? "is-open" : ""}`)}
+      variant="ghost"
+      size="sm"
+      iconOnly
+      loading={props.loading}
+      disabled={props.disabled}
+      aria-label={t("composer.addMenu.open")}
+      aria-haspopup={mobile ? "dialog" : "menu"}
+      aria-expanded={open}
+      title={t("composer.addMenu.open")}
+    >
+      <SkinVisual slot="chat.attach">
+        <MaterialIcon name="add" />
+      </SkinVisual>
+    </UiButton>
+  );
+  const panel = (
+    <AddMenuPanel
+      {...props}
+      onClose={() => setOpen(false)}
+      maxWidth={mobile ? undefined : menuMaxWidth}
+      forceStacked={mobile}
+      open={mobile ? open : undefined}
+    />
+  );
+  if (mobile) {
+    return (
+      <>
+        {trigger}
+        <BottomSheet
+          open={open}
+          onClose={() => setOpen(false)}
+          ariaLabel={t("composer.addMenu.open")}
+          getContainer=".layout-mobile"
+          rootClassName={presentationClasses("composer-add-menu-sheet")}
+        >
+          {panel}
+        </BottomSheet>
+      </>
+    );
+  }
   return (
     <Popover
       open={open}
@@ -850,24 +959,9 @@ export const AddMenuTrigger: React.FC<AddMenuTriggerProps> = (props) => {
       arrow={false}
       destroyOnHidden
       classNames={{ root: presentationClasses("composer-add-menu-overlay") }}
-      content={<AddMenuPanel {...props} onClose={() => setOpen(false)} maxWidth={menuMaxWidth} />}
+      content={panel}
     >
-      <UiButton
-        ref={triggerRef}
-        onClick={measureMenuMaxWidth}
-        className={presentationClasses(`composer-plus-btn tw:!grid tw:!h-8 tw:!min-h-8 tw:!w-8 tw:!min-w-8 tw:!place-items-center tw:!rounded-lg tw:!border-0 tw:!p-0 tw:!text-ink-2 tw:hover:!bg-bg-hover ${open ? "is-open" : ""}`)}
-        variant="ghost"
-        size="sm"
-        iconOnly
-        loading={props.loading}
-        disabled={props.disabled}
-        aria-label={t("composer.addMenu.open")}
-        title={t("composer.addMenu.open")}
-      >
-        <SkinVisual slot="chat.attach">
-          <MaterialIcon name="add" />
-        </SkinVisual>
-      </UiButton>
+      {trigger}
     </Popover>
   );
 };

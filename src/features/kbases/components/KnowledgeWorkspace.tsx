@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Alert, Button, Drawer, Empty, Input, InputNumber, Popconfirm, Select, Spin, Table, Tabs, Tag, Tooltip, Typography } from "antd";
+import { Alert, Drawer, Empty, Input, InputNumber, Popconfirm, Select, Spin, Table, Tabs, Tag, Tooltip, Typography } from "antd";
 import { t } from "@/shared/i18n";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { SearchFilterBar } from "@/shared/ui/SearchFilterBar";
@@ -121,7 +121,7 @@ export function KnowledgeWorkspace({ library, onEdit, onChanged, onDeleted }: {
           {fileError && <Alert type="error" showIcon message={fileError} />}
           {fileIncomplete && <Alert type="warning" showIcon message={t("kbases.incomplete")} />}
           {indexed ? <Table<KnowledgeDocument> loading={fileLoading} rowKey="file" dataSource={visibleFiles} size="small" pagination={{ current: documentPage, onChange: setDocumentPage, pageSize: 20, showSizeChanger: false, hideOnSinglePage: true }} locale={{ emptyText: t(fileError ? "kbases.documentsUnavailable" : "kbases.noDocuments") }} columns={[
-            { title: t("kbases.file"), dataIndex: "file", render: (ref: string, file) => <Button className={styles.documentLink} type="link" icon={<MaterialIcon name="description" />} onClick={() => void read(ref)}>{documentSource(file).relativePath}</Button> },
+            { title: t("kbases.file"), dataIndex: "file", render: (ref: string, file) => <button type="button" className={styles.documentLink} onClick={() => void read(ref)}><MaterialIcon name="description" /><span className={styles.documentLinkText}>{documentSource(file).relativePath}</span></button> },
             { title: t("kbases.collection"), key: "collection", width: 140, render: (_, file) => <button type="button" className={styles.collectionLink} title={t("kbases.showCollection")} onClick={() => selectDocumentCollection(documentSource(file).collection)}>{documentSource(file).collection}</button> },
             { title: t("kbases.bytes"), dataIndex: "bytes", width: 90, align: "right", responsive: ["sm"] },
           ]} /> : <Empty description={t("kbases.buildHint")} />}
@@ -151,7 +151,7 @@ export function KnowledgeWorkspace({ library, onEdit, onChanged, onDeleted }: {
             {((Array.isArray(results.trace?.degraded) ? results.trace.degraded.length > 0 : results.trace?.degraded) || results.trace?.candidateBudgetExhausted) && <Alert type="warning" showIcon message={t("kbases.incomplete")} />}
             {results.results.length === 0 && <Empty description={t("kbases.noHits")} />}
             {results.results.map(hit => { const source = documentSource(hit); return <article key={hit.resultId} className={styles.hit}>
-              <div className={styles.hitHeading}><Button className={styles.documentLink} type="link" onClick={() => void read(hit.file)}>{hit.title || source.relativePath}</Button><Tag>{source.collection}</Tag><Tooltip title={t("kbases.similarityHint")}><Tag>{t("kbases.similarity")}: {hit.scoreType === "vector_similarity" && typeof hit.score === "number" && Number.isFinite(hit.score) ? hit.score.toFixed(4) : "—"}</Tag></Tooltip></div>
+              <div className={styles.hitHeading}><button type="button" className={styles.documentLink} onClick={() => void read(hit.file)}><span className={styles.documentLinkText}>{hit.title || source.relativePath}</span></button><Tag>{source.collection}</Tag><Tooltip title={t("kbases.similarityHint")}><Tag>{t("kbases.similarity")}: {hit.scoreType === "vector_similarity" && typeof hit.score === "number" && Number.isFinite(hit.score) ? hit.score.toFixed(4) : "—"}</Tag></Tooltip></div>
               <div className={styles.hitPath} title={hit.file}>{source.relativePath}</div>
               <div className={styles.hitRange} title={hit.chunk?.id}>{hit.chunk ? `${t("kbases.chunk")} ${hit.chunk.seq + 1} · ` : ""}{t("kbases.lines", { start: hit.evidence.range.lineStart, end: hit.evidence.range.lineEnd })}</div>
               <pre>{hit.evidence.text}</pre>

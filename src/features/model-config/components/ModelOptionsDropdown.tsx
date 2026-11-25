@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Drawer, Dropdown, type DropdownProps, type MenuProps } from "antd";
+import { Dropdown, type DropdownProps, type MenuProps } from "antd";
 import { isMobilePath } from "@/shared/utils/mobileRoutes";
 import { useI18n } from "@/shared/i18n";
+import { BottomSheet } from "@/shared/ui/BottomSheet";
 import { UiButton } from "@/shared/ui/UiButton";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import styles from "./ModelOptionsDropdown.module.css";
@@ -23,7 +24,7 @@ function findItem(items: Items, key: string): Item | undefined {
   return undefined;
 }
 
-/** Desktop keeps the existing dropdown; /mobile never opens a sideways submenu. */
+/** Desktop keeps the existing dropdown; /mobile uses the shared bottom sheet so a submenu never opens sideways. */
 export function ModelOptionsDropdown(props: DropdownProps) {
   return isMobilePath(typeof window === "undefined" ? undefined : window.location?.pathname)
     ? <MobileModelOptionsDropdown {...props} /> : <Dropdown {...props} />;
@@ -75,9 +76,8 @@ function MobileModelOptionsDropdown(props: DropdownProps) {
       trigger.props.onClick?.(event);
       if (!props.disabled && !trigger.props.disabled) setOpen(!open, { source: "trigger" });
     } })}
-    <Drawer open={open} onClose={() => setOpen(false, { source: "trigger" })}
-      placement="bottom" height="auto" title={t("composer.query.model.title")} rootClassName={styles.popup}
-      styles={{ body: { padding: 0, overflow: "hidden" } }}>
+    <BottomSheet open={open} onClose={() => setOpen(false, { source: "trigger" })}
+      ariaLabel={t("composer.query.model.title")} getContainer=".layout-mobile">
     <div className={styles.pane} onKeyDown={event => {
       if (path.length && event.key === "Escape") {
         event.preventDefault(); event.stopPropagation(); setPath(previous => previous.slice(0, -1));
@@ -98,6 +98,6 @@ function MobileModelOptionsDropdown(props: DropdownProps) {
       </UiButton>}
       <div role="menu" className={styles.menu}>{renderItems(current)}</div>
     </div>
-    </Drawer>
+    </BottomSheet>
   </>;
 }

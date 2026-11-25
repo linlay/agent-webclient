@@ -28,6 +28,7 @@ import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
 import { usePanelResize } from "@/shared/ui/usePanelResize";
 import { CopyInfoModal } from "@/shared/ui/CopyInfoModal";
+import { BottomSheet } from "@/shared/ui/BottomSheet";
 import {
   isQuickActionsEnabled,
   isSettingsMenuEnabled,
@@ -87,7 +88,7 @@ const LEFT_SIDEBAR_TOP_ROW_CLASS =
   "worker-navigation-header tw:flex tw:h-9 tw:min-h-9 tw:shrink-0 tw:items-center tw:justify-between tw:gap-3 tw:px-3 tw:py-0";
 
 const CHAT_LIST_CLASS =
-  "chat-list tw:min-h-0 tw:flex-1 tw:overflow-y-auto tw:[-ms-overflow-style:none] tw:[scrollbar-width:none] tw:[&::-webkit-scrollbar]:hidden";
+  "chat-list tw:min-h-0 tw:flex-1 tw:overflow-y-auto";
 
 const WORKER_COLLAPSED_ICON_BASE_CLASS =
   "worker-collapsed-icon tw:flex tw:h-auto tw:w-full tw:flex-col tw:items-center tw:justify-center tw:gap-0.5 tw:border-0 tw:bg-transparent tw:!p-0.5 tw:text-ink-2 tw:shadow-none tw:hover:!bg-accent-soft";
@@ -664,6 +665,30 @@ export const WorkerNavigator: React.FC<WorkerNavigatorProps> = ({
     )
     : undefined;
 
+  // 设置入口在移动端是底部抽屉的触发器，桌面端则是气泡菜单的锚点。
+  const settingsTrigger = (
+    <UiButton
+      className={presentationClasses("icon-btn ui-icon-hover-24")}
+      id="settings-btn"
+      variant="ghost"
+      aria-label={t("leftSidebar.openSettingsMenu")}
+      aria-haspopup={mobile ? "dialog" : "menu"}
+      aria-expanded={settingsMenuOpen}
+      onClick={mobile ? () => setSettingsMenuOpen(open => !open) : undefined}
+    >
+      <MaterialIcon
+        name="settings"
+        className="ui-icon-hover-24-target"
+      />
+      {expanded && (
+        <>
+          <span>{t("leftSidebar.settings")}</span>
+          {settingsSummary}
+        </>
+      )}
+    </UiButton>
+  );
+
   return (
     <SidebarTouchContext.Provider value={mobile && sorting}>
       <aside
@@ -903,37 +928,34 @@ export const WorkerNavigator: React.FC<WorkerNavigatorProps> = ({
           </Spin>
         </div>
         {settingsMenuEnabled ? (
-          <Popover
-            open={settingsMenuOpen}
-            trigger={expanded ? "click" : "hover"}
-            placement="top"
-            arrow={false}
-            classNames={{
-              root: "sidebar-settings-popover",
-            }}
-            onOpenChange={setSettingsMenuOpen}
-            content={renderSettingsMenu(() => setSettingsMenuOpen(false))}
-          >
-            <UiButton
-              className={presentationClasses("icon-btn ui-icon-hover-24")}
-              id="settings-btn"
-              variant="ghost"
-              aria-label={t("leftSidebar.openSettingsMenu")}
-              aria-haspopup="menu"
-              aria-expanded={settingsMenuOpen}
+          mobile ? (
+            <>
+              {settingsTrigger}
+              <BottomSheet
+                open={settingsMenuOpen}
+                onClose={() => setSettingsMenuOpen(false)}
+                ariaLabel={t("leftSidebar.settings")}
+                getContainer=".layout-mobile"
+                rootClassName="worker-settings-sheet"
+              >
+                {renderSettingsMenu(() => setSettingsMenuOpen(false))}
+              </BottomSheet>
+            </>
+          ) : (
+            <Popover
+              open={settingsMenuOpen}
+              trigger={expanded ? "click" : "hover"}
+              placement="top"
+              arrow={false}
+              classNames={{
+                root: "sidebar-settings-popover",
+              }}
+              onOpenChange={setSettingsMenuOpen}
+              content={renderSettingsMenu(() => setSettingsMenuOpen(false))}
             >
-              <MaterialIcon
-                name="settings"
-                className="ui-icon-hover-24-target"
-              />
-              {expanded && (
-                <>
-                  <span>{t("leftSidebar.settings")}</span>
-                  {settingsSummary}
-                </>
-              )}
-            </UiButton>
-          </Popover>
+              {settingsTrigger}
+            </Popover>
+          )
         ) : null}
       </aside>
 

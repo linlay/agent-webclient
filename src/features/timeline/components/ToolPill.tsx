@@ -10,7 +10,6 @@ import { t as runtimeT, useI18n } from "@/shared/i18n";
 import { useTimelineCopy } from "./TimelineInteractionContext";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
-import { SCROLLBAR_THIN_CLASS_NAME } from "@/shared/styles/scrollbarClassNames";
 import { Flex, Tooltip } from "antd";
 import { TimelineCollapse } from "@/shared/ui/TimelineCollapse";
 import { notifyLocalLayoutToggle } from "@/shared/utils/localLayoutToggle";
@@ -26,10 +25,7 @@ type ToolGroupRenderEntry = Extract<
 >;
 
 type CopyState = "copied" | "error";
-const TOOL_CALL_RESULT_CLASS_NAME = [
-  presentationClasses("tool-call-result"),
-  SCROLLBAR_THIN_CLASS_NAME,
-].join(" ");
+const TOOL_CALL_RESULT_CLASS_NAME = presentationClasses("tool-call-result");
 const TERMINAL_TOOL_STATUSES = new Set([
   "success",
   "failed",

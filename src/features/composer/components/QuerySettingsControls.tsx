@@ -14,6 +14,7 @@ import {
   updateAgentModelConfig,
 } from "@/shared/data";
 import { normalizeQueryReasoningEffort as normalizeReasoningEffort } from "@/shared/data/api/reasoningEffort";
+import { isMobilePath } from "@/shared/utils/mobileRoutes";
 import type {
   AgentModelConfigResponse,
   CoderModelOption,
@@ -668,7 +669,11 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
       ].filter(Boolean).join(" · ")
     : modelErrorText || t("composer.query.model.title");
   const modelButtonDisabled = disabled || modelConfigSaving;
-  const modelTooltip = compact ? (
+  // 手机上没有真正的 hover：点按直接打开底部面板，tooltip 会长时间停留并盖住面板，
+  // 因此移动端不挂提示层；桌面端在菜单展开期间也收起，避免提示压在下拉之上。
+  const modelTooltip = compact &&
+    !modelMenuOpen &&
+    !isMobilePath(typeof window === "undefined" ? undefined : window.location?.pathname) ? (
     <div>
       <div>{t("composer.query.model.group")}: {selectedModelLabel}</div>
       <div>{t("composer.query.reasoning.tooltipLabel")}: {selectedReasoningLabel}</div>

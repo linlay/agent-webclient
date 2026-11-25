@@ -115,23 +115,6 @@
     font-weight: 600;
 }
 
-.sheet :global(.ant-drawer-content) {
-    border-radius: 16px 16px 0 0;
-    background: var(--bg-base);
-}
-
-.sheet :global(.ant-drawer-header) {
-    padding: 8px max(12px, env(safe-area-inset-right, 0px)) 8px max(12px, env(safe-area-inset-left, 0px));
-}
-
-.sheet :global(.ant-drawer-close) {
-    flex: 0 0 44px;
-    width: 44px;
-    height: 44px;
-    margin-inline-end: 4px;
-    font-size: 20px;
-}
-
 .sheetMenu {
     display: flex;
     flex-direction: column;

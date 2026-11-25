@@ -3,16 +3,12 @@ import composerPresentation from "@/features/composer/components/ComposerPresent
 import React from "react";
 import { useAppState, useAppDispatch } from "@/app/state/AppContext";
 import { UiButton } from "@/shared/ui/UiButton";
-import { SCROLLBAR_THIN_CLASS_NAME } from "@/shared/styles/scrollbarClassNames";
 const presentationClasses = bindCssModuleClasses({ ...composerPresentation });
 
 
 const MENTION_SUGGEST_CLASS =
 	presentationClasses("mention-suggest tw:absolute tw:bottom-full tw:left-0 tw:right-0 tw:z-10 tw:mb-1.5 tw:max-h-[260px] tw:overflow-y-auto tw:rounded-control tw:border tw:border-[color-mix(in_srgb,var(--line-soft)_96%,transparent)] tw:bg-[color-mix(in_srgb,var(--bg-elev-2)_98%,transparent)] tw:shadow-floating");
-const MENTION_SUGGEST_LIST_CLASS = [
-	"mention-suggest-list tw:p-1",
-	SCROLLBAR_THIN_CLASS_NAME,
-].join(" ");
+const MENTION_SUGGEST_LIST_CLASS = "mention-suggest-list tw:p-1";
 const MENTION_ITEM_CLASS =
 	"mention-item tw:flex tw:w-full tw:cursor-pointer tw:items-center tw:gap-2.5 tw:rounded-lg tw:border-0 tw:bg-transparent tw:px-2.5 tw:py-2 tw:text-left tw:shadow-none tw:hover:!bg-bg-hover tw:active:transform-none";
 const MENTION_ITEM_STATE_CLASS = {

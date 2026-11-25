@@ -27,6 +27,22 @@ describe("independent conversation surface layout contracts", () => {
     );
   });
 
+  it("centers the mobile top-bar title through symmetric side slots", () => {
+    const mobileStyles = readFileSync(
+      join(__dirname, "MobileLayout.module.css"),
+      "utf8",
+    );
+    const railWidth = /:global\(\.nav-left\)\s*\{[^}]*width:\s*(\d+)px/.exec(mobileStyles)?.[1];
+    const actionsWidth =
+      /:global\(\.mobile-topbar-actions\)\s*\{[^}]*width:\s*(\d+)px/.exec(mobileStyles)?.[1];
+
+    expect(railWidth).toBeDefined();
+    expect(actionsWidth).toBe(railWidth);
+    expect(mobileStyles).toMatch(
+      /:global\(\.mobile-topbar-actions\)\s*\{[^}]*justify-content:\s*flex-end;/,
+    );
+  });
+
   it("makes the whole app shell the file drop surface on route shells", () => {
     // Neither route shell has a conversation column, so the composer hint and
     // the drop receiver live on the shell root instead of only the composer.

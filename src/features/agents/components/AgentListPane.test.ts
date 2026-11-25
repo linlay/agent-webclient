@@ -10,12 +10,22 @@ import { AgentListPane, type AgentListPaneProps } from "./AgentListPane";
 jest.mock("antd", () => {
   const React = require("react");
   return {
-    Divider: () => null,
-    Flex: ({ children }: { children?: unknown }) =>
-      React.createElement("div", null, children),
+    Dropdown: ({ children, trigger, disabled, menu }: any) =>
+      React.createElement(
+        "div",
+        {
+          "data-dropdown": "true",
+          "data-trigger": (trigger || []).join(","),
+          "data-disabled": disabled ? "true" : "false",
+          "data-menu-items": menu
+            ? JSON.stringify(
+                (menu.items || []).map((item: any) => item.key || item.type),
+              )
+            : "",
+        },
+        children,
+      ),
     Input: () => React.createElement("input"),
-    Popover: ({ children }: { children?: unknown }) =>
-      React.createElement("div", { "data-popover": "true" }, children),
     Spin: ({ children }: { children?: unknown }) => children || null,
     Tag: ({ children }: { children?: unknown }) =>
       React.createElement("span", null, children),
@@ -49,14 +59,29 @@ jest.mock("@dnd-kit/sortable", () => ({
 }));
 jest.mock("@/shared/ui/MaterialIcon", () => ({ MaterialIcon: () => null }));
 jest.mock("@/shared/icons/agent", () => ({ AgentIcon: () => null }));
-jest.mock("@/shared/ui/UiButton", () => ({ UiButton: () => null }));
+jest.mock("@/shared/ui/UiButton", () => ({
+  UiButton: ({
+    loading: _loading,
+    iconOnly: _iconOnly,
+    variant: _variant,
+    size: _size,
+    active: _active,
+    color: _color,
+    children,
+    ...rest
+  }: Record<string, unknown> & { children?: React.ReactNode }) =>
+    React.createElement("button", rest, children),
+}));
 
 const AGENTS: Agent[] = [
   { key: "agent-a", name: "Agent A" },
   { key: "agent-b", name: "Agent B" },
 ];
 
-function buildProps(selectedAgentKey: string): AgentListPaneProps {
+function buildProps(
+  selectedAgentKey: string,
+  overrides: Partial<AgentListPaneProps> = {},
+): AgentListPaneProps {
   return {
     agents: AGENTS,
     selectedAgentKey,
@@ -81,16 +106,25 @@ function buildProps(selectedAgentKey: string): AgentListPaneProps {
     onMove: () => {},
     onEditConversation: () => {},
     onDelete: () => {},
+    ...overrides,
   };
 }
 
-function renderList(selectedAgentKey: string): HTMLElement {
+function renderList(
+  selectedAgentKey: string,
+  overrides: Partial<AgentListPaneProps> = {},
+): HTMLElement {
   const container = document.createElement("div");
   container.innerHTML = renderToStaticMarkup(
-    React.createElement(AgentListPane, buildProps(selectedAgentKey)),
+    React.createElement(AgentListPane, buildProps(selectedAgentKey, overrides)),
   );
   return container;
 }
+
+const contextMenus = (container: HTMLElement) =>
+  Array.from(
+    container.querySelectorAll('[data-dropdown][data-trigger="contextMenu"]'),
+  );
 
 test("列表渲染出全部智能体列表项", () => {
   const container = renderList("agent-a");
@@ -100,22 +134,70 @@ test("列表渲染出全部智能体列表项", () => {
   ).toBe(1);
 });
 
-test("当前选中的智能体不渲染悬浮摘要，未选中项仍保留", () => {
+test("不再渲染悬浮摘要浮层，选中项与未选中项行为一致", () => {
   const container = renderList("agent-a");
-  const active = container.querySelector(".agent-console-list-item.is-active");
-  expect(active).not.toBeNull();
-  expect(active?.closest("[data-popover]")).toBeNull();
-
-  const idle = Array.from(
-    container.querySelectorAll(".agent-console-list-item"),
-  ).filter((item) => !item.classList.contains("is-active"));
-  expect(idle.length).toBe(1);
-  expect(idle[0].closest("[data-popover]")).not.toBeNull();
+  expect(container.querySelectorAll("[data-popover]").length).toBe(0);
+  expect(
+    container.querySelectorAll(".agent-console-list-item-wrap").length,
+  ).toBe(2);
 });
 
-test("切换选中项后由新的选中项接管该行为", () => {
-  const container = renderList("agent-b");
-  const active = container.querySelector(".agent-console-list-item.is-active");
-  expect(active?.closest("[data-popover]")).toBeNull();
-  expect(container.querySelectorAll("[data-popover]").length).toBe(1);
+test("每个列表项右侧都提供更多操作按钮", () => {
+  const container = renderList("agent-a");
+  const wraps = Array.from(
+    container.querySelectorAll(".agent-console-list-item-wrap"),
+  );
+  expect(wraps.length).toBe(2);
+  for (const wrap of wraps) {
+    const button = wrap.querySelector('button[aria-haspopup="menu"]');
+    expect(button).not.toBeNull();
+    expect(button?.getAttribute("aria-label")).toContain(
+      "leftSidebar.moreActions",
+    );
+    // 操作菜单收进 item 右侧的悬浮按钮，不嵌在 item 内部
+    expect(button?.closest(".agent-console-list-item")).toBeNull();
+    // 按钮与右键菜单统一由共享 RowMoreMenu 提供
+    expect(button?.closest('[data-trigger="click"]')).not.toBeNull();
+  }
+});
+
+test("每个列表项同时注册右键菜单，并与更多按钮共用同一套菜单项", () => {
+  const container = renderList("agent-a");
+  const menus = contextMenus(container);
+  expect(menus.length).toBe(2);
+  for (const menu of menus) {
+    expect(menu.getAttribute("data-disabled")).toBe("false");
+    expect(menu.getAttribute("data-menu-items")).toBe(
+      '["edit-conversation","divider","delete"]',
+    );
+    expect(menu.querySelector(".agent-console-list-item")).not.toBeNull();
+  }
+  const clickMenu = container.querySelector('[data-trigger="click"]');
+  expect(clickMenu?.getAttribute("data-menu-items")).toBe(
+    menus[0].getAttribute("data-menu-items"),
+  );
+});
+
+test("没有可执行操作时不渲染更多按钮，也不触发 hover 淡出", () => {
+  const container = renderList("agent-a", {
+    onEditConversation: undefined,
+    onDelete: undefined,
+  });
+  expect(
+    container.querySelectorAll('button[aria-haspopup="menu"]').length,
+  ).toBe(0);
+  expect(
+    container.querySelector("[data-has-actions]"),
+  ).toBeNull();
+  expect(contextMenus(container)[0].getAttribute("data-disabled")).toBe("true");
+});
+
+test("排序保存中禁用右键菜单与更多按钮", () => {
+  const container = renderList("agent-a", { savingOrder: true });
+  expect(contextMenus(container)[0].getAttribute("data-disabled")).toBe("true");
+  expect(
+    container
+      .querySelector('button[aria-haspopup="menu"]')
+      ?.hasAttribute("disabled"),
+  ).toBe(true);
 });
