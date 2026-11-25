@@ -5,9 +5,14 @@ import { TopNav } from "@/app/layout/TopNav";
 
 const mockUseTerminalAgentStatuses = jest.fn(() => new Map());
 let mockMobileMenuOpen = false;
+let mockTextSearch: Record<string, unknown> | null = null;
 
 jest.mock("@/features/terminal/hooks/useActiveTerminalAgents", () => ({
     useTerminalAgentStatuses: (enabled?: boolean) => mockUseTerminalAgentStatuses(enabled)
+}));
+
+jest.mock("@/features/timeline/components/TimelineTextSearchProvider", () => ({
+    useTimelineTextSearch: () => mockTextSearch,
 }));
 
 jest.mock("@/features/transport/hooks/useRealtimeTransport", () => ({
@@ -58,6 +63,23 @@ const globalWithStorage = globalThis as typeof globalThis & {
 	__AGENT_WEBCLIENT_RUNTIME_CONFIG__?: Record<string, unknown>;
 };
 
+function createMockTextSearch({ open, searchable = true }: { open: boolean; searchable?: boolean }) {
+	return {
+		open,
+		query: open ? "部署" : "",
+		setQuery: jest.fn(),
+		total: 0,
+		activeIndex: -1,
+		goNext: jest.fn(),
+		goPrev: jest.fn(),
+		openSearch: jest.fn(),
+		closeSearch: jest.fn(),
+		refreshHighlights: jest.fn(),
+		matches: { total: 0, matches: [] },
+		searchableNodeIds: searchable ? new Set(["node_1"]) : new Set<string>(),
+	};
+}
+
 describe("TopNav", () => {
 	const originalLocalStorage = globalWithStorage.localStorage;
 
@@ -82,6 +104,7 @@ describe("TopNav", () => {
 
 	beforeEach(() => {
     mockMobileMenuOpen = false;
+    mockTextSearch = null;
 		globalWithStorage.localStorage = {
 			getItem: jest.fn(() => null),
 			setItem: jest.fn(),
@@ -214,6 +237,49 @@ describe("TopNav", () => {
     expect(menuOpenHtml.indexOf('aria-label="更多操作"'))
       .toBeLessThan(menuOpenHtml.indexOf('aria-label="打开右侧栏"'));
     expect(menuOpenHtml.match(/mobile-header-action/g)).toHaveLength(3);
+  });
+
+  it("opens the mobile conversation search as a full-width layer over the header", () => {
+    mockTextSearch = createMockTextSearch({ open: false });
+    const closedHtml = renderToStaticMarkup(React.createElement(TopNav, { mobile: true }));
+    expect(closedHtml).not.toContain("mobile-topbar-search");
+    expect(closedHtml).not.toContain("data-mobile-search-open");
+
+    // 菜单里只留一行入口，不再把搜索框塞进菜单卡片。
+    mockMobileMenuOpen = true;
+    const menuHtml = renderToStaticMarkup(React.createElement(TopNav, { mobile: true }));
+    expect(menuHtml).toContain('aria-label="搜索对话"');
+    expect(menuHtml).not.toContain("mobile-topbar-menu-search");
+    expect(menuHtml).not.toContain("mobile-topbar-search");
+
+    // 点击后菜单收起，搜索条整宽盖在顶栏上，不压住正文区域。
+    mockMobileMenuOpen = false;
+    mockTextSearch = createMockTextSearch({ open: true });
+    const openHtml = renderToStaticMarkup(React.createElement(TopNav, { mobile: true }));
+    expect(openHtml).toContain('class="mobile-topbar-search"');
+    expect(openHtml).toContain('role="search"');
+    // 顶栏内容整条让位，既不会从搜索条后面透出来，也不再可点。
+    expect(openHtml).toContain('data-mobile-search-open="true"');
+    expect(openHtml).toContain('aria-label="搜索对话"');
+    expect(openHtml.indexOf("mobile-topbar-search"))
+      .toBeGreaterThan(openHtml.indexOf("mobile-topbar-actions"));
+  });
+
+  it("hides the mobile search row when the chat has no searchable content", () => {
+    mockMobileMenuOpen = true;
+    mockTextSearch = createMockTextSearch({ open: false, searchable: false });
+    const html = renderToStaticMarkup(React.createElement(TopNav, { mobile: true }));
+    expect(html).not.toContain('aria-label="搜索对话"');
+    expect(html).not.toContain("mobile-topbar-search");
+  });
+
+  it("keeps the mobile search layer out of the desktop header", () => {
+    mockTextSearch = createMockTextSearch({ open: true });
+    const state = createInitialState();
+    state.chatId = "chat_demo";
+    useAppState.mockReturnValue(state);
+    const html = renderToStaticMarkup(React.createElement(TopNav));
+    expect(html).not.toContain("mobile-topbar-search");
   });
 
   it("reflects an open mobile panel even when the active panel is debug", () => {

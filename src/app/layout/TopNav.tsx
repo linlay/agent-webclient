@@ -174,8 +174,6 @@ interface MobileMenuRowProps {
   onSelect: () => void;
   active?: boolean;
   disabled?: boolean;
-  /** Keeps the menu open so the row can expand into an inline control. */
-  keepOpen?: boolean;
   ariaLabel?: string;
   ariaExpanded?: boolean;
   iconStyle?: React.CSSProperties;
@@ -191,7 +189,6 @@ const MobileMenuRow: React.FC<MobileMenuRowProps> = ({
   onSelect,
   active = false,
   disabled = false,
-  keepOpen = false,
   ariaLabel,
   ariaExpanded,
   iconStyle,
@@ -202,7 +199,6 @@ const MobileMenuRow: React.FC<MobileMenuRowProps> = ({
     aria-label={ariaLabel || label}
     aria-expanded={ariaExpanded}
     data-active={active ? "true" : undefined}
-    data-menu-keep-open={keepOpen ? "true" : undefined}
     disabled={disabled}
     onClick={onSelect}
   >
@@ -261,6 +257,8 @@ export const TopNav: React.FC<{ surface?: "root" | "agent"; mobile?: boolean; on
   // 手机端把顶栏操作收进“更多”菜单，行内条目与桌面图标按钮共用同一套可用性判断。
   const textSearch = useTimelineTextSearch();
   const canSearchTimeline = Boolean(textSearch && textSearch.searchableNodeIds.size > 0);
+  // 搜索不再嵌在菜单卡片里：点击菜单行后菜单收起，搜索条铺满并盖在顶栏上，不压住正文。
+  const mobileSearchOpen = Boolean(mobile && canSearchTimeline && textSearch?.open);
   // 「开始新对话」是已有对话里的另起一个入口：当前没有对话时不展示。
   const showNewConversationAction = Boolean(
     state.chatId &&
@@ -372,6 +370,14 @@ export const TopNav: React.FC<{ surface?: "root" | "agent"; mobile?: boolean; on
     mobile,
   ]);
 
+  // 浮层不再随菜单关闭，切换对话时由顶栏收起，避免把上一条对话的关键词带到新对话。
+  const searchChatIdRef = React.useRef(state.chatId);
+  React.useEffect(() => {
+    if (!mobile || searchChatIdRef.current === state.chatId) return;
+    searchChatIdRef.current = state.chatId;
+    textSearch?.closeSearch();
+  }, [mobile, state.chatId, textSearch]);
+
   const toggleRightSidebar = (tab: RightSidebarTabKey) => {
     if (surface !== "root") {
       if (!state.chatId) return;
@@ -428,20 +434,20 @@ export const TopNav: React.FC<{ surface?: "root" | "agent"; mobile?: boolean; on
   const handleOpenDesktopView = () => {
     window.location.assign(buildClientLayoutHref("/", window.location.search, state.chatId));
   };
-  const closeMobileMenu = () => {
-    setToolsOpen(false);
-    // 搜索框只存在于菜单卡片内，收起菜单时一并结束搜索，避免留下无入口的高亮。
-    textSearch?.closeSearch();
-  };
   const handleMobileMenuOpenChange = (open: boolean) => {
-    if (open) setToolsOpen(true);
-    else closeMobileMenu();
+    if (open) {
+      // 菜单与搜索浮层不同时占据顶栏：打开菜单先收起浮层。
+      textSearch?.closeSearch();
+      setToolsOpen(true);
+      return;
+    }
+    setToolsOpen(false);
   };
   const handleMobileMenuClick = (event: React.MouseEvent<HTMLDivElement>) => {
     const target = event.target as HTMLElement;
-    // 菜单行点击后收起菜单；需要就地展开的行（如搜索）通过 data 标记保留菜单。
-    if (!target.closest("button") || target.closest("[data-menu-keep-open]")) return;
-    closeMobileMenu();
+    // 菜单行点击后收起菜单；搜索行收起菜单后由浮层接手输入。
+    if (!target.closest("button")) return;
+    setToolsOpen(false);
   };
   const debugButton = debugPanelEnabled ? (
     <UiButton
@@ -624,18 +630,11 @@ export const TopNav: React.FC<{ surface?: "root" | "agent"; mobile?: boolean; on
   const mobileMenu = (
     <div className="mobile-topbar-menu" onClick={handleMobileMenuClick}>
       {canSearchTimeline ? (
-        textSearch?.open ? (
-          <div className="mobile-topbar-menu-search" data-menu-keep-open="true">
-            <TimelineTextSearchControl />
-          </div>
-        ) : (
-          <MobileMenuRow
-            icon="search"
-            label={t("timeline.textSearch.open")}
-            keepOpen
-            onSelect={() => textSearch?.openSearch()}
-          />
-        )
+        <MobileMenuRow
+          icon="search"
+          label={t("timeline.textSearch.open")}
+          onSelect={() => textSearch?.openSearch()}
+        />
       ) : null}
       <MobileMenuRow
         icon={surface === "root" ? "dock_to_right" : "open_in_new"}
@@ -681,8 +680,11 @@ export const TopNav: React.FC<{ surface?: "root" | "agent"; mobile?: boolean; on
     </div>
   );
   return (
+    // 搜索浮层铺满顶栏时，顶栏内容整条让位（见 MobileLayout.module.css）：
+    // 它既不该从搜索条后面透出来，也不该再被点击或读出。
     <nav className={TOP_NAV_CLASS}
       data-desktop-sidebar-collapsed={desktopHeaderLayout.sidebarCollapsed ? "true" : undefined}
+      data-mobile-search-open={mobileSearchOpen ? "true" : undefined}
       style={desktopHeaderLayout.headerLeftInset ? { paddingLeft: desktopHeaderLayout.headerLeftInset } : undefined}>
       <div className={TOP_NAV_INNER_CLASS}>
         <div className={NAV_LEFT_CLASS}>
@@ -745,6 +747,17 @@ export const TopNav: React.FC<{ surface?: "root" | "agent"; mobile?: boolean; on
           </div>
         ) : tools}
       </div>
+      {mobile && mobileSearchOpen ? (
+        // 搜索浮层是顶栏的兄弟节点：绝对定位在顶栏盒子内，整宽盖住顶栏，
+        // 底边止于顶栏下沿，`.conversation-stage` 不被遮挡。
+        <div
+          className="mobile-topbar-search"
+          role="search"
+          aria-label={t("timeline.textSearch.open")}
+        >
+          <TimelineTextSearchControl />
+        </div>
+      ) : null}
     </nav>
   );
 };

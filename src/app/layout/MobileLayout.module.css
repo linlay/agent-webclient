@@ -11,7 +11,8 @@
   color: var(--text-main);
 }
 .conversation { display: flex; flex-direction: column; width: 100%; height: 100%; min-width: 0; min-height: 0; }
-.conversation > :global(.top-nav) { flex: none; height: auto; min-height: 52px; padding: env(safe-area-inset-top, 0px) 8px 0; background: var(--shell-page-bg); }
+/* 顶栏兼作锚点：搜索浮层铺满并盖在它上面。 */
+.conversation > :global(.top-nav) { position: relative; flex: none; height: auto; min-height: 52px; padding: env(safe-area-inset-top, 0px) 8px 0; background: var(--shell-page-bg); }
 .conversation :global(.top-nav-inner) { min-height: 52px; gap: 4px; }
 .conversation :global(.nav-left) { display: flex; flex: none; align-items: center; width: 92px; height: 44px; }
 .conversation :global(.nav-center) { flex: 1; min-width: 0; justify-content: center; padding: 0; }
@@ -186,9 +187,71 @@
 :global(.mobile-topbar-menu-row)[data-active="true"],
 :global(.mobile-topbar-menu-row)[data-active="true"] :global(.mobile-topbar-menu-icon) { color: var(--accent-electric-strong); }
 :global(.mobile-topbar-menu-row):disabled :global(.mobile-topbar-menu-icon) { color: var(--text-muted); }
-:global(.mobile-topbar-menu-search) { padding: 8px; }
-/* 卡片宽度由标签决定，搜索框在窄屏上收缩而不是撑破卡片。 */
-:global(.mobile-topbar-menu-search) :global(.ant-input) { width: auto; min-width: 0; flex: 1 1 auto; }
+/* 搜索浮层铺满顶栏并盖在它上面：底边止于顶栏下沿，`.conversation-stage` 不被遮挡。 */
+:global(.mobile-topbar-search) {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  padding: env(safe-area-inset-top, 0px) 8px 0;
+  animation: mobile-search-fade 140ms ease-out;
+}
+/* 顶栏底色本身是透明的，浮层期间让整条内容让位，避免标题和按钮从搜索条后面透出来。 */
+.conversation > :global(.top-nav)[data-mobile-search-open="true"] > :global(.top-nav-inner) { visibility: hidden; }
+/* 搜索条自己作为整行的输入底板，铺满顶栏宽度。 */
+:global(.mobile-topbar-search) > div {
+  width: 100%;
+  min-width: 0;
+  height: auto;
+  min-height: 40px;
+  gap: 2px;
+  border: 1px solid color-mix(in srgb, var(--line-soft) 88%, transparent);
+  border-radius: 12px;
+}
+/* 带前缀图标时 antd 会再包一层 affix wrapper，它才是整行的 flex 子项：
+   由它吃掉剩余宽度，命中计数和按钮才会被推到最右；自身边框与底色去掉，
+   和外面这条搜索框合成一个输入条。antd 只给它 inline-flex、没有对齐方式，
+   这里显式居中，否则固定高度的 input 会贴在顶部。 */
+:global(.mobile-topbar-search) :global(.ant-input-affix-wrapper) {
+  display: flex;
+  align-items: center;
+  flex: 1 1 auto;
+  width: auto;
+  min-width: 0;
+  height: 40px;
+  padding: 0 4px;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+:global(.mobile-topbar-search) :global(.ant-input-affix-wrapper) :global(.ant-input-prefix) {
+  display: flex;
+  flex: none;
+  align-items: center;
+}
+:global(.mobile-topbar-search) :global(.ant-input) {
+  align-self: center;
+  width: auto;
+  min-width: 0;
+  flex: 1 1 auto;
+  height: 32px;
+  padding: 0;
+  /* 带前缀时 antd 只把 borderless 交给 affix wrapper，内层 input 仍会画出自己的
+     边框和底色；在浮层里统一抹平，整条只留外面一层底板。 */
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  /* iOS 在输入框字号小于 16px 时会放大整个页面。 */
+  font-size: 16px;
+}
+@keyframes mobile-search-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  :global(.mobile-topbar-search) { animation: none; }
+}
 @media (hover: hover) {
   :global(.mobile-topbar-menu-row:hover) { background: var(--bg-hover); }
   :global(.mobile-topbar-menu-row:disabled:hover) { background: transparent; }
