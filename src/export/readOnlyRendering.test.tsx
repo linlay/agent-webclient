@@ -15,7 +15,37 @@ import { parseConversationSnapshotV1, snapshotV1PreviewData } from "./conversati
 
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
 jest.mock("@/export/brand-icons/assistant-default.svg", () => "default-icon");
-jest.mock("@/shared/ui/markdown-code/ConversationMarkdownCode", () => ({ ConversationMarkdownCode: () => null }));
+jest.mock("@/shared/ui/markdown-code/ConversationMarkdownCode", () => ({
+  ...jest.requireActual("@/shared/ui/markdown-code/ConversationMarkdownCode"),
+  ConversationMarkdownCode: () => null,
+}));
+jest.mock("./ShareHtmlCodeBlock", () => ({
+  ShareHtmlCodeBlock: () => require("react").createElement("div", { "data-share-html-code": "" }),
+}));
+
+it.each(["/share/example", "/local-export.html"])("dispatches HTML only in public shares (%s)", async path => {
+  const originalPath = window.location.pathname;
+  window.history.replaceState({}, "", path);
+  const host = document.createElement("div");
+  const root = createRoot(host);
+  const epoch = 1_800_000_000_000;
+  const snapshot: ConversationSnapshotV1 = {
+    version: 1, title: "HTML", locale: "zh-CN", createdAt: epoch, capturedAt: epoch, attachments: [],
+    turns: [{ runId: "run", queryAt: epoch, startedAt: epoch, endedAt: epoch, outcome: "completed", nodes: [
+      { id: "html", kind: "content", role: "assistant", at: epoch, runId: "run",
+        text: "```html\n<!doctype html><html><body>hello</body></html>\n```\n\n```javascript\nconst x = 1;\n```" },
+    ] }],
+  };
+  try {
+    await act(async () => root.render(<I18nProvider locale="zh-CN" persistLocale={false}>
+      <ConversationExportDocument snapshot={snapshot} />
+    </I18nProvider>));
+    expect(host.querySelectorAll("[data-share-html-code]")).toHaveLength(path.startsWith("/share/") ? 1 : 0);
+  } finally {
+    act(() => root.unmount());
+    window.history.replaceState({}, "", originalPath);
+  }
+});
 
 it("folds the entire shared run process and preserves guidance, tool and approval order", () => {
   const host = document.createElement("div");

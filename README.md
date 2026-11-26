@@ -22,6 +22,8 @@ Standalone 支持浅色/深色/跟随系统、内置薄雾、PNG/JPEG 背景与 
 
 每份 HTML 的 `conversation-export-asset-set` 同时绑定主 JS/CSS 和 HTML 附件预览的 bootstrap；iframe 请求携带 `embed=1&assetSet=<父页面版本>`，指定版本缺失时显示预览失败并保留下载入口，不改用当前版本。动态 JS 和独立 SVG 使用 `runtime.js` 所在版本目录，CSS 字体使用同包相对路径，Material 图标精灵随 HTML 内嵌。构建检查拒绝 CSS 引用包外资源。Desktop 的模板缓存策略保持不变；附件原文自带的第三方 HTTPS 依赖不属于渲染包，也不做 URL 改写。
 
+公开分享中的已闭合完整 HTML 代码块默认显示静态视图，片段默认显示代码并可手动预览；残缺块禁用视图。`ShareHtmlCodeBlock` 负责切换、复制原文、放大与重试，和附件适配器 `ShareHtmlPreview` 共用 `ShareHtmlFrame` 的文档绑定通道。正文只在可见且选中视图时占用现有并发槽位，离屏／切换／关闭时销毁 iframe 并取消读取，成功以 bootstrap 的 `rendered` 通知为准。短内容按实测高度展示，内联上限为 `min(600px, 70vh)`。正文入口 `/share/{id}/html-preview?assetSet=<父页面版本>` 只返回预览壳，原文经端口一次交付；DOMPurify 只清理预览副本，HTTP CSP 阻止内容脚本、外部资源和导航，保留 HTML/CSS/SVG 与 CSS 动画。聊天、Desktop 面板、本地离线导出和 HTML 附件的既有权限不变。发布时先部署支持该入口的 Hub，再上传、启用模板 ZIP；回滚重新启用旧模板。
+
 分享和 HTML 将同一轮的执行过程、引导语句和交互记录按时间顺序收进一个默认折叠的区域。展开后可查看只读的 `awaiting-answer` 卡片。最终答复、生成图片和终态错误直接显示。Snapshot V1 的可选 `turn.error` 转成一条终态错误，旧失败快照使用通用提示。Markdown 由 Platform 生成问答摘要，包含未完成状态和错误兜底，不包含交互明细。发布时先交付兼容新字段的 Tunnel 渲染资源，再交付 Platform／Desktop；旧快照缺失的交互和具体原因需从原对话重新分享，不做历史回填。
 
 本地调试分享页时运行 `npm run preview:conversation-export`，打开 `http://127.0.0.1:11959/preview`。预览直接构建 `src/export/`，修改组件、样式或模板后浏览器自动刷新，无需同步或发布 Tunnel。默认读取忽略目录 `.local/share-preview/current.snapshot.json` 中的 Snapshot V1；文件不存在时使用内置样例，`?case=example` 可强制查看内置样例。也可设置 `CONVERSATION_PREVIEW_SNAPSHOT=/absolute/path/snapshot.json` 显式加载本地 JSON，此时忽略 `case` 参数。修改当前快照文件会触发浏览器刷新；端口可通过 `PORT` 调整。预览仅监听 `127.0.0.1`，使用开发态资源路径和自动刷新连接；发布前仍需执行正式导出构建与资源一致性检查。

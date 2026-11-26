@@ -1,4 +1,31 @@
 import { serializeHtmlDocument } from "@/shared/utils/htmlVisualizationAssets";
+import DOMPurify from "dompurify";
+
+export type ShareHtmlDelivery =
+  | { kind: "inline"; html: string; viewportHeight: number }
+  | { kind: "attachment"; content: ShareHtmlPayload };
+
+/** Only the preview copy is sanitized. The displayed/copied source stays intact. */
+export function prepareInlineShareHtml(source: string): Document {
+  const clean = DOMPurify.sanitize(source, {
+    WHOLE_DOCUMENT: true,
+    ADD_TAGS: ["style"],
+    FORBID_TAGS: ["script", "iframe", "object", "embed", "base", "meta", "link", "form", "foreignObject", "animate", "set", "animateMotion", "animateTransform"],
+    FORBID_ATTR: ["srcdoc", "action", "formaction", "target", "download", "ping", "autofocus"],
+  });
+  const document = new DOMParser().parseFromString(clean, "text/html");
+  for (const element of document.querySelectorAll("[href], [xlink\\:href]")) {
+    for (const attribute of ["href", "xlink:href"]) {
+      const value = element.getAttribute(attribute);
+      if (value && !value.startsWith("#")) element.removeAttribute(attribute);
+    }
+  }
+  const viewport = document.createElement("meta");
+  viewport.name = "viewport";
+  viewport.content = "width=device-width, initial-scale=1";
+  document.head.prepend(viewport);
+  return document;
+}
 
 export interface ShareHtmlPayload {
   html: string;

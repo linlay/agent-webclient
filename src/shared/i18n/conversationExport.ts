@@ -3,6 +3,14 @@ export type ConversationExportLocale = "zh-CN" | "en-US";
 export const conversationExportMessages = {
   "zh-CN": {
     runFailed: "运行失败。",
+    htmlCode: {
+      view: "视图", code: "代码", displayMode: "HTML 展示方式", copy: "复制 HTML", copied: "已复制代码",
+      copyFailed: "复制失败，请在代码视图中手动复制", expand: "放大预览", previewTitle: "HTML 预览",
+      preview: "显示预览", loading: "正在加载预览…", queued: "预览排队中", failed: "预览暂时无法加载",
+      sourceAvailable: "你仍然可以查看或复制完整代码。", retry: "重新加载", showCode: "查看代码",
+      incomplete: "HTML 内容不完整，可查看或复制代码", fragment: "HTML 片段，可手动预览", previewFragment: "预览片段",
+    },
+
     attachments: {
       attachments: "附件", download: "下载", close: "关闭", unavailable: "仅在线分享页面可预览",
       selectFile: "选择附件",
@@ -64,6 +72,14 @@ export const conversationExportMessages = {
   },
   "en-US": {
     runFailed: "The run failed.",
+    htmlCode: {
+      view: "View", code: "Code", displayMode: "HTML display mode", copy: "Copy HTML", copied: "Code copied",
+      copyFailed: "Copy failed. Select and copy the code manually.", expand: "Expand preview", previewTitle: "HTML preview",
+      preview: "Show preview", loading: "Loading preview…", queued: "Preview queued", failed: "Preview could not be loaded",
+      sourceAvailable: "You can still view or copy the complete code.", retry: "Reload", showCode: "View code",
+      incomplete: "HTML is incomplete. You can view or copy its source.", fragment: "HTML fragment. Preview it manually.", previewFragment: "Preview fragment",
+    },
+
     attachments: {
       attachments: "Attachments", download: "Download", close: "Close", unavailable: "Available only from the shared page",
       selectFile: "Select attachment",

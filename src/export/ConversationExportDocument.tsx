@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { Tooltip } from "antd";
 import { ConversationPreview, type ConversationPreviewProps } from "@/features/conversation/components/ConversationPreview";
 import { ConversationMarkdown, type ConversationMarkdownComponents, type ConversationMarkdownElementProps } from "@/shared/ui/ConversationMarkdown";
-import { ConversationMarkdownCode, type ConversationMarkdownCodeProps } from "@/shared/ui/markdown-code/ConversationMarkdownCode";
+import { ConversationMarkdownCode, getMarkdownCodeLanguage, type ConversationMarkdownCodeProps } from "@/shared/ui/markdown-code/ConversationMarkdownCode";
 import { AgentIcon } from "@/shared/icons/agent";
 import type { MarkdownContentProps } from "@/features/viewers/components/MarkdownContent";
 import { conversationExportMessages } from "@/shared/i18n/conversationExport";
@@ -12,6 +12,7 @@ import type { PublicShareBrand } from "./publicShareBrand";
 import { PublicShareAppEntry } from "./PublicShareAppEntry";
 import { buildShareAttachmentLinks, conversationSharePath } from "./shareAttachmentLinks";
 import { canonicalChatSourceRef, shareMediaKind } from "./shareResources";
+import { ShareHtmlCodeBlock } from "./ShareHtmlCodeBlock";
 import { ShareMediaPreview } from "./ShareMediaPreview";
 import { ShareAttachmentViewer } from "./ShareAttachmentViewer";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
@@ -24,9 +25,6 @@ export type ConversationExportDocumentProps = {
 };
 
 type LinkProps = ConversationMarkdownElementProps<{ href?: string; title?: string }>;
-
-const ExportMarkdownCode: React.FC<ConversationMarkdownCodeProps> = props =>
-  <ConversationMarkdownCode {...props} htmlPreview={false} />;
 
 export const ConversationExportDocument: React.FC<ConversationExportDocumentProps> = ({ snapshot, publicBrand, canReshare = false }) => {
   const copy = conversationExportMessages[snapshot.locale];
@@ -97,9 +95,15 @@ export const ConversationExportDocument: React.FC<ConversationExportDocumentProp
           : <span role="status">{alt || "image"} — {unavailable(src)}</span>;
       },
   }), [attachmentLink, findResource, renderInlineImage, unavailable]);
+  const ExportMarkdownCode = useMemo(() => {
+    const Code: React.FC<ConversationMarkdownCodeProps> = props => sharePath && props.block && getMarkdownCodeLanguage(props.lang) === "html"
+      ? <ShareHtmlCodeBlock {...props} sharePath={sharePath} locale={snapshot.locale} />
+      : <ConversationMarkdownCode {...props} htmlPreview={false} />;
+    return Code;
+  }, [sharePath, snapshot.locale]);
   const renderMarkdown = useCallback((props: MarkdownContentProps) => <ConversationMarkdown
     content={props.content} codeComponent={ExportMarkdownCode} components={markdownComponents}
-  />, [markdownComponents]);
+  />, [markdownComponents, ExportMarkdownCode]);
   const renderRunHeader: NonNullable<ConversationPreviewProps["renderRunHeader"]> = (item) => {
     const assistant = assistantByRunId.get(item.runId || "");
     const interactive = Boolean(sharePath || publicBrand);

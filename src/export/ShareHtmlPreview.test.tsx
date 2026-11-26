@@ -37,17 +37,17 @@ function ready(frame: HTMLIFrameElement, port: { postMessage: jest.Mock; close: 
 
 it("requires the current opaque frame and transfers only mapped resources exactly once", async () => {
   const frame = render();
-  const port = { postMessage: jest.fn(), close: jest.fn() };
+  const port = { postMessage: jest.fn(), close: jest.fn(), start: jest.fn() };
   act(() => frame.dispatchEvent(new Event("load")));
   await act(async () => { ready(frame, port, window.location.origin); ready(frame, port, "null", window); });
   expect(fetchMock).not.toHaveBeenCalled();
   await act(async () => ready(frame, port));
   expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([`/share/probe/attachments/${html.id}/download`, `/share/probe/attachments/${image.id}/download`]);
   expect(port.postMessage).toHaveBeenCalledTimes(1);
-  const payload = port.postMessage.mock.calls[0][0];
+  const payload = port.postMessage.mock.calls[0][0].content;
   expect(payload.media.map((item: { id: string }) => item.id)).toEqual([image.id]);
   expect(payload.missing).toEqual([["4".repeat(24), "File not found"]]);
-  expect(port.close).toHaveBeenCalled();
+  expect(port.close).not.toHaveBeenCalled();
   await act(async () => ready(frame, port));
   expect(port.postMessage).toHaveBeenCalledTimes(1);
   expect(frame.getAttribute("sandbox")).toBe("allow-scripts");
@@ -66,7 +66,7 @@ it("aborts an in-flight delivery on navigation and does not deliver to the repla
   let finish!: (value: unknown) => void;
   fetchMock.mockReset().mockImplementation(() => new Promise((resolve) => { finish = resolve; }));
   const frame = render();
-  const port = { postMessage: jest.fn(), close: jest.fn() };
+  const port = { postMessage: jest.fn(), close: jest.fn(), start: jest.fn() };
   act(() => frame.dispatchEvent(new Event("load")));
   await act(async () => ready(frame, port));
   const signal = fetchMock.mock.calls[0][1].signal as AbortSignal;
@@ -81,7 +81,7 @@ it("aborts an in-flight delivery on navigation and does not deliver to the repla
 
 it("removes its frame and cancels reads when closed", async () => {
   fetchMock.mockReset().mockImplementation(() => new Promise(() => undefined));
-  const frame = render(); const port = { postMessage: jest.fn(), close: jest.fn() };
+  const frame = render(); const port = { postMessage: jest.fn(), close: jest.fn(), start: jest.fn() };
   act(() => frame.dispatchEvent(new Event("load")));
   await act(async () => ready(frame, port));
   const signal = fetchMock.mock.calls[0][1].signal as AbortSignal;

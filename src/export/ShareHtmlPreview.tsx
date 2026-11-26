@@ -1,9 +1,10 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useState } from "react";
 import { conversationExportMessages, type ConversationExportLocale } from "@/shared/i18n/conversationExport";
 import type { SnapshotAttachmentV1, SnapshotOmittedResource } from "./conversationSnapshotV1";
 import { buildShareAttachmentLinks, conversationSharePath, type ShareAttachmentLinks } from "./shareAttachmentLinks";
 import { shareMediaKind } from "./shareResources";
-import type { ShareHtmlPayload } from "./shareHtmlDocument";
+import type { ShareHtmlDelivery, ShareHtmlPayload } from "./shareHtmlDocument";
+import { ShareHtmlFrame, versionedShareHtmlPreview, type ShareHtmlFrameStatus } from "./ShareHtmlFrame";
 import styles from "./ShareAttachmentContent.module.css";
 
 async function readFile(file: SnapshotAttachmentV1, url: string, signal: AbortSignal): Promise<ArrayBuffer> {
@@ -16,7 +17,7 @@ async function readFile(file: SnapshotAttachmentV1, url: string, signal: AbortSi
   return bytes;
 }
 
-/** One frame, one document-bound channel, one fixed payload. No guest requests are serviced. */
+/** Prepare only the frozen attachment and its explicitly mapped media. */
 export function ShareHtmlPreview({ attachment, attachments, omittedResources, links: { preview, download }, locale }: {
   attachment: SnapshotAttachmentV1;
   attachments: SnapshotAttachmentV1[];
@@ -24,85 +25,36 @@ export function ShareHtmlPreview({ attachment, attachments, omittedResources, li
   links: ShareAttachmentLinks;
   locale: ConversationExportLocale;
 }) {
-  const host = useRef<HTMLDivElement>(null);
-  const [failed, setFailed] = useState(false);
+  const [status, setStatus] = useState<ShareHtmlFrameStatus>("loading");
   const labels = conversationExportMessages[locale].attachments;
-  useEffect(() => {
-    const container = host.current;
-    const sharePath = conversationSharePath(window.location.pathname);
-    const assetSet = document.querySelector<HTMLMetaElement>('meta[name="conversation-export-asset-set"]')?.content ?? "";
-    if (!container || !sharePath || !preview || !/^[a-f0-9]{64}$/u.test(assetSet)) { setFailed(true); return; }
-    setFailed(false);
-    const frame = document.createElement("iframe");
-    frame.title = attachment.name;
-    frame.setAttribute("sandbox", "allow-scripts");
-    frame.setAttribute("referrerpolicy", "no-referrer");
-    let phase: "loading" | "ready" | "reading" | "sent" | "closed" = "loading";
-    let port: MessagePort | undefined;
-    const controller = new AbortController();
-    const timer = window.setTimeout(() => fail(), 15_000);
-    const close = () => {
-      phase = "closed";
-      controller.abort();
-      window.clearTimeout(timer);
-      window.removeEventListener("message", ready);
-      port?.close();
-      frame.onload = null;
-      frame.remove();
-    };
-    const fail = () => { close(); setFailed(true); };
-    const ready = (event: MessageEvent) => {
-      if (phase !== "ready" || event.source !== frame.contentWindow || event.origin !== "null" ||
-        event.data?.type !== "conversation-html-ready" || event.ports.length !== 1) return;
-      phase = "reading";
-      port = event.ports[0];
-      window.removeEventListener("message", ready);
-      void (async () => {
-        const links = (id: string) => buildShareAttachmentLinks(sharePath, id, window.location.origin);
-        const html = new TextDecoder("utf-8", { fatal: true }).decode(await readFile(attachment, links(attachment.id).download, controller.signal));
-        const payload: ShareHtmlPayload = { html, mediaRefs: Object.entries(attachment.mediaRefs ?? {}), media: [], missing: [], unavailable: labels.loadFailed };
-        const resources = new Map(attachments.map((file) => [file.id, file]));
-        const omitted = new Map(omittedResources?.map((item) => [item.id, item]));
-        for (const id of new Set(Object.values(attachment.mediaRefs ?? {}))) {
-          if (controller.signal.aborted) return;
-          const file = resources.get(id);
-          if (!file || !["image", "audio", "video"].includes(shareMediaKind(file.mimeType))) {
-            payload.missing.push([id, labels.omission[omitted.get(id)?.reason ?? "not_found"]]);
-            continue;
-          }
-          try {
-            payload.media.push({ id, type: file.mimeType, bytes: await readFile(file, links(id).download, controller.signal) });
-          } catch (error) {
-            if (controller.signal.aborted) return;
-            const reason = error instanceof Error ? error.message : "read_failed";
-            payload.missing.push([id, Object.hasOwn(labels.omission, reason)
-              ? labels.omission[reason as keyof typeof labels.omission] : labels.omission.read_failed]);
-          }
-        }
-        if (phase !== "reading" || controller.signal.aborted || !frame.isConnected) return;
-        phase = "sent";
-        window.clearTimeout(timer);
-        port!.postMessage(payload, payload.media.map((media) => media.bytes));
-        port!.close();
-      })().catch(() => { if (phase !== "closed") fail(); });
-    };
-    window.addEventListener("message", ready);
-    frame.onload = () => {
-      if (phase === "loading") {
-        phase = "ready";
-        // The sandbox has an opaque origin, so a targeted WindowProxy plus '*' is required.
-        // Only the non-sensitive handshake goes through this window channel.
-        frame.contentWindow?.postMessage({ type: "conversation-html-connect" }, "*");
-      } else if (phase === "ready" || phase === "reading") {
-        fail(); // Navigation during delivery must never transfer bytes to a new document.
+  const sharePath = conversationSharePath(window.location.pathname);
+  const url = versionedShareHtmlPreview(preview ? preview + "?embed=1" : "");
+  const loadPayload = useCallback(async (signal: AbortSignal): Promise<ShareHtmlDelivery> => {
+    const links = (id: string) => buildShareAttachmentLinks(sharePath, id, window.location.origin);
+    const html = new TextDecoder("utf-8", { fatal: true }).decode(await readFile(attachment, links(attachment.id).download, signal));
+    const payload: ShareHtmlPayload = { html, mediaRefs: Object.entries(attachment.mediaRefs ?? {}), media: [], missing: [], unavailable: labels.loadFailed };
+    const resources = new Map(attachments.map((file) => [file.id, file]));
+    const omitted = new Map(omittedResources?.map((item) => [item.id, item]));
+    for (const id of new Set(Object.values(attachment.mediaRefs ?? {}))) {
+      if (signal.aborted) throw new DOMException("Aborted", "AbortError");
+      const file = resources.get(id);
+      if (!file || !["image", "audio", "video"].includes(shareMediaKind(file.mimeType))) {
+        payload.missing.push([id, labels.omission[omitted.get(id)?.reason ?? "not_found"]]);
+        continue;
       }
-    };
-    // The Hub may switch its current template after this parent page was loaded.
-    frame.src = preview + "?embed=1&assetSet=" + assetSet;
-    container.append(frame);
-    return close;
-  }, [attachment, attachments, omittedResources, preview, labels]);
-  return <div className={styles.htmlPreview} ref={host}>
-    {failed && <p role="status">{labels.loadFailed} <a href={download}>{labels.download}</a></p>}
+      try {
+        payload.media.push({ id, type: file.mimeType, bytes: await readFile(file, links(id).download, signal) });
+      } catch (error) {
+        if (signal.aborted) throw new DOMException("Aborted", "AbortError");
+        const reason = error instanceof Error ? error.message : "read_failed";
+        payload.missing.push([id, Object.hasOwn(labels.omission, reason)
+          ? labels.omission[reason as keyof typeof labels.omission] : labels.omission.read_failed]);
+      }
+    }
+    return { kind: "attachment", content: payload };
+  }, [attachment, attachments, omittedResources, labels, sharePath]);
+  return <div className={styles.htmlPreview}>
+    <ShareHtmlFrame url={sharePath ? url : ""} title={attachment.name} loadPayload={loadPayload} onStatus={setStatus} />
+    {status === "error" && <p role="status">{labels.loadFailed} <a href={download}>{labels.download}</a></p>}
   </div>;
 }

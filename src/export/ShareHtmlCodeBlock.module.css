@@ -1,0 +1,22 @@
+.card { min-width: 0; overflow: hidden; border: 1px solid var(--line-soft); border-radius: 12px; background: var(--bg-elev-1); }
+.toolbar { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; min-height: 48px; padding: 8px 12px; background: var(--bg-elev-2); border-bottom: 1px solid var(--line-soft); }
+.language { display: inline-flex; align-items: center; gap: 7px; margin-right: auto; color: var(--ink-muted); font: 12px ui-monospace, monospace; }
+.language svg { width: 18px; height: 18px; }
+.tabs { display: flex; gap: 2px; padding: 3px; border: 1px solid var(--line-soft); border-radius: 7px; background: var(--bg-elev-1); }
+.tabs button { padding: 3px 12px; border: 0; border-radius: 4px; background: transparent; color: var(--ink-muted); font: inherit; font-size: 12px; cursor: pointer; }
+.tabs button[aria-selected="true"] { background: var(--bg-elev-2); color: var(--ink-1); }
+.tabs button:disabled { opacity: .4; cursor: not-allowed; }
+.preview { min-width: 0; }
+.viewport { position: relative; max-height: min(600px, 70vh); min-width: 0; }
+.expandedPreview .viewport { max-height: 75vh; }
+.source { margin: 0; padding: 14px 16px; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 12px; }
+.source code { padding: 0; background: transparent; }
+.hint { display: flex; align-items: center; flex-wrap: wrap; justify-content: space-between; gap: 8px; padding: 8px 12px; border-top: 1px solid var(--line-soft); color: var(--ink-muted); font-size: 12px; }
+.notice, .placeholder { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 24px 14px; color: var(--ink-muted); font-size: 12px; text-align: center; }
+.notice { min-height: 160px; }
+.notice strong { color: var(--ink-1); font-size: 14px; font-weight: 500; }
+.placeholder { position: absolute; inset: 0; background: var(--bg-elev-1); }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+.copyStatus { padding: 5px 12px; color: var(--ink-muted); font-size: 12px; }
+@media (max-width: 480px) { .toolbar { padding: 8px; gap: 4px; } .tabs button { padding: 4px 8px; } }
+@media (pointer: coarse) { .tabs button { min-height: 44px; } }
