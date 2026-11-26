@@ -170,12 +170,21 @@
    这里把舞台内文字固定成灰度抗锯齿，滚动前后只有一种绘制结果。
    验证方式：DevTools › Rendering › 勾选 "Disable LCD text" 后滚动，色差应消失。
    如果不想改变整屏正文的字重，可以把这两行下移到 .timeline-run-collapse 的 header
-   规则里，只固定那一段；代价是其它 muted 文本仍会在滚动时轻微变浅。 */
+   规则里，只固定那一段；代价是其它 muted 文本仍会在滚动时轻微变浅。
+   Windows 没有等价 CSS：`-webkit-font-smoothing` / `font-smooth` 在 Chromium 只对 macOS
+   生效。Windows 上同一现象表现为正文“滚动时变粗”（ClearType 退化成灰度，灰度覆盖整像素
+   后墨量更重），只能靠下面 >div 的常驻合成层稳定栅格化。 */
 :global(.conversation-stage-virtuoso) {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
 
+    /* 滚动由合成器驱动，每帧按分数偏移重新栅格化整列文字时 LCD 抗锯齿不可用；让列表内容
+       常驻一个合成层后，滚动只平移已栅格化的纹理、不再逐帧重栅格化，Windows 上滚动与静止
+       的字形粗细才一致（否则正文会“滚动时变粗”，见上一段注释）。
+       验证：Windows 上滚动前后对比，或临时删掉 will-change 即可复现“滚动变粗”。
+       不要为了“减少层数”删掉它。 */
     >div {
+        will-change: transform;
         max-width: 840px;
         left: 50%;
         transform: translateX(-50%);

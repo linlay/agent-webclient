@@ -4,8 +4,7 @@ import type { MailMetadata } from "@/shared/data/api/dto/mailbox";
 import { useI18n } from "@/shared/i18n";
 import { MailSenderAvatar } from "./MailSenderAvatar";
 
-const SENDER_CLASS_NAME =
-  "tw:inline-flex tw:items-baseline tw:gap-1";
+const SENDER_CLASS_NAME = "tw:inline-flex tw:items-baseline tw:gap-1";
 
 /**
  * One muted line naming a mail input: sender · kind · outcome — who sent it, what
@@ -38,17 +37,9 @@ export function MailBadge({
       ? `/?${new URLSearchParams({ chatId: mail.fromChatId })}`
       : "");
   return (
-    <span
-      className="tw:text-xs tw:text-ink-muted"
-      data-mail-kind={mail.kind}
-      title={mail.id}
-    >
+    <span className="tw:text-xs tw:text-ink-muted" data-mail-kind={mail.kind}>
       {target ? (
-        <a
-          className={SENDER_CLASS_NAME}
-          href={target}
-          onClick={onOpen}
-        >
+        <a className={SENDER_CLASS_NAME} href={target} onClick={onOpen}>
           {avatar}
           {name}
         </a>
