@@ -1,12 +1,10 @@
 import React from "react";
-import { isPlatformBackendMode } from "@/shared/config/backendMode";
 import "./SidebarSettingsMenu.module.css";
 import type { ThemeMode } from "@/shared/styles/theme";
 import { t } from "@/shared/i18n";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import type { MaterialIconName } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
-import { isDesktopAppMode } from "@/shared/utils/routing";
 
 export interface SettingsSummaryBadge {
   key: "theme";
@@ -15,13 +13,11 @@ export interface SettingsSummaryBadge {
 }
 
 export type SidebarSettingsMenuAction =
-  | { type: "open-mailbox" }
   | { type: "open-agents" }
   | { type: "open-skills" }
   | { type: "open-settings" }
   | { type: "open-registries" }
   | { type: "open-connectors" }
-  | { type: "open-webapps" }
   | { type: "open-archive" }
   | { type: "noop" };
 
@@ -44,7 +40,6 @@ export interface SidebarSettingsMenuSection {
 }
 
 export interface SidebarSettingsMenuProps {
-  pendingMailCount?: number;
   onAction: (action: SidebarSettingsMenuAction) => void;
 }
 
@@ -63,13 +58,12 @@ export function resolveSettingsSummaryBadges(input: {
   ];
 }
 
-export function buildSidebarSettingsMenuSections(pendingMailCount = 0): SidebarSettingsMenuSection[] {
+export function buildSidebarSettingsMenuSections(): SidebarSettingsMenuSection[] {
   return [
     {
       key: "entry",
       title: t("settingsMenu.section.entry"),
       items: [
-        ...(isPlatformBackendMode() && !isDesktopAppMode() ? [{ key: "open-webapps", label: t("webapps.title"), icon: "inventory_2" as const, action: { type: "open-webapps" as const } }] : []),
         {
           key: "open-agents",
           label: t("leftSidebar.quickActions.agents"),
@@ -95,13 +89,6 @@ export function buildSidebarSettingsMenuSections(pendingMailCount = 0): SidebarS
           action: { type: "open-registries" },
         },
         {
-          key: "open-mailbox",
-          label: t("mailbox.title"),
-          icon: "draft",
-          badge: pendingMailCount > 0 ? pendingMailCount > 99 ? "99+" : String(pendingMailCount) : undefined,
-          action: { type: "open-mailbox" },
-        },
-        {
           key: "open-archive",
           label: t("settingsMenu.archive"),
           icon: "inventory_2",
@@ -119,12 +106,9 @@ export function buildSidebarSettingsMenuSections(pendingMailCount = 0): SidebarS
 }
 
 export const SidebarSettingsMenu: React.FC<SidebarSettingsMenuProps> = ({
-  onAction, pendingMailCount = 0,
+  onAction,
 }) => {
-  const sections = React.useMemo(
-    () => buildSidebarSettingsMenuSections(pendingMailCount),
-    [pendingMailCount],
-  );
+  const sections = React.useMemo(() => buildSidebarSettingsMenuSections(), []);
 
   return (
     <div className="sidebar-settings-menu" role="menu" aria-label={t("settingsMenu.ariaLabel")}>

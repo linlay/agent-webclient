@@ -1,5 +1,4 @@
 import React from "react";
-import { useMailboxPendingCount } from "@/features/mailbox/hooks/useMailboxPendingCount";
 import { useOpenTarget } from "@/features/surfaces/hooks/useOpenTarget";
 import { useAppContext } from "@/app/state/AppContext";
 import {
@@ -23,7 +22,6 @@ export { handleCreateAgentSuccess } from "@/features/workers/lib/agentProjectCre
 
 export const LeftSidebar: React.FC<{ mobile?: boolean; onClose?: () => void }> = ({ mobile = false, onClose }) => {
   const navigatePage = useClientPageNavigation();
-  const pendingMailCount = useMailboxPendingCount();
   const openTarget = useOpenTarget();
   const { state } = useAppContext();
   const { openCommandOverlay } = useCommandOverlayActions();
@@ -37,12 +35,10 @@ export const LeftSidebar: React.FC<{ mobile?: boolean; onClose?: () => void }> =
   const handleSettingsMenuAction = React.useCallback(
     (action: SidebarSettingsMenuAction) => {
       let standaloneRoute = "";
-      if (action.type === "open-mailbox") standaloneRoute = "/mailbox";
       if (action.type === "open-agents") standaloneRoute = "/agents";
       if (action.type === "open-skills") standaloneRoute = "/skills";
       if (action.type === "open-registries") standaloneRoute = "/registries";
       if (action.type === "open-connectors") standaloneRoute = "/connectors";
-      if (action.type === "open-webapps") standaloneRoute = "/webapps";
       if (action.type === "open-archive") standaloneRoute = "/archives";
       if (standaloneRoute) {
         if (navigatePage) { onClose?.(); navigatePage(standaloneRoute); return; }
@@ -66,7 +62,7 @@ export const LeftSidebar: React.FC<{ mobile?: boolean; onClose?: () => void }> =
       onOpenCommand={(type) => { onClose?.(); openCommandOverlay({ type }); }}
       onOpenMemory={() => { onClose?.(); openMemory(); }}
       renderSettingsMenu={(close) => (
-        <SidebarSettingsMenu pendingMailCount={pendingMailCount}
+        <SidebarSettingsMenu
           onAction={(action) => {
             handleSettingsMenuAction(action);
             onClose?.();

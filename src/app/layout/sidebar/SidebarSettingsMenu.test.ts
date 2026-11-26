@@ -41,12 +41,10 @@ describe("buildSidebarSettingsMenuSections", () => {
 
     expect(sections.map((section) => section.title)).toEqual(["设置"]);
     expect(sections[0]?.items.map((item) => item.label)).toEqual([
-      "网站应用",
       "智能体",
       "技能中心",
       "连接器中心",
       "注册配置",
-      "收件箱",
       "已归档对话",
       "设置",
     ]);
@@ -59,11 +57,10 @@ describe("buildSidebarSettingsMenuSections", () => {
     expect(labels).not.toContain("记忆管理");
   });
 
-  it("does not expose the Compose management entry in Desktop or Gateway mode", () => {
-    for (const config of [{ DESKTOP_APP: "true" }, { BACKEND_MODE: "gateway" }]) {
-      globalWithFeatureFlags.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = config;
-      expect(buildSidebarSettingsMenuSections()[0]?.items.some(item => item.key === "open-webapps")).toBe(false);
-    }
+  it("no longer exposes the mailbox entry", () => {
+    const items = buildSidebarSettingsMenuSections()[0]?.items || [];
+    expect(items.some((item) => item.key === "open-mailbox")).toBe(false);
+    expect(items.map((item) => item.label)).not.toContain("收件箱");
   });
 });
 
@@ -91,6 +88,7 @@ describe("SidebarSettingsMenu", () => {
     expect(html).toContain("注册配置");
     expect(html).toContain("连接器中心");
     expect(html).not.toContain("记忆管理");
+    expect(html).not.toContain("收件箱");
     expect(html).toContain("已归档对话");
     expect(html).toContain("sidebar-settings-item ui-icon-hover-24");
     expect(html).toContain("sidebar-settings-item-icon ui-icon-hover-24-target");

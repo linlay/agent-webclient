@@ -109,7 +109,7 @@ Native `wait` 使用 `tool.wait/tool.wait.update` 投影同 Run 等待，时间�
 - `GET /api/project/tree`
 - `GET /api/project/changes`
 - `GET /api/project/diff`
-- `POST /api/send`：直连 Platform/Desktop 时 BOT 聊天的主 lane 文本发送，返回 mailId/chatId/delivery/runId，支持活动会话插入或排队、按 requestId 幂等；收件箱三箱按 box 过滤，角标为待收取总数。
+- `POST /api/send`：直连 Platform/Desktop 时 BOT 聊天的主 lane 文本发送，返回 mailId/chatId/delivery/runId，支持活动会话插入或排队、按 requestId 幂等；收件箱三箱按 box 过滤。
 - `POST /api/query`：保留的对话流及专用入口；`agentKey` 是唯一 Agent 路由字段（包含 TEAM），缺省时由后端按现有上下文推导
 - `GET /api/attach`：Run 事件续接；必须传 `runId` 和 `agentKey`，后端按 run metadata 校验 agentKey
 - `POST /api/submit`：Run 前端工具 / awaiting 提交；必须传 `runId` 和 `agentKey`，后端按 run metadata 校验 agentKey
@@ -248,12 +248,12 @@ Agent 管理表单支持 `interactionConfig.showPlanningMode/showEditingMode/sho
 
 过程展示配置接受 simple/detailed/summary（不兼容旧 none/full）；本阶段已接入 summary 配置选项、协议类型和 display 元数据，summary 暂复用 Platform 的 simple 白名单（不生成 simple 启动占位），自动思考/工具状态概要及按档位装配 announce/提示词尚未实现；simple 保留后端一次启动提示、模型公示、必要状态及清除，隐藏每轮自动思考、工具等一句话进度；detailed 展示真实过程，不生成占位。Agent 编辑页提供继承模式配置、简洁、详细、概要，各档带内容说明，概要注明当前接入范围。默认值由 Platform 解析的 interactionConfig.defaultDetail 决定（agent.yml 覆盖 agent-settings.yml mode 配置，兜底 simple）；send/query/attach 不得发送 detail（Platform 拒绝），只有 `/detail` 重读空闲历史的 /api/chat 可带 detail，不读取旧全局 detail 偏好。历史 /api/chat.display 与下发 run.start.display 区分 defaultDetail/effectiveDetail；时间线显示后端下发的全部节点，不按档位隐藏思考或工具节点（simple 下工具节点只有 wait 与 simpleVisible 工具如 image_generate），simple 仅隐藏重试提示节点，且会话舞台在 simple 下去掉节点之间的时间线竖线并取消图标列：`TimelineRow` 读交互上下文的 `detailLevel`，把节点图标行内放进各块自己的头部（折叠块走 `icon` 插槽渲染在 label 里，系统提示与卡片类行用行内图标行，steer 指令行的图标与气泡同一行、附件与图标同左边缘），所有行收成单列，正文与折叠展开的明细因此共用同一条左边缘，不需要负边距补偿；正文（`[data-kind="content"]` 与 assistant 消息）不显示节点图标。detailed 仍是图标列 + 竖线（`ConversationStage` 标记 `data-detail-level`，纯样式收敛，不过滤节点）；Agent 管理表单只保存显式覆盖，删除 defaultDetail 恢复继承。详见界面基础专题。
 
-Mailbox 位于 `features/mailbox`，侧栏 Settings 菜单打开按收件 Agent、类型与状态过滤的收件箱，使用 `/api/mails` 与 `/api/mails/action`。仅 suspended 的 letter/reply 提供人工重投或丢弃，确认界面显示消费证据与冻结权限。`mail.updated` 刷新收件箱。实时、attach 与历史 request.query/request.steer 只按 Platform 写入的 `origin.type` 区分来源，不依赖 Chat 是否 Primary：无 origin 或 user 为用户输入，完整显示（长文折叠）；所有 Agent 的 letter（含同一 Agent 的不同 Chat、跨 Agent 和 BOT 主聊天向分身派活）均显示“收到{发信人名称}的来信”，正文与附件默认折叠，点击展开；同一 Agent 的 reply/notify 是分身内部回信，时间线不显示提示行、不保留正文与附件，不生成空白消息或问题锚点；其他 Agent 的 reply/notify 显示可展开的回信或即时消息。发信方可点击跳转（BOT 到主聊天，其余到发信 Chat）。ask 保留交互请示。自动化触发的 query 或 steer 按任务名显示折叠来信。Agent 投递不覆盖导航摘要、不进入问题锚点与文本搜索，Run Query 导出不含其正文；收件箱保留全部邮件；普通 wait 支持 reason=mail。
+Mailbox 位于 `features/mailbox`，`/mailbox` 直达页面按收件 Agent、类型与状态过滤收件箱，使用 `/api/mails` 与 `/api/mails/action`；侧栏 Settings 菜单与 Quick Actions 均不再提供入口。仅 suspended 的 letter/reply 提供人工重投或丢弃，确认界面显示消费证据与冻结权限。`mail.updated` 刷新收件箱。实时、attach 与历史 request.query/request.steer 只按 Platform 写入的 `origin.type` 区分来源，不依赖 Chat 是否 Primary：无 origin 或 user 为用户输入，完整显示（长文折叠）；所有 Agent 的 letter（含同一 Agent 的不同 Chat、跨 Agent 和 BOT 主聊天向分身派活）均显示“收到{发信人名称}的来信”，正文与附件默认折叠，点击展开；同一 Agent 的 reply/notify 是分身内部回信，时间线不显示提示行、不保留正文与附件，不生成空白消息或问题锚点；其他 Agent 的 reply/notify 显示可展开的回信或即时消息。发信方可点击跳转（BOT 到主聊天，其余到发信 Chat）。ask 保留交互请示。自动化触发的 query 或 steer 按任务名显示折叠来信。Agent 投递不覆盖导航摘要、不进入问题锚点与文本搜索，Run Query 导出不含其正文；收件箱保留全部邮件；普通 wait 支持 reason=mail。
 
 
 Agent 默认权限由 `accessConfig.default` 持久化，使用目录返回 `defaultAccessLevel`。Composer 未显式选择时发送 default（后台默认选择器），界面只显示三个具体权限，不显示跟随默认；明确请求审批发送 ask_for_approval；运行档位回传只进入 runtimeAccessLevelByChatId，不写显式偏好。v3 偏好读取 v2 时将旧显式 default 映射为 ask_for_approval，不恢复旧 v1，切档不保存 Agent 配置。编辑器清除默认与重置 interactionConfig 独立。
 
 
-主要对话导航仅作用于显式 mode=GENERAL，不显示“主要对话”标题；其他模式保持普通导航、置顶、预览和新建会话，文字／语音创建也不得为非 GENERAL 发送 primary:true。收件箱入口只放 Settings 菜单，不占用 Quick Actions。
+主要对话导航仅作用于显式 mode=GENERAL，不显示“主要对话”标题；其他模式保持普通导航、置顶、预览和新建会话，文字／语音创建也不得为非 GENERAL 发送 primary:true。侧栏 Settings 菜单与 Quick Actions 均不再提供收件箱入口，收件箱只保留 `/mailbox` 直达路由。
 
 分享模板：`release:conversation-export` 仅在本仓构建、校验并输出 `dist/conversation-export.zip`；完整内容 hash 为唯一版本，build.commit/dirty 仅记来源。Hub 管理员上传后手动启用。sync/check-sync 仅维护内置初始包，不属于默认发布或普通校验。

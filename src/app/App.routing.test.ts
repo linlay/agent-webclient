@@ -119,7 +119,7 @@ describe("App routing", () => {
     const routes = createBrowserRouterMock.mock.calls[0][0] as Array<{ children: Array<{ path: string; children?: Array<{ path: string }> }> }>;
     const mobile = routes[0].children.find(route => route.path === "/mobile")!;
     expect(mobile.children?.map(route => route.path)).toEqual(expect.arrayContaining([
-      "agents", "agents/:agentKey", "skills", "connectors/:connectorId", "registries", "mailbox", "archives", "kbases", "webapps", "project/:agentKey", "terminal/:agentKey", "history",
+      "agents", "agents/:agentKey", "skills", "connectors/:connectorId", "registries", "mailbox", "archives", "kbases", "project/:agentKey", "terminal/:agentKey", "history",
     ]));
     expect(mobile.children?.map(route => route.path)).not.toEqual(expect.arrayContaining(["agent/:agentKey", "explain/:chatId"]));
   });
