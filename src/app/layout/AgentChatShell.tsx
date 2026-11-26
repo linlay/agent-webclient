@@ -56,6 +56,7 @@ export type ComposerPrefillPayload = {
 
 export function parseComposerPrefillPayload(
   searchParams: URLSearchParams,
+  desktopLink = false,
 ): ComposerPrefillPayload | null {
   if (searchParams.getAll("composerDraft").length !== 1) return null;
   const rawDraft = String(searchParams.get("composerDraft") || "");
@@ -67,9 +68,9 @@ export function parseComposerPrefillPayload(
     draft.length > 2048 ||
     searchParams.getAll("composerSkill").length > 1 ||
     searchParams.getAll("composerUrl").length > 1 ||
-    (searchParams.has("composerUrl") && (!url || searchParams.has("composerSkill"))) ||
+    (searchParams.has("composerUrl") && (!url || (!desktopLink && searchParams.has("composerSkill")))) ||
     (searchParams.has("composerSkill") &&
-      (!draft || !/^[a-z][a-z0-9]*(?:-[a-z0-9]+)*(?:\/[a-z][a-z0-9]*(?:-[a-z0-9]+)*)?$/u.test(skillId)))
+      ((!draft && !desktopLink) || !/^[a-z][a-z0-9]*(?:-[a-z0-9]+)*(?:\/[a-z][a-z0-9]*(?:-[a-z0-9]+)*)?$/u.test(skillId)))
   ) {
     return null;
   }
@@ -364,11 +365,14 @@ const AgentChatShellContent: React.FC = () => {
     [searchParams],
   );
   const desktopNewChat = !chatId && Boolean(routeNewChatTimestamp) && isDesktopAppMode();
-  const composerPrefillPayload = useMemo(
-    () => searchParams.has("composerUrl") && (!desktopNewChat || searchParams.getAll("newChat").length !== 1)
-      ? null : parseComposerPrefillPayload(searchParams),
-    [desktopNewChat, searchParams],
-  );
+  const trustedDesktopPrefill = desktopNewChat && searchParams.getAll("newChat").length === 1;
+  const desktopLink = trustedDesktopPrefill &&
+    searchParams.getAll("composerDesktopLink").length === 1 && searchParams.get("composerDesktopLink") === "true";
+  const composerPrefillPayload = useMemo(() => {
+    if ((searchParams.has("composerUrl") && !trustedDesktopPrefill) ||
+        (searchParams.has("composerDesktopLink") && !desktopLink)) return null;
+    return parseComposerPrefillPayload(searchParams, desktopLink);
+  }, [desktopLink, trustedDesktopPrefill, searchParams]);
   const routeAgent = useMemo(
     () =>
       state.currentAgent?.key === agentKey ? state.currentAgent : undefined,
@@ -809,11 +813,11 @@ const AgentChatShellContent: React.FC = () => {
       ...(composerPrefillPayload
         ? {
             composerDraft: composerPrefillPayload.draft,
-            references: composerPrefillPayload.url
-              ? [{ type: "url", url: composerPrefillPayload.url }]
-              : composerPrefillPayload.skillId
-                ? [{ id: composerPrefillPayload.skillId, type: "skill" }]
-                : [],
+            ...(desktopLink ? { literalComposerDraft: true } : {}),
+            references: [
+              ...(composerPrefillPayload.url ? [{ type: "url", url: composerPrefillPayload.url }] : []),
+              ...(composerPrefillPayload.skillId ? [{ id: composerPrefillPayload.skillId, type: "skill" }] : []),
+            ],
           }
         : {}),
     };
@@ -829,6 +833,7 @@ const AgentChatShellContent: React.FC = () => {
       nextSearchParams.delete("composerDraft");
       nextSearchParams.delete("composerSkill");
       nextSearchParams.delete("composerUrl");
+      nextSearchParams.delete("composerDesktopLink");
       const nextRoute = createExplicitNewChatRoute(
         agentKey,
         nextSearchParams,
@@ -843,6 +848,7 @@ const AgentChatShellContent: React.FC = () => {
     agentKey,
     chatId,
     composerPrefillPayload,
+    desktopLink,
     dispatch,
     navigate,
     routeAgentHydrated,

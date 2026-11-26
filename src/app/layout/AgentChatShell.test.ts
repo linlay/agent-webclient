@@ -833,7 +833,13 @@ describe("AgentChatShell", () => {
     useEffectSpy.mockRestore();
   });
 
-  it("stages an external URL and editable prompt once without sending", () => {
+  it("accepts a desktop-only Skill prefill with an empty prompt", () => {
+    const params = new URLSearchParams({ composerDraft: "", composerSkill: "office/review" });
+    expect(parseComposerPrefillPayload(params)).toBeNull();
+    expect(parseComposerPrefillPayload(params, true)).toEqual({ draft: "", skillId: "office/review" });
+  });
+
+  it("stages an external URL, Skill and editable literal prompt once without sending", () => {
     const dispatchEvent = globalWithDom.window?.dispatchEvent as jest.Mock;
     const url = "https://example.com/docs?q=a%26b&author=O'Neil#intro";
     const draft = "/btw review this page";
@@ -845,6 +851,7 @@ describe("AgentChatShell", () => {
     });
     useSearchParams.mockReturnValue([new URLSearchParams({
       newChat: "1783680000000", composerDraft: draft, composerUrl: url,
+      composerSkill: "office/review", composerDesktopLink: "true",
     })]);
     useAppState.mockReturnValue({
       ...createInitialState(),
@@ -856,13 +863,15 @@ describe("AgentChatShell", () => {
       expect(startNewConversation).toHaveBeenCalledTimes(1);
       expect(startNewConversation).toHaveBeenCalledWith({
         agentKey: "demo-agent", preserveWorkerContext: true, focusComposerOnComplete: true,
-        composerDraft: draft, references: [{ type: "url", url }],
+        composerDraft: draft,
+        literalComposerDraft: true,
+        references: [{ type: "url", url }, { type: "skill", id: "office/review" }],
       });
       expect(dispatchEvent).not.toHaveBeenCalledWith(
         expect.objectContaining({ type: "agent:send-message" }),
       );
       expect(navigateMock).toHaveBeenCalledTimes(1);
-      expect(navigateMock.mock.calls[0][0]).not.toMatch(/composerDraft|composerUrl/);
+      expect(navigateMock.mock.calls[0][0]).not.toMatch(/composerDraft|composerUrl|composerSkill|composerDesktopLink/);
     } finally {
       globalThis.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = previousRuntimeConfig;
       useEffectSpy.mockRestore();

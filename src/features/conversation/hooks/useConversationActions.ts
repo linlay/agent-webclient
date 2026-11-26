@@ -67,6 +67,7 @@ export interface StartNewConversationDetail {
   preserveWorkerContext: unknown;
   focusComposerOnComplete: unknown;
   composerDraft?: unknown;
+  literalComposerDraft?: unknown;
   references?: unknown;
 }
 
@@ -77,6 +78,7 @@ export function normalizeStartNewConversationDetail(
   preserveWorkerContext: boolean;
   focusComposerOnComplete: boolean;
   composerDraft?: string;
+  literalComposerDraft?: true;
   references?: unknown[];
 } | null {
   if (!isObjectRecord(detail)) return null;
@@ -97,6 +99,7 @@ export function normalizeStartNewConversationDetail(
     ...(Object.prototype.hasOwnProperty.call(detail, "composerDraft")
       ? { composerDraft: String(detail.composerDraft || "").trim() }
       : {}),
+    ...(detail.literalComposerDraft === true ? { literalComposerDraft: true as const } : {}),
     ...(Object.prototype.hasOwnProperty.call(detail, "references")
       ? { references: queryReferences(detail.references) }
       : {}),
@@ -473,7 +476,7 @@ export function useConversationActions() {
       if (detail.composerDraft !== undefined) {
         dispatch({
           type: "SET_COMPOSER_DRAFT", draft: detail.composerDraft,
-          literal: hasUrlReference(detail.references ?? []),
+          literal: detail.literalComposerDraft === true || hasUrlReference(detail.references ?? []),
         });
       }
       if (detail.references !== undefined) {
