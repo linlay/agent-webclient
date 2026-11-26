@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 
 const crypto = require("node:crypto");
+const { execFileSync } = require("node:child_process");
+const { packageHash, replaceAssetSet, readBuildSource, contentType } = require("./conversation-export-package");
 const fs = require("node:fs");
 const path = require("node:path");
 
@@ -36,27 +38,6 @@ function sha384Integrity(content) {
   return `sha384-${crypto.createHash("sha384").update(content).digest("base64")}`;
 }
 
-function contentType(relativePath) {
-  switch (path.extname(relativePath).toLowerCase()) {
-    case ".js":
-      return "application/javascript; charset=utf-8";
-    case ".css":
-      return "text/css; charset=utf-8";
-    case ".woff2":
-      return "font/woff2";
-    case ".woff":
-      return "font/woff";
-    case ".ttf":
-      return "font/ttf";
-    case ".txt":
-      return "text/plain; charset=utf-8";
-    case ".svg":
-      return "image/svg+xml";
-    default:
-      return "application/octet-stream";
-  }
-}
-
 function walkFiles(root, current = root) {
   return fs.readdirSync(current, { withFileTypes: true }).flatMap((entry) => {
     const absolute = path.join(current, entry.name);
@@ -65,6 +46,10 @@ function walkFiles(root, current = root) {
     return [path.relative(root, absolute).split(path.sep).join("/")];
   });
 }
+
+// Freeze provenance before webpack can generate files.
+const build = readBuildSource(repoRoot);
+execFileSync(process.execPath, [require.resolve("webpack-cli/bin/cli.js"), "--config", "webpack.export.config.js"], { cwd: repoRoot, stdio: "inherit" });
 
 if (!fs.existsSync(buildRoot)) {
   throw new Error("Conversation export webpack output is missing.");
@@ -86,24 +71,8 @@ if (!/\.ant-collapse-content-hidden\s*\{\s*display:\s*none\s*;/u.test(css.toStri
 if (runtime.byteLength > MAX_RUNTIME_BYTES) {
   throw new Error("Conversation export runtime exceeds 2 MiB.");
 }
-const assetSetHash = crypto.createHash("sha256");
-assetSetHash.update("conversation-export-assets\0");
-for (const relativePath of [...assetFiles.keys()].sort()) {
-  assetSetHash.update(relativePath);
-  assetSetHash.update("\0");
-  assetSetHash.update(sha256Hex(assetFiles.get(relativePath)));
-  assetSetHash.update("\n");
-}
-const assetSet = assetSetHash.digest("hex");
-const publicAssetSetPath = `/assets/conversation-export/${assetSet}`;
-const assetOutputRoot = path.join(outputRoot, "assets", assetSet);
-
-fs.rmSync(outputRoot, { recursive: true, force: true });
-for (const [relativePath, content] of assetFiles) {
-  const outputPath = path.join(assetOutputRoot, ...relativePath.split("/"));
-  fs.mkdirSync(path.dirname(outputPath), { recursive: true });
-  fs.writeFileSync(outputPath, content);
-}
+const assetSetMarker = "__CONVERSATION_EXPORT_ASSET_SET__";
+const publicAssetSetPath = `/assets/conversation-export/${assetSetMarker}`;
 
 const runtimeIntegrity = sha384Integrity(runtime);
 const cssIntegrity = sha384Integrity(css);
@@ -128,7 +97,6 @@ const sprite = fs.readFileSync(path.join(repoRoot, "src/shared/icons/material/sp
   .replace("<svg ", '<svg id="material-icon-sprite" style="display:none" ');
 const replacements = new Map([
   ["__CONVERSATION_EXPORT_ICON_SPRITE__", sprite],
-  ["__CONVERSATION_EXPORT_ASSET_SET__", assetSet],
   ["__CONVERSATION_EXPORT_CSS_URL__", `${ASSET_ORIGIN_MARKER}${publicAssetSetPath}/runtime.css`],
   ["__CONVERSATION_EXPORT_CSS_INTEGRITY__", cssIntegrity],
   ["__CONVERSATION_EXPORT_RUNTIME_URL__", `${ASSET_ORIGIN_MARKER}${publicAssetSetPath}/runtime.js`],
@@ -145,10 +113,19 @@ if (html.indexOf(LOCAL_BRAND_ID_MARKER) < 0 ||
 if (Buffer.byteLength(html) > MAX_TEMPLATE_BYTES) {
   throw new Error("Conversation export template exceeds 256 KiB.");
 }
+const assetSet = packageHash(html, assetFiles);
+html = replaceAssetSet(html, assetSetMarker, assetSet);
+const assetOutputRoot = path.join(outputRoot, "assets", assetSet);
+fs.rmSync(outputRoot, { recursive: true, force: true });
+for (const [relativePath, content] of assetFiles) {
+  const outputPath = path.join(assetOutputRoot, ...relativePath.split("/"));
+  fs.mkdirSync(path.dirname(outputPath), { recursive: true });
+  fs.writeFileSync(outputPath, content);
+}
 fs.writeFileSync(templatePath, html);
 
 const files = [...assetFiles.entries()]
-  .sort(([left], [right]) => left.localeCompare(right))
+  .sort(([left], [right]) => left < right ? -1 : left > right ? 1 : 0)
   .map(([relativePath, content]) => ({
     path: relativePath,
     bytes: content.byteLength,
@@ -161,6 +138,7 @@ fs.writeFileSync(
   `${JSON.stringify({
     profile: "conversation-export-assets",
     assetSet,
+    build,
     files,
   }, null, 2)}\n`,
 );

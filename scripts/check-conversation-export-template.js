@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 const { checkExportModules } = require("./conversation-export-boundary");
+const { validatePackage } = require("./conversation-export-package");
 const crypto = require("node:crypto");
 const fs = require("node:fs");
 const path = require("node:path");
@@ -11,6 +12,7 @@ const templatePath = path.join(exportRoot, "conversation.template.html");
 const manifestPath = path.join(exportRoot, "conversation-assets.json");
 const html = fs.readFileSync(templatePath, "utf8");
 const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+validatePackage(exportRoot);
 const marker = "__CONVERSATION_EXPORT_SNAPSHOT_JSON_V1__";
 const assetOriginMarker =
   "__CONVERSATION_EXPORT_ASSET_ORIGIN__";
@@ -50,7 +52,7 @@ assert(
     && /^[a-f0-9]{64}$/u.test(manifest.assetSet)
     && Array.isArray(manifest.files)
     && JSON.stringify(Object.keys(manifest).sort())
-      === JSON.stringify(["assetSet", "files", "profile"]),
+      === JSON.stringify(["assetSet", "build", "files", "profile"]),
   "Conversation export asset manifest is invalid.",
 );
 const publicAssetSetPath = `/assets/conversation-export/${manifest.assetSet}`;
@@ -78,6 +80,18 @@ for (const file of manifest.files) {
   if (/\.js$/iu.test(file.path)) {
     assert(!/desktop:service-webview:action|agent:insert-workpanel-review-draft|SET_TIMELINE_NODE/u.test(content.toString("utf8")),
       `Conversation export asset ${file.path} contains an application runtime.`);
+  }
+  if (/\.css$/iu.test(file.path)) {
+    const base = `https://share.example.test${publicAssetSetPath}/`;
+    const css = content.toString("utf8");
+    assert(!/@import\b/iu.test(css), `Conversation export CSS ${file.path} must bundle imported styles.`);
+    for (const match of css.matchAll(/url\(\s*(?:"([^"]*)"|'([^']*)'|([^\s)]+))\s*\)/giu)) {
+      const value = match[1] ?? match[2] ?? match[3];
+      if (/^(?:data:|#)/iu.test(value)) continue;
+      const resolved = new URL(value, base + file.path).href;
+      assert(resolved.startsWith(base) && manifestFiles.includes(resolved.slice(base.length).split(/[?#]/u)[0]),
+        `Conversation export CSS ${file.path} references a resource outside its immutable asset set: ${value}`);
+    }
   }
 }
 
@@ -205,43 +219,5 @@ checkExportModules(repoRoot, graph.modules);
 assert(JSON.stringify(graph.assets) === JSON.stringify(manifestFiles), "Export assets differ from the audited webpack output.");
 assert(manifestFiles.includes("html-preview-bootstrap.js"), "HTML bootstrap must belong to the immutable asset set.");
 assert(fs.statSync(path.join(assetRoot, "runtime.js")).size <= 2 * 1024 * 1024, "Export runtime exceeds 2 MiB.");
-
-const configuredTunnelRoot = String(process.env.CONVERSATION_EXPORT_TUNNEL_ROOT || "").trim();
-const tunnelRoot = configuredTunnelRoot
-  ? path.resolve(configuredTunnelRoot)
-  : path.resolve(repoRoot, "../tunnel-hub-server/internal/shareassets");
-const tunnelFilesRoot = path.join(tunnelRoot, "files");
-const tunnelAssetRoot = path.join(tunnelFilesRoot, manifest.assetSet);
-if (configuredTunnelRoot || fs.existsSync(tunnelFilesRoot)) {
-  const publishedSets = fs.readdirSync(tunnelFilesRoot, { withFileTypes: true })
-    .filter((entry) => entry.isDirectory())
-    .map((entry) => entry.name)
-    .sort();
-  assert(
-    publishedSets.includes(manifest.assetSet),
-    "Tunnel must contain the current conversation export asset set.",
-  );
-  assert(fs.existsSync(tunnelAssetRoot), "Tunnel conversation asset set is missing.");
-  for (const relativePath of manifestFiles) {
-    assert(
-      fs.readFileSync(path.join(assetRoot, ...relativePath.split("/"))).equals(
-        fs.readFileSync(path.join(tunnelAssetRoot, ...relativePath.split("/"))),
-      ),
-      `Tunnel conversation asset ${relativePath} is out of sync.`,
-    );
-  }
-  assert(
-    fs.readFileSync(templatePath).equals(
-      fs.readFileSync(path.join(tunnelRoot, "conversation.template.html")),
-    ),
-    "Tunnel conversation export template is out of sync.",
-  );
-  assert(
-    fs.readFileSync(manifestPath).equals(
-      fs.readFileSync(path.join(tunnelRoot, "conversation-assets.json")),
-    ),
-    "Tunnel conversation export manifest is out of sync.",
-  );
-}
 
 console.log("Conversation export template and immutable assets are valid.");

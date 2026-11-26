@@ -1,5 +1,5 @@
 /** @jest-environment jsdom */
-import { mapMediaSrcset, prepareShareHtml } from "./shareHtmlDocument";
+import { mapMediaSrcset, prepareShareHtml, prepareInlineShareHtml } from "./shareHtmlDocument";
 
 it("replaces only direct mapped media while retaining document scripts, styles, attributes and srcset descriptors", () => {
   const html = prepareShareHtml({
@@ -28,4 +28,17 @@ it("clears unbound local paths and leaves HTTPS/data media without scanning CSS 
   expect(html).toContain('background:url(local.png)');
   expect(create).not.toHaveBeenCalled();
   expect(mapMediaSrcset('data:image/png;base64,AA== 1x, x.png 2x', (url) => url)).toBe('data:image/png;base64,AA== 1x, x.png 2x');
+});
+
+
+it("isolates inline source while retaining CSS animation, SVG, controls and original text", () => {
+  const source = `<!doctype html><html><head><style>@keyframes shine { to { opacity: .5 } } nav{height:58px;animation:shine 2s infinite}</style><script>window.bad=1</script><meta http-equiv="refresh" content="0;url=https://bad.test"><base href="https://bad.test"></head><body onload="bad()"><nav><input placeholder="搜索"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/></svg><a href="https://bad.test" target="_top">link</a><a href="#anchor">local</a></nav><iframe srcdoc="bad"></iframe><form action="https://bad.test"><button formaction="https://bad.test">go</button></form></body></html>`;
+  const doc = prepareInlineShareHtml(source);
+  expect(doc.querySelector("style")?.textContent).toContain("@keyframes shine");
+  expect(doc.querySelector("svg circle")).not.toBeNull();
+  expect(doc.querySelector("input")?.getAttribute("placeholder")).toBe("搜索");
+  expect(doc.querySelector("script,base,iframe,form,[onload],[formaction],[target],meta[http-equiv]")).toBeNull();
+  expect(doc.querySelector("a")?.getAttribute("href")).toBeNull();
+  expect(doc.querySelector('a[href="#anchor"]')).not.toBeNull();
+  expect(source).toContain("window.bad=1");
 });

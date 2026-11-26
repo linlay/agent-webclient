@@ -18,6 +18,7 @@ const files: SnapshotAttachmentV1[] = [
 const sharePath = "/share/share-1";
 let host: HTMLDivElement;
 let root: Root;
+let versionMeta: HTMLMetaElement;
 const button = (name: string) => host.querySelector<HTMLButtonElement>(`button[aria-label="${name}"]`)!;
 const click = (name: string) => act(() => button(name).click());
 const fileButton = () => host.querySelector<HTMLButtonElement>('button[aria-haspopup="menu"]')!;
@@ -28,13 +29,17 @@ const selectFile = (id: string) => {
 };
 
 beforeEach(() => {
+  versionMeta = document.createElement("meta");
+  versionMeta.name = "conversation-export-asset-set";
+  versionMeta.content = "a".repeat(64);
+  document.head.append(versionMeta);
   jest.mocked(copyWebText).mockReset().mockResolvedValue();
   window.history.replaceState({}, "", sharePath);
   host = document.createElement("div");
   document.body.append(host);
   root = createRoot(host);
 });
-afterEach(() => { act(() => root.unmount()); host.remove(); });
+afterEach(() => { act(() => root.unmount()); host.remove(); versionMeta.remove(); });
 
 function Viewer({ attachments = files, canReshare = true }: { attachments?: SnapshotAttachmentV1[]; canReshare?: boolean }) {
   const [id, setId] = React.useState(attachments[0].id);

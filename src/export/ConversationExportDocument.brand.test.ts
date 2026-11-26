@@ -8,6 +8,14 @@ import { ConversationExportDocument } from "./ConversationExportDocument";
 Object.assign(globalThis, { TextEncoder: require("util").TextEncoder });
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
 const { renderToStaticMarkup } = require("react-dom/server") as typeof import("react-dom/server");
+let versionMeta: HTMLMetaElement;
+beforeEach(() => {
+  versionMeta = document.createElement("meta");
+  versionMeta.name = "conversation-export-asset-set";
+  versionMeta.content = "a".repeat(64);
+  document.head.append(versionMeta);
+});
+afterEach(() => versionMeta.remove());
 
 jest.mock("./brand-icons/zenmind.svg", () => "zenmind-icon");
 jest.mock("./brand-icons/cutej.svg", () => "cutej-icon");
@@ -157,7 +165,7 @@ it("opens a canonical Markdown HTML link without a HEAD probe", () => {
     expect(link).toBeDefined();
     act(() => link!.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true })));
     expect(host.querySelector("iframe")?.getAttribute("src"))
-      .toBe("/share/share-1/attachments/0123456789abcdef01234567/preview?embed=1");
+      .toBe(`/share/share-1/attachments/0123456789abcdef01234567/preview?embed=1&assetSet=${versionMeta.content}`);
     expect(fetchSpy).not.toHaveBeenCalled();
   } finally {
     act(() => root.unmount());

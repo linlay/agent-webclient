@@ -1,10 +1,12 @@
 #!/usr/bin/env node
 
+const { validatePackage } = require("./conversation-export-package");
 const fs = require("node:fs");
 const path = require("node:path");
 
 const repoRoot = path.resolve(__dirname, "..");
 const exportRoot = path.join(repoRoot, "dist/export");
+validatePackage(exportRoot);
 const manifestPath = path.join(exportRoot, "conversation-assets.json");
 const templatePath = path.join(exportRoot, "conversation.template.html");
 const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
@@ -46,7 +48,7 @@ if (!fs.statSync(assetSource, { throwIfNoEntry: false })?.isDirectory()) {
   throw new Error("Build the conversation export asset set first.");
 }
 
-if (checkOnly) {
+if (checkOnly || fs.existsSync(tunnelAssetRoot)) {
   const publishedSets = fs
     .readdirSync(tunnelFilesRoot, { withFileTypes: true })
     .filter((entry) => entry.isDirectory())
@@ -69,6 +71,9 @@ if (checkOnly) {
       `Tunnel conversation export asset is out of sync: ${relativePath}`,
     );
   }
+}
+
+if (checkOnly) {
   assertSameFile(
     manifestPath,
     tunnelManifestPath,
@@ -81,8 +86,9 @@ if (checkOnly) {
   );
 } else {
   fs.mkdirSync(tunnelFilesRoot, { recursive: true });
-  fs.rmSync(tunnelAssetRoot, { recursive: true, force: true });
-  fs.cpSync(assetSource, tunnelAssetRoot, { recursive: true });
+  if (!fs.existsSync(tunnelAssetRoot)) {
+    fs.cpSync(assetSource, tunnelAssetRoot, { recursive: true, errorOnExist: true, force: false });
+  }
   fs.copyFileSync(manifestPath, tunnelManifestPath);
   fs.copyFileSync(templatePath, tunnelTemplatePath);
 }
