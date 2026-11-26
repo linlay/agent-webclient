@@ -63,41 +63,17 @@ describe('normalizeTimelineAttachments', () => {
     ]);
   });
 
-  it('keeps chat and site references distinct by type and id', () => {
-    expect(
-      normalizeTimelineAttachments([
-        {
-          type: 'chat',
-          id: 'chat_1',
-          name: 'Architecture discussion',
-          meta: { agentKey: 'coder' },
-        },
-        {
-          type: 'site',
-          id: 'chat_1',
-          name: 'Architecture preview',
-          url: 'https://example.com',
-          meta: { kind: 'website' },
-        },
-        {
-          type: 'chat',
-          id: 'chat_1',
-          name: 'Latest architecture discussion',
-        },
-      ]),
-    ).toEqual([
-      {
-        id: 'chat_1',
-        type: 'site',
-        name: 'Architecture preview',
-        url: 'https://example.com',
-        meta: { kind: 'website' },
-      },
-      {
-        id: 'chat_1',
-        type: 'chat',
-        name: 'Latest architecture discussion',
-      },
+  it('displays URL references as addresses and ignores file metadata', () => {
+    const url = 'https://example.com/api/resource?file=a.png#one';
+    const other = 'https://example.com/api/resource?file=a.png#two';
+    expect(normalizeTimelineAttachments([
+      { type: 'url', url, name: 'a.png', mimeType: 'image/png' },
+      { type: 'url', url },
+      { type: 'url', url: other },
+      { type: 'url', url: 'javascript:alert(1)' },
+    ])).toEqual([
+      { type: 'url', name: url, url },
+      { type: 'url', name: other, url: other },
     ]);
   });
 });

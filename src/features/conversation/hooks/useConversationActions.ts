@@ -1,5 +1,5 @@
 import { normalizeEventDetailLevel, type EventDetailLevel } from "@/shared/data/eventDetailLevel";
-import { queryReferences } from "@/shared/contracts/references";
+import { hasUrlReference, queryReferences } from "@/shared/contracts/references";
 import { resolveChatModel } from "@/features/runs/lib/modelSelection";
 import { useCallback, useEffect, useRef } from "react";
 import { flushSync } from "react-dom";
@@ -471,7 +471,10 @@ export function useConversationActions() {
         focusComposerOnComplete: detail.focusComposerOnComplete,
       });
       if (detail.composerDraft !== undefined) {
-        dispatch({ type: "SET_COMPOSER_DRAFT", draft: detail.composerDraft });
+        dispatch({
+          type: "SET_COMPOSER_DRAFT", draft: detail.composerDraft,
+          literal: hasUrlReference(detail.references ?? []),
+        });
       }
       if (detail.references !== undefined) {
         window.dispatchEvent(new CustomEvent("agent:clear-composer-attachments"));

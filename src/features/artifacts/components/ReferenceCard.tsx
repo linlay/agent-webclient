@@ -35,11 +35,11 @@ export const ReferenceCard: React.FC<ReferenceCardProps> = ({
   openTarget,
 }) => {
   const { t } = useI18n();
-  const type = reference.type || "site";
+  const type = reference.type || "url";
   const subtitle =
     type === "chat"
       ? t("composer.reference.kind.chat")
-      : type === "skill" ? t("agents.interaction.skills") : type === "kbase" ? t("kbase.title") : t("composer.reference.kind.site");
+      : type === "skill" ? t("agents.interaction.skills") : type === "kbase" ? t("kbase.title") : t("composer.reference.kind.url");
   const skillId = type === "skill" ? String(reference.id || "").trim() : "";
   const canOpenSkill = Boolean(skillId && openTarget);
   const semanticClasses = [

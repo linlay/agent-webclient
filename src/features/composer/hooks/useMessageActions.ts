@@ -5,7 +5,7 @@ import { acceptUserOutbox, isUndeliveredMailStatus, putUserOutbox, updateUserOut
 import type { SendUserMessageRequest } from "@/shared/data/api/dto/mailbox";
 import { isDesktopAppMode } from "@/shared/utils/routing";
 import { shouldCreatePrimaryChat } from "@/features/chats/lib/primaryChatIntent";
-import { referenceIds, queryReferences } from "@/shared/contracts/references";
+import { hasUrlReference, referenceIds, queryReferences } from "@/shared/contracts/references";
 import { loadKBaseOptions, unavailableKbaseIds } from "@/features/kbases/lib/kbaseOptions";
 import { MAX_KBASE_REFERENCES } from "@/features/kbases/lib/kbaseSelection";
 import { t } from "@/shared/i18n";
@@ -63,6 +63,7 @@ import { notifySelectedTextReferencesAccepted } from "@/features/selection/lib/s
 
 interface SendMessageEventDetail {
   submissionRequestId?: string;
+  literalDraft?: boolean;
   planningMode?: boolean;
   message?: unknown;
   references?: unknown;
@@ -297,10 +298,13 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
       skillReferenceAgentKey = "",
       submissionRequestId = "",
       planningModeOverride: boolean | undefined = undefined,
+      literalDraft = false,
     ) => {
       const submissionSession = getDataSessionRevision();
       const rawMessage = String(inputMessage ?? "").trim();
       const normalizedReferences = queryReferences(references);
+      const includesUrl = hasUrlReference(normalizedReferences);
+      if (includesUrl && stateRef.current.chatId && !readPendingAgentChatRoute()) return;
       // Keep display metadata before queryReferences strips resource names for the wire payload.
       const referenceAttachments = normalizeTimelineAttachments(references);
       const timelineAttachments = referenceAttachments.length ? referenceAttachments : attachments;
@@ -378,7 +382,7 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
       /* Parse @mention */
       const mentionAgents = resolveMentionCandidatesFromState(stateRef.current);
       const mentionEnabled =
-        Array.isArray(mentionAgents) && mentionAgents.length > 0;
+        !literalDraft && !includesUrl && mentionAgents.length > 0;
       const mention = mentionEnabled
         ? parseLeadingAgentMention(rawMessage, mentionAgents)
         : {
@@ -469,6 +473,7 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
       const bot = String(selectedAgent?.mode || "").toUpperCase() === "BOT";
       // A leading @mention can change the target Agent, and with it the entry.
       mailboxSend = mailboxMessage && usesMailboxSend(selectedAgent?.mode);
+      if (includesUrl && bot) return;
       const botMain = bot && (isNewChatQuery || selectedAgent?.primaryChat?.chatId === chatId || stateRef.current.chats.some(item => item.chatId === chatId && item.primary));
       if (bot) planningMode = false;
       if (botMain) model = undefined;
@@ -1011,6 +1016,7 @@ export function useMessageActions(options: { onAgentEvent: AgentEventSink }) {
           skillReferenceAgentKey,
           detail.submissionRequestId,
           typeof detail.planningMode === "boolean" ? detail.planningMode : undefined,
+          detail.literalDraft === true,
         ).finally(() => {
           if (detail.submissionRequestId) dispatch({ type: "SETTLE_COMPOSER_SUBMISSION", requestId: detail.submissionRequestId, accepted: false });
         });

@@ -33,7 +33,7 @@ export interface ComposerAttachment {
 }
 
 export interface ComposerContextReferenceInput {
-	type: "chat" | "site" | "skill" | "kbase";
+	type: "chat" | "skill" | "kbase";
 	id: string;
 	name: string;
 	url?: string;
@@ -103,8 +103,8 @@ export function getComposerAttachmentSubtitle(
 	if (attachment.type === "chat") {
 		return t("composer.reference.kind.chat");
 	}
-	if (attachment.type === "site") {
-		return t("composer.reference.kind.site");
+	if (attachment.type === "url") {
+		return t("composer.reference.kind.url");
 	}
 	if (attachment.status === "error") {
 		return attachment.error || t("attachments.error.uploadFailed");

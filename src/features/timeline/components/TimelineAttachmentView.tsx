@@ -15,7 +15,7 @@ export function TimelineAttachmentView({ attachment, options, surfaceContext, op
   surfaceContext: NonNullable<TimelineInteractionValue["surfaceContext"]>;
 }) {
   const { generatedImage, skillIcon, ...display } = options;
-  if (["chat", "site", "skill", "kbase"].includes(attachment.type ?? "")) {
+  if (["chat", "url", "skill", "kbase"].includes(attachment.type ?? "")) {
     return <ReferenceCard reference={attachment} variant="timeline" openTarget={openTarget}
       skillIcon={attachment.type === "skill" ? <SkillIcon icon={skillIcon} size={20} glyphSize={20} fallback="bolt" /> : undefined} />;
   }

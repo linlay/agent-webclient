@@ -1,3 +1,4 @@
+import { hasUrlReference } from "@/shared/contracts/references";
 import { useEmbedComposer } from "../hooks/useEmbedComposer";
 import { usesMailboxSend } from "@/features/composer/lib/messageEntry";
 import { locateSelectedTextReference } from "@/shared/data/desktop/selectedTextLocate";
@@ -250,6 +251,8 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     },
     state,
   });
+  const includesUrlReference = hasUrlReference(sendReferences);
+  const literalDraft = includesUrlReference || (!state.chatId && state.literalNewChatDraft);
   const fileDropReceiver = { enabled: fileDropAllowed, resetKey: `${state.chatId}:${state.workerSelectionKey}`, onDrop: handleFileDrop };
   const stageFileDragActive = useConversationFileDropReceiver(fileDropReceiver);
   const fileDrop = useFileDropTarget(fileDropReceiver);
@@ -280,7 +283,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     })),
     [attachments],
   );
-  const kbaseTargetAgentKey = parseLeadingAgentMention(inputValue, resolveMentionCandidatesFromState(state)).mentionAgentKey || currentAgentKey;
+  const kbaseTargetAgentKey = (!literalDraft && parseLeadingAgentMention(inputValue, resolveMentionCandidatesFromState(state)).mentionAgentKey) || currentAgentKey;
   const kbaseCatalog = useKBaseOptions(kbaseTargetAgentKey, kbaseSelection.length > 0 || kbaseTargetAgentKey !== currentAgentKey);
   const updateKbaseReferences = (libraries: import("@/features/kbases/lib/kbasesState").SelectedKBase[]) => setContextReferences("kbase", libraries.map(item => ({type:"kbase", id:item.id, name:item.name})));
   const invalidKbaseIds = unavailableKbaseIds(kbaseCatalog.data, kbaseSelection.map(item => item.id));
@@ -563,7 +566,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     commandOverlayOpen: isAnyOverlayOpen,
     composerPillRef,
     composerRef,
-    inputValue,
+    inputValue: literalDraft ? "" : inputValue,
     isAwaitingActive,
     isFrontendActive,
     isVoiceMode,
@@ -967,6 +970,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     nativeShare.busy || nativeShare.blocked ||
     hasInvalidSelectedSkills ||
     chatTransitionBlocking ||
+    (includesUrlReference && Boolean(state.chatId || isMainChatRunning || !inputValue.trim())) ||
     // Only a BOT Chat accepts a new message while a question or tool waits.
     (!usesMailboxSend(currentWorker?.type === "agent" ? currentWorker.raw?.mode : undefined) && (isFrontendActive || isAwaitingActive)) ||
     hasUploadingAttachments ||
@@ -989,7 +993,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     isComposingRef,
     isVoiceMode,
     mentionActiveIndex: state.mentionActiveIndex,
-    mentionOpen: state.mentionOpen,
+    mentionOpen: !literalDraft && state.mentionOpen,
     mentionSuggestionsLength: state.mentionSuggestions.length,
     selectMentionByIndex,
     selectSlashItem,
@@ -1129,7 +1133,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
           hidden
           onChange={handleFileSelection}
         />
-        {state.mentionOpen && <MentionSuggest />}
+        {!literalDraft && state.mentionOpen && <MentionSuggest />}
         {shouldShowSteerBar && (
           <SteerBar
             pendingSteers={
@@ -1261,13 +1265,14 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
                     setInputValue(next);
                     setSlashDismissed(false);
                     if (
+                      literalDraft ||
                       slashItems.length > 0 ||
                       next.startsWith("/") ||
                       next.startsWith("#")
                     ) {
                       closeMention();
                     }
-                    if (!next.startsWith("/") && !next.startsWith("#")) {
+                    if (!literalDraft && !next.startsWith("/") && !next.startsWith("#")) {
                       updateMentionSuggestions(next);
                     }
                   }}

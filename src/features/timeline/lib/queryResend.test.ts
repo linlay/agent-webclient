@@ -12,3 +12,9 @@ it("keeps file pointers bound to their source Chat when resending to a new Chat"
  expect(next).toEqual([{type:"file",url:"/api/resource?file=source%2Freport.pdf",name:"report.pdf"},{type:"chat",id:"other"},{type:"file",url:"@workspace/docs.md"}]);
  expect(refs[0].url).toBe("@chat/report.pdf");
 });
+
+it("keeps an external URL intact when resending a first Query in a new Chat", () => {
+ const url = "https://example.com/api/resource?file=source%2Freport.pdf#summary";
+ expect(referencesForNewChat([{type: "url", url, name: "Address", id: "url:seed"}], "source"))
+  .toEqual([{type: "url", url}]);
+});

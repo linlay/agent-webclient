@@ -39,6 +39,7 @@ import {
   prepareDesktopNewChat,
 } from "@/shared/data/desktop/desktopNewChat";
 import { initializeDesktopWorkspaceArrowKeys } from "@/shared/data/desktop/desktopWorkspaceArrowKeys";
+import { readReferenceUrl } from "@/shared/contracts/references";
 const presentationClasses = bindCssModuleClasses({ ...appPresentation });
 
 
@@ -50,6 +51,7 @@ export function parseNewChatTimestamp(rawValue: unknown): string {
 export type ComposerPrefillPayload = {
   draft: string;
   skillId?: string;
+  url?: string;
 };
 
 export function parseComposerPrefillPayload(
@@ -59,16 +61,19 @@ export function parseComposerPrefillPayload(
   const rawDraft = String(searchParams.get("composerDraft") || "");
   const draft = rawDraft.trim();
   const skillId = String(searchParams.get("composerSkill") || "").trim();
+  const url = readReferenceUrl(searchParams.get("composerUrl"));
   if (
     (rawDraft !== "" && !draft) ||
     draft.length > 2048 ||
     searchParams.getAll("composerSkill").length > 1 ||
+    searchParams.getAll("composerUrl").length > 1 ||
+    (searchParams.has("composerUrl") && (!url || searchParams.has("composerSkill"))) ||
     (searchParams.has("composerSkill") &&
       (!draft || !/^[a-z][a-z0-9]*(?:-[a-z0-9]+)*(?:\/[a-z][a-z0-9]*(?:-[a-z0-9]+)*)?$/u.test(skillId)))
   ) {
     return null;
   }
-  return { draft, ...(skillId ? { skillId } : {}) };
+  return { draft, ...(skillId ? { skillId } : {}), ...(url ? { url } : {}) };
 }
 
 let lastCreatedNewChatTimestamp = 0;
@@ -360,8 +365,9 @@ const AgentChatShellContent: React.FC = () => {
   );
   const desktopNewChat = !chatId && Boolean(routeNewChatTimestamp) && isDesktopAppMode();
   const composerPrefillPayload = useMemo(
-    () => parseComposerPrefillPayload(searchParams),
-    [searchParams],
+    () => searchParams.has("composerUrl") && (!desktopNewChat || searchParams.getAll("newChat").length !== 1)
+      ? null : parseComposerPrefillPayload(searchParams),
+    [desktopNewChat, searchParams],
   );
   const routeAgent = useMemo(
     () =>
@@ -803,12 +809,11 @@ const AgentChatShellContent: React.FC = () => {
       ...(composerPrefillPayload
         ? {
             composerDraft: composerPrefillPayload.draft,
-            references: composerPrefillPayload.skillId
-              ? [{
-                  id: composerPrefillPayload.skillId,
-                  type: "skill",
-                }]
-              : [],
+            references: composerPrefillPayload.url
+              ? [{ type: "url", url: composerPrefillPayload.url }]
+              : composerPrefillPayload.skillId
+                ? [{ id: composerPrefillPayload.skillId, type: "skill" }]
+                : [],
           }
         : {}),
     };
@@ -823,6 +828,7 @@ const AgentChatShellContent: React.FC = () => {
       const nextSearchParams = new URLSearchParams(searchParams);
       nextSearchParams.delete("composerDraft");
       nextSearchParams.delete("composerSkill");
+      nextSearchParams.delete("composerUrl");
       const nextRoute = createExplicitNewChatRoute(
         agentKey,
         nextSearchParams,

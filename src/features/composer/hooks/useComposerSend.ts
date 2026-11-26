@@ -4,7 +4,7 @@ import { currentChatUsesMailboxSend } from "@/features/composer/lib/messageEntry
 import type { PendingSteer } from "@/features/composer/lib/composerState";
 import { isAgentExecutionBlocked } from "@/features/agents/lib/agentAvailability";
 import { useCallback, useEffect, useRef } from "react";
-import { referenceIds } from "@/shared/contracts/references";
+import { hasUrlReference, referenceIds } from "@/shared/contracts/references";
 import type { Dispatch, MutableRefObject, RefObject, SetStateAction } from "react";
 import { App as AntdApp } from "antd";
 import type { TextAreaRef } from "antd/es/input/TextArea";
@@ -546,7 +546,10 @@ export function useComposerSend(input: UseComposerSendInput) {
       stopSpeechInput();
     }
 
-    const selectedSlashItem = !directSteer && showSlashPalette ? selectSlashItem() : null;
+    const currentState = stateRef.current || state;
+    const includesUrl = hasUrlReference(sendReferences);
+    const literalDraft = includesUrl || (!currentState.chatId && currentState.literalNewChatDraft);
+    const selectedSlashItem = !literalDraft && !directSteer && showSlashPalette ? selectSlashItem() : null;
     if (selectedSlashItem) {
       if (selectedSlashItem.kind === "command") {
         void executeSlashCommand(selectedSlashItem.id);
@@ -556,16 +559,19 @@ export function useComposerSend(input: UseComposerSendInput) {
       return;
     }
 
-    if (isEmbedMode() && inputValue.trim().startsWith("/")) { void messageApi.warning(t("embed.commandUnavailable")); return; }
+    if (!literalDraft && isEmbedMode() && inputValue.trim().startsWith("/")) { void messageApi.warning(t("embed.commandUnavailable")); return; }
     const message = isEmbedMode() ? withEmbedContext(inputValue.trim()) : inputValue.trim();
     if (!hasSendableQuery(message, sendReferences, hasQueryHistory(stateRef.current), canContinueChat(stateRef.current)) && !hasSendableContent(message, sendReferences, true)) return;
     if (hasUploadingAttachments || hasFailedAttachments) return;
     if (pendingSendRef.current && pendingSentMessageRef.current === message && pendingSentReferencesRef.current === referenceSignature) {
       return;
     }
-    const currentState = stateRef.current || state;
     const activeChatId = String(currentState.chatId || "").trim();
-    const compactAction = parseCompactSlashInput(message);
+    if (includesUrl && (activeChatId || !message)) {
+      if (activeChatId) void messageApi.warning(t("composer.reference.url.newChatOnly"));
+      return;
+    }
+    const compactAction = literalDraft ? null : parseCompactSlashInput(message);
     if (compactAction !== null) {
       if (!activeChatId) {
         void messageApi.warning(t("contextCompact.noChat"));
@@ -582,7 +588,7 @@ export function useComposerSend(input: UseComposerSendInput) {
       }
       return;
     }
-    const detailAction = parseDetailSlashInput(message);
+    const detailAction = literalDraft ? null : parseDetailSlashInput(message);
     if (detailAction !== null) {
       if (detailAction === "unsupported" || !activeChatId || mainChatRunning
         || isSlashCommandDisabled("detail", executeSlashCommandInput.slashAvailability)) return;
@@ -592,7 +598,7 @@ export function useComposerSend(input: UseComposerSendInput) {
       showChatDetails();
       return;
     }
-    const btwMessage = parseBTWSlashInput(message);
+    const btwMessage = literalDraft ? null : parseBTWSlashInput(message);
     if (btwMessage !== null) {
       if (btwMessage && referenceIds(sendReferences, "kbase").length > 0) { void messageApi.warning(t("kbase.btwUnsupported")); return; }
       if (btwMessage && referenceIds(sendReferences, "skill").length > 0) {
@@ -607,6 +613,10 @@ export function useComposerSend(input: UseComposerSendInput) {
       activeQuerySessionRequestIdRef,
       querySessionsRef,
     );
+    if (mainRuntime.running && includesUrl) {
+      void messageApi.warning(t("composer.reference.url.newChatOnly"));
+      return;
+    }
     if (mainRuntime.running && (!currentChatUsesMailboxSend(currentState) || (!message && sendReferences.length === 0))) {
       const activeRunId = mainRuntime.runId || resolveCurrentRunId();
       if (!activeChatId || !activeRunId) {
@@ -661,13 +671,13 @@ export function useComposerSend(input: UseComposerSendInput) {
       return;
     }
     if (referenceIds(sendReferences, "skill").length > 0) {
-      const mention = parseLeadingAgentMention(
+      const mention = literalDraft ? null : parseLeadingAgentMention(
         message,
         resolveMentionCandidatesFromState(currentState),
       );
       const finalAgentKey =
         owner?.kind === "agent"
-          ? mention.mentionAgentKey || owner.agentKey
+          ? mention?.mentionAgentKey || owner.agentKey
           : "";
       if (
         !skillReferenceAgentKey ||
@@ -694,12 +704,14 @@ export function useComposerSend(input: UseComposerSendInput) {
       agentKey: owner?.kind === "agent" ? owner.agentKey : "", message,
       uploadChatId: !currentState.chatId ? attachmentChatId : undefined,
       schemaVersion: 2, references: [...sendReferences],
+      ...(literalDraft ? { literalNewChatDraft: true } : {}),
     } });
     window.dispatchEvent(
       new CustomEvent("agent:send-message", {
         detail: {
           message,
           submissionRequestId,
+          ...(literalDraft ? { literalDraft: true } : {}),
           chatId: pendingChatId || undefined,
           ...(owner?.kind === "agent" ? { agentKey: owner.agentKey } : {}),
 

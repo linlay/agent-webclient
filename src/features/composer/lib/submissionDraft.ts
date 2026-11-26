@@ -2,7 +2,10 @@ import { queryReferences } from "@/shared/contracts/references";
 import type { ComposerState, ComposerAction, SubmissionDraft } from "./composerState";
 function restore<S extends ComposerState & { chatId: string }>(state: S, draft: SubmissionDraft): S {
   return { ...state,
-    ...(!state.chatId ? { composerUploadChatId: draft.uploadChatId || state.composerUploadChatId } : {}),
+    ...(!state.chatId ? {
+      composerUploadChatId: draft.uploadChatId || state.composerUploadChatId,
+      literalNewChatDraft: Boolean(draft.literalNewChatDraft) || state.literalNewChatDraft,
+    } : {}),
     composerDraft: draft.message,
     composerDraftByChatId: { ...state.composerDraftByChatId, [state.chatId]: draft.message },
     composerReferences: draft.references,

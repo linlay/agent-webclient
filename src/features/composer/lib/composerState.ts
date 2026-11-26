@@ -45,6 +45,7 @@ export interface SubmissionDraft {
   references: unknown[];
   uploadChatId?: string;
   schemaVersion: 2;
+  literalNewChatDraft?: boolean;
   version: number;
 }
 
@@ -62,6 +63,7 @@ export interface ComposerState extends ComposerAccessState, ComposerModelState {
   mentionActiveIndex: number;
   composerDraft: string;
   composerDraftByChatId: Record<string, string>;
+  literalNewChatDraft: boolean;
   pendingSteers: Record<string, PendingSteer[]>;
   restoredSteerReferencesByChatId: Record<string, unknown[]>;
 }
@@ -90,7 +92,7 @@ export type ComposerAction =
   | { type: "SET_COMPOSER_MODEL"; target: ComposerAccessTarget; value: QueryModelOverride; initializeOnly?: boolean }
   | { type: "SET_COMPOSER_ACCESS_LEVEL"; target: ComposerAccessTarget; value: QueryAccessLevel | undefined; initializeOnly?: boolean }
   | { type: "SYNC_COMPOSER_ACCESS_LEVEL"; chatId: string; value: QueryAccessLevel; initializeOnly?: boolean }
-  | { type: "SET_COMPOSER_DRAFT"; draft: string }
+  | { type: "SET_COMPOSER_DRAFT"; draft: string; literal?: boolean }
   | ComposerSteerAction
   | ComposerInteractionAction;
 
@@ -110,6 +112,7 @@ export function createInitialComposerState(): ComposerState {
     mentionActiveIndex: 0,
     composerDraft: "",
     composerDraftByChatId: {},
+    literalNewChatDraft: false,
     pendingSteers: {},
     restoredSteerReferencesByChatId: {},
   };

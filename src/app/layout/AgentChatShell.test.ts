@@ -287,6 +287,19 @@ describe("AgentChatShell", () => {
     ))).toEqual({ draft: "Use meeting", skillId: "wecom/meeting" });
   });
 
+  it("validates a single HTTP(S) URL prefill without normalizing its address", () => {
+    const url = "https://example.com/docs?q=a%26b&author=O'Neil#intro";
+    expect(parseComposerPrefillPayload(new URLSearchParams({ composerDraft: "", composerUrl: url })))
+      .toEqual({ draft: "", url });
+    for (const invalid of ["https:///example.com", "https://@example.com", "file:///tmp/notes", "https://example.com/a b", "https://example.com/<path>"]) {
+      expect(parseComposerPrefillPayload(new URLSearchParams({ composerDraft: "Review", composerUrl: invalid })))
+        .toBeNull();
+    }
+    expect(parseComposerPrefillPayload(new URLSearchParams([
+      ["composerDraft", "Review"], ["composerUrl", url], ["composerUrl", url],
+    ]))).toBeNull();
+  });
+
   it("accepts a standalone composer draft without selecting a Skill", () => {
     expect(parseComposerPrefillPayload(new URLSearchParams(
       "composerDraft=Create+a+Skill",
@@ -818,6 +831,42 @@ describe("AgentChatShell", () => {
     expect(searchParams.get("composerDraft")).toBe(draft);
 
     useEffectSpy.mockRestore();
+  });
+
+  it("stages an external URL and editable prompt once without sending", () => {
+    const dispatchEvent = globalWithDom.window?.dispatchEvent as jest.Mock;
+    const url = "https://example.com/docs?q=a%26b&author=O'Neil#intro";
+    const draft = "/btw review this page";
+    const previousRuntimeConfig = globalThis.__AGENT_WEBCLIENT_RUNTIME_CONFIG__;
+    globalThis.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = { DESKTOP_APP: true };
+    const useEffectSpy = jest.spyOn(React, "useEffect").mockImplementation((effect) => {
+      effect();
+      effect();
+    });
+    useSearchParams.mockReturnValue([new URLSearchParams({
+      newChat: "1783680000000", composerDraft: draft, composerUrl: url,
+    })]);
+    useAppState.mockReturnValue({
+      ...createInitialState(),
+      currentAgent: { key: "demo-agent", name: "Demo Agent", role: "Worker", mode: "REACT", ...routeReadyModelSelection },
+      workerSelectionKey: "agent:demo-agent",
+    });
+    try {
+      renderToStaticMarkup(React.createElement(AgentChatShell));
+      expect(startNewConversation).toHaveBeenCalledTimes(1);
+      expect(startNewConversation).toHaveBeenCalledWith({
+        agentKey: "demo-agent", preserveWorkerContext: true, focusComposerOnComplete: true,
+        composerDraft: draft, references: [{ type: "url", url }],
+      });
+      expect(dispatchEvent).not.toHaveBeenCalledWith(
+        expect.objectContaining({ type: "agent:send-message" }),
+      );
+      expect(navigateMock).toHaveBeenCalledTimes(1);
+      expect(navigateMock.mock.calls[0][0]).not.toMatch(/composerDraft|composerUrl/);
+    } finally {
+      globalThis.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = previousRuntimeConfig;
+      useEffectSpy.mockRestore();
+    }
   });
 
   it("keeps user edits after the same one-shot draft effect runs again", () => {

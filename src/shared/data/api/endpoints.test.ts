@@ -38,10 +38,11 @@ describe("endpoint payload builders", () => {
   it("normalizes required skills while preserving references and business params", () => {
     expect(buildQueryPayload({requestId: "req_context", message: "Use the selected context", owner: { kind: "agent", agentKey: "demo-agent" }, params: { editingMode: true, topic: "guide" }, references: [...([
         { type: "chat", id: "chat_2", name: "Previous design" },
-        { type: "site", id: "website:docs", url: "https://example.com" },
+        { type: "url", url: "https://example.com", id: "url:seed", name: "Recorded address" },
+        { type: "url", url: "https://example.com" },
       ]), ...([" product-design ", "PRODUCT-DESIGN"] || []).map(id => ({type:"skill",id}))]})).toEqual({requestId: "req_context", message: "Use the selected context", agentKey: "demo-agent", params: { topic: "guide" }, references: [...([
         { type: "chat", id: "chat_2" },
-        { type: "site", id: "website:docs", url: "https://example.com" },
+        { type: "url", url: "https://example.com" },
       ]), ...(["product-design"] || []).map(id => ({type:"skill",id}))]});
   });
 

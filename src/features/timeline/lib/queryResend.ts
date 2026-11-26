@@ -9,7 +9,8 @@ export function referencesForNewChat(references: unknown[], sourceChatId: string
  return references.map(reference => {
   if (!reference || typeof reference !== "object") return reference;
   const ref = reference as Record<string,unknown>;
-  if (["skill","kbase","chat","selection","site"].includes(String(ref.type)) || typeof ref.url !== "string") return ref;
+  if (ref.type === "url") return {type: "url", url: ref.url};
+  if (["skill","kbase","chat","selection"].includes(String(ref.type)) || typeof ref.url !== "string") return ref;
   const raw = ref.url.trim();
   if (!raw || /^[a-z][a-z\d+.-]*:/i.test(raw) || raw.startsWith("/") || raw.startsWith("@workspace")) return ref;
   const relative = raw.startsWith("@chat/") ? raw.slice(6) : raw;

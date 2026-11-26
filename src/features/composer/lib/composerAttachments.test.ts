@@ -23,7 +23,7 @@ function fileNamed(name: string): File {
 }
 
 describe("composerAttachments", () => {
-	it("creates ready chat and site context attachments with canonical references", () => {
+	it("creates a ready chat context attachment with its canonical reference", () => {
 		expect(
 			createComposerContextAttachment({
 				type: "chat",
@@ -43,19 +43,6 @@ describe("composerAttachments", () => {
 					meta: { agentKey: "coder" },
 				},
 			],
-		});
-		expect(
-			createComposerContextAttachment({
-				type: "site",
-				id: "web_1",
-				name: "Preview",
-				url: "https://example.com",
-				meta: { kind: "website" },
-			}),
-		).toMatchObject({
-			id: "site:web_1",
-			type: "site",
-			resourceUrl: "https://example.com",
 		});
 	});
 

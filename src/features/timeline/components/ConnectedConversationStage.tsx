@@ -4,7 +4,7 @@ import { isDesktopAppMode } from "@/shared/utils/routing";
 import { useRunActivityTimeline } from "../hooks/useRunActivityTimeline";
 import { resolveRunActivityAppearance } from "../lib/runActivityAppearance";
 import { chatDetailLevel } from "@/features/chats/lib/chatDetailLevel";
-import { referenceIds } from "@/shared/contracts/references";
+import { hasUrlReference, referenceIds } from "@/shared/contracts/references";
 import { bindCssModuleClasses } from "@/shared/utils/cssModuleClasses";
 import timelinePresentation from "@/features/timeline/components/TimelinePresentation.module.css";
 import { useRunTransport } from "@/features/transport/hooks/useRealtimeTransport";
@@ -979,7 +979,7 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
 
   const handleResend = useCallback(
     (text: string, snapshot: import("../lib/queryResend").QueryResendSnapshot) => {
-      if (agentExecutionBlocked || isMainChatRunning || !text.trim()) return;
+      if (agentExecutionBlocked || isMainChatRunning || !text.trim() || hasUrlReference(snapshot.references)) return;
       window.dispatchEvent(
         new CustomEvent("agent:send-message", { detail: { message: text, ...snapshot } }),
       );
@@ -2161,6 +2161,7 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
     }
     const copyKey = `${item.key}:copy`;
     const copyStatus = actionStatus[copyKey] || t("timeline.toolPill.copy.action");
+    const newChatOnly = hasUrlReference(item.node.references || []);
     return <div className={TIMELINE_META_ROW_CLASS_NAME}>
       <div className={TIMELINE_META_ACTIONS_CLASS_NAME}>
         <UiButton className={TIMELINE_META_BUTTON_CLASS_NAME} variant="ghost" size="sm" iconOnly
@@ -2173,7 +2174,7 @@ export const ConnectedConversationStage: React.FC<ConversationStageProps> = ({
             ? handleResend(item.node.text || "", queryResendSnapshot(item.node))
             : handleResendInNewChat(item.node.text || "", queryResendSnapshot(item.node)),
           items: [
-            { key: "resend", icon: <MaterialIcon name="refresh" className="tw:!h-3.5 tw:!w-3.5 tw:!text-sm" />, label: t("timeline.query.resend") },
+            ...(!newChatOnly ? [{ key: "resend", icon: <MaterialIcon name="refresh" className="tw:!h-3.5 tw:!w-3.5 tw:!text-sm" />, label: t("timeline.query.resend") }] : []),
             { key: "resendInNewChat", icon: <MaterialIcon name="open_in_new" className="tw:!h-3.5 tw:!w-3.5 tw:!text-sm" />, label: t("timeline.query.resendInNewChat") },
           ],
         }}>

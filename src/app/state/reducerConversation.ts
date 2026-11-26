@@ -304,6 +304,9 @@ export function reduceConversationState(
 			return {
 				...state,
 				...updateComposerDraft(state, state.chatId, action.draft),
+				literalNewChatDraft: state.chatId
+					? state.literalNewChatDraft
+					: action.literal ?? (Boolean(action.draft) && state.literalNewChatDraft),
 			};
 		}
 		case "ENQUEUE_PENDING_STEER":

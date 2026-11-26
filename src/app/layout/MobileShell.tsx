@@ -32,7 +32,7 @@ export const MobileShell: React.FC = () => {
     const handleConversation = (event: Event) => {
       const detail = (event as CustomEvent).detail || {};
       const params = new URLSearchParams(conversationSearch.current);
-      for (const key of ["chatId", "agentKey", "newChat", "composerDraft", "composerSkill"]) params.delete(key);
+      for (const key of ["chatId", "agentKey", "newChat", "composerDraft", "composerSkill", "composerUrl"]) params.delete(key);
       if (event.type !== "agent:start-new-conversation" && event.type !== "agent:select-worker") {
         if (!detail.chatId) return;
         params.set("chatId", String(detail.chatId));
@@ -70,7 +70,7 @@ export const MobileShell: React.FC = () => {
     const key = `${agentKey}:${parseNewChatTimestamp(params.get("newChat"))}`;
     if (initialized.current === key) return;
     initialized.current = key;
-    const prefill = parseComposerPrefillPayload(params);
+    const prefill = params.has("composerUrl") ? null : parseComposerPrefillPayload(params);
     window.dispatchEvent(new CustomEvent("agent:start-new-conversation", {
       detail: {
         agentKey, preserveWorkerContext: true, focusComposerOnComplete: false,

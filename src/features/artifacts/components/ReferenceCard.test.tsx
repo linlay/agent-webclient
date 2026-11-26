@@ -30,7 +30,7 @@ it("keeps the skill-center default icon when no avatar url resolves", () => {
     <ReferenceCard reference={skillReference} variant="composer" />,
   );
   expect(html).toContain('data-reference-type="skill"');
-  expect(html).toContain("width:20px");
+  expect(html).toContain("font-size:20px");
   expect(html).toContain('data-material-icon="bolt"');
   expect(html).not.toContain('data-material-icon="skills"');
 });
@@ -55,7 +55,7 @@ it("offers skill opening only when its host supplies an action", () => {
   expect(hosted).toContain('role="button"');
 });
 
-it.each(["chat", "site", "skill", "kbase"])("uses the attachment card layout for %s references", (type) => {
+it.each(["chat", "url", "skill", "kbase"])("uses the attachment card layout for %s references", (type) => {
   const html = renderToStaticMarkup(<ReferenceCard
     reference={{ id: "reference-id", name: "资料.v2", type }}
     variant="composer" onRemove={() => undefined}
@@ -73,4 +73,19 @@ it.each(["chat", "site", "skill", "kbase"])("uses the attachment card layout for
   expect(html).toContain("attachment-card-remove");
   expect(html).toContain('class="attachment-card-name">资料.v2</span>');
   expect(html).not.toContain("attachment-card-extension");
+});
+
+it("renders a URL as passive text, including addresses resembling file resources", () => {
+  const url = "https://example.com/api/resource?file=a.png";
+  const openTarget = jest.fn();
+  const html = renderToStaticMarkup(<ReferenceCard
+    reference={{ name: url, type: "url", url }}
+    variant="timeline" openTarget={openTarget}
+  />);
+  expect(html).toContain(url);
+  expect(html).not.toContain("<img");
+  expect(html).not.toContain("<a ");
+  expect(html).not.toContain(`href="${url}"`);
+  expect(html).not.toContain('role="button"');
+  expect(openTarget).not.toHaveBeenCalled();
 });

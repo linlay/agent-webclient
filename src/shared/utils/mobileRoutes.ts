@@ -25,7 +25,7 @@ export function buildClientLayoutHref(
   agentKey?: string,
 ): string {
   const params = new URLSearchParams(search);
-  for (const key of ["chatId", "agentKey", "newChat", "composerDraft", "composerSkill"]) {
+  for (const key of ["chatId", "agentKey", "newChat", "composerDraft", "composerSkill", "composerUrl"]) {
     params.delete(key);
   }
   if (chatId) params.set("chatId", chatId);

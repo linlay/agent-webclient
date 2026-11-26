@@ -433,7 +433,7 @@ export const TimelineRow: React.FC<TimelineRowProps> = ({
                     displayMode: hasMultipleAttachments ? "file" : "auto",
                     subtitle: getTimelineAttachmentSubtitle(attachment, t, hasMultipleAttachments),
                     skillIcon: attachment.type === "skill" ? resolveSkillIconUrl(activeAgentSkills, String(attachment.id || attachment.name || "")) : undefined,
-                  }) ?? (["chat", "site", "skill", "kbase"].includes(attachment.type || "")
+                  }) ?? (["chat", "url", "skill", "kbase"].includes(attachment.type || "")
                     ? <ReferenceCard reference={attachment} variant="timeline" openTarget={interaction?.openTarget} />
                     : <span>{attachment.name}</span>)}
                 </React.Fragment>

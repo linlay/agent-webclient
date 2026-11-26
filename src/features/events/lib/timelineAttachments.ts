@@ -1,3 +1,4 @@
+import { readReferenceUrl } from "@/shared/contracts/references";
 import { readSelectedText, validAnnotationIndex } from "@/shared/contracts/selectedTextReference";
 import type { TimelineAttachment } from "@/features/timeline/lib/timelineState";
 
@@ -11,7 +12,12 @@ export function normalizeTimelineAttachments(items: unknown): TimelineAttachment
   }
 
   const attachments = items.reduce<TimelineAttachment[]>((acc, item) => {
-    if (!isObjectRecord(item)) {
+    if (!isObjectRecord(item) || item.type === "site") {
+      return acc;
+    }
+    if (item.type === "url") {
+      const url = readReferenceUrl(item.url);
+      if (url) acc.push({ type: "url", name: url, url });
       return acc;
     }
 

@@ -873,6 +873,32 @@ describe("required libraries through message actions", () => {
   await sending;
   expect([...stateRef.current.timelineNodes.values()].find(node => node.role === "user")?.attachments?.[0].name).toBe("研发知识");
  });
+ it("sends an attached URL in the first Query without interpreting a leading Agent mention", async () => {
+  const { actions } = harness();
+  const message = "@mentioned review this";
+  const url = "https://example.com/docs?section=a#intro";
+  await legacyQuery(actions, message, [{ type: "url", url, id: "url:seed", name: "Reference" }]);
+  expect(startQuery).toHaveBeenCalledWith(expect.objectContaining({
+    message,
+    owner: { kind: "agent", agentKey: "general" },
+    references: [{ type: "url", url }],
+  }));
+ });
+ it("keeps a prefilled mention literal after the URL has been removed", async () => {
+  const { actions } = harness();
+  const message = "@mentioned review this";
+  await legacyQuery(actions, message, [], [], {}, undefined, undefined, "", "general", undefined, "", "", undefined, true);
+  expect(startQuery).toHaveBeenCalledWith(expect.objectContaining({
+    message, owner: { kind: "agent", agentKey: "general" },
+  }));
+ });
+ it("does not send URL references as later Queries in a running or finished Chat", async () => {
+  const { stateRef, actions } = harness();
+  stateRef.current.chatId = "existing-chat";
+  stateRef.current.chats = [{ chatId: "existing-chat", agentKey: "general", lastRunId: "finished-run" }];
+  await legacyQuery(actions, "Inspect this", [{ type: "url", url: "https://example.com" }]);
+  expect(startQuery).not.toHaveBeenCalled();
+ });
  it("validates the actual leading mention target and freezes multi-library/plan query input", async () => {
   const {stateRef, actions} = harness();
   stateRef.current.planningMode = true;

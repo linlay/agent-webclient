@@ -38,7 +38,7 @@ export const ComposerAttachments: React.FC<ComposerAttachmentsProps> = ({
   return (
     <div className={COMPOSER_ATTACHMENTS_CLASS} aria-live="polite">
       {attachments.map((attachment) => (
-        ["chat","site","skill","kbase"].includes(attachment.type || "") ? (
+        ["chat","url","skill","kbase"].includes(attachment.type || "") ? (
           <ReferenceCard
             key={attachment.id}
             reference={{
