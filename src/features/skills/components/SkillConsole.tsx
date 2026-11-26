@@ -54,6 +54,7 @@ import { CodeEditor } from "@/shared/ui/CodeEditor";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
 import { RowMoreMenu } from "@/shared/ui/RowMoreMenu";
+import { useOverflowTitle } from "@/shared/ui/useOverflowTitle";
 import { useAdminSkillCatalog } from "@/features/skills/hooks/useAdminSkillCatalog";
 import { SkillKindFilters } from "@/features/skills/components/SkillKindFilters";
 import { orderSkillCatalogItems, type SkillKindFilter } from "@/features/skills/lib/skillCatalogView";
@@ -276,6 +277,20 @@ export function skillVersionLabel(version?: string): string {
   if (!trimmed) return "";
   return `v${trimmed}`;
 }
+
+/** Skill list text: the tooltip repeats the visible text and only appears when it is clipped. */
+export const SkillListOverflowText: React.FC<{
+  text: string;
+  className: string;
+  strong?: boolean;
+}> = ({ text, className, strong = false }) => {
+  const { ref, title } = useOverflowTitle(text);
+  return (
+    <Typography.Text ref={ref} className={className} ellipsis title={title}>
+      {strong ? <strong>{text}</strong> : text}
+    </Typography.Text>
+  );
+};
 
 export const SkillListItemStatus: React.FC<{
   status: AdminSkillStatus;
@@ -2486,13 +2501,11 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
                 align="center"
                 className="tw:w-full"
               >
-                <Typography.Text
+                <SkillListOverflowText
                   className={[libraryPresentation.typography, "tw:flex-1"].filter(Boolean).join(" ")}
-                  ellipsis
-                  title={skillDisplayName(item)}
-                >
-                  <strong>{skillDisplayName(item)}</strong>
-                </Typography.Text>
+                  text={skillDisplayName(item)}
+                  strong
+                />
                 {itemPinned && (
                   <MaterialIcon
                     name="push_pin"
@@ -2516,13 +2529,10 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
                 className="tw:w-full"
                 gap={10}
               >
-                <Typography.Text
+                <SkillListOverflowText
                   className={[libraryPresentation.typography, SKILL_LIST_ITEM_META_CLASS_NAME].filter(Boolean).join(" ")}
-                  ellipsis
-                  title={item.id}
-                >
-                  {item.id}
-                </Typography.Text>
+                  text={item.id}
+                />
                 <SkillListItemVersion version={item.version} />
               </Flex>
             </span>

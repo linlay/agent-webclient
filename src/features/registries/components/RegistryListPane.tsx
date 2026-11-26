@@ -26,6 +26,7 @@ import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { SearchFilterBar } from "@/shared/ui/SearchFilterBar";
 import { UiButton } from "@/shared/ui/UiButton";
 import { UiTag } from "@/shared/ui/UiTag";
+import { useOverflowTitle } from "@/shared/ui/useOverflowTitle";
 import styles from "./RegistryConsole.module.css";
 
 const LIST_CLASS_NAME =
@@ -36,6 +37,53 @@ const LIST_ITEM_CLASS_NAME =
   "automation-list-item tw:flex tw:w-full tw:flex-col tw:gap-[3px] tw:bg-transparent tw:px-2.5 tw:py-2 tw:text-left tw:text-ink-1 tw:hover:bg-bg-hover tw:[&.is-active]:bg-[var(--bg-selected)] tw:[&.is-active]:text-[var(--nav-selected-text)]";
 const CAPABILITY_CHIP_CLASS_NAME =
   "registry-capability-chip tw:inline-flex tw:h-5 tw:w-[22px] tw:min-w-[22px] tw:flex-none tw:items-center tw:justify-center tw:rounded-[var(--radius-sm)] tw:p-0 tw:[&_.material-icon-svg]:h-3 tw:[&_.material-icon-svg]:w-3";
+const LIST_ITEM_TITLE_CLASS_NAME =
+  "automation-list-item-title tw:inline-flex tw:min-w-0 tw:flex-1 tw:items-baseline tw:gap-[5px] tw:overflow-hidden tw:whitespace-nowrap";
+const LIST_ITEM_OWNER_CLASS_NAME =
+  "automation-list-item-owner tw:max-w-[42%] tw:flex-none tw:overflow-hidden tw:text-ellipsis tw:text-xs tw:text-ink-muted";
+const LIST_ITEM_META_CLASS_NAME =
+  "automation-list-item-meta registry-list-meta tw:flex tw:min-w-0 tw:items-center tw:gap-1.5 tw:overflow-hidden tw:text-[11px] tw:text-ink-muted";
+
+/** List row title: the tooltip repeats the visible label and only appears when it is clipped. */
+function RegistryListItemTitle({
+  ownerLabel,
+  text,
+}: {
+  ownerLabel: string;
+  text: string;
+}) {
+  const content = ownerLabel ? `[${ownerLabel}] ${text}` : text;
+  const { ref, title } = useOverflowTitle(content);
+  return (
+    <span ref={ref} className={LIST_ITEM_TITLE_CLASS_NAME} title={title}>
+      {ownerLabel ? (
+        <span className={LIST_ITEM_OWNER_CLASS_NAME}>[{ownerLabel}]</span>
+      ) : null}
+      <strong>{text}</strong>
+    </span>
+  );
+}
+
+/** List row meta: the tooltip carries the full text and only appears when it is clipped. */
+function RegistryListItemMeta({
+  tooltip,
+  meta,
+  children,
+}: {
+  tooltip: string;
+  meta: string;
+  children?: React.ReactNode;
+}) {
+  const { ref, title } = useOverflowTitle(tooltip);
+  return (
+    <span ref={ref} className={LIST_ITEM_META_CLASS_NAME} title={title}>
+      <span className="registry-list-meta-text tw:min-w-0 tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap">
+        {meta}
+      </span>
+      {children}
+    </span>
+  );
+}
 
 export function RegistryCapabilityIconTag({
   chip,
@@ -249,17 +297,10 @@ export function RegistryListPane(props: RegistryListPaneProps) {
                             data-monochrome={icon.isMonochrome}
                           />
                         ) : null}
-                        <span
-                          className="automation-list-item-title tw:inline-flex tw:min-w-0 tw:flex-1 tw:items-baseline tw:gap-[5px] tw:overflow-hidden tw:whitespace-nowrap"
-                          title={`${item.category} ${item.file}`}
-                        >
-                          {ownerLabel ? (
-                            <span className="automation-list-item-owner tw:max-w-[42%] tw:flex-none tw:overflow-hidden tw:text-ellipsis tw:text-xs tw:text-ink-muted">
-                              [{ownerLabel}]
-                            </span>
-                          ) : null}
-                          <strong>{registryListTitle(item)}</strong>
-                        </span>
+                        <RegistryListItemTitle
+                          ownerLabel={ownerLabel}
+                          text={registryListTitle(item)}
+                        />
                         <UiTag tone={registryStatusTone(item.status)}>
                           {translateWithFallback(
                             t,
@@ -268,13 +309,10 @@ export function RegistryListPane(props: RegistryListPaneProps) {
                           )}
                         </UiTag>
                       </span>
-                      <span
-                        className="automation-list-item-meta registry-list-meta tw:flex tw:min-w-0 tw:items-center tw:gap-1.5 tw:overflow-hidden tw:text-[11px] tw:text-ink-muted"
-                        title={[meta, capabilityTitle].filter(Boolean).join(" · ")}
+                      <RegistryListItemMeta
+                        tooltip={[meta, capabilityTitle].filter(Boolean).join(" · ")}
+                        meta={meta}
                       >
-                        <span className="registry-list-meta-text tw:min-w-0 tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap">
-                          {meta}
-                        </span>
                         {chips.length ? (
                           <span
                             className="registry-capability-chips tw:inline-flex tw:flex-none tw:items-center tw:gap-1"
@@ -289,7 +327,7 @@ export function RegistryListPane(props: RegistryListPaneProps) {
                             ))}
                           </span>
                         ) : null}
-                      </span>
+                      </RegistryListItemMeta>
                     </button>
                   );
                 })}
