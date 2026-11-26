@@ -54,6 +54,21 @@
     min-height: 0;
 }
 
+/* 卡片表面从 --bg-base 派生，保证 Desktop 与 standalone 完全一致：
+   standalone 的 --surface-soft/strong 是灰阶，Desktop 默认皮肤是同色半透明白，
+   直接取用会让两边观感不同。浅色下卡片提亮到接近白色，深色下朝 ink 提亮。
+   详情面板本身不铺底色，直接透出页面背景；--agent-console-pane 仅用于错误条配色。 */
+:global(.agent-console-detail) {
+    --agent-console-nav-height: 45px;
+    --agent-console-pane: color-mix(in srgb, var(--bg-base) 95%, var(--ink-1));
+    --agent-console-card: color-mix(in srgb, var(--bg-base) 40%, #ffffff);
+}
+
+html[data-theme="dark"] :global(.agent-console-detail) {
+    --agent-console-pane: color-mix(in srgb, var(--bg-base) 96%, var(--ink-1));
+    --agent-console-card: color-mix(in srgb, var(--bg-base) 91%, var(--ink-1));
+}
+
 :global(.agent-console-list) {
     flex: 1 1 auto;
     min-height: 0;
@@ -61,7 +76,6 @@
     flex-direction: column;
     gap: 8px;
     overflow: hidden;
-    border-right: 1px solid var(--border);
 }
 
 /* AgentConsole 拖拽手柄：样式仿照 RightSidebar 的 resize-handle。 */
@@ -406,13 +420,22 @@
     grid-column: 1 / -1;
 }
 
+/* 吸顶页签栏用毛玻璃：半透明页面底色 + 背景模糊，滚动时内容从下方经过但保持可读。 */
 :global(.agent-section-nav) {
     z-index: 100;
     gap: 12px;
-    min-height: 45px;
+    min-height: var(--agent-console-nav-height, 45px);
     padding: 0 5px;
-    border-bottom: 1px solid var(--border);
-    background: var(--management-page-surface);
+    background: color-mix(in srgb, var(--bg-base) 74%, transparent);
+    -webkit-backdrop-filter: blur(14px) saturate(1.4);
+    backdrop-filter: blur(14px) saturate(1.4);
+}
+
+/* 不支持 backdrop-filter 时退回不透明底色，避免内容与标签文字叠在一起。 */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    :global(.agent-section-nav) {
+        background: var(--bg-base);
+    }
 }
 
 :global(.agent-section-nav-links) {
@@ -492,15 +515,41 @@
     content: "";
 }
 
+/* 表单级错误条：吸附在吸顶页签栏正下方，滚动到任何位置都能看到保存/校验失败的原因。 */
+:global(.agent-console-form-error) {
+    position: sticky;
+    top: calc(var(--agent-console-nav-height, 45px) + 8px);
+    z-index: 90;
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    margin: 8px 12px;
+    padding: 8px 12px;
+    border-radius: var(--radius-md);
+    background: color-mix(in srgb, var(--accent-danger) 10%, var(--agent-console-pane));
+    color: var(--accent-danger);
+    font-size: 12px;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+}
+
+:global(.agent-console-form-error) :global(.material-icon) {
+    margin-top: 1px;
+    font-size: 14px;
+}
+
+/* 每个配置板块独立成一张卡片：纯色表面 + 12px 圆角，无描边、无投影，只靠明度差分区。 */
 :global(.agent-form-section) {
     outline: none;
-    scroll-margin-top: 64px;
+    scroll-margin-top: calc(var(--agent-console-nav-height, 45px) + 19px + var(--agent-console-form-error-height, 0px));
+    padding: 16px;
+    border-radius: var(--radius-lg);
+    background: var(--agent-console-card);
+    box-shadow: var(--shadow-soft);
 }
 
 :global(.agent-form-section)+ :global(.agent-form-section) {
-    margin-top: 16px;
-    padding-top: 16px;
-    border-top: 1px solid var(--agent-config-divider, var(--line-soft));
+    margin-top: 12px;
 }
 
 :global(.agent-editor-fieldset) {
@@ -509,7 +558,7 @@
     --agent-config-hint-size: 11px;
     --agent-config-divider: color-mix(in srgb, var(--line-soft) 56%, transparent);
     min-width: 0;
-    padding: 10px;
+    padding: 12px;
     display: flex;
     flex-direction: column;
 }

@@ -19,15 +19,23 @@ export function packageMembers(pkg: AgentSkillPackage, skills: readonly AgentSki
   });
 }
 
-/** One manual choice (a skill or a whole package), serialized as concrete skill IDs. */
+/** Adds one skill, one package member or a whole package to the manual selection; removing takes only those concrete IDs away. */
 export function setPackageSelection(current: ComposerRequiredSkill[], members: readonly AgentSkill[], selected: boolean, lockedKeys: readonly string[], selectedViaPackageId?: string) {
   const locked = new Set(lockedKeys.map(skillIdentity));
   const editable = members.filter(member => skillIdentity(member?.id) && !locked.has(skillIdentity(member.id)));
   const ids = new Set(editable.map(skill => skillIdentity(skill.id)));
-  const next = current.filter(skill => selected
-    ? locked.has(skillIdentity(skill.id))
-    : !ids.has(skillIdentity(skill.id)));
-  if (selected) next.push(...editable.map(skill => ({ id: skill.id, label: skillDisplayName(skill), ...(selectedViaPackageId ? { selectedViaPackageId } : {}) })));
+  const next = selected
+    ? current.map(skill => {
+        const id = skillIdentity(skill.id);
+        return selectedViaPackageId && ids.has(id) ? { ...skill, selectedViaPackageId } : skill;
+      })
+    : current.filter(skill => !ids.has(skillIdentity(skill.id)));
+  if (selected) {
+    const existing = new Set(next.map(skill => skillIdentity(skill.id)));
+    next.push(...editable
+      .filter(skill => !existing.has(skillIdentity(skill.id)))
+      .map(skill => ({ id: skill.id, label: skillDisplayName(skill), ...(selectedViaPackageId ? { selectedViaPackageId } : {}) })));
+  }
   const seen = new Set<string>();
   return next.filter(skill => {
     const id = skillIdentity(skill.id);
@@ -35,6 +43,15 @@ export function setPackageSelection(current: ComposerRequiredSkill[], members: r
     seen.add(id);
     return true;
   });
+}
+
+/** Clicking a selected skill removes it; clicking any other skill appends it to the current manual selection. */
+export function toggleSkillSelection(current: ComposerRequiredSkill[], skill: AgentSkill, lockedKeys: readonly string[]) {
+  const locked = new Set(lockedKeys.map(skillIdentity));
+  const identity = skillIdentity(skill?.id);
+  if (!identity || locked.has(identity)) return current;
+  const selected = current.some(item => skillIdentity(item.id) === identity);
+  return setPackageSelection(current, [skill], !selected, lockedKeys);
 }
 
 export function groupSelectedPackages(packages: readonly AgentSkillPackage[], selected: readonly ComposerRequiredSkill[]) {

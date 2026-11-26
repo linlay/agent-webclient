@@ -19,9 +19,11 @@ class ExportModuleBoundaryPlugin {
       const bootstrap = compilation.entrypoints.get("html-preview-bootstrap").getEntrypointChunk();
       if ([...bootstrap.getAllReferencedChunks()].length !== 1) throw new Error("HTML bootstrap must be a single self-contained script.");
       const guestModules = new Set();
+      const purifierDist = path.dirname(require.resolve("dompurify"));
+      const purifierModules = ["purify.es.mjs", "purify.cjs.js"].map(file => path.relative(__dirname, path.join(purifierDist, file)).split(path.sep).join("/"));
       for (const module of compilation.chunkGraph.getChunkModulesIterable(bootstrap)) visit(module, guestModules);
       for (const name of guestModules) {
-        if (!new Set(["src/export/html-preview-bootstrap.ts", "src/export/shareHtmlDocument.ts", "src/shared/utils/htmlVisualizationAssets.ts"]).has(name)) {
+        if (!new Set(["src/export/html-preview-bootstrap.ts", "src/export/shareHtmlDocument.ts", "src/shared/utils/htmlVisualizationAssets.ts", ...purifierModules]).has(name)) {
           throw new Error(`HTML bootstrap includes an unexpected module: ${name}`);
         }
       }
@@ -43,6 +45,8 @@ module.exports = {
     path: path.resolve(__dirname, "dist/export-build"),
     filename: "[name].js",
     chunkFilename: "forbidden-[name].js",
+    // Lazy chunks and imported icons inherit runtime.js's immutable version directory.
+    publicPath: "auto",
     clean: true,
   },
   resolve: {
@@ -58,6 +62,7 @@ module.exports = {
         use: {
           loader: "ts-loader",
           options: {
+            onlyCompileBundledFiles: true,
             compilerOptions: { sourceMap: false },
           },
         },

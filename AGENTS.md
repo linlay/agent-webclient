@@ -255,3 +255,5 @@ Agent 默认权限由 `accessConfig.default` 持久化，使用目录返回 `def
 
 
 主要对话导航仅作用于显式 mode=GENERAL，不显示“主要对话”标题；其他模式保持普通导航、置顶、预览和新建会话，文字／语音创建也不得为非 GENERAL 发送 primary:true。收件箱入口只放 Settings 菜单，不占用 Quick Actions。
+
+分享模板：`release:conversation-export` 仅在本仓构建、校验并输出 `dist/conversation-export.zip`；完整内容 hash 为唯一版本，build.commit/dirty 仅记来源。Hub 管理员上传后手动启用。sync/check-sync 仅维护内置初始包，不属于默认发布或普通校验。

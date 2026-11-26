@@ -10,7 +10,7 @@ import { composerAccessKey, readComposerAccessLevel, readComposerAccessOverride,
 import { SkillIcon } from "@/features/skills/components/SkillIcon";
 import { skillDisplayName, skillPackageDisplayName } from "@/shared/utils/skillDisplayName";
 import { AgentConfigurationLink } from "@/features/composer/components/AgentConfigurationLink";
-import { groupSelectedPackages, setPackageSelection, skillIdentity } from "../lib/skillPackages";
+import { groupSelectedPackages, setPackageSelection, skillIdentity, toggleSkillSelection } from "../lib/skillPackages";
 import { SelectionAnnotations } from "@/features/selection/components/SelectionAnnotations";
 import { canContinueChat, hasQueryHistory, hasSendableContent, hasSendableQuery } from "@/features/composer/lib/sendEligibility";
 import React, {
@@ -599,9 +599,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
       updateSkillReferences((current) => {
         const lockedKeys = forcedSkills.map(item => item.id);
         if (packageChoice) return setPackageSelection(current, packageChoice.members, true, lockedKeys, packageChoice.pkg.id);
-        const manual = current.filter(item => !lockedKeys.some(key => skillIdentity(key) === skillIdentity(item.id)));
-        const selected = manual.length === 1 && !manual[0].selectedViaPackageId && skillIdentity(manual[0].id) === identity;
-        return setPackageSelection(current, [skill], !selected, lockedKeys);
+        return toggleSkillSelection(current, skill, lockedKeys);
       });
       if (trimSlash) {
         setInputValue((current) => current.slice(0, filterStartIndex - 1));
@@ -1332,7 +1330,6 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
                   referenceSelectionDisabled={referenceSelectionDisabled}
                   kbaseCatalog={kbaseMenuAvailable ? kbaseCatalog : undefined} selectedKbases={kbaseSelection} onSelectKbases={updateKbaseReferences}
                   selectedSkillIds={effectiveSkills.map((skill) => skill.id)}
-                  selectedPackageId={effectiveManualSkills.find(skill => skill.selectedViaPackageId)?.selectedViaPackageId}
                   onSelectSkill={handleSelectMenuSkill}
                   onSelectSkills={handleSelectPackageSkills}
                   lockedSkillIds={forcedSkills.map(skill => skill.id)}

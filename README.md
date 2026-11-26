@@ -16,9 +16,13 @@ Standalone 支持浅色/深色/跟随系统、内置薄雾、PNG/JPEG 背景与 
 
 公开对话分享不由本项目运行或代理。Desktop 向 Tunnel 一次提交 `ConversationSnapshotV1` 和已发布的 HTML 附件；Tunnel 保存冻结副本，并在公开 `/share/{shareId}` 使用当前分享渲染包生成 HTML。
 
-对话静态 HTML 使用 `ConversationPreview → ConversationStage` 的统一展示链路和严格的 `ConversationSnapshotV1` parser。`npm run release:conversation-export` 独立构建模板、manifest、JS、CSS 和字体，并更新 Tunnel 的当前渲染包；普通 WebClient 构建和 Program Bundle 不包含或发布它。模板引用内容 Hash 资源并保留 SRI；Tunnel 使用当前资源集渲染新页面，同时保留历史资源集供已有 HTML 引用。Desktop 的本地 HTML 导出仍从 Tunnel 获取当前模板后在本地组装文件，附件预览仅在在线分享页可用。
+对话静态 HTML 使用 `ConversationPreview → ConversationStage` 的统一展示链路和严格的 `ConversationSnapshotV1` parser。`npm run release:conversation-export` 独立构建模板、manifest、JS、CSS 和字体，并输出 `dist/conversation-export.zip`，管理员在 Hub 版本管理页上传后手动启用；普通 WebClient 构建和 Program Bundle 不包含或发布它。模板引用内容 Hash 资源并保留 SRI；Tunnel 使用当前资源集渲染新页面，同时保留历史资源集供已有 HTML 引用。Desktop 的本地 HTML 导出仍从 Tunnel 获取当前模板后在本地组装文件，附件预览仅在在线分享页可用。
 
 分享运行时通过 Ant Design `ConfigProvider` 将页面 nonce 传给动态样式。Tunnel 每次渲染分享或返回可下载模板时，都会生成独立的 32 字节随机 nonce，同时填入 CSP 与 `conversation-export-style-nonce` 元数据；本地导出客户端仍只替换 Snapshot、资产 origin 和品牌占位符，不需要生成 nonce。新增运行时资产必须发布为新 hash 集合，不能覆盖历史资源。
+
+每份 HTML 的 `conversation-export-asset-set` 同时绑定主 JS/CSS 和 HTML 附件预览的 bootstrap；iframe 请求携带 `embed=1&assetSet=<父页面版本>`，指定版本缺失时显示预览失败并保留下载入口，不改用当前版本。动态 JS 和独立 SVG 使用 `runtime.js` 所在版本目录，CSS 字体使用同包相对路径，Material 图标精灵随 HTML 内嵌。构建检查拒绝 CSS 引用包外资源。Desktop 的模板缓存策略保持不变；附件原文自带的第三方 HTTPS 依赖不属于渲染包，也不做 URL 改写。
+
+公开分享中的已闭合完整 HTML 代码块默认显示静态视图，片段默认显示代码并可手动预览；残缺块禁用视图。`ShareHtmlCodeBlock` 负责切换、复制原文、放大与重试，和附件适配器 `ShareHtmlPreview` 共用 `ShareHtmlFrame` 的文档绑定通道。正文只在可见且选中视图时占用现有并发槽位，离屏／切换／关闭时销毁 iframe 并取消读取，成功以 bootstrap 的 `rendered` 通知为准。短内容按实测高度展示，内联上限为 `min(600px, 70vh)`。正文入口 `/share/{id}/html-preview?assetSet=<父页面版本>` 只返回预览壳，原文经端口一次交付；DOMPurify 只清理预览副本，HTTP CSP 阻止内容脚本、外部资源和导航，保留 HTML/CSS/SVG 与 CSS 动画。聊天、Desktop 面板、本地离线导出和 HTML 附件的既有权限不变。发布时先部署支持该入口的 Hub，再上传、启用模板 ZIP；回滚重新启用旧模板。
 
 分享和 HTML 将同一轮的执行过程、引导语句和交互记录按时间顺序收进一个默认折叠的区域。展开后可查看只读的 `awaiting-answer` 卡片。最终答复、生成图片和终态错误直接显示。Snapshot V1 的可选 `turn.error` 转成一条终态错误，旧失败快照使用通用提示。Markdown 由 Platform 生成问答摘要，包含未完成状态和错误兜底，不包含交互明细。发布时先交付兼容新字段的 Tunnel 渲染资源，再交付 Platform／Desktop；旧快照缺失的交互和具体原因需从原对话重新分享，不做历史回填。
 
@@ -152,7 +156,9 @@ make test
 make build
 ```
 
-普通构建产物输出到 `dist/`，不构建分享渲染包。需要更新 Tunnel 渲染资源时单独执行 `npm run release:conversation-export`；该命令构建并校验 `dist/export/`，然后替换 Tunnel 的当前模板、manifest 和当前 asset-set，保留历史资源集。
+普通构建产物输出到 `dist/`，不构建分享渲染包。需要更新 Tunnel 渲染资源时单独执行 `npm run release:conversation-export`；该命令构建并校验 `dist/export/`，输出 `dist/conversation-export.zip`；不读取或修改 Hub 仓库。管理员上传后手动启用，历史资源集保留。
+
+assetSet 是 HTML 与静态资源完整内容的 SHA-256；manifest 的 `build.commit` / `build.dirty` 仅记录构建开始时的来源，null 表示未知，来源变化不改变内容版本。`npm run sync:conversation-export` 和 `npm run check:conversation-export-sync` 只用于维护 Hub 内置初始包，普通校验与发布不执行源码同步。
 
 分享与应用预览复用纯展示组件。图片打开/下载/重试、技能头像、选中文本定位、复制和运行状态由宿主通过现有交互上下文注入；导出构建检查实际发出的全部模块（含异步依赖），禁止主应用状态、资源鉴权客户端和连接控制混入。固定 HTML bootstrap 必须是单文件，且只含文档准备逻辑；全部资源由同一次 manifest/hash/SRI 发布。
 
