@@ -96,6 +96,9 @@ const QUERY_MODEL_BUTTON_STATE_CLASS = {
   loading: "is-loading tw:pointer-events-auto",
 } as const;
 const QUERY_MODEL_LABEL_CLASS = "query-model-label tw:text-text-main";
+// 已配置模型不在可选列表中时，直接用红色提示顶替模型名，避免按钮旁再挂一条重复文案。
+const QUERY_MODEL_LABEL_UNAVAILABLE_CLASS =
+  "query-model-label query-model-label-unavailable tw:text-danger";
 const QUERY_MODEL_ERROR_CLASS =
   "query-model-error tw:max-w-[220px] tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:text-xs tw:text-danger";
 const QUERY_SETTINGS_MENU_ITEM_CLASS =
@@ -657,9 +660,18 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
   const modelUnavailable = Boolean(modelKey) &&
     (modelOptionsStatus === "loaded" || modelOptionsStatus === "empty") &&
     !models.some(model => model.key === modelKey);
-  const modelErrorText =
-    (modelRefreshFailed ? t("composer.query.model.refreshFailed") : "") ||
-    (modelUnavailable ? t("composer.query.model.unavailable") : "");
+  const modelUnavailableText = modelUnavailable
+    ? t("composer.query.model.unavailable")
+    : "";
+  const modelRefreshFailedText = modelRefreshFailed
+    ? t("composer.query.model.refreshFailed")
+    : "";
+  const modelErrorText = modelRefreshFailedText || modelUnavailableText;
+  // 非紧凑模式把不可用提示放在模型名位置；紧凑模式只有图标，仍用外部提示兜底。
+  const showDetachedModelError = Boolean(
+    shouldShowModelControls &&
+      (modelRefreshFailedText || (compact && modelUnavailableText)),
+  );
   const modelButtonTitle = compact
     ? [
         t("composer.query.model.title"),
@@ -934,14 +946,22 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
                 ) : (
                   <>
                     {showFastBadge ? <MaterialIcon name="bolt" /> : null}
-                    <span className={QUERY_MODEL_LABEL_CLASS}>
-                      {selectedModelLabel}
+                    <span
+                      className={
+                        modelUnavailable
+                          ? QUERY_MODEL_LABEL_UNAVAILABLE_CLASS
+                          : QUERY_MODEL_LABEL_CLASS
+                      }
+                    >
+                      {modelUnavailable ? modelUnavailableText : selectedModelLabel}
                     </span>
-                    <span>
-                      {modelConfigSaving
-                        ? t("composer.query.model.saving")
-                        : selectedReasoningLabel}
-                    </span>
+                    {modelUnavailable && !modelConfigSaving ? null : (
+                      <span>
+                        {modelConfigSaving
+                          ? t("composer.query.model.saving")
+                          : selectedReasoningLabel}
+                      </span>
+                    )}
                     <MaterialIcon name="expand_more" />
                   </>
                 )}
@@ -950,7 +970,7 @@ export const QuerySettingsControls: React.FC<QuerySettingsControlsProps> = ({
           </span>
         </Tooltip>
       ) : null}
-      {shouldShowModelControls && modelErrorText ? (
+      {showDetachedModelError ? (
         <span className={QUERY_MODEL_ERROR_CLASS}>{modelErrorText}</span>
       ) : null}
     </div>
