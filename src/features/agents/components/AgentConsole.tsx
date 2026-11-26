@@ -186,6 +186,7 @@ const AGENT_SECTION_NAV_LINK_CLASS_NAME =
 const AGENT_SECTION_NAV_ACTIONS_CLASS_NAME =
   "agent-section-nav-actions tw:ml-auto tw:flex tw:flex-none tw:items-center tw:gap-1";
 const AGENT_SECTION_NAV_SAVE_CLASS_NAME = "agent-section-nav-save tw:flex-none";
+const AGENT_FORM_ERROR_CLASS_NAME = "agent-console-form-error";
 const AGENT_UNEDITABLE_CLASS_NAME =
   "agent-console-uneditable tw:flex tw:items-center tw:gap-2 tw:rounded-control tw:border tw:px-3 tw:py-2.5 tw:text-xs tw:text-accent-danger tw:[border-color:color-mix(in_srgb,var(--accent-danger)_26%,var(--line-soft))] tw:bg-[color-mix(in_srgb,var(--accent-danger)_6%,transparent)]";
 // Agent Platform uses this input limit for a model that declares none.
@@ -275,6 +276,7 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
   const loadedDetailKeyRef = useRef("");
   const detailScrollRef = useRef<HTMLDivElement>(null);
   const sectionNavRef = useRef<HTMLElement>(null);
+  const formErrorRef = useRef<HTMLDivElement>(null);
   const privateSkillFileInputRef = useRef<HTMLInputElement>(null);
   const filteredAgents = useMemo(() => {
     const agents = Array.isArray(localAgents) ? localAgents : [];
@@ -602,6 +604,16 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
       if (frameId !== null) window.cancelAnimationFrame(frameId);
     };
   }, [canEditStructuredAgent, editorMode, form.key]);
+
+  // 错误条吸附在吸顶页签栏下方，会额外占掉一段高度；把它实际的占位写回容器，
+  // 让分区锚点的 scroll-margin-top 能算上它，避免跳转后标题被错误条盖住。
+  useEffect(() => {
+    const pane = detailScrollRef.current;
+    if (!pane) return;
+    const bar = formErrorRef.current;
+    const height = bar ? bar.offsetHeight + 16 : 0;
+    pane.style.setProperty("--agent-console-form-error-height", `${height}px`);
+  }, [editorMode, form.key, formError]);
 
   useEffect(() => {
     setIconEditorOpen(false);
@@ -954,17 +966,23 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
     if (open && !loadingOptions && !editorOptions) void loadEditorOptions();
   };
 
+  // 前置校验同时给吸顶错误条和 toast：错误条可能被滚动位置或窄屏遮住，toast 保证有反馈。
+  const showFormError = (errorMessage: string) => {
+    setFormError(errorMessage);
+    message.error(errorMessage);
+  };
+
   const saveForm = async () => {
     if (!canEditStructuredAgent) {
-      setFormError(t("agentConsole.error.structuredSaveUnavailable"));
+      showFormError(t("agentConsole.error.structuredSaveUnavailable"));
       return;
     }
     if (!form.key.trim()) {
-      setFormError(t("agentConsole.error.keyRequired"));
+      showFormError(t("agentConsole.error.keyRequired"));
       return;
     }
     if (!form.name.trim()) {
-      setFormError(t("agentConsole.error.nameRequired"));
+      showFormError(t("agentConsole.error.nameRequired"));
       return;
     }
     setSavingForm(true);
@@ -1529,6 +1547,18 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
               </div>
             </nav>
 
+            {editorMode !== "source" && formError && (
+              <div
+                ref={formErrorRef}
+                className={AGENT_FORM_ERROR_CLASS_NAME}
+                role="alert"
+                data-agent-form-error=""
+              >
+                <MaterialIcon name="error" />
+                <span>{formError}</span>
+              </div>
+            )}
+
             {formMode === "edit" && detailDiagnostics.length > 0 && (
               <div className={AGENT_DETAIL_ADMIN_META_CLASS_NAME}>
                 <div className={AGENT_DIAGNOSTICS_CLASS_NAME} role="status">
@@ -1616,10 +1646,6 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
                 <MaterialIcon name="warning" />
                 <span>{t("agentConsole.diagnostics.uneditable")}</span>
               </div>
-            )}
-
-            {editorMode !== "source" && (
-              formError && <div className="settings-error">{formError}</div>
             )}
           </Spin>
         </div>
