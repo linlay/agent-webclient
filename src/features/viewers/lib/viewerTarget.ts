@@ -152,8 +152,11 @@ function normalizeText(value: unknown): string {
   return typeof value === "string" ? value.trim().toLowerCase() : "";
 }
 
-function getFileExtension(name?: string): string {
-  const normalizedName = String(name || "").trim().split(/[?#]/, 1)[0];
+function getFileExtension(name?: string, literal = false): string {
+  const trimmed = String(name || "").trim();
+  const normalizedName = literal || /^@chat\//iu.test(trimmed)
+    ? trimmed
+    : trimmed.split(/[?#]/, 1)[0];
   const lastDotIndex = normalizedName.lastIndexOf(".");
   if (lastDotIndex < 0 || lastDotIndex === normalizedName.length - 1) {
     return "";
@@ -162,7 +165,7 @@ function getFileExtension(name?: string): string {
 }
 
 export function isKnownTextDocumentName(name?: string): boolean {
-  const extension = getFileExtension(name);
+  const extension = getFileExtension(name, true);
   return markdownExtensions.has(extension) ||
     textExtensions.has(extension) ||
     codeExtensions.has(extension);
@@ -204,7 +207,9 @@ export function detectDocumentContentKind(
   if (input.documentKind) return input.documentKind;
 
   const mimeType = normalizeText(input.mimeType).split(";", 1)[0].trim();
-  const extension = getFileExtension(input.name || input.url);
+  const extension = input.name
+    ? getFileExtension(input.name, true)
+    : getFileExtension(input.url);
 
   // OpenXML is a ZIP container, so Office must win before Archive.
   if (
