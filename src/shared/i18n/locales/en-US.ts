@@ -1471,7 +1471,7 @@ export const enUSMessages = {
   "composer.query.model.refreshFailed": "Failed to refresh model list",
   "composer.query.model.savedAsDefault": "Saved as default",
   "composer.query.model.saving": "Saving...",
-  "composer.query.model.unavailable": "The configured model is unavailable. Choose another model.",
+  "composer.query.model.unavailable": "The current model is unavailable.",
   "composer.query.model.title": "Choose model and reasoning effort",
   "composer.query.reasoning.HIGH": "High",
   "composer.query.reasoning.LOW": "Low",

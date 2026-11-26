@@ -1,4 +1,6 @@
 import { interactionDefaults } from "@/shared/contracts/interaction";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import type { Agent } from "@/features/agents/lib/agentState";
@@ -796,6 +798,31 @@ describe("QuerySettingsControls", () => {
     expect(modelHtml).not.toContain("qwen3.5-plus");
     expect(reasoningHtml).not.toContain("默认思考");
     expect(reasoningHtml).toContain("高");
+  });
+
+  it("reserves room for the submenu arrow so a long model name cannot cover it", () => {
+    const items = buildModelMenuItems({
+      models: [],
+      reasoningEfforts: [],
+      modelOverride: { key: "th-minimax-m3_1-flash" },
+      selectedModelKey: "th-minimax-m3_1-flash",
+      selectedModelLabel: "th-minimax-m3_1-flash",
+      t: (key) => key,
+    }) as TestMenuItem[];
+    const modelSubmenu = items.find((item) => item.key === "model-submenu");
+    const modelSubmenuHtml = renderToStaticMarkup(
+      React.createElement(React.Fragment, null, modelSubmenu?.label),
+    );
+
+    expect(modelSubmenuHtml).toContain("query-model-submenu-label");
+    expect(modelSubmenuHtml).toContain("th-minimax-m3_1-flash");
+    const menuStyles = readFileSync(
+      join(__dirname, "../../model-config/components/ModelMenu.module.css"),
+      "utf8",
+    );
+    expect(menuStyles).toMatch(
+      /query-model-submenu-label\s*\{[^}]*padding-inline-end:\s*22px;[^}]*overflow:\s*hidden;[^}]*text-overflow:\s*ellipsis;[^}]*white-space:\s*nowrap;/,
+    );
   });
 
   it("renders the fixed six native reasoning effort menu entries", () => {

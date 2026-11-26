@@ -103,6 +103,17 @@ html[data-theme="dark"] .query-model-menu-icon:global(.is-monochrome) {
     white-space: nowrap;
 }
 
+/* 桌面下拉的子菜单标题右侧是绝对定位的展开箭头，长模型名必须截断并给箭头让位；
+   移动端底部面板把箭头作为独立 flex 项渲染，不套用这里的约束。 */
+.query-settings-menu:global(.ant-dropdown-menu) :global(.ant-dropdown-menu-submenu-title) .query-model-submenu-label {
+    display: block;
+    max-width: 100%;
+    padding-inline-end: 22px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 .query-settings-submenu :global(.ant-dropdown-menu) :global(.ant-dropdown-menu-item-group-title) {
     display: flex;
     align-items: center;
