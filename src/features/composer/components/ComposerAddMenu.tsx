@@ -63,7 +63,6 @@ export interface AddMenuTriggerProps {
   kbaseCatalog?: KBaseCatalog;
   selectedKbases?: SelectedKBase[];
   onSelectKbases?: (items: SelectedKBase[]) => void;
-  selectedPackageId?: string;
   lockedSkillIds?: string[];
   onSelectSkills?: (skills: AgentSkill[], selected: boolean, packageId?: string) => void;
   onOpenFilePicker: () => void;
@@ -411,7 +410,7 @@ const AddMenuSectionDetail: React.FC<
             ? <PackageSkillTree key={`package:${item.id}`} pkg={item.pkg} skills={skills}
               pinned={pinnedSkillIds.includes(skillIdentity(item.pkg.id))} pinsDisabled={pinsDisabled}
               onTogglePin={packageId => { void toggleSkillPin(packageId); }}
-              selectedKeys={props.selectedSkillIds} selectedPackageId={props.selectedPackageId} lockedKeys={props.lockedSkillIds} search={search}
+              selectedKeys={props.selectedSkillIds} lockedKeys={props.lockedSkillIds} search={search}
               disabled={props.disabled || props.referenceSelectionDisabled || !props.onSelectSkills}
               onSelect={(members, selected, packageId) => execute(() => props.onSelectSkills?.(members, selected, packageId))} />
             : renderSkill(item.skill))}

@@ -34,11 +34,14 @@ describe("PackageSkillTree", () => {
     expect(container.querySelector<HTMLButtonElement>('button[aria-label="Word"]')!.getAttribute("aria-pressed")).toBe("true");
     expect([...container.querySelectorAll<HTMLButtonElement>("button")].find(b => b.textContent?.includes("slides"))!.disabled).toBe(true);
   });
-  test("choosing a member of the selected package replaces the package; repeating the sole member clears it", () => {
+  test("members toggle individually inside a package instead of replacing the package", () => {
     const onSelect = jest.fn();
-    act(() => root.render(<PackageSkillTree pkg={pkg} skills={skills} selectedKeys={["word", "excel"]} selectedPackageId={pkg.id} onSelect={onSelect} />));
+    act(() => root.render(<PackageSkillTree pkg={pkg} skills={skills} selectedKeys={["word", "excel"]} onSelect={onSelect} />));
     act(() => container.querySelector<HTMLButtonElement>('button[aria-label="Word"]')!.click());
-    expect(onSelect).toHaveBeenLastCalledWith([skills[0]], true);
+    expect(onSelect).toHaveBeenLastCalledWith([skills[0]], false);
+    act(() => root.render(<PackageSkillTree pkg={pkg} skills={skills} selectedKeys={["word"]} onSelect={onSelect} />));
+    act(() => container.querySelector<HTMLButtonElement>('button[aria-label="Excel"]')!.click());
+    expect(onSelect).toHaveBeenLastCalledWith([skills[1]], true);
     act(() => root.render(<PackageSkillTree pkg={pkg} skills={skills} selectedKeys={["word", "forced"]} lockedKeys={["forced"]} onSelect={onSelect} />));
     act(() => container.querySelector<HTMLButtonElement>('button[aria-label="Word"]')!.click());
     expect(onSelect).toHaveBeenLastCalledWith([skills[0]], false);
@@ -49,15 +52,18 @@ describe("PackageSkillTree", () => {
     expect(container.querySelector<HTMLButtonElement>('button[aria-label="Word"]')!.disabled).toBe(true);
     expect(container.querySelector("details")!.open).toBe(true);
   });
-  test("a sole member and its package remain separate choices", () => {
+  test("a fully selected package clears through its bulk action while a partial one appends the rest", () => {
     const onSelect = jest.fn();
     const single = { ...pkg, skills: [{ id: "word" }] };
-    act(() => root.render(<PackageSkillTree pkg={single} skills={skills} selectedKeys={["word"]} onSelect={onSelect} />));
+    act(() => root.render(<PackageSkillTree pkg={single} skills={skills} selectedKeys={[]} onSelect={onSelect} />));
     act(() => container.querySelector<HTMLButtonElement>('button[aria-label="packageComposer.select"]')!.click());
     expect(onSelect).toHaveBeenLastCalledWith([skills[0]], true, pkg.id);
-    act(() => root.render(<PackageSkillTree pkg={single} skills={skills} selectedKeys={["word"]} selectedPackageId={pkg.id} onSelect={onSelect} />));
-    act(() => container.querySelector<HTMLButtonElement>('button[aria-label="Word"]')!.click());
-    expect(onSelect).toHaveBeenLastCalledWith([skills[0]], true);
+    act(() => root.render(<PackageSkillTree pkg={single} skills={skills} selectedKeys={["word"]} onSelect={onSelect} />));
+    act(() => container.querySelector<HTMLButtonElement>('button[aria-label="packageComposer.clearAll"]')!.click());
+    expect(onSelect).toHaveBeenLastCalledWith([skills[0]], false, pkg.id);
+    act(() => root.render(<PackageSkillTree pkg={pkg} skills={skills} selectedKeys={["word"]} onSelect={onSelect} />));
+    act(() => container.querySelector<HTMLButtonElement>('button[aria-label="packageComposer.select"]')!.click());
+    expect(onSelect).toHaveBeenLastCalledWith(skills, true, pkg.id);
   });
   test.each([false, true])("pin button targets the whole package without expanding or selecting it (pinned=%s)", pinned => {
     const onSelect = jest.fn();

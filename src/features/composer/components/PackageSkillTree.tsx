@@ -12,7 +12,6 @@ interface Props {
   pkg: AgentSkillPackage;
   skills: readonly AgentSkill[];
   selectedKeys: readonly string[];
-  selectedPackageId?: string;
   lockedKeys?: readonly string[];
   disabled?: boolean;
   pinned?: boolean;
@@ -24,16 +23,15 @@ interface Props {
 }
 
 /** Parent and member selection share concrete skill IDs without visible checkboxes. */
-export function PackageSkillTree({ pkg, skills, selectedKeys, selectedPackageId, lockedKeys = [], disabled, pinned = false, pinsDisabled, search = "", defaultExpanded = false, onSelect, onTogglePin }: Props) {
+export function PackageSkillTree({ pkg, skills, selectedKeys, lockedKeys = [], disabled, pinned = false, pinsDisabled, search = "", defaultExpanded = false, onSelect, onTogglePin }: Props) {
   const { t } = useI18n();
   const members = packageMembers(pkg, skills);
   const selected = new Set(selectedKeys.map(skillIdentity));
   const locked = new Set(lockedKeys.map(skillIdentity));
-  const manualSelected = new Set([...selected].filter(key => !locked.has(key)));
   const selectedCount = members.filter(member => selected.has(skillIdentity(member.id))).length;
   const unavailable = [...new Set([...(pkg.missingSkillIds || []), ...pkg.skills.filter(member => !members.some(skill => skillIdentity(skill.id) === skillIdentity(member.id))).map(member => member.id)])];
   const complete = pkg.status === "ready" && unavailable.length === 0;
-  const allSelected = selectedPackageId === pkg.id && members.length > 0 && selectedCount === members.length;
+  const allSelected = members.length > 0 && selectedCount === members.length;
   const keyword = search.trim().toLowerCase();
   const matchesPackage = [skillPackageDisplayName(pkg), pkg.id].some(value => value.toLowerCase().includes(keyword));
   const visibleMembers = members.filter(skill => !keyword || matchesPackage || [skill.id, skillDisplayName(skill), skill.description || ""].some(value => value.toLowerCase().includes(keyword)));
@@ -70,7 +68,7 @@ export function PackageSkillTree({ pkg, skills, selectedKeys, selectedPackageId,
       {visibleMembers.map(skill => <button type="button" className={styles.member} key={skill.id}
         aria-label={skillDisplayName(skill)} aria-pressed={selected.has(skillIdentity(skill.id))}
         disabled={disabled || locked.has(skillIdentity(skill.id))}
-        onClick={() => onSelect([skill], !(!selectedPackageId && manualSelected.size === 1 && manualSelected.has(skillIdentity(skill.id))))}>
+        onClick={() => onSelect([skill], !selected.has(skillIdentity(skill.id)))}>
         <span className={styles.memberCopy} title={skill.description}><span className={pickerTypography.name}>{skillDisplayName(skill)}</span>{skill.description && <small className={pickerTypography.description}>{skill.description}</small>}</span>
       </button>)}
       {unavailable.map(id => <button type="button" className={styles.member} key={id} disabled>{id} · {t("packageComposer.unavailable")}</button>)}
