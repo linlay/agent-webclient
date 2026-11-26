@@ -22,6 +22,7 @@ import { useAppMessage } from "@/shared/ui/useAppMessage";
 import type { Agent } from "@/features/agents/lib/agentState";
 import {
   createAgent,
+  deleteAdminAgentPrivateSkill,
   deleteAgent,
   getAdminAgentDetail,
   getAdminAgentEditorOptions,
@@ -79,6 +80,7 @@ import { UiButton } from "@/shared/ui/UiButton";
 import { useI18n } from "@/shared/i18n";
 import {
   EMPTY_FORM,
+  agentSkillDisplayName,
   asRecord,
   buildAdminToolOption,
   buildAgentListSummary,
@@ -251,6 +253,12 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
   const [privateSkillDragActive, setPrivateSkillDragActive] = useState(false);
   const [privateSkillImporting, setPrivateSkillImporting] = useState(false);
   const [privateSkillError, setPrivateSkillError] = useState("");
+  const [privateSkillRemoval, setPrivateSkillRemoval] = useState<{
+    agentKey: string;
+    id: string;
+    name: string;
+  } | null>(null);
+  const [privateSkillDeleting, setPrivateSkillDeleting] = useState(false);
   const [savingOrder, setSavingOrder] = useState(false);
   const [error, setError] = useState("");
   const [formError, setFormError] = useState("");
@@ -427,7 +435,7 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
     () =>
       form.skills.map(
         (key) =>
-          agentSkillOptions.find((skill) => skill.id === key) || {
+          agentSkillOptions.find((skill) => skill.id.toLowerCase() === key.toLowerCase()) || {
             id: key,
             label: key,
             source: "center" as const,
@@ -509,13 +517,13 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
   const canEditSourceAgent =
     formMode === "edit" && Boolean(detailSourcePath);
   const hasUnsavedChanges = structuredDirty || sourceDirty;
+  const agentMutationPending = savingForm || deleting || privateSkillImporting || privateSkillDeleting;
   const canImportPrivateSkill =
     formMode === "edit" &&
     canEditStructuredAgent &&
     toText(detail?.source?.kind).toLowerCase() === "directory" &&
-    !savingForm &&
-    !deleting &&
-    !privateSkillImporting;
+    !loadingDetail &&
+    !agentMutationPending;
 
   useEffect(() => {
     selectedAgentKeyRef.current = selectedAgentKey;
@@ -631,6 +639,7 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
     setSourceLoadedKey("");
     setSourceDirty(false);
     setStructuredDirty(false);
+    setPrivateSkillRemoval(null);
     setInternalSelectedKey("");
     setFormError("");
     setError("");
@@ -828,6 +837,7 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
     if (!key) return;
     sourceLoadSeqRef.current += 1;
     setLoadingDetail(true);
+    setPrivateSkillRemoval(null);
     setEditorMode("structured");
     setSourceDraft("");
     setSourceSha256("");
@@ -894,6 +904,55 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
     setFormError("");
   };
 
+  const setSkillMounted = (skillId: string, enabled: boolean) => {
+    if (agentMutationPending || loadingDetail) return;
+    const matchesSkill = (id: string) => id.toLowerCase() === skillId.toLowerCase();
+    if (enabled) {
+      if (!form.skills.some(matchesSkill)) {
+        updateForm({ skills: [...form.skills, skillId] });
+      }
+      return;
+    }
+
+    const privateSkill = privateSkills.find((skill) => skill.enabled && matchesSkill(skill.id));
+    if (privateSkill) {
+      setSkillsExpanded(false);
+      setPrivateSkillRemoval({
+        agentKey: form.key,
+        id: privateSkill.id,
+        name: agentSkillDisplayName(skillDisplayName(privateSkill), privateSkill.id),
+      });
+      return;
+    }
+    updateForm({ skills: form.skills.filter((id) => !matchesSkill(id)) });
+  };
+
+  const submitPrivateSkillRemoval = async () => {
+    if (!privateSkillRemoval || privateSkillRemoval.agentKey !== effectiveSelectedKey || agentMutationPending) return;
+    const { agentKey, id } = privateSkillRemoval;
+    const detailRequestSeq = sourceLoadSeqRef.current;
+    setPrivateSkillDeleting(true);
+    try {
+      const { data } = await deleteAdminAgentPrivateSkill({ agentKey, id });
+      if (sourceLoadSeqRef.current === detailRequestSeq) {
+        setDetail(data);
+        setForm((current) => ({
+          ...current,
+          skills: current.skills.filter((skillId) => skillId.toLowerCase() !== id.toLowerCase()),
+        }));
+        setSourceLoadedKey("");
+        setPrivateSkillRemoval(null);
+      }
+      message.success(t("agentConsole.privateSkill.delete.success"));
+      void loadAgents(agentKey);
+      void refreshGlobalAgents();
+    } catch (error) {
+      message.error(t("agentConsole.privateSkill.delete.failed", { detail: (error as Error).message }));
+    } finally {
+      setPrivateSkillDeleting(false);
+    }
+  };
+
   const setModelKey = (value?: string) => {
     const modelKey = toText(value);
     if (editorOptions) {
@@ -955,6 +1014,7 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
   };
 
   const saveForm = async () => {
+    if (agentMutationPending) return;
     if (!canEditStructuredAgent) {
       setFormError(t("agentConsole.error.structuredSaveUnavailable"));
       return;
@@ -997,8 +1057,18 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
             });
       const saved = response.data;
       const savedKey = saved.key || form.key.trim();
-      setDetail(saved);
-      setForm(formFromDetail(saved));
+      const savedForm = formFromDetail(saved);
+      const savedSkillIds = new Set(savedForm.skills.map((id) => id.toLowerCase()));
+      // The structured save response omits private directories. Preserve their
+      // metadata and update which ones the saved definition mounts.
+      setDetail({
+        ...saved,
+        privateSkills: privateSkills.map((skill) => ({
+          ...skill,
+          enabled: savedSkillIds.has(skill.id.toLowerCase()),
+        })),
+      });
+      setForm(savedForm);
       setFormMode("edit");
       setEditorMode("structured");
       setSourceDraft("");
@@ -1245,8 +1315,7 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
   };
 
   const sourceSaveDisabled =
-    savingForm ||
-    deleting ||
+    agentMutationPending ||
     loadingSource ||
     sourceLoadedKey !== form.key ||
     !sourceDirty;
@@ -1272,6 +1341,24 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
         onImported={finishAgentArchiveImport}
       />
       <Modal
+        open={privateSkillRemoval?.agentKey === effectiveSelectedKey}
+        title={t("agentConsole.privateSkill.delete.title")}
+        okText={t("agentConsole.privateSkill.delete.confirm")}
+        cancelText={t("agentConsole.import.cancel")}
+        okButtonProps={{ danger: true }}
+        cancelButtonProps={{ disabled: privateSkillDeleting }}
+        confirmLoading={privateSkillDeleting}
+        closable={!privateSkillDeleting}
+        maskClosable={false}
+        keyboard={!privateSkillDeleting}
+        onOk={() => void submitPrivateSkillRemoval()}
+        onCancel={() => {
+          if (!privateSkillDeleting) setPrivateSkillRemoval(null);
+        }}
+      >
+        <p>{t("agentConsole.privateSkill.delete.description", { name: privateSkillRemoval?.name })}</p>
+      </Modal>
+      <Modal
         open={privateSkillModalOpen}
         title={t("agentConsole.privateSkill.import.title")}
         width={560}
@@ -1292,6 +1379,9 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
         }}
       >
         <div className="tw:flex tw:flex-col tw:gap-4 tw:pt-1">
+          <p className="tw:m-0 tw:text-sm tw:text-ink-1">
+            {t("agentConsole.privateSkill.import.destination")}
+          </p>
           <input
             ref={privateSkillFileInputRef}
             className="tw:hidden"
@@ -1371,7 +1461,7 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
             agents={filteredAgents}
             selectedAgentKey={effectiveSelectedKey}
             draggingAgentKey={draggingAgentKey}
-            loading={loadingList || savingForm || deleting}
+            loading={loadingList || agentMutationPending}
             savingOrder={savingOrder}
             searchText={searchText}
             t={t}
@@ -1468,15 +1558,13 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
                     activeEditMode={editorMode}
                     sourceDisabled={
                       !canEditSourceAgent ||
-                      savingForm ||
-                      deleting ||
+                      agentMutationPending ||
                       loadingSource ||
                       editorMode === "source"
                     }
                     structuredDisabled={
                       !canEditStructuredAgent ||
-                      savingForm ||
-                      deleting ||
+                      agentMutationPending ||
                       editorMode === "structured"
                     }
                   />
@@ -1489,7 +1577,7 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
                       variant="ghost"
                       iconOnly
                       aria-label={t("agentConsole.action.delete")}
-                      disabled={savingForm || loadingDetail || loadingSource || privateSkillImporting}
+                      disabled={agentMutationPending || loadingDetail || loadingSource}
                       loading={deleting}
                       onClick={() => handleDeleteAgent({ key: effectiveSelectedKey, name: form.name })}
                     >
@@ -1512,7 +1600,7 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
                     editorMode === "source"
                       ? sourceSaveDisabled
                       : !canEditStructuredAgent ||
-                        deleting ||
+                        agentMutationPending ||
                         !structuredDirty
                   }
                   loading={savingForm}
@@ -1591,7 +1679,7 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
                 contextTagOptions={contextTagOptions}
                 connectors={<AgentConnectorCapabilities key={form.key} {...connectorCapabilities}
                   agentKey={formMode === "edit" ? form.key : ""} selectedIds={form.connectors} savedIds={savedConnectorIds}
-                  disabled={savingForm || deleting || loadingDetail || privateSkillImporting}
+                  disabled={agentMutationPending || loadingDetail}
                   onSelectionChange={connectors => updateForm({ connectors })} />}
                 toolsManagementDisabled={!connectorCapabilities.ready}
                 filteredToolOptions={filteredToolOptions}
@@ -1604,6 +1692,8 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
                 toolsExpanded={toolsExpanded}
                 skillsExpanded={skillsExpanded}
                 canImportPrivateSkill={canImportPrivateSkill}
+                skillsManagementDisabled={agentMutationPending || loadingDetail}
+                onSkillToggle={setSkillMounted}
                 setToolFilter={setToolFilter}
                 setToolSearchText={setToolSearchText}
                 setSkillSearchText={setSkillSearchText}

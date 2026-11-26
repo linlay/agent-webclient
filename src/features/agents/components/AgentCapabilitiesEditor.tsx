@@ -32,12 +32,13 @@ export interface AgentCapabilitiesEditorProps {
   toolsExpanded: boolean;
   skillsExpanded: boolean;
   canImportPrivateSkill: boolean;
+  skillsManagementDisabled: boolean;
   t: (key: string, vars?: Record<string, unknown>) => string;
   getToolCategory: (tool: AgentToolOption) => Exclude<AgentToolFilter, "all">;
   getToolSourceLabel: (tool: AgentToolOption) => string;
   onContextTagsChange: (value: string[]) => void;
   onToolsChange: (value: string[]) => void;
-  onSkillsChange: (value: string[]) => void;
+  onSkillToggle: (skillId: string, enabled: boolean) => void;
   onToolFilterChange: (value: AgentToolFilter) => void;
   onToolSearchTextChange: (value: string) => void;
   onSkillSearchTextChange: (value: string) => void;
@@ -168,7 +169,12 @@ export const AgentCapabilitiesEditor: React.FC<AgentCapabilitiesEditorProps> = (
                       const description = skill.description || props.t(skill.source === "private" ? "agentConsole.privateSkill.source.private" : "agentConsole.privateSkill.source.center");
                       return (
                         <label key={skill.id} className="agent-selectable-row agent-skill-row agent-skill-row--single-line">
-                          <input type="checkbox" checked={props.skills.includes(skill.id)} onChange={(event) => props.onSkillsChange(event.target.checked ? [...props.skills, skill.id] : props.skills.filter((key) => key !== skill.id))} />
+                          <input
+                            type="checkbox"
+                            checked={props.skills.some((id) => id.toLowerCase() === skill.id.toLowerCase())}
+                            disabled={props.skillsManagementDisabled}
+                            onChange={(event) => props.onSkillToggle(skill.id, event.target.checked)}
+                          />
                           <MaterialIcon name="skills" />
                           <span className="agent-selectable-row-copy"><strong className="agent-skill-title">{skill.label}</strong><Tooltip title={description} placement="right" mouseEnterDelay={0.35} overlayClassName="agent-skill-description-tooltip"><span className="agent-skill-description-help" tabIndex={0} aria-label={description}><MaterialIcon name="info" /></span></Tooltip></span>
                         </label>
@@ -182,7 +188,7 @@ export const AgentCapabilitiesEditor: React.FC<AgentCapabilitiesEditorProps> = (
               placement="bottomRight"
               trigger={["click"]}
             >
-              <UiButton size="sm" variant="ghost" aria-expanded={props.skillsExpanded} aria-controls="agent-skills-manager"><MaterialIcon name="tune" />{props.t("agentConsole.context.manageSkills")}</UiButton>
+              <UiButton size="sm" variant="ghost" aria-expanded={props.skillsExpanded} aria-controls="agent-skills-manager" disabled={props.skillsManagementDisabled}><MaterialIcon name="tune" />{props.t("agentConsole.context.manageSkills")}</UiButton>
             </Popover>
         </span>
       </div>
@@ -194,7 +200,14 @@ export const AgentCapabilitiesEditor: React.FC<AgentCapabilitiesEditorProps> = (
             <div key={skill.id} className="agent-selected-skill-row">
               <MaterialIcon name="skills" />
               <span className="agent-selected-skill-copy"><strong className="agent-skill-title">{skill.label}</strong><span className="agent-skill-inline-separator" aria-hidden="true">·</span><span className="agent-skill-description" title={description}>{description}</span></span>
-              <button type="button" aria-label={props.t("agentConsole.prompt.removeItem", { index: skill.label })} onClick={() => props.onSkillsChange(props.skills.filter((key) => key !== skill.id))}><MaterialIcon name="close" /></button>
+              <button
+                type="button"
+                aria-label={props.t("agentConsole.prompt.removeItem", { index: skill.label })}
+                disabled={props.skillsManagementDisabled}
+                onClick={() => props.onSkillToggle(skill.id, false)}
+              >
+                <MaterialIcon name="close" />
+              </button>
             </div>
           );
         })}

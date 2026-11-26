@@ -135,6 +135,8 @@ export interface AgentEditorProps {
   toolsExpanded: boolean;
   skillsExpanded: boolean;
   canImportPrivateSkill: boolean;
+  skillsManagementDisabled: boolean;
+  onSkillToggle: (skillId: string, enabled: boolean) => void;
   setToolFilter: (filter: AgentToolFilter) => void;
   setToolSearchText: (value: string) => void;
   setSkillSearchText: (value: string) => void;
@@ -178,6 +180,8 @@ export const AgentEditor: React.FC<AgentEditorProps> = (props) => {
     toolsExpanded,
     skillsExpanded,
     canImportPrivateSkill,
+    skillsManagementDisabled,
+    onSkillToggle,
     setToolFilter,
     setToolSearchText,
     setSkillSearchText,
@@ -661,6 +665,7 @@ export const AgentEditor: React.FC<AgentEditorProps> = (props) => {
           toolsExpanded={toolsExpanded}
           skillsExpanded={skillsExpanded}
           canImportPrivateSkill={canImportPrivateSkill}
+          skillsManagementDisabled={skillsManagementDisabled}
           t={t}
           getToolCategory={toolFilterForOption}
           getToolSourceLabel={(tool) =>
@@ -668,7 +673,7 @@ export const AgentEditor: React.FC<AgentEditorProps> = (props) => {
           }
           onContextTagsChange={(contextTags) => updateForm({ contextTags })}
           onToolsChange={(tools) => updateForm({ tools })}
-          onSkillsChange={(skills) => updateForm({ skills })}
+          onSkillToggle={onSkillToggle}
           onToolFilterChange={setToolFilter}
           onToolSearchTextChange={setToolSearchText}
           onSkillSearchTextChange={setSkillSearchText}

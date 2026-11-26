@@ -1,7 +1,9 @@
 /** @jest-environment jsdom */
 import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
+import { message } from "antd";
 import {
+  deleteAdminAgentPrivateSkill,
   getAdminAgentDetail,
   getAdminAgentEditorOptions,
   getAdminAgents,
@@ -10,6 +12,7 @@ import {
   getAgents,
   createAgent,
   updateAgent,
+  type AdminAgentDetailResponse,
   type AgentEditorOptionsResponse,
   type ApiResponse,
 } from "@/shared/data";
@@ -25,6 +28,7 @@ jest.mock("@/app/state/AppContext", () => ({
 }));
 jest.mock("@/shared/i18n", () => ({ useI18n: () => ({ t: mockTranslate }) }));
 jest.mock("@/shared/data", () => ({
+  deleteAdminAgentPrivateSkill: jest.fn(),
   getAdminAgents: jest.fn(),
   getAdminAgentDetail: jest.fn(),
   getAdminAgentEditorOptions: jest.fn(),
@@ -35,7 +39,15 @@ jest.mock("@/shared/data", () => ({
   updateAgent: jest.fn(),
 }));
 jest.mock("antd", () => ({
-  Modal: () => null,
+  Modal: ({ open, title, children, okText, cancelText, onOk, onCancel }: import("antd").ModalProps) =>
+    open ? React.createElement(
+      "section",
+      { role: "dialog" },
+      React.createElement("h2", null, title),
+      children,
+      React.createElement("button", { "data-modal-action": "cancel", onClick: onCancel }, cancelText),
+      React.createElement("button", { "data-modal-action": "confirm", onClick: onOk }, okText),
+    ) : null,
   Popconfirm: ({ children }: React.PropsWithChildren) => children,
   Spin: ({ children }: React.PropsWithChildren) => children,
   Tooltip: ({ children }: React.PropsWithChildren) => children,
@@ -246,4 +258,148 @@ it("uses the existing draft-discard confirmation when switching Agents", async (
   } finally {
     confirm.mockRestore();
   }
+});
+
+function mockPrivateSkillDetail() {
+  const detail: AdminAgentDetailResponse = {
+    ...agent,
+    source: { kind: "directory" },
+    definition: {
+      ...agent.definition,
+      skillConfig: { skills: ["private-demo", "old-center"] },
+    },
+    privateSkills: [{
+      id: "private-demo",
+      displayName: "Private Demo",
+      status: "ready",
+      enabled: true,
+      overridesCenter: true,
+    }],
+  };
+  jest.mocked(getAdminAgentDetail).mockResolvedValue(response(detail));
+  jest.mocked(getAdminSkills).mockResolvedValue(response({
+    skills: [
+      { id: "private-demo", displayName: "Center Demo", status: "ready" },
+      { id: "old-center", displayName: "Old Center", status: "ready" },
+      { id: "new-center", displayName: "New Center", status: "ready" },
+    ],
+    packages: [],
+    pinned: [],
+  }));
+  return detail;
+}
+
+function modal() {
+  return container.querySelector<HTMLElement>('[role="dialog"]');
+}
+
+function modalAction(action: "cancel" | "confirm") {
+  return modal()!.querySelector<HTMLButtonElement>(`[data-modal-action="${action}"]`)!;
+}
+
+it("confirms and deletes a mounted private skill while keeping unrelated Agent edits", async () => {
+  const detail = mockPrivateSkillDetail();
+  await render(false, agent.key);
+  await act(async () => {
+    editor().updateForm({ name: "Draft name" });
+    editor().onSkillToggle("old-center", false);
+  });
+  expect(modal()).toBeNull();
+  expect(editor().form.skills).toEqual(["private-demo"]);
+  await act(async () => editor().onSkillToggle("new-center", true));
+
+  await act(async () => editor().onSkillToggle("private-demo", false));
+  expect(modal()?.textContent).toContain("agentConsole.privateSkill.delete.title");
+  expect(modalAction("confirm").textContent).toBe("agentConsole.privateSkill.delete.confirm");
+  expect(editor().form.skills).toEqual(["private-demo", "new-center"]);
+  await act(async () => modalAction("cancel").click());
+  expect(modal()).toBeNull();
+  expect(deleteAdminAgentPrivateSkill).not.toHaveBeenCalled();
+  expect(editor().form.skills).toEqual(["private-demo", "new-center"]);
+
+  const saved = {
+    ...detail,
+    definition: { ...detail.definition, skillConfig: { skills: ["old-center"] } },
+    privateSkills: [],
+  };
+  jest.mocked(getAdminAgentDetail).mockResolvedValue(response(saved));
+  jest.mocked(deleteAdminAgentPrivateSkill).mockResolvedValue(response(saved));
+  await act(async () => editor().onSkillToggle("private-demo", false));
+  await act(async () => modalAction("confirm").click());
+
+  expect(deleteAdminAgentPrivateSkill).toHaveBeenCalledTimes(1);
+  expect(deleteAdminAgentPrivateSkill).toHaveBeenCalledWith({ agentKey: agent.key, id: "private-demo" });
+  expect(updateAgent).not.toHaveBeenCalled();
+  expect(modal()).toBeNull();
+  expect(editor().form.name).toBe("Draft name");
+  expect(editor().form.skills).toEqual(["new-center"]);
+  expect(editor().filteredSkillOptions).toEqual(expect.arrayContaining([
+    expect.objectContaining({ id: "private-demo", source: "center" }),
+  ]));
+  expect(saveButton().disabled).toBe(false);
+});
+
+it("keeps a private skill mounted when deletion fails", async () => {
+  mockPrivateSkillDetail();
+  jest.mocked(deleteAdminAgentPrivateSkill).mockRejectedValue(new Error("Deletion failed"));
+  await render(false, agent.key);
+
+  await act(async () => editor().onSkillToggle("private-demo", false));
+  await act(async () => modalAction("confirm").click());
+
+  expect(message.error).toHaveBeenCalled();
+  expect(editor().form.skills).toEqual(["private-demo", "old-center"]);
+  expect(editor().selectedSkills).toEqual(expect.arrayContaining([
+    expect.objectContaining({ id: "private-demo", source: "private" }),
+  ]));
+});
+
+it("keeps the private skill import destination visible after choosing a ZIP", async () => {
+  mockPrivateSkillDetail();
+  await render(false, agent.key);
+
+  await act(async () => editor().openPrivateSkillImport());
+  const destination = "agentConsole.privateSkill.import.destination";
+  expect(modal()?.textContent).toContain(destination);
+  const input = modal()!.querySelector<HTMLInputElement>('input[type="file"]')!;
+  const file = new File(["skill"], "private-skill.zip", { type: "application/zip" });
+  await act(async () => {
+    Object.defineProperty(input, "files", { value: [file] });
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+  });
+  expect(modal()?.textContent).toContain(file.name);
+  expect(modal()?.textContent).toContain(destination);
+});
+
+it("prompts to delete a private skill only after its mounting is saved", async () => {
+  const detail = mockPrivateSkillDetail();
+  const unmounted = {
+    ...detail,
+    definition: { ...detail.definition, skillConfig: { skills: ["old-center"] } },
+    privateSkills: detail.privateSkills!.map(skill => ({ ...skill, enabled: false })),
+  };
+  jest.mocked(getAdminAgentDetail).mockResolvedValue(response(unmounted));
+  await render(false, agent.key);
+
+  await act(async () => editor().onSkillToggle("private-demo", true));
+  expect(editor().form.skills).toEqual(["old-center", "private-demo"]);
+  await act(async () => editor().onSkillToggle("private-demo", false));
+  expect(editor().form.skills).toEqual(["old-center"]);
+  expect(modal()).toBeNull();
+  expect(deleteAdminAgentPrivateSkill).not.toHaveBeenCalled();
+
+  jest.mocked(updateAgent).mockImplementation(async params => {
+    jest.mocked(getAdminAgentDetail).mockResolvedValue(response({ ...detail, definition: params.definition }));
+    return response({ ...agent, definition: params.definition });
+  });
+  await act(async () => editor().onSkillToggle("private-demo", true));
+  await act(async () => saveButton().click());
+  expect(updateAgent).toHaveBeenCalledTimes(1);
+  expect(editor().selectedSkills).toEqual(expect.arrayContaining([
+    expect.objectContaining({ id: "private-demo", source: "private" }),
+  ]));
+
+  await act(async () => editor().onSkillToggle("private-demo", false));
+  expect(modal()?.textContent).toContain("agentConsole.privateSkill.delete.title");
+  expect(deleteAdminAgentPrivateSkill).not.toHaveBeenCalled();
 });

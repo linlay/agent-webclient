@@ -1042,11 +1042,19 @@ export const zhCNMessages = {
   "agentConsole.privateSkill.import.drop":
     "拖拽专属技能 ZIP 到这里，或选择文件",
   "agentConsole.privateSkill.import.description":
-    "ZIP 只会安装到当前智能体，不会出现在技能中心。技能 ID 自动读取自 SKILL.md 的 frontmatter（优先 id，兼容旧 key，否则 name）；支持 SKILL.md 位于 ZIP 根目录或唯一的顶层目录中。",
+    "技能 ID 自动读取自 SKILL.md 的 frontmatter（优先 id，兼容旧 key，否则 name）。SKILL.md 可位于 ZIP 根目录或唯一的顶层目录中。",
+  "agentConsole.privateSkill.import.destination":
+    "专属技能会直接保存到当前智能体的 skills/ 目录，导入后自动挂载。技能中心不会收录该技能。",
   "agentConsole.privateSkill.import.disabled":
     "请先将此智能体保存为目录型智能体后再导入专属技能。",
   "agentConsole.privateSkill.import.required": "请选择 ZIP 文件。",
   "agentConsole.privateSkill.import.success": "专属技能已导入并启用",
+  "agentConsole.privateSkill.delete.title": "解除挂载并删除专属技能？",
+  "agentConsole.privateSkill.delete.description":
+    "确认后，「{name}」将从当前智能体解除挂载，其文件也会从该智能体的目录中删除。此操作立即生效，无法撤销。",
+  "agentConsole.privateSkill.delete.confirm": "解除挂载并删除",
+  "agentConsole.privateSkill.delete.success": "专属技能已解除挂载并删除",
+  "agentConsole.privateSkill.delete.failed": "删除专属技能失败。{detail}",
   "agentConsole.detail.createSubtitle": "保存后写入后端 agent 配置",
   "agentConsole.detail.openDirectory": "在访达中打开 Agent 配置目录",
   "agentConsole.detail.titleCreate": "新建智能体",
