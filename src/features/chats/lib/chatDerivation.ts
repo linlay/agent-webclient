@@ -3,21 +3,17 @@ import { deriveChat } from "@/shared/data";
 export function isDeriveChatActionDisabled(input: {
   chatId?: unknown;
   runId?: unknown;
-  running?: boolean;
-  activeAwaiting?: unknown;
 }): boolean {
   return (
     !String(input.chatId || "").trim() ||
-    !String(input.runId || "").trim() ||
-    input.running === true ||
-    Boolean(input.activeAwaiting)
+    !String(input.runId || "").trim()
   );
 }
 
 export async function deriveChatFromRun(
   sourceChatId: string,
   sourceRunId: string,
-): Promise<string> {
+): Promise<{ chatId: string; unavailableResources: string[] }> {
   const response = await deriveChat({
     sourceChatId: String(sourceChatId || "").trim(),
     sourceRunId: String(sourceRunId || "").trim(),
@@ -26,5 +22,5 @@ export async function deriveChatFromRun(
   if (!derivedChatId) {
     throw new Error("derive response missing chatId");
   }
-  return derivedChatId;
+  return { chatId: derivedChatId, unavailableResources: response.data?.unavailableResources ?? [] };
 }

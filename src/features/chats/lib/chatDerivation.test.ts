@@ -7,7 +7,7 @@ const mockDeriveChat = deriveChat as jest.Mock;
 describe("chat derivation", () => {
   beforeEach(() => mockDeriveChat.mockReset());
 
-  it("allows a run with both IDs and no running or awaiting state", () => {
+  it("allows a run with both IDs", () => {
     expect(isDeriveChatActionDisabled({ chatId: "chat_1", runId: "run_1" })).toBe(false);
   });
 
@@ -16,8 +16,6 @@ describe("chat derivation", () => {
     { chatId: "chat_1", runId: "" },
     { chatId: "  ", runId: "run_1" },
     { chatId: "chat_1", runId: "  " },
-    { chatId: "chat_1", runId: "run_1", running: true },
-    { chatId: "chat_1", runId: "run_1", activeAwaiting: { mode: "question" } },
   ])("disables derivation for %j", (input) => {
     expect(isDeriveChatActionDisabled(input)).toBe(true);
   });
@@ -27,7 +25,7 @@ describe("chat derivation", () => {
       status: 200, code: 0, msg: "ok", data: { chatId: " chat_new " },
     });
 
-    await expect(deriveChatFromRun(" chat_1 ", " run_1 ")).resolves.toBe("chat_new");
+    await expect(deriveChatFromRun(" chat_1 ", " run_1 ")).resolves.toEqual({ chatId: "chat_new", unavailableResources: [] });
     expect(mockDeriveChat).toHaveBeenCalledWith({ sourceChatId: "chat_1", sourceRunId: "run_1" });
   });
 

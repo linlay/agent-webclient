@@ -57,4 +57,33 @@ describe("independent Resource/File Viewer targets", () => {
       line: 12,
     });
   });
+
+  it("rejects bare relative paths without @chat/ and accepts literal @chat/ artifact routes with special characters", () => {
+    expect(buildResourceViewerTargetFromRoute({
+      agentKey: "agent_1",
+      chatId: "chat_1",
+      file: "artifacts/run_1/markdown-cheatsheet.md",
+    })).toBeNull();
+
+    expect(buildResourceViewerTargetFromRoute({
+      agentKey: "agent_1",
+      chatId: "chat_1",
+      file: "@chat/artifacts/run_1/报告 100% #1.md",
+      sourceKind: "artifact",
+      resourceId: "art_1",
+      relativePath: "artifacts/run_1/报告 100% #1.md",
+    })).toMatchObject({
+      type: "resource",
+      name: "报告 100% #1.md",
+      url: "@chat/artifacts/run_1/报告 100% #1.md",
+      contentKind: "text",
+      source: {
+        kind: "artifact",
+        agentKey: "agent_1",
+        chatId: "chat_1",
+        resourceId: "art_1",
+        relativePath: "artifacts/run_1/报告 100% #1.md",
+      },
+    });
+  });
 });

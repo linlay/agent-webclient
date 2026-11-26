@@ -25,6 +25,7 @@ export interface DeriveChatResponse {
   sourceRunId: string;
   lastRunId: string;
   copiedRuns: number;
+  unavailableResources?: string[];
   createdAt: number;
   updatedAt: number;
 }

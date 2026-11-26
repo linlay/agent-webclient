@@ -40,6 +40,7 @@ const MODEL_GROUP_TITLE_CLASS = presentationClasses("query-model-menu-group-titl
 const MODEL_REFRESH_BUTTON_CLASS =
   presentationClasses("query-model-menu-refresh ui-icon-hover-20");
 const MODEL_REFRESH_ICON_CLASS = presentationClasses("query-model-menu-refresh-icon");
+const MODEL_SUBMENU_LABEL_CLASS = presentationClasses("query-model-submenu-label");
 
 function itemLabel(content: React.ReactNode): React.ReactElement {
   return React.createElement("span", { className: MENU_ITEM_CLASS }, content);
@@ -187,7 +188,11 @@ export function buildModelMenuItems({
     {
       key: "model-submenu",
       popupClassName: presentationClasses("query-settings-submenu"),
-      label: itemLabel(selectedModelLabel || activeModelKey || ""),
+      label: React.createElement(
+        "span",
+        { className: MODEL_SUBMENU_LABEL_CLASS },
+        selectedModelLabel || activeModelKey || "",
+      ),
       children: [
         {
           key: "models",

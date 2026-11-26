@@ -14,15 +14,12 @@ const mockDispatch = jest.fn();
 jest.mock("@/app/state/AppContext", () => ({
   useAppContext: () => ({
     state: mockState,
-    stateRef: { current: mockState },
     dispatch: mockDispatch,
-    activeQuerySessionRequestIdRef: { current: "" },
-    querySessionsRef: { current: new Map() },
   }),
 }));
 jest.mock("@/shared/data", () => ({ deriveChat: jest.fn() }));
 jest.mock("@/shared/i18n", () => ({ useI18n: () => ({ t: (key: string) => key }) }));
-jest.mock("antd", () => ({ message: { success: jest.fn(), error: jest.fn() } }));
+jest.mock("antd", () => ({ message: { success: jest.fn(), error: jest.fn(), warning: jest.fn() } }));
 const mockDeriveChat = deriveChat as jest.Mock;
 
 function readAction() {
@@ -60,14 +57,12 @@ describe("derive chat conversation action", () => {
     expect(mockDispatch).not.toHaveBeenCalled();
   });
 
-  it.each(["missing chat", "missing run", "running", "awaiting"])(
+  it.each(["missing chat", "missing run"])(
     "blocks both availability and direct execution when %s",
     async (condition) => {
       let runId = "run_1";
       if (condition === "missing chat") mockState.chatId = " ";
       if (condition === "missing run") runId = " ";
-      if (condition === "running") mockState.currentChatActiveRun = { chatId: "chat_1", runId: "run_live", agentKey: "agent_1" };
-      if (condition === "awaiting") mockState.activeAwaiting = { mode: "question" } as NonNullable<typeof mockState.activeAwaiting>;
       const action = readAction();
 
       expect(action.isDisabled(runId)).toBe(true);
@@ -80,14 +75,14 @@ describe("derive chat conversation action", () => {
     },
   );
 
-  it("allows derivation after the current run finishes despite stale streaming state", async () => {
-    mockState.currentChatActiveRun = { chatId: "chat_1", runId: "run_live", agentKey: "agent_1" };
-    expect(readAction().isDisabled("run_1")).toBe(true);
-    mockState = { ...mockState, currentChatActiveRun: null, streaming: true };
-    const action = readAction();
-    expect(action.isDisabled("run_1")).toBe(false);
-    await action.execute("run_1");
-    expect(mockDeriveChat).toHaveBeenCalledTimes(1);
+  it("navigates and reports unavailable resources when a historical file changed", async () => {
+    mockDeriveChat.mockResolvedValue({ data: { chatId: "chat_new", unavailableResources: ["overwritten.txt"] } });
+
+    await readAction().execute("run_1");
+
+    expect(dispatchEvent).toHaveBeenCalledTimes(2);
+    expect(message.warning).toHaveBeenCalledWith("timeline.run.deriveChatResourcesUnavailable");
+    expect(message.error).not.toHaveBeenCalled();
   });
 
   it.each([new Error("request failed"), "plain failure", "missing chatId"])(

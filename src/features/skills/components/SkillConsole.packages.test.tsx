@@ -87,6 +87,21 @@ test('package click expands members and overview, clicking member reopens existi
   expect(getAdminSkillDetail).toHaveBeenCalledTimes(2);
   expect(container.querySelector('.skill-package-overview')).toBeNull();
 });
+test('skill list text only exposes a native title once it is clipped', async () => {
+  await mount();
+  const names = [
+    ...container.querySelectorAll<HTMLElement>('.skill-console-list-item-title .ant-typography'),
+  ];
+  const metas = [
+    ...container.querySelectorAll<HTMLElement>('.skill-console-list-item-meta'),
+  ];
+  expect(names.length).toBeGreaterThan(0);
+  expect(metas.length).toBeGreaterThan(0);
+  for (const node of [...names, ...metas]) {
+    expect(node.textContent).toBeTruthy();
+    expect(node.getAttribute('title')).toBeNull();
+  }
+});
 test('searching a member automatically expands its parent', async () => {
   await mount();
   const input = container.querySelector<HTMLInputElement>('input[placeholder="搜索技能..."]')!;

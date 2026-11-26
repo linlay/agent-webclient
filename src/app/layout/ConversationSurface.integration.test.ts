@@ -144,12 +144,20 @@ describe("whole conversation surface navigation", () => {
     await act(async () => jest.advanceTimersByTime(80)); // shared fade
   }
 
-  async function completedRunDeriveButton() {
+  async function completedRunDeriveButton(withActiveRun = false) {
     await act(async () => context.dispatch({ type: "APPLY_CONVERSATION_REPLAY", snapshot: {
       ...context.state,
-      events: [{ type: "request.query", timestamp: 1_776_474_697_581 }, { type: "run.complete", runId: "run_1", timestamp: 3 }], timelineOrder: ["query", "answer"], timelineNodes: new Map([
+      currentChatActiveRun: withActiveRun ? { chatId: "A", runId: "run_2", agentKey: "demo" } : null,
+      events: [
+        { type: "request.query", runId: "run_1", timestamp: 1 },
+        { type: "run.complete", runId: "run_1", timestamp: 3 },
+        ...(withActiveRun ? [{ type: "request.query", runId: "run_2", timestamp: 4 }] : []),
+      ],
+      timelineOrder: withActiveRun ? ["query", "answer", "next-query"] : ["query", "answer"],
+      timelineNodes: new Map([
         ["query", { id: "query", kind: "message", role: "user", text: "question", ts: 1 }],
         ["answer", { id: "answer", kind: "content", role: "assistant", text: "answer", ts: 2 }],
+        ["next-query", { id: "next-query", kind: "message", role: "user", text: "next question", ts: 4, runId: "run_2" }],
       ]) } }));
     await finishTransition();
     const button = container.querySelector('[data-material-icon="fork_chat"]')?.closest("button");
@@ -157,11 +165,13 @@ describe("whole conversation surface navigation", () => {
     return button!;
   }
 
-  it("derives from the clicked run and signals navigation before chat loading completes", async () => {
+  it("derives from a historical run while a later run is active and navigates to the branch", async () => {
     const pending = deferred();
     deriveChat.mockReturnValue(pending.promise);
     const success = jest.spyOn(message, "success").mockImplementation(() => undefined);
-    const button = await completedRunDeriveButton();
+    const button = await completedRunDeriveButton(true);
+    expect(button.disabled).toBe(false);
+    expect(container.querySelectorAll('[data-material-icon="fork_chat"]')).toHaveLength(1);
     const events = jest.spyOn(window, "dispatchEvent");
 
     await act(async () => button.click());
