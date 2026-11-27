@@ -165,15 +165,15 @@ describe("ComposerActions", () => {
     expect(disabledHtml).not.toContain("composer.editingMode.label");
   });
 
-  it("renders enabled connectors avatar stack when available", () => {
+  it("keeps the avatar stack for mounted connectors and marks an unavailable one", () => {
     const html = renderToStaticMarkup(
       React.createElement(ComposerActions, {
         ...baseProps,
         planningMode: true,
         canUsePlanningMode: true,
         enabledConnectors: [
-          { id: "conn-1", name: "Connector 1" },
-          { id: "conn-2", name: "Connector 2" },
+          { id: "conn-1", name: "Connector 1", availability: { state: "ready" } },
+          { id: "conn-2", name: "Connector 2", availability: { state: "unavailable", reason: "account_disconnected" } },
         ],
       } as any),
     );
@@ -181,6 +181,8 @@ describe("ComposerActions", () => {
     expect(html).toContain("composer-connector-stack-btn");
     expect(html).toContain("composer-connector-avatar-stack");
     expect(html).toContain("Connector 1");
+    expect(html).toContain('data-unavailable="true"');
+    expect(html).toContain("status.account_disconnected");
     // 堆叠与展开偏移由 CSS 变量驱动，展开只靠绝对定位的 transform，不占用布局
     expect(html).toContain("--connector-avatar-count:2");
     expect(html).toContain("--connector-avatar-index:1");

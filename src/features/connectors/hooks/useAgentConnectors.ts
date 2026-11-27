@@ -1,9 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Agent } from "@/features/agents/lib/agentState";
 import { useAppContext } from "@/app/state/AppContext";
-import { getAgent, getConnectorConnection, getConnectorConnections, setAgentConnector, type ConnectorConnection } from "@/shared/data";
+import { getAgent, getConnectorConnection, setAgentConnector, type ConnectorConnection } from "@/shared/data";
 import { invalidateAgentDetail } from "@/shared/data/api/routedClient";
-import { usePushTransport } from "@/features/transport/hooks/useRealtimeTransport";
 import { useReconnectSignal } from "@/features/transport/hooks/useRefreshSignals";
 import { ConnectorChatError, readConnectorConnection } from "../lib/connectorChat";
 
@@ -13,10 +12,9 @@ const asError = (cause: unknown) => cause instanceof Error ? cause : new Error(S
 const hasConnectionConfiguration = (connection: ConnectorConnection) => !connection.configurationRequired || connection.configured
   || connection.connectorId.toLowerCase().startsWith("builtin.") && ["delegated", "not_required"].includes(connection.authentication.status);
 
-/** Agent owns associations; this hook observes connection configuration and owns switch mutations. */
+/** Agent owns associations; connector configuration is checked before adding a mount. */
 export function useAgentConnectors(agentKey: string) {
-  const { state, stateRef, dispatch } = useAppContext();
-  const push = usePushTransport();
+  const { state, dispatch } = useAppContext();
   const agent = state.currentAgent?.key === agentKey ? state.currentAgent : null;
   const ids = agent?.connectors;
   const availability = state.agentAvailability[agentKey];
@@ -25,41 +23,10 @@ export function useAgentConnectors(agentKey: string) {
   const [loadError, setLoadError] = useState<Error | null>(null);
   const [saveError, setSaveError] = useState<Error | null>(null);
   const [catalogRevision, setCatalogRevision] = useState(0);
-  const [availableIds, setAvailableIds] = useState<string[] | null>(null);
-  const [configurationLoading, setConfigurationLoading] = useState(false);
-  const [configurationError, setConfigurationError] = useState<Error | null>(null);
   const scope = useRef(0);
   const request = useRef(0);
   const saving = useRef(false);
   const attempted = useRef(false);
-  const configurationRequest = useRef(0);
-  const configurationRefreshQueued = useRef(false);
-  const configuredIds = useRef<string[] | null>(null);
-
-  const refreshConfiguration = useCallback(async () => {
-    if (!agentKey) return;
-    if (saving.current) { configurationRefreshQueued.current = true; return; }
-    const current = ++configurationRequest.current;
-    setConfigurationLoading(true);
-    try {
-      const response = await getConnectorConnections();
-      if (current !== configurationRequest.current) return;
-      const next = response.data.connections
-        .map(connection => readConnectorConnection(connection, connection.connectorId))
-        .filter(hasConnectionConfiguration).map(connection => connection.connectorId);
-      const previous = configuredIds.current;
-      if (previous && (previous.length !== next.length || next.some(id => !previous.includes(id)))) {
-        setCatalogRevision(value => value + 1);
-      }
-      configuredIds.current = next;
-      setAvailableIds(next);
-      setConfigurationError(null);
-    } catch (cause) {
-      if (current === configurationRequest.current) setConfigurationError(asError(cause));
-    } finally {
-      if (current === configurationRequest.current) setConfigurationLoading(false);
-    }
-  }, [agentKey]);
 
   const refresh = useCallback(async (force = true) => {
     if (!agentKey || saving.current) return;
@@ -67,7 +34,6 @@ export function useAgentConnectors(agentKey: string) {
     if (force) {
       invalidateAgentDetail(agentKey);
       window.dispatchEvent(new CustomEvent("agent:availability-refresh", { detail: { agentKey } }));
-      void refreshConfiguration();
     }
     setLoading(true);
     try {
@@ -83,10 +49,9 @@ export function useAgentConnectors(agentKey: string) {
     } finally {
       if (current === request.current) setLoading(false);
     }
-  }, [agentKey, dispatch, stateRef, refreshConfiguration]);
+  }, [agentKey, dispatch]);
 
   useReconnectSignal(() => {
-    void refreshConfiguration();
     if (!Array.isArray(ids) || loadError) void refresh(false);
   }, !!agentKey);
 
@@ -99,37 +64,8 @@ export function useAgentConnectors(agentKey: string) {
     setLoadError(null);
     setSaveError(null);
     setCatalogRevision(0);
-    setAvailableIds(null);
-    setConfigurationError(null);
-    setConfigurationLoading(false);
-    configurationRefreshQueued.current = false;
-    configuredIds.current = null;
-    return () => { scope.current += 1; request.current += 1; configurationRequest.current += 1; };
+    return () => { scope.current += 1; request.current += 1; };
   }, [agentKey]);
-  useEffect(() => {
-    if (!agentKey) return;
-    void refreshConfiguration();
-    const unsubscribe = push.subscribe({ types: ["catalog.updated"] }, frame => {
-      const value = frame as { data?: { reason?: string } };
-      if (["agents", "connectors", "config"].includes(value.data?.reason || "")) void refreshConfiguration();
-    });
-    const onVisible = () => { if (document.visibilityState === "visible") void refreshConfiguration(); };
-    document.addEventListener("visibilitychange", onVisible);
-    window.addEventListener("focus", onVisible);
-    return () => {
-      configurationRequest.current += 1;
-      unsubscribe();
-      document.removeEventListener("visibilitychange", onVisible);
-      window.removeEventListener("focus", onVisible);
-    };
-  }, [agentKey, push, refreshConfiguration]);
-  useEffect(() => {
-    if (!availableIds || configurationLoading || configurationError || savingId) return;
-    const timer = window.setTimeout(() => {
-      if (document.visibilityState === "visible") void refreshConfiguration();
-    }, 30_000);
-    return () => window.clearTimeout(timer);
-  }, [availableIds, configurationLoading, configurationError, savingId, refreshConfiguration]);
   useEffect(() => {
     // Normally Composer has hydrated this Agent already. A missing detail uses
     // the same cached/deduped /api/agent request, never a separate mount read.
@@ -140,25 +76,23 @@ export function useAgentConnectors(agentKey: string) {
   }, [agentKey, ids, availability, refresh]);
 
   const setSelected = useCallback(async (connectorId: string, enabled: boolean) => {
-    if (!agentKey || !Array.isArray(ids) || !availableIds || loadError || configurationError || (availability && availability !== "available") || saving.current) return;
+    if (!agentKey || !Array.isArray(ids) || loadError || (availability && availability !== "available") || saving.current) return;
     const currentScope = scope.current;
     saving.current = true;
     request.current += 1;
-    configurationRequest.current += 1;
-    setConfigurationLoading(false);
     invalidateAgentDetail(agentKey);
     window.dispatchEvent(new CustomEvent("agent:availability-invalidate", { detail: { agentKey } }));
     setLoading(false);
     setSavingId(connectorId);
     setSaveError(null);
-    let failed = false;
+    let reconcile = false;
     try {
       if (enabled) {
         const connection = readConnectorConnection((await getConnectorConnection(connectorId)).data, connectorId);
         if (currentScope !== scope.current) return;
         if (!hasConnectionConfiguration(connection)) throw new ConnectorChatError("configurationRequired");
-        setAvailableIds(previous => previous?.includes(connectorId) ? previous : [...(previous || []), connectorId]);
       }
+      reconcile = true;
       const { data } = await setAgentConnector({ agentKey, connectorId, enabled });
       if (currentScope !== scope.current) return;
       if (data.agentKey !== agentKey || !Array.isArray(data.connectorIds) || !data.connectorIds.every(id => typeof id === "string")) throw new Error("Agent connector identity mismatch");
@@ -166,8 +100,8 @@ export function useAgentConnectors(agentKey: string) {
       invalidateAgentDetail(agentKey);
       window.dispatchEvent(new CustomEvent("agent:availability-invalidate", { detail: { agentKey } }));
       dispatch({ type: "PATCH_CURRENT_AGENT", agentKey, patch: { connectors: data.connectorIds } });
+      reconcile = false;
     } catch (cause) {
-      failed = true;
       if (currentScope === scope.current) setSaveError(asError(cause));
     } finally {
       if (currentScope === scope.current) {
@@ -176,19 +110,14 @@ export function useAgentConnectors(agentKey: string) {
         setCatalogRevision(value => value + 1);
         // The response may be lost after saving. Confirm source through Agent.
         window.dispatchEvent(new CustomEvent("agent:availability-refresh", { detail: { agentKey } }));
-        if (failed) void refresh(false);
-        if (failed || configurationRefreshQueued.current) {
-          configurationRefreshQueued.current = false;
-          void refreshConfiguration();
-        }
+        if (reconcile) void refresh(false);
       }
     }
-  }, [agentKey, ids, availability, availableIds, loadError, configurationError, refresh, refreshConfiguration, dispatch, stateRef]);
+  }, [agentKey, ids, availability, loadError, refresh, dispatch]);
 
   const unavailable = availability && !["available", "checking"].includes(availability);
-  return { data: agentKey && Array.isArray(ids) && availableIds ? { agentKey, connectorIds: ids } : null,
-    availableIds: availableIds || [],
-    loading: loading || availability === "checking" || configurationLoading && !availableIds, savingId,
-    loadError: loadError || configurationError || (unavailable ? new Error(`Agent ${availability}`) : null),
+  return { data: agentKey && Array.isArray(ids) ? { agentKey, connectorIds: ids } : null,
+    loading: loading || availability === "checking", savingId,
+    loadError: loadError || (unavailable ? new Error(`Agent ${availability}`) : null),
     saveError, refresh, setSelected, catalogRevision };
 }

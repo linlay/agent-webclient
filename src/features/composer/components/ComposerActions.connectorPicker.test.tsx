@@ -81,8 +81,8 @@ const baseProps = {
   onEditingModeChange: jest.fn(),
   onAddReference: jest.fn(),
   enabledConnectors: [
-    { id: "conn-1", name: "Connector 1" },
-    { id: "conn-2", name: "Connector 2" },
+    { id: "conn-1", name: "Connector 1", availability: { state: "ready" } },
+    { id: "conn-2", name: "Connector 2", availability: { state: "ready" } },
   ],
 };
 

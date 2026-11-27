@@ -29,7 +29,7 @@ beforeEach(() => {
 afterEach(async () => { await act(async () => root.unmount()); });
 
 it("loads three connectors on entering chat without opening the plus menu", async () => {
-  jest.mocked(getConnectors).mockResolvedValue({ code: 0, msg: "", data: { connectors: ["a", "b", "c"].map(id => ({ id, name: id })) } });
+  jest.mocked(getConnectors).mockResolvedValue({ code: 0, msg: "", data: { connectors: ["a", "b", "c"].map(id => ({ id, name: id, availability: { state: "ready" } })) } });
   await act(async () => root.render(React.createElement(ComposerCatalog, { agentKey: "demo" })));
   expect(catalog.items.map(item => item.id)).toEqual(["a", "b", "c"]);
   expect(getConnectors).toHaveBeenCalledWith("demo");
@@ -40,7 +40,7 @@ it("recovers an initial Desktop catalog failure when the transport reconnects", 
   await act(async () => root.render(React.createElement(ComposerCatalog, { agentKey: "demo" })));
   expect(catalog.items).toEqual([]);
   expect(catalog.error).toBeTruthy();
-  jest.mocked(getConnectors).mockResolvedValue({ code: 0, msg: "", data: { connectors: ["a", "b", "c"].map(id => ({ id, name: id })) } });
+  jest.mocked(getConnectors).mockResolvedValue({ code: 0, msg: "", data: { connectors: ["a", "b", "c"].map(id => ({ id, name: id, availability: { state: "ready" } })) } });
   await act(async () => {
     mockListeners.forEach(listener => listener("disconnected"));
     mockListeners.forEach(listener => listener("connected"));

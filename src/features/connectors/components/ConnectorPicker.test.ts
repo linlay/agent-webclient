@@ -2,7 +2,7 @@
 import React, { act, useState } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { fetchConnectorIcon, getConnectors, getConnectorAuthStatus, startConnectorAuth, logoutConnectorAuth } from "@/shared/data";
-import type { ConnectorSummary, ConnectorAuthMode } from "@/shared/data";
+import type { ConnectorOption, ConnectorSummary, ConnectorAuthMode } from "@/shared/data";
 import { ConnectorPicker } from "./ConnectorPicker";
 import { AgentConnectorPicker } from "./AgentConnectorPicker";
 import { useAgentConnectors } from "../hooks/useAgentConnectors";
@@ -35,13 +35,13 @@ jest.mock("antd", () => ({
   }),
 }));
 
-const connector = (id: string, name: string, mode: ConnectorAuthMode = "none"): ConnectorSummary => ({ id, name, version: "1", type: "cli", authMode: mode, hasCli: true, hasMcp: false, hasBin: false, skills: [] });
+const connector = (id: string, name: string, mode: ConnectorAuthMode = "none"): ConnectorSummary & ConnectorOption => ({ id, name, availability: { state: "ready" }, version: "1", type: "cli", authMode: mode, hasCli: true, hasMcp: false, hasBin: false, skills: [] });
 let root: Root;
 let container: HTMLDivElement;
 const onSelectionChange = jest.fn();
-function Harness({ agentKey = "zenmi", search = "", selectionDisabled = false, initialIds = ["docs"], availableIds, selectionError }: { agentKey?: string; search?: string; selectionDisabled?: boolean; initialIds?: string[]; availableIds?: string[]; selectionError?: Error }) {
+function Harness({ agentKey = "zenmi", search = "", selectionDisabled = false, initialIds = ["docs"], selectionError }: { agentKey?: string; search?: string; selectionDisabled?: boolean; initialIds?: string[]; selectionError?: Error }) {
   const [selectedIds, setSelectedIds] = useState(initialIds);
-  return React.createElement(ConnectorPicker, { agentKey, search, onSearchChange: jest.fn(), selectedIds, availableIds, selectionDisabled, selectionError,
+  return React.createElement(ConnectorPicker, { agentKey, search, onSearchChange: jest.fn(), selectedIds, selectionDisabled, selectionError,
     onSelectionChange: (item, selected) => { onSelectionChange(item.id, selected); setSelectedIds(ids => selected ? [...ids, item.id] : ids.filter(id => id !== item.id)); } });
 }
 const mount = async (props = {}) => { await act(async () => root.render(React.createElement(Harness, props))); };
@@ -187,7 +187,7 @@ it("keeps unrelated Agent switches stable and blocks pointer and keyboard edits 
     connector("docs", "文档"), connector("login", "会议", "mcp"), connector("mail", "邮件"),
   ] } });
   const selection = {
-    data: { agentKey: "zenmi", connectorIds: ["docs", "login"] }, availableIds: ["docs", "login", "mail"],
+    data: { agentKey: "zenmi", connectorIds: ["docs", "login"] },
     loading: false, savingId: "", loadError: null, saveError: null, catalogRevision: 0,
     refresh: jest.fn(async () => undefined), setSelected: jest.fn(async (_id: string, _enabled: boolean) => undefined),
   };
@@ -360,7 +360,7 @@ it.each(["http", "ws"])("shows %s server conflicts when the local catalog is sta
 
 
 it("loads the scoped usage catalog without exposing platform preset controls", async () => {
-  jest.mocked(getConnectors).mockResolvedValue({ code: 0, msg: "", data: { connectors: [{ id: "docs", name: "文档", description: "查找文档" }] } });
+  jest.mocked(getConnectors).mockResolvedValue({ code: 0, msg: "", data: { connectors: [{ id: "docs", name: "文档", description: "查找文档", availability: { state: "ready" } }] } });
   await mount();
   expect(getConnectors).toHaveBeenCalledWith("zenmi");
   expect(container.textContent).not.toContain("composer.addMenu.connectors.preset");
@@ -373,21 +373,22 @@ it("loads the scoped usage catalog without exposing platform preset controls", a
 
 it("shows availability from the directory while keeping saved associations independently switchable", async () => {
   jest.mocked(getConnectors).mockResolvedValue({ code: 0, msg: "", data: { connectors: [
-    { id: "docs", name: "文档", readiness: "authorization_required" },
-    { id: "mcp", name: "MCP", readiness: "ready", mcp: [{ serverKey: "mcp", status: "unavailable", toolCount: 0 }] },
+    { id: "docs", name: "文档", active: false, availability: { state: "unavailable", reason: "authorization_invalid" } },
+    { id: "mcp", name: "MCP", availability: { state: "unavailable", reason: "service_unavailable" }, mcp: [{ serverKey: "mcp", status: "unavailable", toolCount: 0 }] },
   ] } });
   await mount();
   const switches = container.querySelectorAll<HTMLButtonElement>('[role="switch"]');
   expect(switches[0].getAttribute("aria-checked")).toBe("true");
-  expect(switches[0].parentElement?.textContent).toContain("status.authorization_required");
-  expect(switches[1].parentElement?.textContent).toContain("status.unavailable");
+  expect(switches[0].parentElement?.textContent).toContain("status.authorization_invalid");
+  expect(switches[0].parentElement?.textContent).toContain("status.mount_pending");
+  expect(switches[1].parentElement?.textContent).toContain("status.service_unavailable");
   await act(async () => switches[0].click());
   expect(onSelectionChange).toHaveBeenCalledWith("docs", false);
   expect(getConnectorAuthStatus).not.toHaveBeenCalled();
 });
 
 it("refreshes only the directory while publication is pending and stops once it completes", async () => {
-  const connectors = [{ id: "docs", name: "文档", readiness: "ready" as const }];
+  const connectors = [{ id: "docs", name: "文档", availability: { state: "ready" as const } }];
   jest.mocked(getConnectors)
     .mockResolvedValueOnce({ code: 0, msg: "", data: { agentKey: "zenmi", reloadPending: true, connectors } })
     .mockResolvedValue({ code: 0, msg: "", data: { agentKey: "zenmi", reloadPending: false, connectors } });
@@ -401,7 +402,8 @@ it("refreshes only the directory while publication is pending and stops once it 
 });
 
 it("stops MCP synchronization checks on readiness or when the picker closes", async () => {
-  const option = (status: "syncing" | "ready") => ({ id: "docs", name: "文档", readiness: "ready" as const,
+  const option = (status: "syncing" | "ready"): ConnectorOption => ({ id: "docs", name: "文档",
+    availability: status === "ready" ? { state: "ready" } : { state: "pending", reason: "syncing" },
     mcp: [{ serverKey: "docs", status, toolCount: status === "ready" ? 1 : 0 }] });
   jest.mocked(getConnectors)
     .mockResolvedValueOnce({ code: 0, msg: "", data: { connectors: [option("syncing")] } })
@@ -409,7 +411,7 @@ it("stops MCP synchronization checks on readiness or when the picker closes", as
   await mount();
   expect(container.textContent).toContain("status.syncing");
   await act(async () => jest.advanceTimersByTime(2_000));
-  expect(container.textContent).toContain("status.ready");
+  expect(container.textContent).not.toContain("status.syncing");
   await act(async () => jest.advanceTimersByTime(60_000));
   expect(getConnectors).toHaveBeenCalledTimes(2);
   await act(async () => root.render(null));
@@ -420,41 +422,52 @@ it("stops MCP synchronization checks on readiness or when the picker closes", as
   expect(getConnectors).toHaveBeenCalledTimes(3);
 });
 
-it("turns disconnected WeCom off while retaining saved ranking and other connected switches", async () => {
-  jest.mocked(getConnectors).mockResolvedValue({ code: 0, msg: "", data: { connectors: [
-    connector("builtin.dbx", "dbx", "no_auth"), connector("builtin.httpx", "httpx", "no_auth"), connector("wecom", "企业微信", null),
-  ] } });
-  const initialIds = ["builtin.dbx", "builtin.httpx", "wecom"];
-  await mount({ initialIds, availableIds: initialIds });
+it("keeps a disconnected mount on, shows the account reason, and allows removing the mount", async () => {
+  const options = [
+    connector("builtin.dbx", "dbx"), connector("builtin.httpx", "httpx"), { ...connector("wecom", "企业微信"), active: true },
+  ];
+  jest.mocked(getConnectors).mockResolvedValue({ code: 0, msg: "", data: { connectors: options } });
+  await mount({ initialIds: options.map(item => item.id) });
   const switches = [...container.querySelectorAll<HTMLButtonElement>('[role="switch"]')];
   expect(switches.map(toggle => toggle.getAttribute("aria-checked"))).toEqual(["true", "true", "true"]);
   switches[0].focus();
-  await mount({ initialIds, availableIds: ["builtin.dbx", "builtin.httpx"] });
+
+  const disconnected: ConnectorOption = { ...options[2], availability: { state: "unavailable", reason: "account_disconnected" } };
+  jest.mocked(getConnectors).mockResolvedValue({ code: 0, msg: "", data: { connectors: [options[0], options[1], disconnected] } });
+  await act(async () => window.dispatchEvent(new Event("focus")));
   expect([...container.querySelectorAll('[role="switch"]')]).toEqual(switches);
-  expect(switches.map(toggle => toggle.getAttribute("aria-checked"))).toEqual(["false", "true", "true"]);
+  expect(switches.map(toggle => toggle.getAttribute("aria-checked"))).toEqual(["true", "true", "true"]);
+  expect(switches[0].parentElement?.textContent).toContain("status.account_disconnected");
   expect(document.activeElement).toBe(switches[0]);
   expect(onSelectionChange).not.toHaveBeenCalled();
-  await act(async () => switches[0].click());
-  expect(onSelectionChange).toHaveBeenCalledWith("wecom", true);
-  expect(switches[0].getAttribute("aria-checked")).toBe("false");
-  await mount({ initialIds, availableIds: initialIds });
+
+  jest.mocked(getConnectors).mockResolvedValue({ code: 0, msg: "", data: { connectors: options } });
+  await act(async () => window.dispatchEvent(new Event("focus")));
+  expect(switches[0].parentElement?.textContent).not.toContain("status.account_disconnected");
   expect(switches[0].getAttribute("aria-checked")).toBe("true");
+
+  jest.mocked(getConnectors).mockRejectedValueOnce(new Error("status offline"));
+  await act(async () => window.dispatchEvent(new Event("focus")));
+  expect(switches[0].parentElement?.textContent).toContain("status.status_unknown");
+  expect(switches[0].getAttribute("aria-checked")).toBe("true");
+  await act(async () => switches[0].click());
+  expect(onSelectionChange).toHaveBeenCalledWith("wecom", false);
 });
 
 it("explains that a disconnected connector must be connected before enabling it", async () => {
-  await mount({ availableIds: [], selectionError: new ConnectorChatError("configurationRequired") });
+  await mount({ initialIds: [], selectionError: new ConnectorChatError("configurationRequired") });
   expect(mockMessageError).toHaveBeenCalledWith("composer.addMenu.connectors.connectionRequired");
   expect(container.querySelector('[role="switch"]')?.getAttribute("aria-checked")).toBe("false");
   expect(startConnectorAuth).not.toHaveBeenCalled();
 });
 
 it("lets the user remove an unlinked saved choice from the existing conflict message", async () => {
-  const first = { ...connector("wecom", "企业微信", null), mutuallyExclusiveWith: ["meeting"] };
+  const first: ConnectorOption = { ...connector("wecom", "企业微信"), availability: { state: "unavailable", reason: "account_disconnected" }, mutuallyExclusiveWith: ["meeting"] };
   const second = connector("meeting", "会议", "mcp");
   jest.mocked(getConnectors).mockResolvedValue({ code: 0, msg: "", data: { connectors: [first, second] } });
-  await mount({ initialIds: [first.id], availableIds: [second.id] });
+  await mount({ initialIds: [first.id] });
   const switches = container.querySelectorAll<HTMLButtonElement>('[role="switch"]');
-  expect(switches[0].getAttribute("aria-checked")).toBe("false");
+  expect(switches[0].getAttribute("aria-checked")).toBe("true");
   await act(async () => switches[1].click());
   expect(onSelectionChange).not.toHaveBeenCalled();
   const popup = document.createElement("div");

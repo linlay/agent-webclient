@@ -39,19 +39,15 @@ MCP 支持每个组件的完整 HTTP URL、stdio 命令与参数、毫秒超时�
 
 ## Composer 中的 Agent 挂载
 
-目录读取、挂载读取和开关写入统一经 `routedClient` 选择传输。Platform 复用现有主 WebSocket（Desktop 经 Frame Port/Broker），Gateway 未支持这些 WS 路由时静态使用 HTTP；WS 失败不回退 HTTP、不自动重放写入。目录不进入 server-state 缓存，每次打开及既有目录更新、页面可见刷新均重新读取；挂载状态复用独立的当前智能体详情 `currentAgent` 和详情缓存，不新增挂载 GET。管理目录、连接配置快照、认证和图标沿用各自 HTTP 路径。`/api/connectors/connection` 的全量与单项快照没有 WS 对应路由；配置观察与开启前校验使用该 HTTP 契约，不能将它当作 WS 失败后的回退。
+目录读取、挂载读取和开关写入统一经 `routedClient` 选择传输。Platform 复用现有主 WebSocket（Desktop 经 Frame Port/Broker），Gateway 未支持这些 WS 路由时静态使用 HTTP。WS 失败不回退 HTTP、不自动重放写入。目录不进入 server-state 缓存，打开菜单、收到目录更新、窗口重新聚焦及恢复可见时重新读取。挂载状态复用独立的当前智能体详情 `currentAgent` 和详情缓存，不新增挂载 GET。开启前通过 HTTP `GET /api/connectors/connection?id=...` 重查单项配置。管理目录、认证和图标沿用各自 HTTP 路径。
 
 WS `/api/agent` 返回 tools/skills/connectors ID 数组；WS `/api/connectors` 使用可选 `{agentKey}` 读取目录和状态；WS `/api/agents/connectors` 使用 `{agentKey,connectorId,enabled}` 更新单项。Platform 保留旧挂载 GET/WS 读取兼容，WebClient 不再调用。只要出现 connectorId 或 enabled 就按写请求校验，包括 `enabled:false`、null 和不完整写入；响应仍为原有精简 DTO。
 
-“+ → 连接器”使用 `GET /api/connectors?agentKey=<key>` 读取精简候选目录，返回 id/name、非空 description/iconUrl/mutuallyExclusiveWith、本地 readiness 与可选 mcp[]（agentKey/serverKey/status/toolCount，只含该 Agent 当前发布版本中启用的组件，每个组件最多一条；禁用组件与旧 Run 保留的版本只出现在管理目录）；搜索仅匹配 id、名称和说明。默认预置由 Platform 的全局与 mode 配置决定，不出现在候选和挂载 ID 中。非预置 builtin 仍可选择，包只读不限制普通挂载开关。
+“+ → 连接器”使用 `GET /api/connectors?agentKey=<key>` 读取精简候选目录，条目返回 `id`、`name`、`availability`、指定 Agent 时的 `active`，以及可选的 `description`、`iconUrl`、`mutuallyExclusiveWith` 和 `mcp[]`。`availability.state` 为 `ready`、`pending`、`unavailable` 或 `unknown`，`reason` 提供具体原因。`mcp[]` 保留 agentKey/serverKey/status/toolCount，只含当前发布版本中启用的组件，每个组件最多一条。禁用组件与旧 Run 保留的版本可在管理目录查看。搜索仅匹配 ID、名称和说明。默认预置由 Platform 的全局与 mode 配置决定，并从候选和普通挂载 ID 中排除。非预置 builtin 仍可选择，包只读不限制普通挂载开关。
 
-开关读取 `/api/agent.connectors` 的已保存非预置 ID；`PUT /api/agents/connectors` 仅提交 `{agentKey,connectorId,enabled}`，响应仍为 `{agentKey,connectorIds,reloadPending}`。目录在指定 Agent 时返回 agentKey 和 reloadPending，表示完整配置与运行时仍不一致；全局目录省略这两个字段。账号授权与挂载独立，关闭开关不注销部署共享账号。Composer 不请求 admin 目录或挂载接口；候选目录不接收版本、认证详情、组件清单、技能或 activeConnectorIds。
+开关只读取 `/api/agent.connectors` 的已保存非预置 ID。`PUT /api/agents/connectors` 提交 `{agentKey,connectorId,enabled}`，响应为 `{agentKey,connectorIds,reloadPending}`。连接器已勾选但 `active:false` 时显示挂载待生效。账号断开或授权失效时保留已保存挂载和图标入口，并在弹层中用红字提示重新连接。关闭开关只修改当前 Agent 的挂载，共享账号授权由连接器中心管理。Composer 不请求管理端目录或认证详情。
 
-Composer 另用现有 HTTP `GET /api/connectors/connection` 读取连接配置快照，仅保存满足配置条件的 ID 投影；开关开启须同时属于已保存关联和该投影。配置条件取 `configurationRequired/configured`，不以 readiness 推断解绑；已配置但准备中、授权失效或暂不可用仍保留原选择。`no_auth` 无需配置；Platform 保留命名空间 `builtin.*` 中旧版 delegated/not_required CLI 可沿用其自身认证，外部 delegated 包仍须 `configured:true`，因此企业微信解绑后关闭开关。该观察不修改 Agent 源码、认证会话或凭据。
-
-打开菜单、收到 agents/connectors/config 目录更新、窗口重新聚焦及恢复可见时刷新配置快照；菜单持续打开且页面可见时每 30 秒补查配置，不重复读取 Agent，也不探测 CLI。配置投影变化时刷新候选目录以校准可用状态和 MCP 提示；背景配置读取保留已有开关交互。开启前按 ID 再读最新配置，未配置时提示先到连接器中心连接。排序与互斥检查仍使用完整已保存关联；若解绑后保留的选择造成互斥，现有冲突提示提供明确的取消选择动作。
-
-目录状态只读取既有认证/准备及 MCP 同步快照，不执行 CLI 或主动探测上游。菜单打开期间，仅 reloadPending、preparing/pending_verification 或 MCP pending/syncing 每次响应后间隔 2 秒补查目录；状态稳定、读取失败或关闭菜单后停止。未挂载与不可用分别显示，不用可用性推断开关。
+开启前按 ID 读取最新 `configurationRequired/configured`，未配置时引导到连接器中心，沿用旧内置委托认证兼容。关闭已有挂载可直接提交。排序与互斥检查继续使用完整的已保存挂载。目录状态来自本地授权、准备及 MCP 同步快照，读取不会执行 CLI 或探测上游，状态未确认单独显示。
 
 保存期间使 Agent 详情缓存与在途可用性检查失效，显示加载并禁止重复切换，成功后使用响应中的配置；失败保留诊断并重新读取源配置，避免网络中断后误报状态。初始配置加载失败时不假设所有连接器关闭，提供重试。切换 Agent 或关闭面板后忽略旧响应。
 
@@ -178,3 +174,5 @@ Standalone 业务“去对话”在准备/挂载前确认未保存修改，确�
 连接器目录列表仅展示图标、名称、版本、认证状态与组件类型，不展示 description；描述仍保留在详情。缺省图标使用随主题变色的细线连接符和浅色圆角底，包内图标沿用资源文件。
 
 MCP 预选图标使用专门绘制的彩色 SVG（联结、数据晶格、执行脉冲、棱镜、知识花瓣、探索轨道、灵感星芒、服务矩阵），源码位于 features/connectors/assets/mcp-icons；选择器与 Platform 包内 SVG 保持一致。已有 preset ID 保持稳定，图稿更新不自动改写既有连接器包。
+
+连接器聊天使用 Desktop 提供的 Chat 默认配置，或独立 WebClient 中用户保存的普通 Agent 选择。目标缺失或不在当前目录时提示用户选择，准备和挂载流程不启动。

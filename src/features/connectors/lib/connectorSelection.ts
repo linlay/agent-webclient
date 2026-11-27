@@ -1,5 +1,7 @@
 import type { ConnectorOption } from "@/shared/data";
 
+type ConnectorChoice = Pick<ConnectorOption, "id" | "name" | "description" | "mutuallyExclusiveWith">;
+
 // Composer 内外共用的固定内置清单；只控制展示顺序，不影响挂载与可用性。
 const BUILTIN_CONNECTOR_IDS = new Set([
   "builtin.web-control",
@@ -23,16 +25,13 @@ export interface ConnectorSelectionConflict {
   conflictingConnectorIds: string[];
 }
 
-export function connectorOptionStatus(item: ConnectorOption): string | undefined {
-  if (item.readiness && !["ready", "no_auth"].includes(item.readiness)) return item.readiness;
-  if (item.mcp?.some(server => ["unavailable", "disabled"].includes(server.status))) return "unavailable";
-  if (item.mcp?.some(server => ["pending", "syncing"].includes(server.status))) return "syncing";
-  if (item.mcp?.length && item.mcp.every(server => server.status === "unmounted")) return "unmounted";
-  return item.readiness;
+export function connectorOptionStatus(item: ConnectorOption) {
+  if (item.availability?.state === "ready") return undefined;
+  return item.availability?.reason || "status_unknown";
 }
 
 // Either package may declare the relationship; search filters never narrow it.
-export function findConnectorSelectionConflict(item: ConnectorOption, selectedIds: string[], catalog: ConnectorOption[]): ConnectorSelectionConflict | null {
+export function findConnectorSelectionConflict(item: ConnectorChoice, selectedIds: string[], catalog: ConnectorChoice[]): ConnectorSelectionConflict | null {
   const conflictingConnectorIds = selectedIds.filter(id => id !== item.id && (
     item.mutuallyExclusiveWith?.includes(id)
     || catalog.find(other => other.id === id)?.mutuallyExclusiveWith?.includes(item.id)
@@ -54,12 +53,12 @@ export function connectorSelectionConflictFromError(cause: unknown): ConnectorSe
   return { connectorId: selection.connectorId, conflictingConnectorIds: selection.conflictingConnectorIds };
 }
 
-export function connectorSelectionConflictNames(conflict: ConnectorSelectionConflict, catalog: ConnectorOption[]) {
+export function connectorSelectionConflictNames(conflict: ConnectorSelectionConflict, catalog: ConnectorChoice[]) {
   const name = (id: string) => catalog.find(item => item.id === id)?.name || id;
   return { name: name(conflict.connectorId), conflicts: conflict.conflictingConnectorIds.map(name).join(", ") };
 }
 
-export function filterConnectorOptions(items: ConnectorOption[], search: string): ConnectorOption[] {
+export function filterConnectorOptions<T extends ConnectorChoice>(items: T[], search: string): T[] {
   const needle = search.trim().toLowerCase();
   return items.filter(item => [item.id, item.name, item.description].filter(Boolean).join(" ").toLowerCase().includes(needle));
 }

@@ -27,7 +27,7 @@ import { useAgentConnectors } from "@/features/connectors/hooks/useAgentConnecto
 import { useConnectorPickerCatalog } from "@/features/connectors/hooks/useConnectorPickerCatalog";
 import { ConnectorIcon } from "@/features/connectors/components/ConnectorIcon";
 import { AgentConnectorPicker } from "@/features/connectors/components/AgentConnectorPicker";
-import { orderConnectorsBuiltinLast } from "@/features/connectors/lib/connectorSelection";
+import { connectorOptionStatus, orderConnectorsBuiltinLast } from "@/features/connectors/lib/connectorSelection";
 import { isMobilePath } from "@/shared/utils/mobileRoutes";
 import { BottomSheet } from "@/shared/ui/BottomSheet";
 import { useOptionalAppContext } from "@/app/state/AppContext";
@@ -316,18 +316,23 @@ const ComposerActionsPure: React.FC<
       onClick={handleConnectorTriggerClick}
     >
       <span className={presentationClasses("composer-connector-avatar-stack")}>
-        {connectorStackItems.map((connector, index) => (
-          <span
-            key={connector.id}
-            className={presentationClasses("composer-connector-avatar-item")}
-            style={{
-              "--connector-avatar-index": index,
-            } as React.CSSProperties}
-            title={connector.name || connector.id}
-          >
-            <ConnectorIcon item={connector} size={16} />
-          </span>
-        ))}
+        {connectorStackItems.map((connector, index) => {
+          const name = connector.name || connector.id;
+          const status = connectorOptionStatus(connector);
+          return (
+            <span
+              key={connector.id}
+              className={presentationClasses("composer-connector-avatar-item")}
+              data-unavailable={connector.availability?.state === "unavailable" || undefined}
+              style={{
+                "--connector-avatar-index": index,
+              } as React.CSSProperties}
+              title={status ? `${name} · ${t(`composer.addMenu.connectors.status.${status}`)}` : name}
+            >
+              <ConnectorIcon item={connector} size={16} />
+            </span>
+          );
+        })}
       </span>
     </button>
   );
@@ -572,15 +577,10 @@ const ComposerActionsWithConnectors: React.FC<
   const enabledConnectors = useMemo(() => {
     if (!connectorSelection.data?.connectorIds?.length) return [];
     const selectedSet = new Set(connectorSelection.data.connectorIds);
-    const available = connectorSelection.availableIds;
     // 与弹出列表共用内置沉底规则，再截取最多三个已启用图标。
-    return orderConnectorsBuiltinLast(connectorCatalog.items.filter(
-      (item) =>
-        selectedSet.has(item.id) && (!available || available.includes(item.id)),
-    ));
+    return orderConnectorsBuiltinLast(connectorCatalog.items.filter(item => selectedSet.has(item.id)));
   }, [
     connectorSelection.data?.connectorIds,
-    connectorSelection.availableIds,
     connectorCatalog.items,
   ]);
 

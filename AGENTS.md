@@ -218,7 +218,7 @@ VIEW 使用 `/api/view` 与 `view: {source,key,connectorId?,version?,hash?,rende
 
 `/api/agent` 的 tools、skills、connectors 统一为 ID 数组；tools/skills 是已发布运行时关联，connectors 是已保存的非预置挂载。展示元数据分别取工具、技能和连接器目录。`toolBindings` 仅由 `/api/admin/agent` 及管理端创建、修改、改名响应返回，描述预置、自身、连接器和运行时工具的来源、removable、excluded 与 active。管理界面锁定不可删除项并展示排除状态；表单仅从 definition.toolConfig.tools 初始化自身工具，保留 excludeTools，避免把有效工具列表写回源码。预置和排除由 Platform / agent.yml 源码配置管理。
 
-连接器使用与管理接口分别定义 DTO。Composer 复用共享 Agent 的 connectors，不单独读取 `/api/agents/connectors`；单项写入仍用该路径。目录 `/api/connectors?agentKey=...` 提供 id/name、可选 description/iconUrl/mutuallyExclusiveWith、本地 readiness 与 MCP 同步快照，并返回 Agent 的 reloadPending；读取不执行 CLI 或主动探测上游，不调用管理接口。`/agents` 的能力区按连接器、工具、技能排列，管理接口展示预置、声明和实际生效连接器，点击展开所属工具；原生归属取 nativeTools、MCP 按当前 Agent 过滤，连接器工具不重复列入自身工具，预置挂载只读；连接器管理“发起对话”读取 `/api/admin/agent` 的 `connectorBindings` 完整生效状态。两套挂载 PUT 都由 Platform 拒绝预置修改（403 preset_connector_readonly）。
+连接器使用与管理接口分别定义 DTO。Composer 开关只读取当前 Agent 的已保存 connectors，不单独读取 `/api/agents/connectors`，单项写入仍用该路径。目录 `/api/connectors?agentKey=...` 提供 id/name、可选 description/iconUrl/mutuallyExclusiveWith、`availability` 状态及原因、实际挂载 `active` 和 MCP 同步快照，并返回 Agent 的 reloadPending。账号断开会在连接器名称下提示重新连接，保留挂载开关和解除操作。目录读取不执行 CLI 或主动探测上游，不调用管理接口。`/agents` 的能力区按连接器、工具、技能排列，管理接口展示预置、声明和实际生效连接器，点击展开所属工具。原生归属取 nativeTools、MCP 按当前 Agent 过滤，连接器工具不重复列入自身工具，预置挂载只读。连接器管理“发起对话”读取 `/api/admin/agent` 的 `connectorBindings` 完整生效状态。两套挂载 PUT 都由 Platform 拒绝预置修改（403 preset_connector_readonly）。
 
 Composer 的连接器目录、Agent 关联读取与开关写入统一经 routedClient：Platform 复用主 WS（Desktop 走 Frame Port/Broker），Gateway 当前保持 HTTP。Agent 沿用详情缓存与请求合并，目录不缓存，保存使 Agent 缓存与在途检查失效；WS 失败不回退 HTTP、不自动重放写入；管理和认证接口仍保持 HTTP。
 

@@ -36,6 +36,8 @@
 .name { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-main); }
 .toggle { flex: 0 0 auto; }
 .availability { display: block; min-width: 0; color: var(--ink-muted); overflow-wrap: anywhere; }
+.warning { display: flex; align-items: flex-start; gap: 4px; color: var(--accent-danger); }
+.warning :global(.material-icon) { flex: none; font-size: 1em; line-height: inherit; }
 .toggle:global(.ant-switch-checked) { background: #00bd9d; }
 .toggle:global(.ant-switch-checked):hover:not(:disabled) { background: #00a98d; }
 .status { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 8px; padding: 20px 8px; color: var(--ink-muted); font-size: 12px; }

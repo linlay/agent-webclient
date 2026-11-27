@@ -55,6 +55,12 @@ export interface ConnectorListResponse {
   connectors: ConnectorSummary[];
 }
 
+export type ConnectorAvailability =
+  | { state: "ready" }
+  | { state: "pending"; reason: "authorization_pending" | "verification_pending" | "preparing" | "syncing" }
+  | { state: "unavailable"; reason: "account_not_connected" | "account_disconnected" | "authorization_invalid" | "service_unavailable" }
+  | { state: "unknown"; reason: "status_unknown" };
+
 /** Composer catalog: only fields needed for display, search and selection. */
 export interface ConnectorOption {
   id: string;
@@ -62,7 +68,8 @@ export interface ConnectorOption {
   description?: string;
   iconUrl?: string;
   mutuallyExclusiveWith?: string[];
-  readiness?: "unknown" | "no_auth" | "configuration_required" | "authorization_required" | "pending_verification" | "preparing" | "ready" | "unavailable";
+  active?: boolean;
+  availability: ConnectorAvailability;
   mcp?: Array<{ agentKey?: string; serverKey: string; status: ConnectorMcpStatus["status"]; toolCount: number }>;
 }
 

@@ -4,13 +4,17 @@ import { usePushTransport } from "@/features/transport/hooks/useRealtimeTranspor
 import { useReconnectSignal } from "@/features/transport/hooks/useRefreshSignals";
 import { isConnectorCatalogUpdate } from "../lib/connectorCatalog";
 
+const EMPTY_ITEMS: ConnectorOption[] = [];
+
 // The composer only needs the package catalog, not the management console's tool inventory.
 export function useConnectorPickerCatalog(agentKey: string, revision = 0) {
   const push = usePushTransport();
-  const [items, setItems] = useState<ConnectorOption[]>([]);
+  const [snapshot, setSnapshot] = useState<{ agentKey: string; items: ConnectorOption[]; reloadPending: boolean } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
-  const [reloadPending, setReloadPending] = useState(false);
+  const current = snapshot?.agentKey === agentKey ? snapshot : null;
+  const items = current?.items ?? EMPTY_ITEMS;
+  const reloadPending = current?.reloadPending ?? false;
   const generation = useRef(0);
   const refresh = useCallback(async () => {
     const request = ++generation.current;
@@ -18,8 +22,7 @@ export function useConnectorPickerCatalog(agentKey: string, revision = 0) {
     try {
       const response = await getConnectors(agentKey);
       if (request !== generation.current) return;
-      setItems(response.data.connectors || []);
-      setReloadPending(response.data.reloadPending === true);
+      setSnapshot({ agentKey, items: response.data.connectors || [], reloadPending: response.data.reloadPending === true });
       setError(null);
     } catch (cause) {
       if (request === generation.current) setError(cause instanceof Error ? cause : new Error(String(cause)));
@@ -33,9 +36,8 @@ export function useConnectorPickerCatalog(agentKey: string, revision = 0) {
   useReconnectSignal(() => { void refresh(); });
 
   useEffect(() => {
-    setItems([]);
+    setSnapshot(null);
     setError(null);
-    setReloadPending(false);
     void refresh();
     const unsubscribe = push.subscribe({ types: ["catalog.updated"] }, frame => {
       const value = frame as { data?: { reason?: string } };
@@ -43,18 +45,23 @@ export function useConnectorPickerCatalog(agentKey: string, revision = 0) {
     });
     const onVisible = () => { if (document.visibilityState === "visible") void refresh(); };
     document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", onVisible);
     return () => {
       generation.current += 1;
       unsubscribe();
       document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", onVisible);
     };
   }, [push, refresh]);
 
   useEffect(() => { if (revision > 0) void refresh(); }, [revision, refresh]);
   useEffect(() => {
-    if (loading || error || !(reloadPending || items.some(item => item.readiness === "preparing"
-      || item.readiness === "pending_verification" || item.mcp?.some(server => ["pending", "syncing"].includes(server.status))))) return;
-    const timer = window.setTimeout(() => void refresh(), 2_000);
+    if (loading || error) return;
+    const pending = reloadPending || items.some(item => item.availability?.state === "pending");
+    if (!pending && !items.some(item => item.active === true)) return;
+    const timer = window.setTimeout(() => {
+      if (document.visibilityState === "visible") void refresh();
+    }, pending ? 2_000 : 30_000);
     return () => window.clearTimeout(timer);
   }, [items, reloadPending, loading, error, refresh]);
 
