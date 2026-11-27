@@ -25,8 +25,6 @@ const TOOL_ICONS: Readonly<Record<string, TimelineToolIconKind>> = {
   desktop_service: "desktop",
   desktop_market: "desktop",
   desktop_kanban: "desktop",
-  desktop_action: "desktop",
-  desktop_cdp: "browser",
   plan_add_tasks: "plan",
   plan_get_tasks: "plan",
   plan_update_task: "plan",
@@ -43,7 +41,7 @@ const TOOL_ICONS: Readonly<Record<string, TimelineToolIconKind>> = {
   regex: "regex",
 };
 
-export type TimelineToolIconKind = "wait" | "read" | "write" | "edit" | "glob" | "grep" | "web" | "desktop" | "question" | "run" | "publish" | "datetime" | "regex" | "fallback" | "image" | "bash" | "vision" | "browser" | "plan" | "agent";
+export type TimelineToolIconKind = "wait" | "read" | "write" | "edit" | "glob" | "grep" | "web" | "desktop" | "question" | "run" | "publish" | "datetime" | "regex" | "fallback" | "image" | "bash" | "vision" | "plan" | "agent";
 
 export function resolveTimelineToolIcon(toolNames: readonly (string | null | undefined)[]): TimelineToolIconKind {
   const icons = toolNames.map((name) => {

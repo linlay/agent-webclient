@@ -305,7 +305,7 @@ it("removes expired links while retaining an explicit retry action", async () =>
 });
 
 it.each(["zh-CN","en-US"] as const)("Desktop no_auth has no configuration workflow in %s",async locale=>{
- await mount({...item,id:"builtin.desktop",type:"native",hasNative:true,hasCli:false,authMode:"none",builtin:true,readOnly:true},locale);
+ await mount({...item,id:"builtin.platform-control",type:"native",hasNative:true,hasCli:false,authMode:"none",builtin:true,readOnly:true},locale);
  expect(container.textContent).toContain(locale==="zh-CN"?"无需配置":"No configuration required");
  expect(container.textContent).not.toContain(locale==="zh-CN"?"检查中":"Checking");
  expect(container.querySelectorAll("button")).toHaveLength(0);

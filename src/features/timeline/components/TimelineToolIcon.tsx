@@ -6,7 +6,6 @@ const MATERIAL_ICONS: Partial<Record<TimelineToolIconKind, MaterialIconName>> = 
   fallback: "build",
   image: "image",
   vision: "visibility",
-  browser: "code",
   plan: "checklist",
 };
 
