@@ -274,17 +274,24 @@
 
 .executionSummary {
   display: grid;
+  width: 100%;
   min-width: 0;
   flex: 1 1 auto;
   min-height: 44px;
-  grid-template-columns: 52px 76px 50px minmax(0, 1fr);
+  grid-template-columns: 52px 52px 50px minmax(0, 1fr);
   align-items: center;
   gap: 7px;
-  padding: 5px 2px 5px 8px;
+  padding: 5px 8px;
   border: 0;
   color: var(--ink-2);
   background: transparent;
+  cursor: pointer;
   text-align: left;
+}
+
+.executionSummary:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--accent-electric) 60%, transparent);
+  outline-offset: -2px;
 }
 
 .executionHeading:hover {
@@ -322,29 +329,6 @@
   line-height: 1.35;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.viewAction {
-  flex: 0 0 auto;
-  align-self: stretch;
-  min-width: 52px;
-  padding: 0 10px;
-  border: 0;
-  color: var(--accent-electric);
-  background: transparent;
-  cursor: pointer;
-  font-size: 12px;
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-.viewAction:hover {
-  background: color-mix(in srgb, var(--accent-soft) 24%, transparent);
-}
-
-.viewAction:focus-visible {
-  outline: 2px solid color-mix(in srgb, var(--accent-electric) 60%, transparent);
-  outline-offset: -2px;
 }
 
 .loadMore {

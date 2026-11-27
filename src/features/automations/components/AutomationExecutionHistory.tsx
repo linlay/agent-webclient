@@ -281,7 +281,11 @@ export function AutomationExecutionHistory({
                             <MaterialIcon name={STATUS_ICON[item.status]} />
                           </span>
                           <div className={styles.executionHeading}>
-                            <div className={styles.executionSummary}>
+                            <button
+                              type="button"
+                              className={styles.executionSummary}
+                              onClick={(event) => onView(item, event.currentTarget)}
+                            >
                               <time>{automationExecutionTimeLabel(item, locale)}</time>
                               <span className={`${styles.status} ${styles[item.status]}`}>
                                 {t(`automationHistory.status.${item.status}`)}
@@ -290,14 +294,6 @@ export function AutomationExecutionHistory({
                                 {automationExecutionDurationLabel(item.durationMs)}
                               </span>
                               <span className={styles.preview}>{preview}</span>
-                            </div>
-                            <button
-                              type="button"
-                              className={styles.viewAction}
-                              aria-label={t("automationHistory.action.view")}
-                              onClick={(event) => onView(item, event.currentTarget)}
-                            >
-                              {t("automationHistory.action.view")}
                             </button>
                           </div>
                         </article>

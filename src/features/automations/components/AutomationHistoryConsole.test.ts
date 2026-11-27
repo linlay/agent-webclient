@@ -47,11 +47,12 @@ describe("AutomationHistoryConsole architecture", () => {
     );
   });
 
-  it("keeps Run now in the detail menu and exposes one local view action", () => {
+  it("keeps Run now in the detail menu and opens execution details on row click", () => {
     expect(historySource).toContain('key: "trigger"');
     expect(historySource).toContain("automationConsole.action.triggerNow");
     expect(historySource).toContain("selectedTriggering");
-    expect(historySource).toContain("automationHistory.action.view");
+    expect(historySource).toContain("onView(item, event.currentTarget)");
+    expect(historySource).not.toContain("viewAction");
     expect(historySource).not.toContain("useNavigate");
   });
 });
