@@ -102,8 +102,15 @@ function handleFor(
   return bindingFor(bindings, side).ref.current;
 }
 
-function hasBlockingOverlay(): boolean {
-  if (document.querySelector(".ant-drawer-open")) return true;
+/**
+ * 宿主抽屉（管理页本身）不算遮挡：手势根就在它内部时，页面内的左抽屉仍然要能滑出。
+ * 只有与手势根平行的其它 open 抽屉、Modal 才阻断。
+ */
+function hasBlockingOverlay(root: HTMLElement): boolean {
+  const drawers = document.querySelectorAll(".ant-drawer-open");
+  for (const drawer of drawers) {
+    if (!drawer.contains(root)) return true;
+  }
   const modal = document.querySelector<HTMLElement>(".ant-modal-wrap");
   return Boolean(modal && modal.getClientRects().length > 0);
 }
@@ -178,10 +185,12 @@ export function useMobileSwipeGestures(options: MobileSwipeGestureOptions) {
       if (bindings.disabled || sessionRef.current) return;
       if (event.isPrimary === false) return;
       if (event.pointerType === "mouse" && event.button !== 0) return;
-      if (hasBlockingOverlay()) return;
+      if (hasBlockingOverlay(root)) return;
       const target = startedOn(event.target as Element | null);
       if (!target) return;
-      if (target.closest(BLOCKED_TARGET_SELECTOR)) return;
+      // 祖先抽屉是页面容器本身，不是浮层；只拦手势根内部或平行的弹层。
+      const blocked = target.closest(BLOCKED_TARGET_SELECTOR);
+      if (blocked && !blocked.contains(root)) return;
       if (hasSelection()) return;
       if (startsInsideHorizontalScroller(target, root)) return;
 

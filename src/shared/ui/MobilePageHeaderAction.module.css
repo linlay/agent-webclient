@@ -1,0 +1,74 @@
+.action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    max-width: min(260px, 55vw);
+    min-width: 44px;
+    height: 44px;
+    padding: 0 8px;
+    border: 0;
+    border-radius: 10px;
+    background: transparent;
+    color: var(--ink-1);
+    font-size: 14px;
+    line-height: 1;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.action:active,
+.action[aria-expanded="true"] {
+    background: var(--bg-hover);
+}
+
+.action:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--accent-electric) 68%, transparent);
+    outline-offset: 2px;
+}
+
+.avatar {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    overflow: hidden;
+}
+
+.label {
+    flex: 0 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.trailing {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    color: var(--ink-muted);
+    font-size: 13px;
+    font-weight: 400;
+}
+
+.trailingLabel {
+    white-space: nowrap;
+}
+
+.action .icon {
+    width: 14px;
+    height: 14px;
+    font-size: 14px;
+    color: var(--ink-muted);
+}
+
+.trailing .icon {
+    width: 14px;
+    height: 14px;
+    font-size: 14px;
+}

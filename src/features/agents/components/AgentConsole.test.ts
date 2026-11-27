@@ -30,6 +30,10 @@ jest.mock("antd", () => {
   Modal.confirm = jest.fn();
   return {
     Checkbox: ({ children, ...props }: any) => React.createElement("label", null, React.createElement("input", { ...props, type: "checkbox" }), children),
+    Drawer: ({ open, children, rootClassName }: any) =>
+      open
+        ? React.createElement("section", { className: rootClassName }, children)
+        : null,
     Dropdown: ({ children }: { children?: unknown }) =>
       React.createElement("div", { className: "mock-dropdown" }, children),
     Input,
@@ -542,6 +546,31 @@ describe("AgentConsole i18n rendering", () => {
     expect(embeddedHtml).toContain("command-modal-section");
     expect(embeddedHtml).toContain("is-embedded");
     expect(embeddedHtml).not.toContain("management-page-console");
+  });
+
+  it("moves the agent list into a left drawer on the mobile shell", () => {
+    const renderConsole = (mobile?: boolean) => renderToStaticMarkup(
+      React.createElement(
+        I18nProvider,
+        { locale: "zh-CN", persistLocale: false },
+        React.createElement(AgentConsole, { mobile }),
+      ),
+    );
+
+    const desktopHtml = renderConsole();
+    const mobileHtml = renderConsole(true);
+
+    // 桌面仍内嵌列表分栏；移动端只保留详情，列表放进左侧滑出抽屉。
+    expect(desktopHtml).toContain("agent-console-list-pane");
+    expect(desktopHtml).not.toContain("agent-console-mobile-list-drawer");
+    expect(mobileHtml).not.toContain("agent-console-list-pane");
+    expect(mobileHtml).toContain("agent-console-mobile-list-drawer");
+    expect(mobileHtml).toContain('data-mobile-drawer="left"');
+
+    // 移动端吸顶栏把执行/编辑/删除/保存收进一枚「更多操作」按钮。
+    expect(mobileHtml).toContain('aria-label="更多操作"');
+    expect(mobileHtml).not.toContain('aria-label="执行测试"');
+    expect(desktopHtml).not.toContain('aria-label="更多操作"');
   });
 
   it("renders visibility and budget controls", () => {

@@ -86,10 +86,12 @@
 .conversation :global(.mobile-header-action) :global(.material-icon), .conversation :global(.mobile-header-action) :global(.material-icon-svg) { width: 20px; height: 20px; font-size: 20px; vertical-align: 0; }
 .root textarea { font-size: 16px; }
 .drawer :global(.ant-drawer-content) { background: var(--bg-base); }
-.drawer :global(.ant-drawer-header) { padding: max(8px, env(safe-area-inset-top, 0px)) 12px 8px; min-height: 48px; }
+.drawer :global(.ant-drawer-header) { padding: max(8px, env(safe-area-inset-top, 0px)) 12px 8px 0; min-height: 48px; }
 .drawer :global(.ant-drawer-close) { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 44px; width: 44px; height: 44px; margin: 0; padding: 0; font-size: 20px; }
 .drawer :global(.ant-drawer-close) svg { width: 20px; height: 20px; }
-.drawer :global(.ant-drawer-header-title) { gap: 8px; }
+/* 关闭按钮保留 44px 触达区；左内边距归零后，图标左右各 12px，视觉间距一致。 */
+.drawer :global(.ant-drawer-header-title) { gap: 0; }
+.drawer :global(.ant-drawer-header-title) :global(.ant-drawer-close) { margin: 0; }
 .drawer :global(.ant-drawer-body) { min-height: 0; overscroll-behavior: contain; padding-bottom: env(safe-area-inset-bottom, 0px) !important; }
 .navigation :global(.left-sidebar) { width: 100%; min-width: 0; height: 100%; transform: none; padding-top: env(safe-area-inset-top, 0px); font-size: 16px; }
 .navigation :global(.worker-navigation-header) { height: 56px; min-height: 56px; padding: 0 8px; gap: 4px; }
@@ -116,11 +118,12 @@
 .page :global(.ant-drawer-body) > :is(main, section, div) { height: 100%; min-height: 0; max-width: 100%; }
 .page :global(.agents-page), .page :global(.archives-page), .page :global(.skills-page),
 .page :global(.registries-page), .page :global(.connectors-page), .page :global(.automations-console-page) { height: 100%; min-height: 0; }
-.root :global(.agent-console-body), .root :global(.skill-console-body), .root :global(.archive-console),
+/* /agents 自带移动端布局：列表收进抽屉，详情独占整屏，这里不再强制上下分栏。 */
+.root :global(.skill-console-body), .root :global(.archive-console),
 .root :global(.automation-console-body) { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(130px, 28%) minmax(0, 1fr); overflow: hidden; }
-.root :global(.agent-console-list-pane), .root :global(.skill-console-list), .root :global(.archive-console-list-pane),
+.root :global(.skill-console-list), .root :global(.archive-console-list-pane),
 .root :global(.registry-console-list-pane), .root :global(.automation-console-list) { max-height: none; min-width: 0; overflow: hidden; }
-.root :global(.agent-console-resize-handle), .root :global(.skill-console-resize-handle),
+.root :global(.skill-console-resize-handle),
 .root :global(.archive-console-resize-handle), .root :global(.registry-console-resize-handle) { display: none; }
 .root :global(.settings-grid), .root :global(.settings-preferences-grid), .root :global(.settings-numeric-grid),
 .root :global(.automation-form-grid), .root :global(.automation-basic-form-grid) { grid-template-columns: minmax(0, 1fr); }

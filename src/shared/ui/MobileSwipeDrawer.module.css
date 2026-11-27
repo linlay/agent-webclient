@@ -47,6 +47,11 @@
     transform: translate3d(100%, 0, 0);
 }
 
+/* 页面内抽屉可以占满整宽；壳层导航仍保留 16px 的滑动/点击边界。 */
+.layer[data-full-width] .panel {
+    width: 100%;
+}
+
 .body {
     display: flex;
     flex: 1;

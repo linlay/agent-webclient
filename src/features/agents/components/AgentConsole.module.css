@@ -184,6 +184,9 @@ html[data-theme="dark"] :global(.agent-console-detail) {
     align-items: center;
     gap: 10px;
     cursor: pointer;
+    /* 长按打开动作面板，避免系统文本选择/callout 抢占手势。 */
+    -webkit-touch-callout: none;
+    user-select: none;
 }
 
 :global(.agent-console-list-item):focus-visible {
@@ -1622,14 +1625,6 @@ html[data-theme="dark"] :global(.agent-console-detail) {
         min-height: 320px;
     }
 
-    :global(.agent-console-toolbar) {
-        grid-template-columns: 1fr auto auto;
-    }
-
-    :global(.agent-console-toolbar) :global(.ant-input-affix-wrapper) {
-        grid-column: 1 / -1;
-    }
-
     :global(.agent-console-body) {
         grid-template-columns: 1fr;
         overflow: auto;
@@ -1659,4 +1654,103 @@ html[data-theme="dark"] :global(.agent-console-detail) {
     :global(.agent-choice-grid) {
         grid-template-columns: 1fr;
     }
+
+    /* 交互入口/模式/可见性/上下文的卡片在窄屏撑满，不再固定 260px 留白。 */
+    :global(.agent-mode-choice-grid) > label:global(.agent-choice-card),
+    :global(.agent-visibility-choice-grid) > label:global(.agent-choice-card),
+    :global(.agent-interaction-choice-grid) > label:global(.agent-choice-card),
+    :global(.agent-context-choice-grid) > label:global(.agent-choice-card) {
+        flex: 1 1 100%;
+        width: 100%;
+    }
+}
+
+/* 移动端把智能体列表收进左侧抽屉：详情独占整屏，标题栏右侧只保留“切换”。
+   桌面端仍保留左右分栏和拖拽调宽，两套呈现共用同一个 AgentListPane。 */
+:global(.agent-console.is-mobile) {
+    position: relative;
+}
+
+:global(.agent-console.is-mobile) :global(.agent-console-body) {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
+    overflow: hidden;
+}
+
+/* 抽屉层铺满详情区和标题栏以下的空间，列表沿用管理台行样式。 */
+:global(.agent-console-mobile-list-drawer) {
+    z-index: 1010;
+}
+
+:global(.agent-console-mobile-list-drawer) :global(.agent-console-list) {
+    max-height: none;
+    padding-top: 8px;
+    padding-bottom: max(8px, env(safe-area-inset-bottom, 0px));
+}
+
+/* 触屏没有 hover，行尾“更多”按钮会常驻；给行留出按钮宽度，避免压住 Key 与模式。 */
+@media (hover: none) {
+    :global(.agent-console-list-item-wrap)[data-has-actions] :global(.agent-console-list-item) {
+        padding-right: 32px;
+    }
+}
+
+/* 移动端行内「更多」动作面板：沿用 BottomSheet 的圆角与 grip，行高按触屏 52px。 */
+:global(.agent-console-actions-sheet) {
+    display: flex;
+    flex-direction: column;
+    padding-bottom: max(8px, env(safe-area-inset-bottom, 0px));
+}
+
+:global(.agent-console-actions-sheet-title) {
+    padding: 2px 18px 10px;
+    border-bottom: 1px solid color-mix(in srgb, var(--line-soft) 72%, transparent);
+    overflow: hidden;
+    color: var(--ink-muted);
+    font-size: 13px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+:global(.agent-console-actions-row) {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    min-height: 52px;
+    padding: 0 18px;
+    border: 0;
+    background: transparent;
+    color: var(--ink-1);
+    font-size: 16px;
+    text-align: left;
+    cursor: pointer;
+}
+
+:global(.agent-console-actions-row):active {
+    background: var(--bg-hover);
+}
+
+:global(.agent-console-actions-row):disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+:global(.agent-console-actions-row) :global(.material-icon) {
+    width: 20px;
+    height: 20px;
+    font-size: 20px;
+    color: var(--ink-muted);
+}
+
+:global(.agent-console-actions-row) + :global(.agent-console-actions-row) {
+    border-top: 1px solid color-mix(in srgb, var(--line-soft) 72%, transparent);
+}
+
+:global(.agent-console-actions-row):global(.is-danger) {
+    color: var(--accent-danger);
+}
+
+:global(.agent-console-actions-row):global(.is-danger) :global(.material-icon) {
+    color: inherit;
 }

@@ -148,6 +148,18 @@ it("opens the left drawer on a rightward swipe", async () => {
   expect(right.onOpen).not.toHaveBeenCalled();
 });
 
+it("keeps gestures alive inside a host page drawer", async () => {
+  const drawer = document.createElement("div");
+  drawer.className = "ant-drawer ant-drawer-open";
+  document.body.append(drawer);
+  drawer.append(host);
+  const left = createBinding(createHandle(), false);
+  const right = createBinding(createHandle(), false);
+  await mount(left, right);
+  drag([100, 400], [[160, 400], [300, 401]]);
+  expect(left.onOpen).toHaveBeenCalledTimes(1);
+});
+
 it("opens the right drawer on a leftward swipe", async () => {
   const left = createBinding(createHandle(), false);
   const right = createBinding(createHandle(), false);

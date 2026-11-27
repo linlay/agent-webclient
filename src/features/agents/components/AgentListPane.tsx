@@ -1,5 +1,5 @@
 import { CreateMenuButton } from "@/shared/ui/CreateMenuButton";
-import React, { useMemo } from "react";
+import React, { useMemo, useRef, useState } from "react";
 import {
   closestCenter,
   DndContext,
@@ -22,6 +22,27 @@ import { AgentIcon } from "@/shared/icons/agent";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
 import { RowMoreMenu } from "@/shared/ui/RowMoreMenu";
+import { BottomSheet } from "@/shared/ui/BottomSheet";
+
+/** 长按识别后吞掉紧随其后的 click，避免面板刚打开就被松手点击关掉。 */
+function swallowNextClick() {
+  if (typeof window === "undefined") return;
+  let timer = 0;
+  const cleanup = () => {
+    window.removeEventListener("click", swallow, true);
+    window.clearTimeout(timer);
+  };
+  const swallow = (event: Event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    cleanup();
+  };
+  window.addEventListener("click", swallow, true);
+  timer = window.setTimeout(cleanup, 400);
+}
+
+const LONG_PRESS_MS = 500;
+const LONG_PRESS_MOVE_TOLERANCE = 10;
 
 export interface AgentListSummary {
   mode: string;
@@ -50,6 +71,8 @@ export interface AgentListPaneProps {
   onMove: (sourceKey: string, targetKey: string) => void | Promise<void>;
   onEditConversation?: (agent: Agent) => void;
   onDelete?: (agent: Agent) => void;
+  /** 移动端：行内「更多」改用 BottomSheet 动作面板。 */
+  mobile?: boolean;
 }
 
 const MODE_LABEL: Record<string, string> = {
@@ -91,6 +114,7 @@ const SortableAgentListItem: React.FC<{
   onSelect: (agentKey: string) => void;
   onEditConversation?: (agent: Agent) => void;
   onDelete?: (agent: Agent) => void;
+  onRequestActions?: () => void;
 }> = ({
   agent,
   agentKey,
@@ -106,6 +130,7 @@ const SortableAgentListItem: React.FC<{
   onSelect,
   onEditConversation,
   onDelete,
+  onRequestActions,
 }) => {
   const {
     attributes,
@@ -118,6 +143,37 @@ const SortableAgentListItem: React.FC<{
     id: sortableId,
     disabled: disabled || !agentKey,
   });
+  const longPressTimerRef = useRef<number | null>(null);
+  const longPressStartRef = useRef({ x: 0, y: 0 });
+  const suppressSelectRef = useRef(false);
+  const clearLongPress = () => {
+    if (longPressTimerRef.current !== null) {
+      window.clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+  };
+  const startLongPress = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (!onRequestActions || disabled) return;
+    if (event.pointerType === "mouse" && event.button !== 0) return;
+    const target = event.target as Element | null;
+    if (target?.closest("button, .is-drag-handle")) return;
+    longPressStartRef.current = { x: event.clientX, y: event.clientY };
+    clearLongPress();
+    longPressTimerRef.current = window.setTimeout(() => {
+      longPressTimerRef.current = null;
+      suppressSelectRef.current = true;
+      swallowNextClick();
+      window.setTimeout(() => { suppressSelectRef.current = false; }, 600);
+      onRequestActions();
+    }, LONG_PRESS_MS);
+  };
+  const trackLongPress = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (longPressTimerRef.current === null) return;
+    const { x, y } = longPressStartRef.current;
+    if (Math.hypot(event.clientX - x, event.clientY - y) > LONG_PRESS_MOVE_TOLERANCE) {
+      clearLongPress();
+    }
+  };
   const moreLabel = t("leftSidebar.moreActions");
   const menuItems: MenuProps["items"] = [
     ...(onEditConversation
@@ -161,13 +217,26 @@ const SortableAgentListItem: React.FC<{
       className="agent-console-list-item-wrap"
       rowRef={setNodeRef}
       rowStyle={{ transform: CSS.Transform.toString(transform), transition }}
+      onMoreClick={onRequestActions}
     >
       <div
         data-agent-identity=""
         role="button"
         tabIndex={0}
         className={`agent-console-list-item ${active ? "is-active" : ""} ${dragging ? "is-dragging" : ""} ${invalid ? "is-invalid" : ""}`}
-        onClick={() => onSelect(agentKey)}
+        onClick={() => {
+          if (suppressSelectRef.current) {
+            suppressSelectRef.current = false;
+            return;
+          }
+          onSelect(agentKey);
+        }}
+        onPointerDown={startLongPress}
+        onPointerMove={trackLongPress}
+        onPointerUp={clearLongPress}
+        onPointerCancel={clearLongPress}
+        onPointerLeave={clearLongPress}
+        onContextMenu={onRequestActions ? (event) => event.preventDefault() : undefined}
         onKeyDown={(event) => {
           if (event.target !== event.currentTarget) return;
           if (event.key === "Enter" || event.key === " ") {
@@ -228,6 +297,22 @@ const SortableAgentListItem: React.FC<{
 };
 
 export const AgentListPane: React.FC<AgentListPaneProps> = (props) => {
+  const [actionsAgent, setActionsAgent] = useState<Agent | null>(null);
+  const [actionsOpen, setActionsOpen] = useState(false);
+  const openActions = (agent: Agent) => {
+    setActionsAgent(agent);
+    setActionsOpen(true);
+  };
+  const runAction = (action: "edit" | "delete") => {
+    const agent = actionsAgent;
+    setActionsOpen(false);
+    if (!agent) return;
+    if (action === "edit") props.onEditConversation?.(agent);
+    else props.onDelete?.(agent);
+  };
+  const actionsName = actionsAgent
+    ? String(actionsAgent.name || "").trim() || String(actionsAgent.key || "")
+    : "";
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
     useSensor(KeyboardSensor, {
@@ -333,6 +418,12 @@ export const AgentListPane: React.FC<AgentListPaneProps> = (props) => {
                         onSelect={props.onSelect}
                         onEditConversation={props.onEditConversation}
                         onDelete={props.onDelete}
+                        onRequestActions={
+                          props.mobile &&
+                          (props.onEditConversation || props.onDelete)
+                            ? () => openActions(agent)
+                            : undefined
+                        }
                       />
                     );
                   })}
@@ -342,6 +433,40 @@ export const AgentListPane: React.FC<AgentListPaneProps> = (props) => {
           )}
         </Spin>
       </div>
+      {props.mobile ? (
+        <BottomSheet
+          open={actionsOpen}
+          onClose={() => setActionsOpen(false)}
+          ariaLabel={props.t("leftSidebar.moreActions")}
+          getContainer=".layout-mobile"
+        >
+          <div className="agent-console-actions-sheet">
+            <div className="agent-console-actions-sheet-title">{actionsName}</div>
+            {props.onEditConversation ? (
+              <button
+                type="button"
+                className="agent-console-actions-row"
+                disabled={props.savingOrder}
+                onClick={() => runAction("edit")}
+              >
+                <MaterialIcon name="question_answer" />
+                <span>{props.t("resourceAssistant.conversationEdit")}</span>
+              </button>
+            ) : null}
+            {props.onDelete ? (
+              <button
+                type="button"
+                className="agent-console-actions-row is-danger"
+                disabled={props.savingOrder}
+                onClick={() => runAction("delete")}
+              >
+                <MaterialIcon name="delete" />
+                <span>{props.t("agentConsole.action.delete")}</span>
+              </button>
+            ) : null}
+          </div>
+        </BottomSheet>
+      ) : null}
     </div>
   );
 };

@@ -112,6 +112,32 @@ describe("RowMoreMenu", () => {
     );
   });
 
+  it("移动端接管菜单时只回调，不渲染 Dropdown", () => {
+    const onMoreClick = jest.fn();
+    const onRowClick = jest.fn();
+    act(() =>
+      root.render(
+        <RowMoreMenu
+          items={ITEMS}
+          onSelect={() => {}}
+          label="更多操作"
+          onMoreClick={onMoreClick}
+          rowProps={{ role: "option", onClick: onRowClick }}
+        >
+          <button type="button">行内容</button>
+        </RowMoreMenu>,
+      ),
+    );
+    expect(host.querySelector('[data-trigger="contextMenu"]')).toBeNull();
+    const more = host.querySelector<HTMLButtonElement>(
+      'button[aria-haspopup="dialog"]',
+    );
+    expect(more).not.toBeNull();
+    act(() => more!.click());
+    expect(onMoreClick).toHaveBeenCalledTimes(1);
+    expect(onRowClick).not.toHaveBeenCalled();
+  });
+
   it("把 role、tabIndex 与点击处理透传到行容器", () => {
     const onRowClick = jest.fn();
     const row = render({

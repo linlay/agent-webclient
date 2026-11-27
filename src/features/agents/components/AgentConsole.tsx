@@ -77,6 +77,11 @@ import type {
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { ModalTitleBar } from "@/shared/ui/ModalTitleBar";
 import { UiButton } from "@/shared/ui/UiButton";
+import { MobileSwipeDrawer, type MobileSwipeDrawerHandle } from "@/shared/ui/MobileSwipeDrawer";
+import { BottomSheet } from "@/shared/ui/BottomSheet";
+import { useMobileSwipeGestures } from "@/shared/ui/hooks/useMobileSwipeGestures";
+import { useMobilePageHeaderAction } from "@/shared/ui/MobilePageHeaderAction";
+import { AgentIcon } from "@/shared/icons/agent";
 import { useI18n } from "@/shared/i18n";
 import {
   EMPTY_FORM,
@@ -146,6 +151,8 @@ export interface AgentConsoleProps {
   titleBarVariant?: "default" | "drawer";
   onDirtyChange?: (dirty: boolean) => void;
   embedded?: boolean;
+  /** Mobile shell presentation: the list moves into a drawer over the detail. */
+  mobile?: boolean;
 }
 
 export const AGENT_CONSOLE_ADMIN_LIST_ROUTE = dataEndpoints.adminAgents.path;
@@ -191,6 +198,7 @@ const AGENT_SECTION_NAV_SAVE_CLASS_NAME = "agent-section-nav-save tw:flex-none";
 const AGENT_FORM_ERROR_CLASS_NAME = "agent-console-form-error";
 const AGENT_UNEDITABLE_CLASS_NAME =
   "agent-console-uneditable tw:flex tw:items-center tw:gap-2 tw:rounded-control tw:border tw:px-3 tw:py-2.5 tw:text-xs tw:text-accent-danger tw:[border-color:color-mix(in_srgb,var(--accent-danger)_26%,var(--line-soft))] tw:bg-[color-mix(in_srgb,var(--accent-danger)_6%,transparent)]";
+const AGENT_MOBILE_LIST_DRAWER_CLASS_NAME = "agent-console-mobile-list-drawer";
 // Agent Platform uses this input limit for a model that declares none.
 const DEFAULT_MODEL_CONTEXT_WINDOW = 128000;
 export const AgentConsole: React.FC<AgentConsoleProps> = ({
@@ -201,6 +209,7 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
   titleBarVariant = "default",
   onDirtyChange,
   embedded = false,
+  mobile = false,
 }) => {
   const { t } = useI18n();
   const message = useAppMessage();
@@ -208,6 +217,14 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
   const assistant = useResourceAssistant();
   const [internalSelectedKey, setInternalSelectedKey] = useState("");
   const effectiveSelectedKey = selectedAgentKey || internalSelectedKey;
+  const mobileListLayout = mobile && !embedded;
+  const [mobileListOpen, setMobileListOpen] = useState(false);
+  const [sectionActionsOpen, setSectionActionsOpen] = useState(false);
+  const consoleRootRef = useRef<HTMLDivElement>(null);
+  const detailBodyRef = useRef<HTMLDivElement>(null);
+  const mobileListDrawerRef = useRef<MobileSwipeDrawerHandle>(null);
+  // 页面内只会有左侧列表面板，右侧绑定保持空实现，避免左滑误开内容面板。
+  const mobileEmptyPanelRef = useRef<MobileSwipeDrawerHandle>(null);
   const [localAgents, setLocalAgents] = useState<Agent[]>([]);
   const [searchText, setSearchText] = useState("");
 
@@ -687,6 +704,35 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
   const openCreateModal = useCallback(() => {
     setCreateModalOpen(true);
   }, []);
+
+  // 移动端把列表收进抽屉：选中、开始新建或切回桌面壳层时先收起抽屉，
+  // 避免表单在抽屉后面加载完成后仍挡住用户。
+  useEffect(() => {
+    if (!mobileListLayout) setMobileListOpen(false);
+  }, [mobileListLayout]);
+
+  // 抽屉打开时详情不参与交互和无障碍树，焦点只留在列表里。
+  useEffect(() => {
+    const element = detailBodyRef.current;
+    if (!element) return;
+    element.inert = mobileListOpen || sectionActionsOpen;
+    return () => { element.inert = false; };
+  }, [mobileListOpen, sectionActionsOpen]);
+
+  const openMobileAgentList = useCallback(() => setMobileListOpen(true), []);
+  const closeMobileAgentList = useCallback(() => setMobileListOpen(false), []);
+  const toggleMobileAgentList = useCallback(() => setMobileListOpen(open => !open), []);
+  const selectMobileAgent = useCallback(
+    (agentKey: string) => {
+      setMobileListOpen(false);
+      selectAgent(agentKey);
+    },
+    [selectAgent],
+  );
+  const createFromMobileAgentList = useCallback(() => {
+    setMobileListOpen(false);
+    openCreateModal();
+  }, [openCreateModal]);
 
   const loadAgents = useCallback(
     async (preferredKey = "") => {
@@ -1337,10 +1383,149 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
     loadingSource ||
     sourceLoadedKey !== form.key ||
     !sourceDirty;
+  const saveActionLabel =
+    formMode === "create"
+      ? t("agentConsole.action.create")
+      : editorMode === "source"
+        ? t("agentConsole.action.saveSource")
+        : t("agentConsole.action.saveChanges");
+  const executeDisabled =
+    loadingDetail || savingForm || deleting || !detail ||
+    isInvalidAdminAgent(detail) ||
+    !(
+      ("toolBindings" in detail && detail.toolBindings?.some(
+        tool => tool.name === "result_submit" && tool.active && !tool.excluded,
+      )) ||
+      ("tools" in detail && detail.tools?.includes("result_submit"))
+    );
+  const editMenuDisabled = assistant.opening || savingForm || deleting;
+  const sourceEditDisabled =
+    !canEditSourceAgent ||
+    agentMutationPending ||
+    loadingSource ||
+    editorMode === "source";
+  const structuredEditDisabled =
+    !canEditStructuredAgent ||
+    agentMutationPending ||
+    editorMode === "structured";
+  const deleteDisabled = agentMutationPending || loadingDetail || loadingSource;
+  const saveDisabled =
+    editorMode === "source"
+      ? sourceSaveDisabled
+      : !canEditStructuredAgent ||
+        agentMutationPending ||
+        !structuredDirty;
+  const runSectionAction = (action: "execute" | "source" | "structured" | "save" | "delete") => {
+    setSectionActionsOpen(false);
+    if (action === "execute") {
+      setExecuteAgentKey(effectiveSelectedKey);
+    } else if (action === "source") {
+      void switchEditorMode("source");
+    } else if (action === "structured") {
+      void switchEditorMode("structured");
+    } else if (action === "save") {
+      if (editorMode === "source") void saveSource();
+      else void saveForm();
+    } else if (action === "delete") {
+      handleDeleteAgent({ key: effectiveSelectedKey, name: form.name });
+    }
+  };
+
+  const mobileAgentName =
+    toText(form.name) ||
+    effectiveSelectedKey ||
+    t("agentConsole.mobile.noSelection");
+  // 头像节点跨渲染复用，标题栏动作注册不会因为图标元素的引用变化而反复更新。
+  const mobileAgentAvatar = useMemo(
+    () => (
+      <AgentIcon
+        icon={selectedIconValue as any}
+        mode={form.mode}
+        type="agent"
+        props={{
+          icon: { width: 22, height: 22 },
+          avatar: { size: 22, icon: <MaterialIcon name="smart_toy" /> },
+        }}
+      />
+    ),
+    [selectedIconValue, form.mode],
+  );
+  useMobileSwipeGestures({
+    rootRef: consoleRootRef,
+    left: {
+      ref: mobileListDrawerRef,
+      open: mobileListOpen,
+      onOpen: openMobileAgentList,
+      onClose: closeMobileAgentList,
+    },
+    right: {
+      ref: mobileEmptyPanelRef,
+      open: false,
+      onOpen: () => {},
+      onClose: () => {},
+    },
+    disabled: !mobileListLayout,
+  });
+  useMobilePageHeaderAction(
+    mobileListLayout
+      ? {
+          label: mobileAgentName,
+          ariaLabel: t("agentConsole.mobile.switcherAriaLabel", {
+            name: mobileAgentName,
+          }),
+          avatar: mobileAgentAvatar,
+          icon: "swap_horiz",
+          expanded: mobileListOpen,
+          onActivate: toggleMobileAgentList,
+        }
+      : null,
+  );
+  const createConversationFromList = () => {
+    if (savingForm || assistant.opening) return;
+    if (mobileListLayout) setMobileListOpen(false);
+    if (confirmDiscardChanges()) void assistant.open({ kind: "agent" }, onClose);
+  };
+  // 行内菜单会拉起确认框或资源对话；先收起抽屉，弹层才不会被抽屉的层级压住。
+  const editConversationFromList = (agent: Agent) => {
+    if (mobileListLayout) setMobileListOpen(false);
+    handleEditConversation(agent);
+  };
+  const deleteAgentFromList = (agent: Agent) => {
+    if (mobileListLayout) setMobileListOpen(false);
+    handleDeleteAgent(agent);
+  };
+  const agentListPane = (
+    <AgentListPane
+      agents={filteredAgents}
+      selectedAgentKey={effectiveSelectedKey}
+      draggingAgentKey={draggingAgentKey}
+      loading={loadingList || agentMutationPending}
+      savingOrder={savingOrder}
+      searchText={searchText}
+      t={t}
+      mobile={mobileListLayout}
+      getSummary={(agent) => {
+        const agentKey = toText(agent.key);
+        return buildAgentListSummary(agent, agentKey === form.key ? form : undefined);
+      }}
+      getDiagnostic={firstAdminAgentDiagnosticMessage}
+      isInvalid={isInvalidAdminAgent}
+      onSearchTextChange={setSearchText}
+      onRefresh={() => void loadAgents(effectiveSelectedKey)}
+      onCreate={mobileListLayout ? createFromMobileAgentList : openCreateModal}
+      onCreateConversation={createConversationFromList}
+      onSelect={mobileListLayout ? selectMobileAgent : selectAgent}
+      onDraggingAgentKeyChange={setDraggingAgentKey}
+      onMove={handleMoveAgent}
+      onEditConversation={editConversationFromList}
+      onDelete={deleteAgentFromList}
+    />
+  );
 
   return (
     <div
-      className={`${embedded ? "command-modal-section" : "management-page-console"} ${AGENT_CONSOLE_CLASS_NAME} ${embedded ? "is-embedded" : ""}`}
+      ref={consoleRootRef}
+      className={`${embedded ? "command-modal-section" : "management-page-console"} ${AGENT_CONSOLE_CLASS_NAME} ${embedded ? "is-embedded" : ""} ${mobileListLayout ? "is-mobile" : ""}`}
     >
       {embedded ? (
         <ModalTitleBar
@@ -1471,44 +1656,24 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
       )}
 
       <div
+        ref={detailBodyRef}
         className={AGENT_BODY_CLASS_NAME}
         style={{ "--agent-list-col": `${listWidth}px` } as React.CSSProperties}
       >
-        <div className={AGENT_LIST_PANE_CLASS_NAME}>
-          <AgentListPane
-            agents={filteredAgents}
-            selectedAgentKey={effectiveSelectedKey}
-            draggingAgentKey={draggingAgentKey}
-            loading={loadingList || agentMutationPending}
-            savingOrder={savingOrder}
-            searchText={searchText}
-            t={t}
-            getSummary={(agent) => {
-              const agentKey = toText(agent.key);
-              return buildAgentListSummary(agent, agentKey === form.key ? form : undefined);
-            }}
-            getDiagnostic={firstAdminAgentDiagnosticMessage}
-            isInvalid={isInvalidAdminAgent}
-            onSearchTextChange={setSearchText}
-            onRefresh={() => void loadAgents(effectiveSelectedKey)}
-            onCreate={openCreateModal}
-            onCreateConversation={() => { if (!savingForm && !assistant.opening && confirmDiscardChanges()) void assistant.open({ kind: "agent" }, onClose); }}
-            onSelect={selectAgent}
-            onDraggingAgentKeyChange={setDraggingAgentKey}
-            onMove={handleMoveAgent}
-            onEditConversation={handleEditConversation}
-            onDelete={handleDeleteAgent}
-          />
-          <button
-            type="button"
-            role="separator"
-            aria-orientation="vertical"
-            aria-label={t("agentConsole.resize.listAriaLabel")}
-            title={t("agentConsole.resize.listTitle")}
-            className={AGENT_RESIZE_HANDLE_CLASS_NAME}
-            onPointerDown={handleListResize}
-          />
-        </div>
+        {mobileListLayout ? null : (
+          <div className={AGENT_LIST_PANE_CLASS_NAME}>
+            {agentListPane}
+            <button
+              type="button"
+              role="separator"
+              aria-orientation="vertical"
+              aria-label={t("agentConsole.resize.listAriaLabel")}
+              title={t("agentConsole.resize.listTitle")}
+              className={AGENT_RESIZE_HANDLE_CLASS_NAME}
+              onPointerDown={handleListResize}
+            />
+          </div>
+        )}
 
         <div
           ref={detailScrollRef}
@@ -1538,24 +1703,76 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
                 </div>
               )}
               <div className={AGENT_SECTION_NAV_ACTIONS_CLASS_NAME}>
-                {effectiveSelectedKey && formMode === "edit" && (
+                {mobileListLayout ? (
                   <UiButton
                     size="sm"
                     variant="ghost"
-                    disabled={
-                      loadingDetail || savingForm || deleting || !detail ||
-                      isInvalidAdminAgent(detail) ||
-                      !(
-                        ("toolBindings" in detail && detail.toolBindings?.some(
-                          tool => tool.name === "result_submit" && tool.active && !tool.excluded,
-                        )) ||
-                        ("tools" in detail && detail.tools?.includes("result_submit"))
-                      )
-                    }
-                    onClick={() => setExecuteAgentKey(effectiveSelectedKey)}
+                    iconOnly
+                    aria-label={t("leftSidebar.moreActions")}
+                    title={t("leftSidebar.moreActions")}
+                    aria-haspopup="dialog"
+                    aria-expanded={sectionActionsOpen}
+                    onClick={() => setSectionActionsOpen(true)}
                   >
-                    <MaterialIcon name="play_circle" />{t("execute.title")}
+                    <MaterialIcon name="more_horiz" />
                   </UiButton>
+                ) : (
+                  <>
+                    {effectiveSelectedKey && formMode === "edit" && (
+                      <UiButton
+                        size="sm"
+                        variant="ghost"
+                        disabled={executeDisabled}
+                        onClick={() => setExecuteAgentKey(effectiveSelectedKey)}
+                      >
+                        <MaterialIcon name="play_circle" />{t("execute.title")}
+                      </UiButton>
+                    )}
+                    {effectiveSelectedKey && (
+                      <EditMenuButton
+                        label={t("resourceAssistant.editAgent")}
+                        disabled={editMenuDisabled}
+                        onSource={() => void switchEditorMode("source")}
+                        onStructured={() => void switchEditorMode("structured")}
+                        activeEditMode={editorMode}
+                        sourceDisabled={sourceEditDisabled}
+                        structuredDisabled={structuredEditDisabled}
+                      />
+                    )}
+                    {effectiveSelectedKey && formMode === "edit" && (
+                      <Tooltip title={t("agentConsole.action.delete")}>
+                        <UiButton
+                          className="ui-icon-hover-24 tw:!text-danger"
+                          size="sm"
+                          variant="ghost"
+                          iconOnly
+                          aria-label={t("agentConsole.action.delete")}
+                          disabled={deleteDisabled}
+                          loading={deleting}
+                          onClick={() => handleDeleteAgent({ key: effectiveSelectedKey, name: form.name })}
+                        >
+                          <MaterialIcon name="delete" />
+                        </UiButton>
+                      </Tooltip>
+                    )}
+                    <UiButton
+                      className={AGENT_SECTION_NAV_SAVE_CLASS_NAME}
+                      size="sm"
+                      variant="primary"
+                      onClick={() => {
+                        if (editorMode === "source") {
+                          void saveSource();
+                        } else {
+                          void saveForm();
+                        }
+                      }}
+                      disabled={saveDisabled}
+                      loading={savingForm}
+                    >
+                      <MaterialIcon name="save" />
+                      <span>{saveActionLabel}</span>
+                    </UiButton>
+                  </>
                 )}
                 {executeAgentKey && (
                   <ExecuteAgentModal
@@ -1566,72 +1783,6 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
                     onClose={() => setExecuteAgentKey("")}
                   />
                 )}
-
-                {effectiveSelectedKey && (
-                  <EditMenuButton
-                    label={t("resourceAssistant.editAgent")}
-                    disabled={assistant.opening || savingForm || deleting}
-                    onSource={() => void switchEditorMode("source")}
-                    onStructured={() => void switchEditorMode("structured")}
-                    activeEditMode={editorMode}
-                    sourceDisabled={
-                      !canEditSourceAgent ||
-                      agentMutationPending ||
-                      loadingSource ||
-                      editorMode === "source"
-                    }
-                    structuredDisabled={
-                      !canEditStructuredAgent ||
-                      agentMutationPending ||
-                      editorMode === "structured"
-                    }
-                  />
-                )}
-                {effectiveSelectedKey && formMode === "edit" && (
-                  <Tooltip title={t("agentConsole.action.delete")}>
-                    <UiButton
-                      className="ui-icon-hover-24 tw:!text-danger"
-                      size="sm"
-                      variant="ghost"
-                      iconOnly
-                      aria-label={t("agentConsole.action.delete")}
-                      disabled={agentMutationPending || loadingDetail || loadingSource}
-                      loading={deleting}
-                      onClick={() => handleDeleteAgent({ key: effectiveSelectedKey, name: form.name })}
-                    >
-                      <MaterialIcon name="delete" />
-                    </UiButton>
-                  </Tooltip>
-                )}
-                <UiButton
-                  className={AGENT_SECTION_NAV_SAVE_CLASS_NAME}
-                  size="sm"
-                  variant="primary"
-                  onClick={() => {
-                    if (editorMode === "source") {
-                      void saveSource();
-                    } else {
-                      void saveForm();
-                    }
-                  }}
-                  disabled={
-                    editorMode === "source"
-                      ? sourceSaveDisabled
-                      : !canEditStructuredAgent ||
-                        agentMutationPending ||
-                        !structuredDirty
-                  }
-                  loading={savingForm}
-                >
-                  <MaterialIcon name="save" />
-                  <span>
-                    {formMode === "create"
-                      ? t("agentConsole.action.create")
-                      : editorMode === "source"
-                        ? t("agentConsole.action.saveSource")
-                        : t("agentConsole.action.saveChanges")}
-                  </span>
-                </UiButton>
               </div>
             </nav>
 
@@ -1740,6 +1891,84 @@ export const AgentConsole: React.FC<AgentConsoleProps> = ({
           </Spin>
         </div>
       </div>
+      {mobileListLayout ? (
+        <MobileSwipeDrawer
+          ref={mobileListDrawerRef}
+          side="left"
+          open={mobileListOpen}
+          onClose={closeMobileAgentList}
+          ariaLabel={t("agentConsole.mobile.listTitle")}
+          className={AGENT_MOBILE_LIST_DRAWER_CLASS_NAME}
+          fullWidth
+        >
+          {agentListPane}
+        </MobileSwipeDrawer>
+      ) : null}
+      {mobileListLayout ? (
+        <BottomSheet
+          open={sectionActionsOpen}
+          onClose={() => setSectionActionsOpen(false)}
+          ariaLabel={t("leftSidebar.moreActions")}
+          getContainer=".layout-mobile"
+        >
+          <div className="agent-console-actions-sheet">
+            <div className="agent-console-actions-sheet-title">{mobileAgentName}</div>
+            {effectiveSelectedKey && formMode === "edit" ? (
+              <button
+                type="button"
+                className="agent-console-actions-row"
+                disabled={executeDisabled}
+                onClick={() => runSectionAction("execute")}
+              >
+                <MaterialIcon name="play_circle" />
+                <span>{t("execute.title")}</span>
+              </button>
+            ) : null}
+            {effectiveSelectedKey ? (
+              <>
+                <button
+                  type="button"
+                  className="agent-console-actions-row"
+                  disabled={editMenuDisabled || sourceEditDisabled}
+                  onClick={() => runSectionAction("source")}
+                >
+                  <MaterialIcon name="code" />
+                  <span>{t("resourceAssistant.sourceEdit")}</span>
+                </button>
+                <button
+                  type="button"
+                  className="agent-console-actions-row"
+                  disabled={editMenuDisabled || structuredEditDisabled}
+                  onClick={() => runSectionAction("structured")}
+                >
+                  <MaterialIcon name="tune" />
+                  <span>{t("resourceAssistant.structuredEdit")}</span>
+                </button>
+              </>
+            ) : null}
+            <button
+              type="button"
+              className="agent-console-actions-row"
+              disabled={saveDisabled || savingForm}
+              onClick={() => runSectionAction("save")}
+            >
+              <MaterialIcon name="save" />
+              <span>{saveActionLabel}</span>
+            </button>
+            {effectiveSelectedKey && formMode === "edit" ? (
+              <button
+                type="button"
+                className="agent-console-actions-row is-danger"
+                disabled={deleteDisabled || deleting}
+                onClick={() => runSectionAction("delete")}
+              >
+                <MaterialIcon name="delete" />
+                <span>{t("agentConsole.action.delete")}</span>
+              </button>
+            ) : null}
+          </div>
+        </BottomSheet>
+      ) : null}
     </div>
   );
 };

@@ -16,6 +16,14 @@ Agent 管理台由 `/agents` 路由进入，页面壳层为 `src/app/pages/agent
 
 列表项不再用悬浮 Popover 展示名称、Key、模型、模式、工具与技能数量摘要，列表只保留紧凑信息，完整内容以右侧详情为准。功能入口收进列表项右侧的「更多操作」（Agent、技能、连接器与归档列表共用 `shared/ui/RowMoreMenu`，按钮样式与点击/右键交互保持一致）：与侧栏 `PrimaryChatNavigation` 的更多按钮一致，只在行 hover、键盘聚焦或菜单展开时显现，点击打开下拉菜单，含「通过对话编辑」和「删除」（删除为危险项并有分隔线）；右键列表项直接打开同一套菜单，菜单定位在指针处且不改变当前选中项；排序保存或删除进行中菜单项禁用。按钮不常驻占位、也不挤压文字：列表项内容位置始终不变，按钮叠加在行右端，并让被覆盖的右侧 Key 与模式徽标淡出，鼠标移开或菜单关闭后淡入恢复；没有可执行操作时不渲染按钮，也不触发淡出。invalid Agent 的“无效”标签保留，诊断信息挂在标签提示上。
 
+## 移动端呈现
+
+`/mobile/agents` 与桌面 `/agents` 共用同一个 `AgentsPage` 和 `AgentConsole`，页面层只按 `isMobilePath(pathname)` 传入 `mobile`，不复制页面、请求或表单逻辑。移动端不再渲染内嵌列表列和拖拽调宽手柄：详情独占整屏，列表收进左侧滑出抽屉；标题栏右侧通过 `shared/ui/MobilePageHeaderAction` 暴露当前 Agent 的头像、名称和一个小的切换图标（不再显示「切换」文案，颜色取次要文本色），点击或右滑打开抽屉，`aria-expanded` 跟随抽屉状态。抽屉占满页面宽度（`MobileSwipeDrawer` 的 `fullWidth`），复用同一个 `AgentListPane`，搜索、刷新、新建、行内更多操作与拖拽排序全部保留；列表工具栏保持单行，并在抽屉顶部留出间距，列表容器不再受窄屏 260px 高度上限约束，会撑满抽屉剩余高度。行内「更多操作」在移动端改用共享 `BottomSheet`：面板标题显示当前 Agent，下面是用图标＋文案的「通过对话编辑」「删除」行；`RowMoreMenu` 的 `onMoreClick` 把点击交给调用方，不再渲染 Dropdown。列表项还支持长按 500ms 打开同一个动作面板：移动超过 10px 或落到拖拽手柄／按钮上会取消，识别后吞掉松手产生的 click，避免误触选中或刚打开就被关掉。详情吸顶页签栏在移动端不再平铺功能按钮，只保留一枚「更多操作」图标按钮，点击用 `BottomSheet` 展示当前 Agent 的执行测试、源文件编辑、结构化编辑、保存和删除；每行沿用 `aria-label`/禁用态，执行/保存/删除后先收起面板。桌面仍保留平铺按钮和文案。窄屏下模式、可见性、交互入口和上下文的选择卡片改为撑满整行，不再固定 260px 留白。
+
+页面里的抽屉直接复用 `shared/ui/MobileSwipeDrawer` 与 `shared/ui/hooks/useMobileSwipeGestures`（它们与壳层左右抽屉同一套手势实现）：右滑打开、左滑关闭，面板 1:1 跟手并带弹簧落点，遮罩点击、Esc 和下拉方向反滑都能关闭；打开时详情区进入 `inert`，焦点回到触发按钮。手势只在 `agent-console` 内起手，文本框、横向滚动容器、`.ant-*` 弹层和已展开的其它面板不触发；手势根位于管理页自身的 `.ant-drawer` 内，手势 hook 会忽略祖先抽屉的遮挡判定，只拦与手势根平行的其它 open 抽屉和 Modal。
+
+移动壳层的标题栏动作通过 `MobilePageHeaderActionProvider` 注册：页面在 `AgentConsole` 里用 `useMobilePageHeaderAction` 提供 label、aria-label、图标和 `expanded`，`MobileLayout` 在页面 Drawer 的 `extra` 槽位渲染，不反向导入 `app/layout`。顶部按钮与滑动共用同一个 `mobileListOpen` 状态，按钮的 `aria-expanded` 跟随抽屉；选中、新建或行内菜单会先收起抽屉，再沿用原有 `onSelectAgentKey` / `onClearSelection` 路由跳转。`MobileLayout` 不再对 `/agents` 强制上下分栏，其他管理台（技能、归档、自动化、Registry）保持原有 28% 列表行。
+
 ## 连接器与工具分层
 
 已有 Agent 在“上下文与能力”中通过 `/api/admin/agent` 的 `connectorBindings` 读取预置、声明和实际生效挂载的并集，使用 `/api/admin/connectors` 的 `tools` 展示连接器名称、说明、归属工具和能力。连接器默认收起，点击或键盘展开后显示工具名称、说明及搜索（超过 8 项），CLI、VIEW、技能和 MCP 同步状态分别解释。预置带锁且只读；未生效、等待重载、目录缺失和空列表有独立状态。切换 Agent、目录更新和页面重新可见时刷新，并忽略旧请求响应。MCP 服务按 agentKey 过滤，避免显示其他 Agent 的工具。

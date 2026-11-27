@@ -25,6 +25,8 @@ interface EditMenuButtonProps {
   sourceDisabled?: boolean;
   structuredDisabled?: boolean;
   activeEditMode?: "source" | "structured";
+  /** 移动端窄栏只显示当前编辑模式的图标。 */
+  iconOnly?: boolean;
 }
 
 export function EditMenuButton({
@@ -38,6 +40,7 @@ export function EditMenuButton({
   sourceDisabled,
   structuredDisabled,
   activeEditMode,
+  iconOnly = false,
 }: EditMenuButtonProps) {
   const { t } = useI18n();
   const displayLabel =
@@ -109,15 +112,20 @@ export function EditMenuButton({
       <UiButton
         size="sm"
         variant="secondary"
+        iconOnly={iconOnly}
         disabled={disabled}
         aria-label={displayLabel}
         aria-haspopup="menu"
       >
-        <Flex gap={4}>
+        {iconOnly ? (
           <MaterialIcon name={displayIcon} />
-          <span>{displayLabel}</span>
-          <MaterialIcon name="expand_more" />
-        </Flex>
+        ) : (
+          <Flex gap={4}>
+            <MaterialIcon name={displayIcon} />
+            <span>{displayLabel}</span>
+            <MaterialIcon name="expand_more" />
+          </Flex>
+        )}
       </UiButton>
     </Dropdown>
   );

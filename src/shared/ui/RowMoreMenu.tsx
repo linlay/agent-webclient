@@ -20,6 +20,11 @@ export interface RowMoreMenuProps {
   /** 需要把行容器作为拖拽节点时传入 */
   rowRef?: React.Ref<HTMLDivElement>;
   rowStyle?: React.CSSProperties;
+  /**
+   * 触屏/移动端由调用方接管菜单展示（例如改用 BottomSheet）。
+   * 传入后不再渲染 Dropdown，按钮点击只回调，右键菜单也不出现。
+   */
+  onMoreClick?: () => void;
   children: React.ReactNode;
 }
 
@@ -39,11 +44,45 @@ export const RowMoreMenu: React.FC<RowMoreMenuProps> = ({
   rowProps,
   rowRef,
   rowStyle,
+  onMoreClick,
   children,
 }) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const hasActions = Array.isArray(items) && items.length > 0;
   const menu: MenuProps = { items, onClick: onSelect };
+  const moreButton = hasActions ? (
+    <UiButton
+      size="mini"
+      variant="ghost"
+      iconOnly
+      className={styles.button}
+      disabled={disabled}
+      title={label}
+      aria-label={ariaLabel ?? label}
+      aria-haspopup={onMoreClick ? "dialog" : "menu"}
+      onClick={(event) => {
+        event.stopPropagation();
+        onMoreClick?.();
+      }}
+      onKeyDown={(event) => event.stopPropagation()}
+    >
+      <MaterialIcon name="more_horiz" />
+    </UiButton>
+  ) : null;
+  if (onMoreClick) {
+    return (
+      <div
+        {...rowProps}
+        ref={rowRef}
+        style={rowStyle}
+        className={`${styles.row} ${className}`.trim()}
+        data-has-actions={hasActions ? "" : undefined}
+      >
+        {children}
+        {moreButton}
+      </div>
+    );
+  }
   return (
     <Dropdown
       trigger={["contextMenu"]}
@@ -60,27 +99,14 @@ export const RowMoreMenu: React.FC<RowMoreMenuProps> = ({
         data-has-actions={hasActions ? "" : undefined}
       >
         {children}
-        {hasActions ? (
+        {moreButton ? (
           <Dropdown
             trigger={["click"]}
             disabled={disabled}
             onOpenChange={setMenuOpen}
             menu={menu}
           >
-            <UiButton
-              size="mini"
-              variant="ghost"
-              iconOnly
-              className={styles.button}
-              disabled={disabled}
-              title={label}
-              aria-label={ariaLabel ?? label}
-              aria-haspopup="menu"
-              onClick={(event) => event.stopPropagation()}
-              onKeyDown={(event) => event.stopPropagation()}
-            >
-              <MaterialIcon name="more_horiz" />
-            </UiButton>
+            {moreButton}
           </Dropdown>
         ) : null}
       </div>

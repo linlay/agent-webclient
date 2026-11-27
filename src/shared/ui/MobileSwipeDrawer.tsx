@@ -41,6 +41,8 @@ export interface MobileSwipeDrawerProps {
   /** Accessible name for the dialog; the panel content owns its own header. */
   ariaLabel: string;
   className?: string;
+  /** 面板占满整宽（默认左右抽屉保留 16px 遮罩，给壳层导航留出手势边界）。 */
+  fullWidth?: boolean;
   children: React.ReactNode;
 }
 
@@ -55,7 +57,7 @@ export const MobileSwipeDrawer = forwardRef<
   MobileSwipeDrawerHandle,
   MobileSwipeDrawerProps
 >(function MobileSwipeDrawer(
-  { side, open, onClose, ariaLabel, className, children },
+  { side, open, onClose, ariaLabel, className, fullWidth = false, children },
   ref,
 ) {
   const layerRef = useRef<HTMLDivElement>(null);
@@ -268,11 +270,22 @@ export const MobileSwipeDrawer = forwardRef<
     if (!engaged) return;
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key !== "Escape" || event.defaultPrevented) return;
+      // 上面还叠着 antd Drawer（如行内动作 BottomSheet）时，把 Esc 让给它；
+      // 页面抽屉本身包含当前 layer，不算上层浮层。
+      const layer = layerRef.current;
+      if (layer) {
+        const hasUpperDrawer = Array.from(
+          document.querySelectorAll(".ant-drawer-open"),
+        ).some(drawer => !drawer.contains(layer));
+        if (hasUpperDrawer) return;
+      }
+      // 捕获阶段拦住 Esc，避免同一次按键把外层页面抽屉一起关掉。
       event.preventDefault();
+      event.stopPropagation();
       closeRef.current();
     };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
+    window.addEventListener("keydown", onKeyDown, true);
+    return () => window.removeEventListener("keydown", onKeyDown, true);
   }, [engaged]);
 
   // Focus moves into the drawer while it is present and returns to the control
@@ -324,6 +337,7 @@ export const MobileSwipeDrawer = forwardRef<
       ref={layerRef}
       className={[styles.layer, className || ""].filter(Boolean).join(" ")}
       data-side={side}
+      data-full-width={fullWidth ? "true" : undefined}
       data-mobile-drawer={side}
       data-open={open ? "true" : undefined}
       aria-hidden={engaged ? undefined : true}

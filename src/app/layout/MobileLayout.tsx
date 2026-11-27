@@ -6,10 +6,15 @@ import { useI18n } from "@/shared/i18n";
 import { LeftSidebar } from "./LeftSidebar";
 import { RightSidebar } from "./sidebar/right/RightSidebar";
 import { TopNav } from "./TopNav";
-import { MobileSwipeDrawer, type MobileSwipeDrawerHandle } from "./MobileSwipeDrawer";
+import { MobileSwipeDrawer, type MobileSwipeDrawerHandle } from "@/shared/ui/MobileSwipeDrawer";
 import styles from "./MobileLayout.module.css";
 import { useMobileViewport } from "./hooks/useMobileViewport";
-import { useMobileSwipeGestures } from "./hooks/useMobileSwipeGestures";
+import { useMobileSwipeGestures } from "@/shared/ui/hooks/useMobileSwipeGestures";
+import { MaterialIcon } from "@/shared/ui/MaterialIcon";
+import {
+  MobilePageHeaderActionProvider,
+  MobilePageHeaderActionSlot,
+} from "@/shared/ui/MobilePageHeaderAction";
 
 export function MobileLayout({ children, conversationSearch, overlays }: { children: React.ReactNode; conversationSearch: string; overlays: React.ReactNode }) {
   const state = useAppState();
@@ -79,11 +84,15 @@ export function MobileLayout({ children, conversationSearch, overlays }: { child
       onClose={closeContent} ariaLabel={t("mobile.content")} className={styles.panel}>
       <RightSidebar mobile />
     </MobileSwipeDrawer>
-    <Drawer rootClassName={`${styles.drawer} ${styles.page}`} title={t("mobile.backToChat")}
-      placement="right" width="100%" open={pageOpen} onClose={returnToConversation}
-      getContainer={false} styles={{ body: { padding: 0, overflow: "auto" } }}>
-      <Outlet />
-    </Drawer>
+    <MobilePageHeaderActionProvider>
+      <Drawer rootClassName={`${styles.drawer} ${styles.page}`} title={t("mobile.backToChat")}
+        placement="right" width="100%" open={pageOpen} onClose={returnToConversation}
+        getContainer={false} extra={<MobilePageHeaderActionSlot />} push={false}
+        closeIcon={<MaterialIcon name="keyboard_arrow_right" style={{ width: 20, height: 20, fontSize: 20 }} />}
+        styles={{ body: { padding: 0, overflow: "auto" } }}>
+        <Outlet />
+      </Drawer>
+    </MobilePageHeaderActionProvider>
     {overlays}
   </div>;
 }

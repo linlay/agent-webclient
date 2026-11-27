@@ -189,6 +189,8 @@ export function BottomSheet({
       getContainer={getContainer}
       rootClassName={rootClassName}
       rootStyle={{ position: "absolute", zIndex }}
+      // 面板叠在页面抽屉之上，不能让 antd 把宿主抽屉整体推开。
+      push={false}
       styles={{
         // 阴影和背景都交给面板自己，下拉时不会留下一条悬空的抽屉边框。
         wrapper: { boxShadow: "none" },

@@ -61,7 +61,7 @@ afterEach(async () => {
 
 async function renderDrawer(
   open: boolean,
-  props: { ariaLabel?: string; onClose?: () => void } = {},
+  props: { ariaLabel?: string; onClose?: () => void; fullWidth?: boolean } = {},
 ) {
   const ref = React.createRef<MobileSwipeDrawerHandle>();
   const onClose = props.onClose ?? jest.fn();
@@ -72,6 +72,7 @@ async function renderDrawer(
       open={nextOpen}
       onClose={onClose}
       ariaLabel={props.ariaLabel ?? "Content panel"}
+      fullWidth={props.fullWidth}
     >
       <button data-testid="inside">Inside</button>
     </MobileSwipeDrawer>
@@ -133,6 +134,12 @@ it("names the dialog without drawing a title bar", async () => {
   expect(host.querySelectorAll("button")).toHaveLength(1);
 });
 
+it("marks the layer when the panel should fill the viewport width", async () => {
+  await renderDrawer(true, { fullWidth: true });
+  const layer = host.querySelector<HTMLElement>("[data-mobile-drawer='right']")!;
+  expect(layer.getAttribute("data-full-width")).toBe("true");
+});
+
 it("closes through the mask and Escape", async () => {
   const drawer = await renderDrawer(true);
   await act(async () => {});
@@ -144,6 +151,34 @@ it("closes through the mask and Escape", async () => {
     window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
   });
   expect(drawer.onClose).toHaveBeenCalledTimes(2);
+});
+
+it("leaves Escape to an upper antd drawer", async () => {
+  const upper = document.createElement("div");
+  upper.className = "ant-drawer-open";
+  document.body.append(upper);
+  const drawer = await renderDrawer(true);
+  await act(async () => {});
+  const panel = host.querySelector<HTMLElement>("[data-mobile-drawer='right']")!;
+  await act(async () => {
+    panel.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+  });
+  expect(drawer.onClose).not.toHaveBeenCalled();
+  upper.remove();
+});
+
+it("keeps Escape from closing a host page drawer behind it", async () => {
+  const outerClose = jest.fn();
+  host.addEventListener("keydown", outerClose);
+  const drawer = await renderDrawer(true);
+  await act(async () => {});
+  const panel = host.querySelector<HTMLElement>("[data-mobile-drawer='right']")!;
+  await act(async () => {
+    panel.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+  });
+  expect(drawer.onClose).toHaveBeenCalledTimes(1);
+  expect(outerClose).not.toHaveBeenCalled();
+  host.removeEventListener("keydown", outerClose);
 });
 
 it("animates out when the logical state closes and re-hides the layer", async () => {
