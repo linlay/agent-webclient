@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { getAgents, getAdminAgentConnectors, getConnectorConnection, prepareConnector, setAdminAgentConnector, type ConnectorSummary } from "@/shared/data";
 import { isDesktopAppMode } from "@/shared/utils/routing";
-import { firstChatAgent } from "@/features/resource-assistant/lib/resourceAssistant";
+import { hasConfiguredResourceAssistant, readResourceAssistantAgentKey } from "@/features/resource-assistant/lib/resourceAssistant";
 import { connectorChatUrl, ConnectorChatError, prepareConnectorChat, waitForConnectorPoll } from "../lib/connectorChat";
 import type { ConnectorNavigationApproval } from "../lib/connectorNavigation";
 
@@ -53,10 +53,11 @@ export function useConnectorChat({ item, draft, dirty, confirmLeave, confirmNavi
     };
     try {
       const desktop = isDesktopAppMode();
-      const agentKey = desktop ? new URL(source).searchParams.get("chatDefaultAgentKey")?.trim() || ""
-        : firstChatAgent((await observeRequest(getAgents({ scope: "nav",  }), signal)).data);
+      const agentKey = readResourceAssistantAgentKey(source, desktop);
+      const available = agentKey && (desktop || hasConfiguredResourceAssistant(
+        (await observeRequest(getAgents({ scope: "nav" }), signal)).data, agentKey));
       assertCurrent();
-      if (!agentKey) { setError("resourceAssistant.agentUnavailable"); return; }
+      if (!available) { setError("resourceAssistant.agentUnavailable"); return; }
       await prepareConnectorChat(initial.item, agentKey, {
         readConnection: async () => (await observeRequest(getConnectorConnection(current.id, signal), signal)).data,
         prepare: async () => (await observeRequest(prepareConnector(current.id, signal), signal)).data,

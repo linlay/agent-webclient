@@ -71,7 +71,7 @@ import { selectPrimaryNavigation } from "../lib/primaryNavigation";
 import { supportsPrimaryChat } from "@/features/chats/lib/primaryChatIntent";
 import { SidebarAgentNavigation } from "./SidebarAgentNavigation";
 import { splitSidebarWorkers } from "../lib/sidebarNavigation";
-import { readStoredGeneralAgentKey, persistGeneralAgentKey } from "../lib/generalAgentPreference";
+import { readStoredGeneralAgentKey, persistGeneralAgentKey } from "@/shared/utils/generalAgentPreference";
 import "./WorkerNavigator.module.css";
 const presentationClasses = bindCssModuleClasses({ ...sharedPresentation });
 
@@ -310,7 +310,7 @@ export const WorkerNavigator: React.FC<WorkerNavigatorProps> = ({
   const primaryAgentKeys = useMemo(() => new Set(state.agents.filter(agent => supportsPrimaryChat(agent.mode)).map(agent => agent.key)), [state.agents]);
   const generalWorkers = splitSidebarWorkers(state.workerRows, state.agents).general.filter(row => !primaryAgentKeys.has(row.sourceId));
   const currentGeneralKey = generalWorkers.some(row => row.key === generalAgentKey)
-    ? generalAgentKey : generalWorkers[0]?.key || "";
+    ? generalAgentKey : "";
   useEffect(() => {
     // Keep a valid saved choice when routing or initial hydration selects another Agent.
     if (!generalWorkers.some(row => row.key === generalAgentKey) &&

@@ -7,7 +7,7 @@ import type { AppAction } from "@/app/state/actions";
 import { getAgents, getChatOrder, invalidateChatNavigationCache, setAccessToken } from "@/shared/data";
 import { isAppMode } from "@/shared/utils/routing";
 import { useWorkerData } from "./useWorkerData";
-import { persistGeneralAgentKey, readStoredGeneralAgentKey } from "../lib/generalAgentPreference";
+import { persistGeneralAgentKey, readStoredGeneralAgentKey } from "@/shared/utils/generalAgentPreference";
 import { resolveCurrentWorkerSummary } from "../lib/currentWorker";
 
 const mockStateRef = { current: createInitialState() };
@@ -126,7 +126,8 @@ describe("worker data initialization and refresh", () => {
     persistGeneralAgentKey(saved);
     mockGeneralAgents();
     await act(async () => root.render(<Harness />));
-    expect(mockStateRef.current.workerSelectionKey).toBe("agent:bootstrap");
+    expect(mockStateRef.current.workerSelectionKey).toBe("");
+    expect(readStoredGeneralAgentKey()).toBe(saved);
   });
 
   it("preserves an explicitly selected Agent and an existing Chat owner", async () => {
@@ -149,7 +150,7 @@ describe("worker data initialization and refresh", () => {
       { key: "bootstrap", name: "初始化助手" }, { key: "zenmi", name: "小宅" },
     ] });
     await act(async () => root.render(<Harness />));
-    expect(mockStateRef.current.workerSelectionKey).toBe("agent:bootstrap");
+    expect(mockStateRef.current.workerSelectionKey).toBe("");
   });
 
   it("reloads the Agent catalog through the management refresh event", async () => {

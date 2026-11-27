@@ -6,8 +6,8 @@ describe("readHostRequiredSkills", () => {
     params.append("reference", JSON.stringify({type:"skill",id:"poster-studio"}));
     params.append("reference", JSON.stringify({type:"skill",id:"poster-studio"}));
     params.append("reference", JSON.stringify({type:"skill",id:"../unsafe"}));
-    expect(readHostRequiredSkills("webOperator", params)).toEqual({
-      agentKey: "webOperator",
+    expect(readHostRequiredSkills("test-web-agent", params)).toEqual({
+      agentKey: "test-web-agent",
       skills: ["poster-studio"],
     });
   });

@@ -3,7 +3,7 @@ import { getAgents } from "@/shared/data";
 import { useI18n } from "@/shared/i18n";
 import { isDesktopAppMode } from "@/shared/utils/routing";
 import { useAppMessage } from "@/shared/ui/useAppMessage";
-import { firstChatAgent, resourceAssistantUrl, resourceComposerPrefill, type ResourceAssistantRequest } from "../lib/resourceAssistant";
+import { hasConfiguredResourceAssistant, readResourceAssistantAgentKey, resourceAssistantUrl, resourceComposerPrefill, type ResourceAssistantRequest } from "../lib/resourceAssistant";
 import { useClientPageNavigation } from "@/shared/ui/ClientNavigationContext";
 
 export function useResourceAssistant({ navigate }: { navigate?: (target: string) => void | Promise<void> } = {}) {
@@ -21,19 +21,17 @@ export function useResourceAssistant({ navigate }: { navigate?: (target: string)
     const source = window.location.href;
     try {
       const prefill = resourceComposerPrefill(request, t);
-      let agentKey = "";
-      if (isDesktopAppMode()) {
-        agentKey = new URL(source).searchParams.get("chatDefaultAgentKey")?.trim() || "";
-      } else {
-        agentKey = firstChatAgent((await getAgents({ scope: "nav",  })).data);
+      const desktop = isDesktopAppMode();
+      const agentKey = readResourceAssistantAgentKey(source, desktop);
+      if (!agentKey || (!desktop && !hasConfiguredResourceAssistant((await getAgents({ scope: "nav" })).data, agentKey))) {
+        throw new Error(t("resourceAssistant.agentUnavailable"));
       }
       if (!mounted.current || window.location.href !== source) return;
-      if (!agentKey) throw new Error(t("resourceAssistant.agentUnavailable"));
       // Full URL navigation lets the Desktop management surface hand off before
       // the destination Composer consumes its one-shot query parameters.
       const target = resourceAssistantUrl(agentKey, prefill);
       if (target.length > 8192) throw new Error(t("resourceAssistant.draftTooLong"));
-      if (!isDesktopAppMode() && (navigatePage || navigate)) await (navigatePage || navigate)!(target);
+      if (!desktop && (navigatePage || navigate)) await (navigatePage || navigate)!(target);
       else window.location.assign(target);
       onOpened?.();
     } catch (error) {

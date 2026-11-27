@@ -1,4 +1,4 @@
-import { firstChatAgent, resourceAssistantUrl, resourceComposerPrefill } from "./resourceAssistant";
+import { readResourceAssistantAgentKey, resourceAssistantUrl, resourceComposerPrefill } from "./resourceAssistant";
 import { zhCNMessages } from "@/shared/i18n/locales/zh-CN";
 const t = (key: string, values: Record<string, unknown> = {}) => String((zhCNMessages as Record<string, string>)[key] || key).replace(/\{(\w+)\}/g, (_, name) => String(values[name] ?? ""));
 
@@ -28,8 +28,8 @@ describe("resource assistant URL", () => {
     expect(() => resourceComposerPrefill({ kind: "skill", target: { id: " " } }, t)).toThrow();
     expect(() => resourceComposerPrefill({ kind: "skill", target: { id: "x".repeat(2049) } }, t)).toThrow();
   });
-  it("selects a navigable ordinary Agent rather than a Team or Coder", () => {
-    expect(firstChatAgent([{ key: "team", mode: "TEAM" }, { key: "coder", mode: "CODER" }, { key: "chat", mode: "REACT" }])).toBe("chat");
-    expect(firstChatAgent([])).toBe("");
+  it("uses an explicit host configuration and leaves a missing binding empty", () => {
+    expect(readResourceAssistantAgentKey("https://test.invalid/?chatDefaultAgentKey=chosen", true)).toBe("chosen");
+    expect(readResourceAssistantAgentKey("https://test.invalid/", true)).toBe("");
   });
 });

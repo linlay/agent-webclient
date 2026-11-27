@@ -2,6 +2,7 @@
 import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { message } from "antd";
+import { persistGeneralAgentKey } from "@/shared/utils/generalAgentPreference";
 import { getAgents } from "@/shared/data";
 import { isDesktopAppMode } from "@/shared/utils/routing";
 import { useResourceAssistant } from "./useResourceAssistant";
@@ -18,6 +19,7 @@ function Harness({ navigate }: { navigate?: (target: string) => void } = {}) { a
 beforeEach(async () => {
   (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
   jest.clearAllMocks();
+  persistGeneralAgentKey("");
   Object.defineProperty(window, "location", { configurable: true, value: { href: "http://localhost/agents/edited?chatDefaultAgentKey=default", assign } });
   jest.mocked(isDesktopAppMode).mockReturnValue(true);
   container = document.createElement("div"); document.body.append(container); root = createRoot(container);
@@ -33,6 +35,7 @@ it("uses the host default, never the edited Agent, without querying a model", as
 it("uses a provided Standalone Router navigation so the editor's final dirty blocker confirms once", async () => {
   const navigate = jest.fn();
   jest.mocked(isDesktopAppMode).mockReturnValue(false);
+  persistGeneralAgentKey("agent:default");
   jest.mocked(getAgents).mockResolvedValue({ code: 0, msg: "", data: [{ key: "default", mode: "AGENT" }] } as any);
   await act(async () => root.render(React.createElement(Harness, { navigate })));
   await act(async () => actions.open({ kind: "connector", target: { id: "edited" } }));
@@ -49,6 +52,7 @@ it("fails visibly without a Desktop default and does not silently select another
 });
 it("single-flights standalone lookup and ignores completion after navigating away", async () => {
   jest.mocked(isDesktopAppMode).mockReturnValue(false);
+  persistGeneralAgentKey("agent:chat");
   let resolve!: (value: any) => void;
   jest.mocked(getAgents).mockReturnValue(new Promise(done => { resolve = done; }));
   let pending!: Promise<void>;

@@ -21,7 +21,7 @@ import {
   mergeFetchedChats,
 } from '@/features/chats/lib/chatSummary';
 import { readSidebarAgents } from '@/features/workers/lib/sidebarAgentData';
-import { readStoredGeneralAgentKey } from '../lib/generalAgentPreference';
+import { readStoredGeneralAgentKey } from '@/shared/utils/generalAgentPreference';
 
 const INITIAL_AGENT_CHAT_LIMIT = 5;
 type AgentListRequestOptions = {
@@ -129,15 +129,12 @@ export function useWorkerData(input: {
     if (current && (rows.some((row) => row.key === current) || current === currentDetailKey)) {
       return current;
     }
-    if (isCopilotPath(currentPathname())) {
-      const firstAgentKey = rows.find((row) => row.type === 'agent')?.key || '';
-      if (firstAgentKey) return firstAgentKey;
-    } else {
+    if (!isCopilotPath(currentPathname())) {
       const savedKey = readStoredGeneralAgentKey();
       const savedGeneral = rows.find(row => row.key === savedKey && !row.workspaceDir?.trim());
       if (savedGeneral) return savedGeneral.key;
     }
-    return rows[0]?.key || '';
+    return '';
   }, [stateRef]);
 
   const rebuildWorkerRowsFromState = useCallback((overrides: WorkerRefreshOverrides = {}) => {
@@ -151,7 +148,7 @@ export function useWorkerData(input: {
       workerPriorityKey: overrides.workerPriorityKey ?? current.workerPriorityKey,
     });
     const workerSelectionKey = ensureWorkerSelection(rows, overrides.workerSelectionKey ?? current.workerSelectionKey);
-    if (workerSelectionKey) {
+    if (workerSelectionKey !== current.workerSelectionKey) {
       dispatch({ type: 'SET_WORKER_SELECTION_KEY', workerKey: workerSelectionKey });
     }
     dispatch({ type: 'SET_WORKER_ROWS', rows });

@@ -2,6 +2,7 @@
 import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { TextDecoder, TextEncoder } from "util";
+import { persistGeneralAgentKey } from "@/shared/utils/generalAgentPreference";
 import { getAdminConnectors, getAdminTools, getAgents, getAdminAgentConnectors, getConnectorConnection, getConnectorDefinition, prepareConnector, setAdminAgentConnector } from "@/shared/data";
 import type { ConnectorConnection, ConnectorSummary } from "@/shared/data";
 Object.assign(globalThis, { TextDecoder, TextEncoder });
@@ -50,6 +51,7 @@ beforeEach(async () => {
   jest.mocked(getAdminConnectors).mockResolvedValue({ code: 0, msg: "", data: { connectors: [item] } });
   jest.mocked(getAdminTools).mockResolvedValue({ code: 0, msg: "", data: [] });
   jest.mocked(getConnectorDefinition).mockImplementation(async target => ({ code: 0, msg: "", data: { ...target, content: '{"name":"Installed"}', sha256: "loaded-hash" } }));
+  persistGeneralAgentKey("agent:default");
   jest.mocked(getAgents).mockResolvedValue({ code: 0, msg: "", data: [{ key: "default", mode: "AGENT" }] } as any);
   jest.mocked(getConnectorConnection).mockResolvedValue({ code: 0, msg: "", data: connection });
   jest.mocked(getAdminAgentConnectors).mockResolvedValue({ code: 0, msg: "", data: sourceState });

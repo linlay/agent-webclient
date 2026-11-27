@@ -1,6 +1,7 @@
 /** @jest-environment jsdom */
 import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
+import { persistGeneralAgentKey } from "@/shared/utils/generalAgentPreference";
 import { getAgents, getAdminAgentConnectors, getConnectorConnection, prepareConnector, setAdminAgentConnector } from "@/shared/data";
 import type { ConnectorConnection, ConnectorSummary } from "@/shared/data";
 import { isDesktopAppMode } from "@/shared/utils/routing";
@@ -23,6 +24,7 @@ async function mount(props: Parameters<typeof Harness>[0] = {}) { await act(asyn
 function deferred<T>() { let resolve!: (value: T) => void; let reject!: (value: Error) => void; const promise = new Promise<T>((done, fail) => { resolve = done; reject = fail; }); return { promise, resolve, reject }; }
 beforeEach(() => {
   (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true; jest.resetAllMocks(); jest.useFakeTimers();
+  persistGeneralAgentKey("");
   Object.defineProperty(window, "location", { configurable: true, value: { href: "https://example.test/connectors/installed-one?chatDefaultAgentKey=default", assign } });
   jest.mocked(isDesktopAppMode).mockReturnValue(true);
   jest.mocked(getConnectorConnection).mockResolvedValue({ code: 0, msg: "", data: connection });
@@ -66,8 +68,9 @@ it("keeps changes made during runtime publication instead of navigating away", a
   await act(async () => { read.resolve({ data: state }); await result; });
   expect(assign).not.toHaveBeenCalled(); expect(actions.error).toBe("connectors.chat.draftChanged");
 });
-it("uses Standalone's first ordinary Agent and waits for an active mount", async () => {
+it("uses Standalone's configured Agent and waits for an active mount", async () => {
   jest.mocked(isDesktopAppMode).mockReturnValue(false);
+  persistGeneralAgentKey("agent:default");
   jest.mocked(getAgents).mockResolvedValue({ code: 0, msg: "", data: [{ key: "team", mode: "TEAM" }, { key: "default", mode: "AGENT" }] } as any);
   jest.mocked(getAdminAgentConnectors).mockResolvedValueOnce({ code: 0, msg: "", data: { ...state, connectorIds: [], activeConnectorIds: [] } });
   jest.mocked(setAdminAgentConnector).mockResolvedValueOnce({ code: 0, msg: "", data: { ...state, activeConnectorIds: [], presetConnectorIds: [], declaredConnectorIds: [], reloadPending: true } });

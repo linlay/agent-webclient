@@ -1,3 +1,4 @@
+import { readStoredGeneralAgentKey } from "@/shared/utils/generalAgentPreference";
 export type ResourceKind = "automation" | "skill" | "agent" | "connector" | "registry";
 export interface ResourceAssistantRequest {
   kind: ResourceKind;
@@ -28,10 +29,12 @@ export function resourceAssistantUrl(agentKey: string, prefill: ReturnType<typeo
   return `/agent/${encodeURIComponent(agentKey.trim())}?${search}`;
 }
 
-/** Standalone has no Desktop default preference: use the first navigable ordinary Agent. */
-export function firstChatAgent(data: unknown): string {
-  if (!Array.isArray(data)) return "";
-  const candidates = data.filter(item => item && typeof item.key === "string" && item.key.trim());
-  const ordinary = candidates.find(item => !item.mode || ["AGENT", "GENERAL", "REACT"].includes(String(item.mode).toUpperCase()));
-  return String((ordinary || candidates[0])?.key || "").trim();
+export function readResourceAssistantAgentKey(source: string, desktop: boolean): string {
+  if (desktop) return new URL(source).searchParams.get("chatDefaultAgentKey")?.trim() || "";
+  const savedKey = readStoredGeneralAgentKey();
+  return savedKey.startsWith("agent:") ? savedKey.slice("agent:".length).trim() : "";
+}
+
+export function hasConfiguredResourceAssistant(data: unknown, agentKey: string): boolean {
+  return Array.isArray(data) && data.some(agent => agent?.key === agentKey);
 }

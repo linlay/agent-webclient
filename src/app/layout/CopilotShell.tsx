@@ -258,14 +258,7 @@ const CopilotShellContent: React.FC = () => {
     () => normalizeRouteValue(params.agentKey),
     [params.agentKey],
   );
-  const resolvedAgentKey = useMemo(() => {
-    if (requestedAgentKey) {
-      return requestedAgentKey;
-    }
-    const agents = Array.isArray(state.agents) ? state.agents : [];
-    if (agents.length === 0) return "";
-    return normalizeRouteValue(agents[0]?.key);
-  }, [requestedAgentKey, state.agents]);
+  const resolvedAgentKey = requestedAgentKey;
   const routeChatId = useMemo(
     () => normalizeRouteValue(searchParams.get("chatId")),
     [searchParams],
