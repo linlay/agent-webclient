@@ -316,6 +316,28 @@ it("renumbers the remaining drafts and their markers after a removal", () => {
 });
 
 
+it("ignores restored copies when renumbering after deleting a draft", () => {
+  const root = createRoot(document.createElement("div"));
+  let current!: ReturnType<typeof useSelectedTextFragments>;
+  const Harness = ({ chatId, restored = [] }: {chatId:string; restored?:unknown[]}) => { current = useSelectedTextFragments(chatId, restored); return null; };
+  const render = (chatId:string, restored:unknown[] = []) => act(() => root.render(React.createElement(Harness,{chatId,restored})));
+  const add = (text:string) => act(() => { current.addFragment(createSelectedTextFragment({text,targetId:text,sourceKind:"message"})!); });
+  try {
+    render("chat-a");
+    add("one"); add("two");
+    // 切走再切回：恢复引用与本地草稿指向同一条选区（同 id）。
+    const restored = current.references.map(reference => ({...reference}));
+    render("chat-a", restored);
+    act(() => current.removeFragment(current.references[0].id));
+    // 副本不能把剩余草稿顶到 3；删除后仍从 1 连续编号。
+    expect(current.references.map(reference => reference.annotationIndex)).toEqual([1]);
+    // 副本被附件层删除后，新划词继续接在剩余草稿之后。
+    render("chat-a", []);
+    add("three");
+    expect(current.references.map(reference => reference.annotationIndex)).toEqual([1,2]);
+  } finally { act(() => root.unmount()); }
+});
+
 it("restarts numbering after each completed run while keeping unsent comments", () => {
   const root = createRoot(document.createElement("div"));
   let current!: ReturnType<typeof useSelectedTextFragments>;

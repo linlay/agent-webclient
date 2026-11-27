@@ -74,3 +74,46 @@ export function getAcceptedSelectedTextReferenceIds(references: unknown[]) {
       : [];
   });
 }
+
+function selectionItemId(item: unknown): string | null {
+  if (!item || typeof item !== "object") return null;
+  const record = item as Record<string, unknown>;
+  if (record.type !== "selection") return null;
+  const id = typeof record.id === "string" ? record.id.trim() : "";
+  return id || null;
+}
+
+/**
+ * 切回某个 Chat 时，同一条选区可能既是本地草稿，又由恢复的引用重新给出。
+ * 合并时保持原有顺序，但用 `preferred`（本地草稿）里的同 id 项替换，避免编号回退。
+ */
+export function mergeSelectedTextFragments(
+  fragments: readonly SelectedTextFragment[],
+  preferred: readonly SelectedTextFragment[],
+): SelectedTextFragment[] {
+  const preferredById = new Map(preferred.map((fragment) => [fragment.reference.id, fragment]));
+  const seen = new Set<string>();
+  return fragments.flatMap((fragment) => {
+    const id = fragment.reference.id;
+    if (seen.has(id)) return [];
+    seen.add(id);
+    return [preferredById.get(id) ?? fragment];
+  });
+}
+
+/** 引用/附件按原顺序合并；同一 selection id 只保留首次出现，并优先取 `preferred` 的版本。 */
+export function mergeSelectionItems<T>(items: readonly T[], preferred: readonly T[]): T[] {
+  const preferredById = new Map<string, T>();
+  for (const item of preferred) {
+    const id = selectionItemId(item);
+    if (id) preferredById.set(id, item);
+  }
+  const seen = new Set<string>();
+  return items.flatMap((item) => {
+    const id = selectionItemId(item);
+    if (!id) return [item];
+    if (seen.has(id)) return [];
+    seen.add(id);
+    return [preferredById.get(id) ?? item];
+  });
+}

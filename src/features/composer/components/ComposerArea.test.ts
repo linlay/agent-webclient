@@ -260,6 +260,13 @@ jest.mock("@/features/composer/hooks/useComposerSend", () => ({
 jest.mock("@/features/composer/hooks/useDesktopSelectionActions", () => ({
   useDesktopSelectionActions: () => ({ handleAction: jest.fn() }),
 }));
+const mockSelectionAnnotationsProps: Array<Record<string, any>> = [];
+jest.mock("@/features/selection/components/SelectionAnnotations", () => ({
+  SelectionAnnotations: (props: Record<string, any>) => {
+    mockSelectionAnnotationsProps.push(props);
+    return null;
+  },
+}));
 jest.mock("@/features/selection/components/BrowserSelectionToolbar", () => ({ BrowserSelectionToolbar: () => null }));
 jest.mock("@/features/composer/components/BrowserSelectionPanels", () => ({ BrowserSelectionPanels: () => null }));
 
@@ -339,6 +346,7 @@ describe("ComposerArea", () => {
     mockComposerInputProps.length = 0;
     mockComposerActionsProps.length = 0;
     mockComposerSendInputs.length = 0;
+    mockSelectionAnnotationsProps.length = 0;
     mockComposerPopoverProps.length = 0;
     mockComposerAttachmentsState.sendAttachmentMeta = [];
     mockComposerAttachmentsState.sendReferences = [];
@@ -599,6 +607,28 @@ describe("ComposerArea", () => {
     try {
       renderToStaticMarkup(React.createElement(ComposerArea));
       expect(mockComposerActionsProps[0].sendDisabled).toBe(!running);
+    } finally { hook.mockRestore(); }
+  });
+
+  it("keeps one copy of a selection that is both a live draft and a restored reference", () => {
+    const fragment = createSelectedTextFragment({ text: "现在是 2", targetId: "selection-1", sourceKind: "message" })!;
+    fragment.reference.annotation = "现在是 2";
+    fragment.reference.annotationIndex = 1;
+    const attachment = selectedTextReferenceToAttachment(fragment);
+    mockComposerAttachmentsState.sendReferences = [fragment.reference];
+    mockComposerAttachmentsState.sendAttachmentMeta = [attachment];
+    const hook = jest.spyOn(selectedTextHooks, "useSelectedTextFragments").mockReturnValue({
+      fragments: [fragment], references: [fragment.reference], attachments: [attachment],
+      addFragment: jest.fn(), removeFragment: jest.fn(), updateAnnotation: jest.fn(),
+    });
+    try {
+      renderToStaticMarkup(React.createElement(ComposerArea));
+      expect(mockSelectionAnnotationsProps[0].fragments).toHaveLength(1);
+      const send = mockComposerSendInputs[0];
+      expect((send.sendReferences as Array<Record<string, unknown>>)
+        .filter(reference => reference.type === "selection")).toHaveLength(1);
+      expect((send.sendAttachmentMeta as Array<Record<string, unknown>>)
+        .filter(item => item.type === "selection")).toHaveLength(1);
     } finally { hook.mockRestore(); }
   });
 

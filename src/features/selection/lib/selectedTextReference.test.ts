@@ -2,6 +2,8 @@ import {
   SELECTED_TEXT_MAX_CHARACTERS,
   addSelectedTextFragment,
   createSelectedTextFragment,
+  mergeSelectedTextFragments,
+  mergeSelectionItems,
   selectedTextReferenceToAttachment,
 } from "./selectedTextReference";
 
@@ -87,4 +89,22 @@ it("allocates only inside the destination draft without mutating captured refere
   const incoming = {...first,reference:{...first.reference,annotationIndex:100}};
   expect(addSelectedTextFragment([],incoming)[0].reference.annotationIndex).toBe(1);
   expect(addSelectedTextFragment([],first,3)[0].reference.annotationIndex).toBe(3);
+});
+
+describe("selection deduplication", () => {
+  it("keeps the live draft's values when a restored quote overlaps it", () => {
+    const live = createSelectedTextFragment({text:"现在是 2",targetId:"m1",sourceKind:"message"})!;
+    live.reference.annotationIndex = 2;
+    const restored = {...live,reference:{...live.reference,annotation:"旧批注",annotationIndex:1}};
+    expect(mergeSelectedTextFragments([restored,live], [live])).toEqual([live]);
+  });
+
+  it("only collapses duplicate selection references and keeps their order", () => {
+    const fragment = createSelectedTextFragment({text:"quote",targetId:"m1",sourceKind:"message"})!;
+    const selection = {...fragment.reference,annotation:"现在是 2"};
+    const file = {type:"file",id:"f1",name:"a.txt",url:"a.txt"};
+    const other = {type:"file",id:"f2",name:"b.txt",url:"b.txt"};
+    expect(mergeSelectionItems([selection,{...selection},file,{...file},other], [selection]))
+      .toEqual([selection,file,{...file},other]);
+  });
 });

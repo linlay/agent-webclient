@@ -101,7 +101,7 @@ import { useAgentInteraction } from "@/features/composer/hooks/useAgentInteracti
 import { isInteractionPending } from "@/shared/contracts/interaction";
 import { resolveEditingModeSync, shouldClearPlanningMode } from "@/features/composer/lib/editingModeSync";
 import { resolveSkillDisplayName } from "@/features/skills/lib/skillDisplayName";
-import { selectedTextFragmentFromAttachment } from "@/features/selection/lib/selectedTextReference";
+import { mergeSelectedTextFragments, mergeSelectionItems, selectedTextFragmentFromAttachment } from "@/features/selection/lib/selectedTextReference";
 
 import { FileDropOverlay, useFileDropTarget, useConversationFileDropReceiver, useFileDropSurfaceHost } from "@/shared/ui/ConversationFileDrop";
 import { useAgentAvailability } from "@/features/composer/hooks/useAgentAvailability";
@@ -488,13 +488,13 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     if (previousReferencesSignature.current !== selectionReferencesSignature) dispatch({ type: "TOUCH_COMPOSER" });
     previousReferencesSignature.current = selectionReferencesSignature;
   }, [selectionReferencesSignature, dispatch]);
-  const selectedFragments = useMemo(() => [
+  const selectedFragments = useMemo(() => mergeSelectedTextFragments([
     ...sendAttachmentMeta.flatMap((attachment) => {
       const fragment = selectedTextFragmentFromAttachment(attachment);
       return fragment ? [fragment] : [];
     }),
     ...selectedText.fragments,
-  ], [sendAttachmentMeta, selectedText.fragments]);
+  ], selectedText.fragments), [sendAttachmentMeta, selectedText.fragments]);
   const visibleAttachments = attachments.filter(attachment => {
     if (attachment.type === "selection") return false;
     if (attachment.type !== "skill") return true;
@@ -529,18 +529,21 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     });
   }, []);
   const combinedSendReferences = useMemo(
-    () => [...sendReferences, ...selectedText.references],
+    () => mergeSelectionItems([...sendReferences, ...selectedText.references], selectedText.references),
     [selectedText.references, sendReferences],
   );
   useEffect(() => { dispatch({type:"SET_COMPOSER_REFERENCES",references:[...forcedSkills.map(skill => ({type:"skill",id:skill.id})),...combinedSendReferences]}); }, [dispatch,forcedSkills,combinedSendReferences]);
   const combinedSendAttachmentMeta = useMemo(
-    () => [
+    () => mergeSelectionItems([
       ...sendAttachmentMeta,
       ...selectedText.attachments.map((attachment) => ({
         ...attachment,
         size: attachment.size ?? 0,
       })),
-    ],
+    ], selectedText.attachments.map((attachment) => ({
+      ...attachment,
+      size: attachment.size ?? 0,
+    }))),
     [selectedText.attachments, sendAttachmentMeta],
   );
   const selectionActions = useDesktopSelectionActions({
