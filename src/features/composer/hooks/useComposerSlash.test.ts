@@ -14,6 +14,7 @@ function renderSlashHook(input: { inputValue: string; currentAgentKey: string })
     result = useComposerSlash({
       composerPillRef: React.createRef(),
       composerRef: React.createRef(),
+      composerStackRef: React.createRef(),
       inputValue: input.inputValue,
       currentAgentKey: input.currentAgentKey,
       isAwaitingActive: false,

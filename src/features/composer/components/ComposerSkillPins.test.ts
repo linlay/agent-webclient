@@ -219,7 +219,7 @@ describe("Composer skill pins", () => {
     function Harness() {
       pins = usePinnedSkills(false);
       slash = useComposerSlash({
-        composerPillRef: React.createRef(), composerRef: React.createRef(), inputValue: "/",
+        composerPillRef: React.createRef(), composerRef: React.createRef(), composerStackRef: React.createRef(), inputValue: "/",
         currentAgentKey: "agent-a", isAwaitingActive: false, isFrontendActive: false,
         isVoiceMode: false, commandOverlayOpen: false, canUsePlanningMode: false,
         canUseEditingMode: false, addMenuOpen: false,

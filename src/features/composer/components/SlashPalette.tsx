@@ -16,12 +16,17 @@ import { UiButton } from "@/shared/ui/UiButton";
 import { SkillIcon } from "@/features/skills/components/SkillIcon";
 const presentationClasses = bindCssModuleClasses({ ...composerPresentation });
 
+// 高度上限由 useComposerSlash 按锚点位置量出来，通过 maxHeight 下发；
+// 这里的 max-h 只是首帧兜底，不能再写 calc(100vh - …)，否则矮窗口会顶出视口。
 const SLASH_COMMAND_POPOVER_CLASS =
-  "slash-command-popover tw:max-h-[min(360px,calc(100vh-120px))] tw:overflow-auto";
+  "slash-command-popover tw:max-h-[360px] tw:overflow-auto";
 const SLASH_COMMAND_LIST_CLASS =
   "slash-command-list tw:flex tw:flex-col tw:gap-1 tw:p-1";
+// 分组标签 sticky 贴在滚动容器顶部，必须用与浮层同色的不透明底色
+// （antd Popover 的 colorBgElevated 取自 --control-popover-bg），
+// 否则滚上来的条目会从标签后面透出来，和标题文字叠在一起。
 const SLASH_GROUP_LABEL_CLASS =
-  "tw:px-2 tw:pb-0.5 tw:pt-1.5 tw:text-xs tw:font-bold tw:tracking-[0.08em] tw:text-text-muted tw:sticky tw:top-0 tw:bg-transparent tw:z-10";
+  "tw:px-2 tw:pb-0.5 tw:pt-1.5 tw:text-xs tw:font-bold tw:tracking-[0.08em] tw:text-text-muted tw:sticky tw:top-0 tw:z-10 tw:bg-[color:var(--control-popover-bg)]";
 const SLASH_COMMAND_ITEM_CLASS = presentationClasses("slash-command-item");
 const SLASH_COMMAND_ITEM_STATE_CLASS = {
   idle: "",
@@ -43,6 +48,7 @@ function itemStateClass(active: boolean): string {
 
 export const SlashPaletteContent: React.FC<{
   slashPaletteRef: React.RefObject<HTMLDivElement>;
+  maxHeight?: number;
   slashCommands: ResolvedSlashCommandDefinition[];
   slashSkills: SlashSkillItem[];
   slashSkillStatus: DataQueryStatus;
@@ -55,6 +61,7 @@ export const SlashPaletteContent: React.FC<{
   onRetrySkills: () => void;
 }> = ({
   slashPaletteRef,
+  maxHeight,
   slashCommands,
   slashSkills,
   slashSkillStatus,
@@ -77,7 +84,11 @@ export const SlashPaletteContent: React.FC<{
   const showSkillState = showSkillSection && slashSkills.length === 0;
 
   return (
-    <div ref={slashPaletteRef} className={SLASH_COMMAND_POPOVER_CLASS}>
+    <div
+      ref={slashPaletteRef}
+      className={SLASH_COMMAND_POPOVER_CLASS}
+      style={maxHeight ? { maxHeight } : undefined}
+    >
       <div
         className={SLASH_COMMAND_LIST_CLASS}
         role="listbox"

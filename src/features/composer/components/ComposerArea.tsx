@@ -148,6 +148,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
   const { message } = AntdApp.useApp();
   const composerRef = useRef<HTMLDivElement>(null);
   const composerPillRef = useRef<HTMLDivElement>(null);
+  const composerStackRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<TextAreaRef>(null);
   const isComposingRef = useRef(false);
   const deferredSendRequestedRef = useRef(false);
@@ -563,6 +564,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     slashItems,
     slashDismissed,
     slashPaletteRef,
+    slashPopoverMaxHeight,
     slashPopoverWidth,
     slashSkillError,
     slashSkillStatus,
@@ -572,6 +574,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
     commandOverlayOpen: isAnyOverlayOpen,
     composerPillRef,
     composerRef,
+    composerStackRef,
     inputValue: literalDraft ? "" : inputValue,
     isAwaitingActive,
     isFrontendActive,
@@ -1160,6 +1163,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
                 content: (
                   <SlashPaletteContent
                     slashPaletteRef={slashPaletteRef}
+                    maxHeight={slashPopoverMaxHeight}
                     slashCommands={slashCommands}
                     slashSkills={slashSkills}
                     slashSkillStatus={slashSkillStatus}
@@ -1179,7 +1183,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
               },
             ]}
           >
-            <div className={COMPOSER_STACK_CLASS}>
+            <div ref={composerStackRef} className={COMPOSER_STACK_CLASS}>
               {enableNewChatContext && isBlankConversation && !conversationBlocking && !isFrontendActive && (
                 <ComposerContextBar
                   agents={state.agents}
