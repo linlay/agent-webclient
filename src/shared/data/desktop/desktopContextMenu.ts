@@ -5,6 +5,8 @@ import {
   AGENT_WEBCLIENT_COMPOSER_DRAFT_VERSION,
   AGENT_WEBCLIENT_WORKPANEL_DOCUMENT_EDIT_MODE_ACTION,
   AGENT_WEBCLIENT_WORKPANEL_DOCUMENT_EDIT_MODE_VERSION,
+  AGENT_WEBCLIENT_WORKPANEL_BTW_ACTION,
+  AGENT_WEBCLIENT_WORKPANEL_BTW_VERSION,
   parseAgentWebclientWorkPanelFileLocationAction,
   AGENT_WEBCLIENT_WORKPANEL_PREVIEW_REVIEW_ACTION,
   AGENT_WEBCLIENT_WORKPANEL_PREVIEW_REVIEW_VERSION,
@@ -16,6 +18,8 @@ import {
   type AgentWebclientSelectionAction,
   type AgentWebclientSelectionActionErrorCode,
   type AgentWebclientSelectionActionId,
+  type AgentWebclientWorkPanelBtwAction,
+  type AgentWebclientWorkPanelBtwOperation,
   type AgentWebclientWorkPanelDocumentEditModeAction,
   type AgentWebclientWorkPanelFileLocationAction,
   type AgentWebclientWorkPanelPreviewReviewAction,
@@ -74,6 +78,9 @@ let currentResourceDownloadHandler: (() => void | Promise<void>) | null = null;
 let currentPreviewReviewHandler: ((action: AgentWebclientWorkPanelPreviewReviewAction) => void) | null = null;
 let currentDocumentEditModeHandler:
   | ((action: AgentWebclientWorkPanelDocumentEditModeAction) => void)
+  | null = null;
+let currentBtwActionHandler:
+  | ((action: AgentWebclientWorkPanelBtwAction) => void)
   | null = null;
 let currentFileLocationHandler: ((action: AgentWebclientWorkPanelFileLocationAction) => void) | null = null;
 type DesktopSelectionActionHandlerResult = {
@@ -221,6 +228,28 @@ export function useDesktopTextEditMode(
     return () => {
       if (currentDocumentEditModeHandler === registeredHandler) {
         currentDocumentEditModeHandler = null;
+      }
+    };
+  }, [enabled]);
+}
+
+export function useDesktopWorkPanelBtwAction(
+  handler: ((operation: AgentWebclientWorkPanelBtwOperation) => void) | null,
+) {
+  const handlerRef = useRef(handler);
+  handlerRef.current = handler;
+  const enabled = handler !== null;
+
+  useEffect(() => {
+    if (!enabled) return;
+    const registeredHandler = (action: AgentWebclientWorkPanelBtwAction) => {
+      if (action.version !== AGENT_WEBCLIENT_WORKPANEL_BTW_VERSION) return;
+      handlerRef.current?.(action.operation);
+    };
+    currentBtwActionHandler = registeredHandler;
+    return () => {
+      if (currentBtwActionHandler === registeredHandler) {
+        currentBtwActionHandler = null;
       }
     };
   }, [enabled]);
@@ -695,6 +724,14 @@ export function initializeDesktopContextMenuBridge() {
         currentDocumentEditModeHandler
       ) {
         currentDocumentEditModeHandler(value as AgentWebclientWorkPanelDocumentEditModeAction);
+      }
+      if (
+        value.action === AGENT_WEBCLIENT_WORKPANEL_BTW_ACTION &&
+        value.version === AGENT_WEBCLIENT_WORKPANEL_BTW_VERSION &&
+        (value.operation === "copy-latest-answer" || value.operation === "new-branch") &&
+        currentBtwActionHandler
+      ) {
+        currentBtwActionHandler(value as AgentWebclientWorkPanelBtwAction);
       }
       if (
         value.action === AGENT_WEBCLIENT_COMPOSER_DRAFT_ACTION &&

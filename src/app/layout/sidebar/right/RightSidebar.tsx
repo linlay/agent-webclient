@@ -31,6 +31,7 @@ import { OverviewTab } from "@/features/overview/components/OverviewTab";
 import { SourceDetailTab } from "@/features/source/components/SourceDetailTab";
 import { PlanningPreviewTab } from "@/features/plan/components/PlanningPreviewTab";
 import { BtwTab } from "@/features/btw/components/BtwTab";
+import { BtwTabContextMenu } from "@/features/btw/components/BtwTabContextMenu";
 import { SkillDetailView } from "@/features/skills/components/SkillDetailView";
 import { useBTW } from "@/features/btw/components/BtwProvider";
 import type { RightSidebarTabKey } from "@/features/viewers/lib/viewerState";
@@ -143,7 +144,7 @@ export const RightSidebar: React.FC<{ mobile?: boolean }> = ({ mobile = false })
   const dispatch = useAppDispatch();
   const openTarget = useOpenTarget();
   const state = useAppState();
-  const { discardBTW, getSession } = useBTW();
+  const { discardBTW, getSession, newBranch } = useBTW();
   const viewPreviews = state.viewPreviews;
   const viewerTabs = state.viewerTabs;
   const documentPreviewTabs = state.documentPreviewTabs;
@@ -152,7 +153,9 @@ export const RightSidebar: React.FC<{ mobile?: boolean }> = ({ mobile = false })
   const webPreviews = state.webPreviews;
   const skillTabs = state.skillTabs;
   const activeSkillId = state.activeSkillId;
-  const hasBTWSession = Boolean(state.chatId && getSession(state.chatId));
+  const btwSession = state.chatId ? getSession(state.chatId) : null;
+  const hasBTWSession = Boolean(btwSession);
+  const btwRunning = btwSession?.status === "running";
   const debugPanelEnabled = isDebugPanelEnabled();
   const currentChat = state.chats?.find((chat) => chat.chatId === state.chatId);
   const teamChat = Boolean(
@@ -487,7 +490,10 @@ export const RightSidebar: React.FC<{ mobile?: boolean }> = ({ mobile = false })
         key: "btw",
         label: (
           <Flex align="center" gap={4}>
-            <MaterialIcon name="question_answer" />
+            <MaterialIcon
+              name={btwRunning ? "progress_activity" : "message"}
+              className={btwRunning ? "tw:animate-ui-spin" : undefined}
+            />
             <span>{t("btw.title")}</span>
           </Flex>
         ),
@@ -657,6 +663,7 @@ export const RightSidebar: React.FC<{ mobile?: boolean }> = ({ mobile = false })
     return items;
   }, [
     hasBTWSession,
+    btwRunning,
     viewPreviews,
     viewerTabs,
     documentPreviewTabs,
@@ -755,6 +762,28 @@ export const RightSidebar: React.FC<{ mobile?: boolean }> = ({ mobile = false })
             <DefaultTabBar {...tabBarProps}>
               {(node) => {
                 if (node.key === "overview" || !node.key) return node;
+                if (node.key === "btw") {
+                  return (
+                    <BtwTabContextMenu
+                      key="btw"
+                      chatId={state.chatId}
+                      session={btwSession}
+                      onOpenStandalone={() => {
+                        if (!state.chatId || !btwSession) return;
+                        openTarget({
+                          version: 1,
+                          kind: "btw",
+                          chatId: state.chatId,
+                          btwId: btwSession.btwId || undefined,
+                        });
+                      }}
+                      onNewBranch={() => (state.chatId ? newBranch(state.chatId) : false)}
+                      onClose={() => handleCloseTab("btw")}
+                    >
+                      {node}
+                    </BtwTabContextMenu>
+                  );
+                }
                 if (node.key.startsWith("documentPreview:")) {
                   const tabKey = node.key;
                   return <OnlineDocumentPreviewTabContextMenu key={tabKey}

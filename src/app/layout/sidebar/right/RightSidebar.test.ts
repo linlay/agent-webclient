@@ -23,6 +23,15 @@ jest.mock("antd", () => {
   return {
     __mockDropdownState: mockDropdownState,
     __mockTabsState: mockTabsState,
+    App: {
+      useApp: () => ({
+        modal: { confirm: jest.fn(({ onOk }: any) => onOk?.()) },
+        message: { success: jest.fn() },
+      }),
+    },
+    Modal: {
+      confirm: jest.fn(({ onOk }: any) => onOk?.()),
+    },
     Dropdown: (props: any) => {
       mockDropdownState.current = props;
       return React.createElement("div", null, props.children);
@@ -149,6 +158,7 @@ describe("RightSidebar", () => {
   const dispatch = jest.fn();
   const discardBTW = jest.fn();
   const getSession = jest.fn();
+  const newBranch = jest.fn(() => true);
 
   beforeEach(() => {
     delete globalWithFeatureFlags.__AGENT_WEBCLIENT_RUNTIME_CONFIG__;
@@ -160,11 +170,13 @@ describe("RightSidebar", () => {
     dispatch.mockReset();
     discardBTW.mockReset();
     getSession.mockReset();
+    newBranch.mockReset();
+    newBranch.mockReturnValue(true);
     getSession.mockReturnValue(null);
     mockTabsState.current = null;
     mockDropdownState.current = null;
     useAppDispatch.mockReturnValue(dispatch);
-    useBTW.mockReturnValue({ discardBTW, getSession });
+    useBTW.mockReturnValue({ discardBTW, getSession, newBranch });
     useAppState.mockReturnValue({
       ...createInitialState(),
       rightSidebarOpen: true,
@@ -449,5 +461,66 @@ describe("RightSidebar", () => {
     expect(dispatch).toHaveBeenCalledWith({
       type: "OPEN_RIGHT_SIDEBAR", tab: "viewer", removeViewerKey: "resource:references/manual.docx",
     });
+  });
+
+  it("renders running status in the BTW tab label and exposes BTW actions in the tab context menu", () => {
+    getSession.mockReturnValue({
+      parentChatId: "chat_1",
+      btwId: "btw_1",
+      status: "running",
+      projection: {
+        timelineOrder: ["answer_1"],
+        timelineNodes: new Map([
+          ["answer_1", { id: "answer_1", kind: "content", text: "latest answer" }],
+        ]),
+        events: [],
+        taskItemsById: {},
+      },
+    });
+    useAppState.mockReturnValue({
+      ...createInitialState(),
+      chatId: "chat_1",
+      rightSidebarOpen: true,
+      rightSidebarOpenTab: "btw",
+    });
+
+    const html = renderRightSidebar();
+    expect(html).toContain("progress_activity");
+    expect(html).toContain("tw:animate-ui-spin");
+
+    const DefaultTabBar = ({ children }: any) =>
+      children(React.createElement("span", { key: "btw" }, "顺便问"));
+    renderToStaticMarkup(mockTabsState.current.renderTabBar({}, DefaultTabBar));
+    const items = mockDropdownState.current.menu.items;
+    expect(items.map((item: any) => item.key)).toEqual([
+      "copyLatestAnswer",
+      "openStandalone",
+      "newBranch",
+      "close-divider",
+      "close",
+    ]);
+    expect(items.find((item: any) => item.key === "copyLatestAnswer").disabled).toBe(false);
+    expect(items.find((item: any) => item.key === "openStandalone").disabled).toBe(false);
+    expect(items.find((item: any) => item.key === "newBranch").disabled).toBe(true);
+
+    getSession.mockReturnValue({
+      parentChatId: "chat_1",
+      btwId: "btw_1",
+      status: "idle",
+      projection: {
+        timelineOrder: [],
+        timelineNodes: new Map(),
+        events: [],
+        taskItemsById: {},
+      },
+    });
+    renderRightSidebar();
+    renderToStaticMarkup(mockTabsState.current.renderTabBar({}, DefaultTabBar));
+    const idleItems = mockDropdownState.current.menu.items;
+    expect(idleItems.find((item: any) => item.key === "copyLatestAnswer").disabled).toBe(true);
+    const newBranchItem = idleItems.find((item: any) => item.key === "newBranch");
+    expect(newBranchItem.disabled).toBe(false);
+    newBranchItem.onClick();
+    expect(newBranch).toHaveBeenCalledWith("chat_1");
   });
 });

@@ -1,6 +1,10 @@
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { BtwTab } from "@/features/btw/components/BtwTab";
+import {
+  canResetBtwBranch,
+  getLatestBtwAnswer,
+} from "@/features/btw/lib/btwSession";
 import { resolveBTWSendMessage } from "@/features/btw/lib/btwSend";
 
 jest.mock("@/app/state/AppContext", () => ({
@@ -156,13 +160,14 @@ describe("BtwTab composer controls", () => {
     useAppState.mockReturnValue({ chats: [], agents: [], workerIndexByKey: new Map(), workerSelectionKey: "", chatAgentById: new Map(), chatId: "chat_1" });
   });
 
-  it("renders spinning status icon while running", () => {
+  it("renders without a panel header bar", () => {
     const html = renderSession({
       status: "running",
     });
 
-    expect(html).toContain('data-icon="progress_activity"');
-    expect(html).toContain("tw:animate-ui-spin");
+    expect(html).not.toContain("btw-tab-header");
+    expect(html).not.toContain('aria-label="btw.copyLatestAnswer"');
+    expect(html).not.toContain('aria-label="btw.new.action"');
   });
 
   it("renders the primary Send action while idle", () => {
@@ -263,26 +268,37 @@ describe("BtwTab composer controls", () => {
     expect(html).not.toContain("data-selection-annotations");
   });
 
-  it("enables the header copy action once a BTW answer exists", () => {
-    const html = renderSession({
+  it("extracts latest answer and branch reset availability from session state", () => {
+    expect(getLatestBtwAnswer(null)).toBe("");
+    expect(canResetBtwBranch(null)).toBe(false);
+
+    const withAnswer = {
+      parentChatId: "chat_1",
+      btwId: "btw_1",
+      runId: "",
+      requestId: "",
+      agentKey: "agent_1",
+      status: "idle" as const,
+      interruptReady: false,
+      interruptPending: false,
+      draft: "",
+      draftSelections: [],
+      error: "",
+      focusToken: 0,
+      lastSeq: 0,
+      updatedAt: 1,
+      usage: null,
+      config: {},
       projection: {
         timelineOrder: ["answer_1"],
         timelineNodes: new Map([
-          ["answer_1", { id: "answer_1", kind: "content", text: "the latest answer" }],
+          ["answer_1", { id: "answer_1", kind: "content" as const, text: "the latest answer" }],
         ]),
         events: [],
         taskItemsById: {},
       },
-    });
-    const button = findButton(html, "btw.copyLatestAnswer");
-
-    expect(button).not.toContain("disabled");
-    expect(html).toContain('data-icon="content_copy"');
-  });
-
-  it("disables the header copy action until a BTW answer exists", () => {
-    const html = renderSession();
-
-    expect(findButton(html, "btw.copyLatestAnswer")).toContain("disabled");
+    };
+    expect(getLatestBtwAnswer(withAnswer as any)).toBe("the latest answer");
+    expect(canResetBtwBranch(withAnswer as any)).toBe(true);
   });
 });

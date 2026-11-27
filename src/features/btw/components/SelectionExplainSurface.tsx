@@ -43,7 +43,6 @@ const DesktopSelectionExplainSurface: React.FC<SelectionExplainSurfaceProps> = (
           onDraftChange={runtime.setDraft}
           onRemoveDraftSelection={() => undefined}
           onInterrupt={runtime.interrupt}
-          onNewBranch={runtime.newBranch}
           onPatchTimelineNode={runtime.patchTimelineNode}
         />
       </section>

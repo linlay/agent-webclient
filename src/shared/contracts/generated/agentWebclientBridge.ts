@@ -1,6 +1,6 @@
 // Generated from src/shared/contracts/agent-webclient-bridge.ts.
 // Do not edit this mirror directly.
-// sha256:4702910863c6c629aebd6c1efbf5f641858067fa80697a4c72c9897b2c31629c
+// sha256:c0305b252f03a71496e59cd61cdf2e89bc9e5fd99dd788a6188edef88928a8f9
 
 /**
  * Canonical Desktop <-> Agent WebClient bridge contract.
@@ -146,6 +146,9 @@ export const AGENT_WEBCLIENT_WORKPANEL_DOCUMENT_EDIT_MODE_VERSION = 1 as const;
 export const AGENT_WEBCLIENT_WORKPANEL_FILE_LOCATION_ACTION =
   "workPanel.file.revealLine" as const;
 export const AGENT_WEBCLIENT_WORKPANEL_FILE_LOCATION_VERSION = 1 as const;
+export const AGENT_WEBCLIENT_WORKPANEL_BTW_ACTION =
+  "workPanel.btw.dispatch" as const;
+export const AGENT_WEBCLIENT_WORKPANEL_BTW_VERSION = 1 as const;
 export const AGENT_WEBCLIENT_COMPOSER_DRAFT_ACTION =
   "workPanel.composer.insertDraft" as const;
 export const AGENT_WEBCLIENT_COMPOSER_DRAFT_VERSION = 1 as const;
@@ -217,6 +220,16 @@ export type AgentWebclientWorkPanelDocumentEditModeAction = {
   action: typeof AGENT_WEBCLIENT_WORKPANEL_DOCUMENT_EDIT_MODE_ACTION;
   version: typeof AGENT_WEBCLIENT_WORKPANEL_DOCUMENT_EDIT_MODE_VERSION;
   enabled: boolean;
+};
+
+export type AgentWebclientWorkPanelBtwOperation =
+  | "copy-latest-answer"
+  | "new-branch";
+
+export type AgentWebclientWorkPanelBtwAction = {
+  action: typeof AGENT_WEBCLIENT_WORKPANEL_BTW_ACTION;
+  version: typeof AGENT_WEBCLIENT_WORKPANEL_BTW_VERSION;
+  operation: AgentWebclientWorkPanelBtwOperation;
 };
 
 export type WorkPanelFileLocation = { line: number; revision: number };

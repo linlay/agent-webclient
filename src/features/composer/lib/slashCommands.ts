@@ -90,7 +90,7 @@ export interface SlashCommandFilterOptions {
 export const SLASH_COMMANDS: SlashCommandDefinition[] = [
   {
     id: 'btw',
-    icon: 'side_chat',
+    icon: 'message',
     command: '/btw',
     labelKey: 'slash.command.btw.label',
     descriptionKey: 'slash.command.btw.description',
