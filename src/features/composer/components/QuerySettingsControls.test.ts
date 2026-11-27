@@ -10,7 +10,6 @@ import {
   buildPersistedModelConfigOverride,
   clearCoderModelOptionsCacheForTest,
   getCachedCoderModelOptions,
-  getModelIdentityMismatchWarning,
   loadCoderModelOptions,
   normalizeCoderModelOptionsResponse,
   QuerySettingsControls,
@@ -570,57 +569,6 @@ describe("QuerySettingsControls", () => {
     expect(reasoningGroup?.children?.[0]?.label).toMatchObject({
       props: { children: "高" },
     });
-    expect(getModelIdentityMismatchWarning({ ...model, name: "DeepSeek" }))
-      .toContain('but key/provider "native-qwen / bailian"');
-  });
-
-  it("warns when model display identity conflicts with technical identifiers", () => {
-    const warn = jest.spyOn(console, "warn").mockImplementation(() => undefined);
-    const mismatchModel = {
-      key: "babelark-qwen3_5-397b-a17b",
-      name: "DeepSeek V4 Pro",
-      provider: "babelark",
-      modelId: "qwen3.5-397b-a17b",
-      isReasoner: true,
-      isVision: true,
-    };
-
-    expect(getModelIdentityMismatchWarning(mismatchModel)).toContain(
-      "display name \"DeepSeek V4 Pro\" is deepseek",
-    );
-    normalizeCoderModelOptionsResponse({
-      data: {
-        models: [mismatchModel],
-        reasoningEfforts: [],
-      },
-    });
-
-    expect(warn).toHaveBeenCalledWith(
-      expect.stringContaining("Model option identity mismatch"),
-      mismatchModel,
-    );
-  });
-
-  it("does not warn when model display identity matches technical identifiers", () => {
-    const warn = jest.spyOn(console, "warn").mockImplementation(() => undefined);
-    const matchedModel = {
-      key: "deepseek-v4-pro",
-      name: "DeepSeek V4 Pro",
-      provider: "deepseek",
-      modelId: "deepseek-v4-pro",
-      isReasoner: true,
-      isVision: true,
-    };
-
-    expect(getModelIdentityMismatchWarning(matchedModel)).toBe("");
-    normalizeCoderModelOptionsResponse({
-      data: {
-        models: [matchedModel],
-        reasoningEfforts: [],
-      },
-    });
-
-    expect(warn).not.toHaveBeenCalled();
   });
 
   it("restores selection from agent detail and ignores legacy defaults", () => {

@@ -163,50 +163,6 @@ function getModelKey(value: unknown): string {
   );
 }
 
-function normalizeModelIdentityText(value: unknown): string {
-  return toConfigText(value)
-    .toLowerCase()
-    .replace(/[\s._-]+/g, "");
-}
-
-function getModelIdentityFamily(value: string): "deepseek" | "qwen" | "" {
-  if (value.includes("deepseek")) return "deepseek";
-  if (value.includes("qwen")) return "qwen";
-  return "";
-}
-
-export function getModelIdentityMismatchWarning(
-  model: CoderModelOption,
-): string {
-  const displayText = normalizeModelIdentityText(model.name);
-  if (!displayText) return "";
-
-  const technicalText = [model.key, model.modelId, model.provider]
-    .map(normalizeModelIdentityText)
-    .filter(Boolean)
-    .join(" ");
-  if (!technicalText) return "";
-
-  const displayFamily = getModelIdentityFamily(displayText);
-  const technicalFamily = getModelIdentityFamily(technicalText);
-  if (!displayFamily || !technicalFamily || displayFamily === technicalFamily) {
-    return "";
-  }
-
-  const technicalFields = toConfigText(model.modelId)
-    ? "key/modelId/provider"
-    : "key/provider";
-  return `[QuerySettingsControls] Model option identity mismatch: display name "${toConfigText(model.name)}" is ${displayFamily}, but ${technicalFields} "${[
-    model.key,
-    model.modelId,
-    model.provider,
-  ]
-    .map(toConfigText)
-    .filter(Boolean)
-    .join(" / ")}" is ${technicalFamily}`;
-}
-
-
 export function shouldRetryModelOptionsOnOpen({
   open,
   modelControlsVisible,
@@ -278,15 +234,8 @@ export function normalizeCoderModelOptionsResponse(response: unknown): {
     ) {
       continue;
     }
-    const models = filterModelOptions(candidate.models);
-    for (const model of models) {
-      const warning = getModelIdentityMismatchWarning(model);
-      if (warning) {
-        console.warn(warning, model);
-      }
-    }
     return {
-      models,
+      models: filterModelOptions(candidate.models),
       reasoningEfforts: filterReasoningOptions(candidate.reasoningEfforts),
       serviceTiers: filterServiceTierOptions(candidate.serviceTiers),
       recognized: true,

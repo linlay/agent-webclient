@@ -22,8 +22,8 @@ const RESERVED_BRAND_IDS = new Set([
 ]);
 
 export function resolveConversationExportBrandId(): string {
-  const brandId =
-    String(readRuntimeConfigValue("BRAND_ID") || "").trim() || "cutej";
+  const brandId = String(readRuntimeConfigValue("BRAND_ID") || "").trim();
+  if (!brandId) return "";
   if (!BRAND_ID_PATTERN.test(brandId) || RESERVED_BRAND_IDS.has(brandId)) {
     throw new Error("conversation_export_brand_id_invalid");
   }

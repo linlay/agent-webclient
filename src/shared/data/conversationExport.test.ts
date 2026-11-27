@@ -57,9 +57,13 @@ describe("resolveConversationExportBrandId", () => {
     },
   );
 
-  it("falls back to cutej when the environment does not provide a brand id", () => {
-    globalThis.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {};
-    expect(resolveConversationExportBrandId()).toBe("cutej");
+  it.each([
+    ["unset", {}],
+    ["empty", { BRAND_ID: "" }],
+    ["only whitespace", { BRAND_ID: " \t\n " }],
+  ])("returns an empty brand id when BRAND_ID is %s", (_scenario, config) => {
+    globalThis.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = config;
+    expect(resolveConversationExportBrandId()).toBe("");
   });
 
   it.each(["UPPER", "bad/id", "javascript"])(

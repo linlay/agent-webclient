@@ -204,7 +204,7 @@ Program Bundle 包含 `manifest.json`、`.env.example`、`frontend/dist/` 和 De
 | `QUICK_ACTIONS_ENABLED` | 否 | 是否启用快捷操作，默认关闭 |
 | `DEBUG_RUN_OBSERVATION_ENABLED` | 否 | 是否启用 Run 观察调试，默认关闭 |
 | `DELTA_LOGS_ENABLED` | 否 | 是否记录增量事件日志，默认关闭 |
-| `BRAND_ID` | 否 | HTML 导出品牌标识，默认 `cutej` |
+| `BRAND_ID` | 否 | 本地 HTML 导出的品牌标识，未配置或留空时输出空值 |
 | `CONVERSATION_EXPORT_ASSET_ORIGIN` | HTML 导出时是 | Tunnel 资源 origin；生产必须为 HTTPS，本地开发可使用 loopback HTTP，例如 `http://127.0.0.1:11961` |
 
 本地开发和 Program Bundle 构建复用同一组变量名。`.env` 是本地真实配置，不提交版本库。

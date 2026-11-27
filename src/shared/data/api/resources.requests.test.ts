@@ -517,7 +517,10 @@ describe("resources request contracts", () => {
     expect(click).toHaveBeenCalledTimes(1);
   });
 
-  it("assembles an HTML download from the Platform snapshot and Tunnel template", async () => {
+  it.each([
+    ["without a configured brand", undefined],
+    ["with a configured brand", "cutej"],
+  ])("assembles an HTML download from the Platform snapshot and Tunnel template %s", async (_scenario, brandId) => {
     const snapshot = '{"version":1,"title":"Conversation"}';
     const template =
       '<meta name="conversation-export-local-brand" content="__CONVERSATION_EXPORT_LOCAL_BRAND_ID__"><link href="__CONVERSATION_EXPORT_ASSET_ORIGIN__/runtime.css"><script type="application/json">__CONVERSATION_EXPORT_SNAPSHOT_JSON_V1__</script>';
@@ -580,7 +583,7 @@ describe("resources request contracts", () => {
       }
     ).__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
       CONVERSATION_EXPORT_ASSET_ORIGIN: "http://127.0.0.1:11961",
-      BRAND_ID: "cutej",
+      ...(brandId ? { BRAND_ID: brandId } : {}),
     };
 
     await downloadConversationHtmlExport("chat_1");
@@ -598,7 +601,7 @@ describe("resources request contracts", () => {
     expect(anchor.download).toBe("conversation.html");
     expect(anchor.click).toHaveBeenCalledTimes(1);
     await expect(downloadedBlob?.text()).resolves.toBe(
-      `<meta name="conversation-export-local-brand" content="cutej"><link href="http://127.0.0.1:11961/runtime.css"><script type="application/json">${snapshot}</script>`,
+      `<meta name="conversation-export-local-brand" content="${brandId ?? ""}"><link href="http://127.0.0.1:11961/runtime.css"><script type="application/json">${snapshot}</script>`,
     );
   });
 
