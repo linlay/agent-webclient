@@ -117,7 +117,8 @@ it.each([[false,false],[true,false],[false,true]])("focuses the editor (delayed 
   rememberSelectedTextAnchor(fragment.reference.id,range,fragment.reference.text);
   const change=jest.fn();
   const remove=jest.fn();
-  const render=()=>root.render(React.createElement(SelectionAnnotations,{fragments:[fragment],onAnnotationChange:change,onRemove:remove}));
+  const commit=jest.fn();
+  const render=()=>root.render(React.createElement(SelectionAnnotations,{fragments:[fragment],onAnnotationChange:change,onRemove:remove,onCommit:commit}));
   try {
     mockPopoverContentReady=!delayedMount;
     mockInputFocusable=!initiallyHidden;
@@ -154,9 +155,10 @@ it.each([[false,false],[true,false],[false,true]])("focuses the editor (delayed 
     act(()=>{input.value="comment";Simulate.change(input);});
     expect(change).not.toHaveBeenCalled();
     expect(input.value).toBe("comment");
-    // Escape 等同于放弃，草稿不会被写回。
+    // Escape 等同于放弃，草稿不会被写回，也不触发确认回调。
     act(()=>Simulate.keyDown(input,{key:"Escape"}));
     expect(change).not.toHaveBeenCalled();
+    expect(commit).not.toHaveBeenCalled();
     expect(document.querySelector("textarea")).toBeNull();
     expect(openPopovers()).toBe(0);
     expect(hoverHint()).toBeUndefined();
@@ -169,6 +171,8 @@ it.each([[false,false],[true,false],[false,true]])("focuses the editor (delayed 
     expect(change).not.toHaveBeenCalled();
     act(()=>Simulate.keyDown(input,{key:"Enter"}));
     expect(change).toHaveBeenCalledWith(fragment.reference.id,"comment");
+    // 回车确认后宿主可据此把焦点交还输入框。
+    expect(commit).toHaveBeenCalledTimes(1);
     expect(document.querySelector("textarea")).toBeNull();
     expect(openPopovers()).toBe(0);
     expect(highlightIds()).toEqual([]);
@@ -183,6 +187,9 @@ it.each([[false,false],[true,false],[false,true]])("focuses the editor (delayed 
     expect(highlightIds()).toEqual([fragment.reference.id]);
     expect(hoverHint()).toBeUndefined();
     act(()=>document.querySelector<HTMLButtonElement>('[aria-label="selection.fragment.confirmAnnotation "]')!.click());
+    // 内容没变也会确认关闭，焦点同样交还输入框。
+    expect(change).toHaveBeenCalledTimes(1);
+    expect(commit).toHaveBeenCalledTimes(2);
     expect(document.querySelector("textarea")).toBeNull();
     expect(highlightIds()).toEqual([]);
     expect(hoverHint()).toBe("comment");
@@ -193,10 +200,13 @@ it.each([[false,false],[true,false],[false,true]])("focuses the editor (delayed 
     expect(change).toHaveBeenCalledTimes(1);
     act(()=>Simulate.keyDown(input,{key:"Enter"}));
     expect(change).toHaveBeenLastCalledWith(fragment.reference.id,"");
+    expect(commit).toHaveBeenCalledTimes(3);
     act(()=>badge.click());
     input=document.querySelector("textarea")!;
     act(()=>document.querySelector<HTMLButtonElement>('[aria-label="selection.fragment.remove 7"]')!.click());
     expect(remove).toHaveBeenCalledWith(fragment.reference.id);
+    // 删除引用是取消，不是确认，不触发聚焦回调。
+    expect(commit).toHaveBeenCalledTimes(3);
     expect(document.querySelector("textarea")).toBeNull();
     expect(highlightIds()).toEqual([]);
   } finally {

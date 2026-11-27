@@ -46,10 +46,16 @@ export function SelectionAnnotations({
   fragments,
   onAnnotationChange,
   onRemove,
+  onCommit,
 }: {
   fragments: readonly SelectedTextFragment[];
   onAnnotationChange: (id: string, annotation: string) => void;
   onRemove: (id: string) => void;
+  /**
+   * 批注确认写回后调用（内容未变化时也会调用）。编辑器会随确认关闭，
+   * 宿主可据此把焦点交还自己的输入框；需要等卸载完成的宿主自行延后一帧。
+   */
+  onCommit?: () => void;
 }) {
   const { t } = useI18n();
   const [markers, setMarkers] = useState<Marker[]>([]);
@@ -157,6 +163,7 @@ export function SelectionAnnotations({
       onAnnotationChange(active.reference.id, draft);
     }
     setActiveId(null);
+    onCommit?.();
   };
   // Popover 内容可能晚于打开状态挂载；在输入框真正就绪时聚焦。
   // antd 每次渲染都会更新 imperative ref，每次打开只聚焦一次。

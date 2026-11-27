@@ -521,6 +521,12 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
       }),
     });
   };
+  // 批注编辑器确认后会卸载并把焦点落到 body：等这一帧提交完再把光标交还输入框。
+  const focusComposerAfterAnnotation = useCallback(() => {
+    window.requestAnimationFrame(() => {
+      textareaRef.current?.focus({ preventScroll: true });
+    });
+  }, []);
   const combinedSendReferences = useMemo(
     () => [...sendReferences, ...selectedText.references],
     [selectedText.references, sendReferences],
@@ -1053,7 +1059,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
 
   const withSelectionSurfaces = (content: React.ReactNode) => (
     <>
-      <SelectionAnnotations fragments={selectedFragments} onAnnotationChange={updateSelectedAnnotation} onRemove={removeSelectedFragment} />
+      <SelectionAnnotations fragments={selectedFragments} onAnnotationChange={updateSelectedAnnotation} onRemove={removeSelectedFragment} onCommit={focusComposerAfterAnnotation} />
       <BrowserSelectionToolbar
         enabled={!isDesktopAppMode() && !conversationBlocking}
         scopeElement={selectionScope}
