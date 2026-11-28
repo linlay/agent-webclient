@@ -124,7 +124,7 @@ export function processRunEvent(
     return commands;
   }
 
-  if (type === "context.compact.complete") {
+  if (type === "compact.complete") {
     const compactId = toText(event.compactId) || String(config.mode === "replay" ? state.nextCounter() : Date.now());
     const nodeId = `compact_${compactId}`;
     if (state.getTimelineNode(nodeId)) return commands;
@@ -158,7 +158,7 @@ export function processRunEvent(
     return commands;
   }
 
-  if (type === "context.compact.failed") {
+  if (type === "compact.failed") {
     const compactId = toText(event.compactId) || String(config.mode === "replay" ? state.nextCounter() : Date.now());
     const nodeId = `compact_failed_${compactId}`;
     if (state.getTimelineNode(nodeId)) return commands;
@@ -180,7 +180,7 @@ export function processRunEvent(
     return commands;
   }
 
-  if (type === "context.compact.start") {
+  if (type === "compact.start") {
     return commands;
   }
 

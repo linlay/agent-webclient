@@ -2,7 +2,7 @@ import { buildLoadedChatUsageSnapshot } from './conversationPayload';
 
 const timestamp = 1_710_000_000_000;
 const usage = { type: 'usage.snapshot', chatId: 'a', runId: 'r', timestamp, contextWindow: { currentSize: 9000, maxSize: 10000 } };
-const compact = { type: 'context.compact.complete', chatId: 'a', runId: 'r', timestamp, compactId: 'cp', postCompactEstimatedTokens: 4500 };
+const compact = { type: 'compact.complete', chatId: 'a', runId: 'r', timestamp, compactId: 'cp', currentTokens: 4500 };
 
 describe('compact replay usage ordering', () => {
   it('uses event order even when timestamps are equal', () => {

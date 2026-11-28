@@ -401,13 +401,13 @@ export function useConversationEventHandler(): {
         }
       }
 
-      if (type === "context.compact.complete") {
-        const tokens = Number(event.postCompactEstimatedTokens);
+      if (type === "compact.complete") {
+        const tokens = event.currentTokens;
         const previous = state.usageSnapshot;
         const sameRun = !event.runId || !previous?.runId || event.runId === previous.runId || event.scope === "history";
         const duplicate = state.events.some((old) => old.type === type && old.compactId && old.compactId === event.compactId);
         const newerUsage = Number(previous?.timestamp || 0) > Number(event.timestamp || 0);
-        if (Number.isFinite(tokens) && tokens >= 0 && sameRun && !duplicate && !newerUsage) {
+        if (typeof tokens === "number" && Number.isFinite(tokens) && tokens >= 0 && sameRun && !duplicate && !newerUsage) {
           dispatch({
             type: "SET_USAGE_SNAPSHOT",
             snapshot: {

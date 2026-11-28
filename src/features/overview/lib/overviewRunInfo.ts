@@ -88,10 +88,10 @@ export function buildOverviewRunInfo(input: OverviewRunInfoInput): OverviewRunIn
   const contextWindow = usage?.contextWindow;
   let current = number(contextWindow?.currentSize);
   const max = number(contextWindow?.maxSize);
-  const compact = runEvents.findLast((event) => event.type === "context.compact.complete"
-    && number(event.postCompactEstimatedTokens) !== null
+  const compact = runEvents.findLast((event) => event.type === "compact.complete"
+    && number(event.currentTokens) !== null
     && (event.timestamp || 0) > (usage?.timestamp || 0));
-  if (compact && usage) current = number(compact.postCompactEstimatedTokens);
+  if (compact && usage) current = number(compact.currentTokens);
 
   const owner = activeRun?.owner || chat?.owner;
 

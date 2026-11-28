@@ -311,11 +311,11 @@ function latestCompactPostTokensAfterSnapshot(
   let bestIndex = snapshot.eventIndex;
   for (let index = 0; index < events.length; index++) {
     const event = events[index];
-    if (event.type !== "context.compact.complete") continue;
+    if (event.type !== "compact.complete") continue;
     if (compareLoadedEventOrder(events, index, bestIndex) <= 0) continue;
     if (event.chatId && event.chatId !== snapshot.snapshot.chatId) continue;
     if (event.scope !== "history" && event.runId && snapshot.snapshot.runId && event.runId !== snapshot.snapshot.runId) continue;
-    const postTokens = readUsageNumber(event.postCompactEstimatedTokens);
+    const postTokens = readUsageNumber(event.currentTokens);
     if (postTokens !== undefined) {
       bestTokens = postTokens;
       bestIndex = index;

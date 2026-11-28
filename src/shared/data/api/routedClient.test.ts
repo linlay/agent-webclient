@@ -363,13 +363,11 @@ describe("routedClient capability routing", () => {
 			compactId: "compact-1",
 			level: "summary",
 			summarySource: "model",
-			preCompactEstimatedTokens: 9000,
-			postCompactEstimatedTokens: 4000,
-			compressionRatio: 4 / 9,
+			estimatedTokens: 9000,
+			currentTokens: 4000,
 			compactionUsage: { totalTokens: 320 },
 			toolsCleared: 0,
 			toolsKept: 0,
-			tokensFreed: 0,
 			detail: "completed",
 		});
 		mockRequestPlatformData.mockResolvedValueOnce(compactResponse);

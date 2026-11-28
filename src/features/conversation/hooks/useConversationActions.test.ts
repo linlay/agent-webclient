@@ -1061,11 +1061,11 @@ describe('replayEvent tool migration', () => {
       data: {
         events: [
           {
-            type: 'context.compact.complete',
+            type: 'compact.complete',
             chatId: 'chat-compacted',
             compactId: 'compact-1',
             timestamp: EPOCH_MS + 200,
-                postCompactEstimatedTokens: 5396
+                currentTokens: 5396
           },
           {
             type: 'usage.snapshot',

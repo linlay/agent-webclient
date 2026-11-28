@@ -155,7 +155,7 @@ export function buildCompactUsageSnapshot(
   if (!isCompactCompleted(data)) {
     return null;
   }
-  const currentSize = readCompactNumber(data.postCompactEstimatedTokens);
+  const currentSize = readCompactNumber(data.currentTokens);
   if (currentSize == null) {
     return null;
   }
@@ -198,12 +198,8 @@ function buildCompactCompleteEvent(
     summarySource: data.summarySource,
     toolsCleared: data.toolsCleared,
     toolsKept: data.toolsKept,
-    tokensFreed: data.tokensFreed,
-    preCompactEstimatedTokens: data.preCompactEstimatedTokens,
-    postCompactEstimatedTokens: data.postCompactEstimatedTokens,
-    compressionRatio: data.compressionRatio,
-    remainingRatio: data.remainingRatio,
-    releasedRatio: data.releasedRatio,
+    estimatedTokens: data.estimatedTokens,
+    currentTokens: data.currentTokens,
     compactionUsage: data.compactionUsage as AIContextCompactEvent["compactionUsage"],
   };
 }
@@ -308,7 +304,7 @@ export async function runBackgroundCommand(
           compactData,
           latestUsageSnapshotFromEvents(currentEvents) || usageSnapshot,
         );
-        const newerUsageArrived = currentEvents.slice(events.length).some((event) => event.type === "usage.snapshot" || event.type === "context.compact.complete");
+        const newerUsageArrived = currentEvents.slice(events.length).some((event) => event.type === "usage.snapshot" || event.type === "compact.complete");
         if (nextUsageSnapshot && !newerUsageArrived) {
           dispatch({ type: "SET_USAGE_SNAPSHOT", snapshot: nextUsageSnapshot });
         }

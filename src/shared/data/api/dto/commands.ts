@@ -72,15 +72,11 @@ export interface CompactChatResponse {
   retryable?: boolean;
   level?: "summary" | "l1_tools";
   summarySource?: string;
-  preCompactEstimatedTokens?: number;
-  postCompactEstimatedTokens?: number;
-  compressionRatio?: number;
-  remainingRatio?: number;
-  releasedRatio?: number;
+  estimatedTokens?: number;
+  currentTokens?: number;
   compactionUsage?: Record<string, unknown>;
   toolsCleared?: number;
   toolsKept?: number;
-  tokensFreed?: number;
   detail?: string;
 }
 

@@ -38,8 +38,8 @@ function projectSystemMessage(event: AgentEvent, mode: "live" | "replay"): Timel
 describe.each(["live", "replay"] as const)("%s system message presentation", mode => {
   it.each(["l1_tools", "summary"] as const)("shows %s compaction completion as information", level => {
     const node = projectSystemMessage({
-      type: "context.compact.complete", compactId: "completed", level,
-      preCompactEstimatedTokens: 7853, postCompactEstimatedTokens: 6358, scope: "history", timestamp: 123,
+      type: "compact.complete", compactId: "completed", level,
+      estimatedTokens: 7853, currentTokens: 6358, scope: "history", timestamp: 123,
     }, mode);
     expect(node.systemMessageLevel).toBe("info");
     expect(node.tooltip).toBeTruthy();
@@ -52,7 +52,7 @@ describe.each(["live", "replay"] as const)("%s system message presentation", mod
 
   it("keeps compaction failures red even without structured error details", () => {
     const node = projectSystemMessage({
-      type: "context.compact.failed", compactId: "failed", detail: "summary_input_too_large", timestamp: 124,
+      type: "compact.failed", compactId: "failed", detail: "summary_input_too_large", timestamp: 124,
     }, mode);
     expect(node.systemMessageLevel).toBe("error");
     expect(node.errorDetail).toBeUndefined();

@@ -84,9 +84,6 @@ function testT(key: string, params?: Record<string, unknown>): string {
   if (key === 'contextCompact.summarySource') {
     return `Summary source: ${String(params?.source || '')}`;
   }
-  if (key === 'contextCompact.reduction') {
-    return `Compacted ${String(params?.released || '')}%`;
-  }
   if (key === 'contextCompact.reductionTokens') {
     return `Compacted ${String(params?.released || '')}% (${String(params?.tokens || '')} tokens)`;
   }
@@ -157,7 +154,7 @@ describe('compact usage snapshot helpers', () => {
       status: 'completed',
       chatId: 'chat-1',
       compactId: 'compact-1',
-      postCompactEstimatedTokens: 5396,
+      currentTokens: 5396,
     }, previous);
 
     expect(snapshot).toEqual({
@@ -216,9 +213,9 @@ describe('runBackgroundCommand compact behavior', () => {
         summarySource: 'model',
         toolsCleared: 0,
         toolsKept: 2,
-        tokensFreed: 3604,
+        estimatedTokens: 9000,
         runId: 'run-1',
-        postCompactEstimatedTokens: 5396,
+        currentTokens: 5396,
         compactionUsage: {
           promptTokens: 100,
           completionTokens: 20,
@@ -272,7 +269,7 @@ describe('runBackgroundCommand compact behavior', () => {
     expect(dispatch).toHaveBeenCalledWith({
       type: 'PUSH_EVENT',
       event: expect.objectContaining({
-        type: 'context.compact.complete',
+        type: 'compact.complete',
         requestId: 'server_request',
         chatId: 'chat-1',
         runId: 'run-1',
@@ -280,7 +277,7 @@ describe('runBackgroundCommand compact behavior', () => {
         level: 'summary',
         toolsCleared: 0,
         toolsKept: 2,
-        tokensFreed: 3604,
+        estimatedTokens: 9000,
         compactionUsage: {
           promptTokens: 100,
           completionTokens: 20,
@@ -329,9 +326,8 @@ describe('runBackgroundCommand compact behavior', () => {
         level: 'l1_tools',
         toolsCleared: 3,
         toolsKept: 1,
-        remainingRatio: 1.18,
-        releasedRatio: 98.82,
-        postCompactEstimatedTokens: 2334,
+        estimatedTokens: 198000,
+        currentTokens: 2334,
       },
     });
     const dispatch = jest.fn();
@@ -355,7 +351,7 @@ describe('runBackgroundCommand compact behavior', () => {
     expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({
       type: 'SET_TIMELINE_NODE',
       node: expect.objectContaining({
-        text: expect.stringContaining('Compacted 98.82% · Current context: approximately 2,334 tokens'),
+        text: expect.stringContaining('Compacted 98.82% (195,666 tokens) · Current context: approximately 2,334 tokens'),
       }),
     }));
   });
@@ -372,11 +368,11 @@ describe('runBackgroundCommand compact behavior', () => {
       scope: 'run',
       level: 'summary',
       summarySource: 'model',
-      postCompactEstimatedTokens: 3200,
+      currentTokens: 3200,
     } as const;
     compactChatMock.mockResolvedValue({ data: compactData });
     const streamedComplete = {
-      type: 'context.compact.complete',
+      type: 'compact.complete',
       requestId: 'compact_request',
       chatId: 'chat-1',
       runId: 'run-active',
@@ -456,7 +452,7 @@ describe('runBackgroundCommand compact behavior', () => {
   });
 
   it('does not apply a late compact response to another chat', async () => {
-    compactChatMock.mockResolvedValue({ data: { accepted: true, status: 'completed', chatId: 'a', compactId: 'c', postCompactEstimatedTokens: 123 } });
+    compactChatMock.mockResolvedValue({ data: { accepted: true, status: 'completed', chatId: 'a', compactId: 'c', currentTokens: 123 } });
     const dispatch = jest.fn();
     const hide = jest.fn();
     await runBackgroundCommand({
@@ -469,14 +465,14 @@ describe('runBackgroundCommand compact behavior', () => {
   });
 
   it('keeps an independent automatic L2 cycle pending after the manual response arrives', async () => {
-    const data = { accepted: true, status: 'completed', chatId: 'a', compactId: 'manual', postCompactEstimatedTokens: 9100 };
+    const data = { accepted: true, status: 'completed', chatId: 'a', compactId: 'manual', currentTokens: 9100 };
     compactChatMock.mockResolvedValue({ data });
     const dispatch = jest.fn();
     await runBackgroundCommand({
       chatId: 'a', commandType: 'compact', dispatch, events: [],
       getEvents: () => [
-        { type: 'context.compact.complete', chatId: 'a', compactId: 'manual' },
-        { type: 'context.compact.complete', chatId: 'a', runId: 'r', compactId: 'auto-l1', cycleId: 'auto', cycleComplete: false, level: 'l1_tools' },
+        { type: 'compact.complete', chatId: 'a', compactId: 'manual' },
+        { type: 'compact.complete', chatId: 'a', runId: 'r', compactId: 'auto-l1', cycleId: 'auto', cycleComplete: false, level: 'l1_tools' },
       ],
       scheduleCommandStatusOverlayHide: jest.fn(), t: testT,
       texts: { pending: 'waiting', error: 'failed', summaryCompacting: 'L2 pending' }, usageSnapshot: null,

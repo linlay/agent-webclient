@@ -24,9 +24,9 @@ export enum AIUsageEventTypeEnum {
 }
 
 export enum AIContextEventTypeEnum {
-  CompactComplete = "context.compact.complete",
-  CompactFailed = "context.compact.failed",
-  CompactStart = "context.compact.start",
+  CompactComplete = "compact.complete",
+  CompactFailed = "compact.failed",
+  CompactStart = "compact.start",
 }
 
 export enum AIContentEventTypeEnum {
@@ -509,12 +509,8 @@ export interface AIContextCompactEvent extends AIBaseEvent {
   summarySource?: string;
   toolsCleared?: number;
   toolsKept?: number;
-  tokensFreed?: number;
-  preCompactEstimatedTokens?: number;
-  postCompactEstimatedTokens?: number;
-  compressionRatio?: number;
-  remainingRatio?: number;
-  releasedRatio?: number;
+  estimatedTokens?: number;
+  currentTokens?: number;
   compactionUsage?: AIUsageStats;
 }
 

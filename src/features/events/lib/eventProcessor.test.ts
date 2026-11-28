@@ -242,19 +242,15 @@ describe('processStreamEvent', () => {
     const state = createState();
 
     processAndApply(state, {
-      type: 'context.compact.complete',
+      type: 'compact.complete',
       chatId: 'chat-1',
       compactId: 'compact-1',
       level: 'summary',
       summarySource: 'model',
-      preCompactEstimatedTokens: 9000,
-      postCompactEstimatedTokens: 4000,
-      compressionRatio: 4 / 9,
-      remainingRatio: 44.44,
-      releasedRatio: 55.56,
+      estimatedTokens: 9000,
+      currentTokens: 4000,
       toolsCleared: 0,
       toolsKept: 0,
-      tokensFreed: 0,
       timestamp: 123,
     }, 'replay', false);
 
@@ -269,7 +265,7 @@ describe('processStreamEvent', () => {
     });
 
     const duplicateCommands = processAndApply(state, {
-      type: 'context.compact.complete',
+      type: 'compact.complete',
       chatId: 'chat-1',
       compactId: 'compact-1',
       level: 'summary',
@@ -283,15 +279,14 @@ describe('processStreamEvent', () => {
   it('shows the incident reduction and current tokens without treating retained context as free capacity', () => {
     const state = createState();
     processAndApply(state, {
-      type: 'context.compact.complete', compactId: 'incident', level: 'l1_tools', scope: 'run',
-      preCompactEstimatedTokens: 552203, postCompactEstimatedTokens: 546551,
-      remainingRatio: 98.97646336582743, releasedRatio: 1.0235366341725727, tokensFreed: 5652,
+      type: 'compact.complete', compactId: 'incident', level: 'l1_tools', scope: 'run',
+      estimatedTokens: 552203, currentTokens: 546551,
     }, 'live', false);
     expect(state.timelineNodes.get('compact_incident')?.text).toBe(
       '已压缩工具上下文 · 本次压缩 1.02%（5,652 tokens） · 当前上下文约 546,551 tokens',
     );
     processAndApply(state, {
-      type: 'context.compact.failed', compactId: 'incident-summary', level: 'summary',
+      type: 'compact.failed', compactId: 'incident-summary', level: 'summary',
       detail: 'summary_input_too_large',
     }, 'live', false);
     expect(state.timelineNodes.get('compact_failed_incident-summary')?.text).toBe(
@@ -302,7 +297,7 @@ describe('processStreamEvent', () => {
   it.each(['live', 'replay'] as const)('shows the original compact failure cause in %s', (mode) => {
     const state = createState();
     processAndApply(state, {
-      type: 'context.compact.failed', compactId: 'persist-failure', level: 'summary',
+      type: 'compact.failed', compactId: 'persist-failure', level: 'summary',
       detail: 'compact_persist_failed',
       error: { code: 'compact_persist_failed', message: 'compact history changed' },
     }, mode, false);

@@ -99,7 +99,7 @@ describe("overview run information", () => {
   it("reflects compaction after a usage snapshot and preserves zero context", () => {
     const info = buildOverviewRunInfo(input({ events: [
       event("usage.snapshot", { contextWindow: { currentSize: 90000, maxSize: 128000 } }),
-      event("context.compact.complete", { postCompactEstimatedTokens: 0, timestamp: START + 100 }),
+      event("compact.complete", { currentTokens: 0, timestamp: START + 100 }),
     ] }));
     expect(info.context).toEqual({ current: 0, max: 128000, percent: 0 });
   });

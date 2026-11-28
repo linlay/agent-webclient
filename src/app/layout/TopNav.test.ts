@@ -950,7 +950,7 @@ describe("TopNav", () => {
 			usagePopoverOpen: true,
 			events: [
 				{
-					type: "context.compact.complete",
+					type: "compact.complete",
 					compactionUsage: {
 						promptTokens: 500,
 						completionTokens: 50,

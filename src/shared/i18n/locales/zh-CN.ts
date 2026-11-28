@@ -2021,9 +2021,7 @@ export const zhCNMessages = {
   "contextCompact.completed": "已压缩上下文",
   "contextCompact.toolsCompleted": "已压缩工具上下文",
   "contextCompact.summaryCompleted": "已生成上下文摘要",
-  "contextCompact.reduction": "本次压缩 {released}%",
   "contextCompact.reductionTokens": "本次压缩 {released}%（{tokens} tokens）",
-  "contextCompact.releasedTokens": "本次释放 {tokens} tokens",
   "contextCompact.currentTokens": "当前上下文约 {tokens} tokens",
   "contextCompact.historyTokens": "压缩后历史上下文约 {tokens} tokens",
   "contextCompact.summaryInputTooLargeDetail":

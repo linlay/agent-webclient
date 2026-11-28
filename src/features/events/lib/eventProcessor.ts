@@ -58,9 +58,9 @@ function routeStreamEvent(
 		type === "run.error" ||
 		type === "run.complete" ||
 		type === "run.cancel" ||
-		type === "context.compact.start" ||
-		type === "context.compact.complete" ||
-		type === "context.compact.failed"
+		type === "compact.start" ||
+		type === "compact.complete" ||
+		type === "compact.failed"
 	) {
 		return processRunEvent(event, state, config);
 	}

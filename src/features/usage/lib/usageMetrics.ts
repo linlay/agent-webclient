@@ -227,7 +227,7 @@ export function buildUsageMetrics(
 export function resolveLatestCompactUsage(events: AppState["events"]): AIUsageStats | null {
   for (let index = events.length - 1; index >= 0; index -= 1) {
     const event = events[index] as Record<string, unknown>;
-    if (event.type !== "context.compact.complete") continue;
+    if (event.type !== "compact.complete") continue;
     const usage = event.compactionUsage;
     return usage && typeof usage === "object" ? usage as AIUsageStats : null;
   }

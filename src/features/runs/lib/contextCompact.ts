@@ -22,7 +22,7 @@ export function resolveCompactPhase(events: readonly AgentEvent[], chatId: strin
       for (const [key, phase] of pending) if (phase.runId === runId) { pending.delete(key); completed.add(key); }
       continue;
     }
-    if (!event.type.startsWith("context.compact.")) continue;
+    if (event.type !== "compact.start" && event.type !== "compact.complete" && event.type !== "compact.failed") continue;
     const compact = event as AIContextCompactEvent;
     if (runId && terminalRuns.has(runId) && compact.scope !== "history") continue;
     const cycleId = compact.cycleId || compact.compactId || compact.requestId || "";
@@ -31,11 +31,11 @@ export function resolveCompactPhase(events: readonly AgentEvent[], chatId: strin
     const stage = `${key}:${compact.compactId || compact.requestId || compact.level}:${event.type}`;
     if (seenStages.has(stage)) continue;
     seenStages.add(stage);
-    if (event.type === "context.compact.failed" || (event.type === "context.compact.complete" && compact.cycleComplete !== false)) {
+    if (event.type === "compact.failed" || (event.type === "compact.complete" && compact.cycleComplete !== false)) {
       pending.delete(key);
       completed.add(key);
     } else {
-      pending.set(key, { chatId, runId, cycleId, level: event.type === "context.compact.complete" ? "summary" : compact.level || "summary" });
+      pending.set(key, { chatId, runId, cycleId, level: event.type === "compact.complete" ? "summary" : compact.level || "summary" });
     }
   }
   return [...pending.values()].pop() || null;

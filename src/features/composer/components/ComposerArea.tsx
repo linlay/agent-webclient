@@ -722,7 +722,7 @@ export const ComposerArea: React.FC<ComposerAreaProps> = ({
   function resolveHasCompactUsage(events: typeof state.events): boolean {
     for (let i = events.length - 1; i >= 0; i -= 1) {
       const event = events[i] as Record<string, unknown>;
-      if (event.type !== "context.compact.complete") continue;
+      if (event.type !== "compact.complete") continue;
       return Boolean(event.compactionUsage);
     }
     return false;
