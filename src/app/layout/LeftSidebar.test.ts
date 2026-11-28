@@ -861,6 +861,33 @@ describe("LeftSidebar", () => {
     expect(mockOpenMemory).toHaveBeenCalled();
   });
 
+  it("marks a quick action panel as opened from the navigation drawer", () => {
+    globalWithStorage.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = { QUICK_ACTIONS_ENABLED: "true" };
+    const order: string[] = [];
+    const onQuickActionOpen = jest.fn(() => {
+      order.push("mark");
+    });
+    mockOpenMemory.mockReset();
+    mockOpenMemory.mockImplementation(() => {
+      order.push("open");
+    });
+
+    renderToStaticMarkup(
+      React.createElement(
+        I18nProvider,
+        { locale: "zh-CN", fallbackLocale: "zh-CN", persistLocale: false },
+        React.createElement(LeftSidebar, { onQuickActionOpen }),
+      ),
+    );
+
+    const button = uiButtonProps.find((props) => props.text === "记忆");
+    expect(button).toBeTruthy();
+    (button?.onClick as () => void)();
+
+    // 先记下来源，再打开面板；壳层据此在面板收起后回到导航抽屉。
+    expect(order).toEqual(["mark", "open"]);
+  });
+
   it("opens the agent console from Settings", () => {
     globalWithStorage.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
       QUICK_ACTIONS_ENABLED: "true",

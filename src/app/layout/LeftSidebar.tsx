@@ -25,6 +25,8 @@ export interface LeftSidebarProps {
   onClose?: () => void;
   /** 移动端：从设置菜单打开了独立页面，壳层据此在页面关闭后恢复设置菜单。 */
   onSettingsPageOpen?: () => void;
+  /** 移动端：从快捷入口打开了全屏面板（自动化/知识库/记忆），壳层据此在面板收起后回到导航抽屉。 */
+  onQuickActionOpen?: () => void;
   /** 移动端：壳层要求重新打开设置菜单时递增这个序号。 */
   settingsMenuReopenToken?: number;
 }
@@ -33,6 +35,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
   mobile = false,
   onClose,
   onSettingsPageOpen,
+  onQuickActionOpen,
   settingsMenuReopenToken,
 }) => {
   const navigatePage = useClientPageNavigation();
@@ -80,8 +83,17 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
       settingsMenuReopenToken={settingsMenuReopenToken}
       onOpenProject={(agentKey) => { onClose?.(); openTarget({ version: 1, kind: "project", agentKey }); }}
       onOpenSearch={() => { onClose?.(); openGlobalSearch(); }}
-      onOpenCommand={(type) => { onClose?.(); openCommandOverlay({ type }); }}
-      onOpenMemory={() => { onClose?.(); openMemory(); }}
+      onOpenCommand={(type) => {
+        // 快捷入口打开的面板由导航抽屉发起，收起后回到导航抽屉。
+        onQuickActionOpen?.();
+        onClose?.();
+        openCommandOverlay({ type });
+      }}
+      onOpenMemory={() => {
+        onQuickActionOpen?.();
+        onClose?.();
+        openMemory();
+      }}
       renderSettingsMenu={(close) => (
         <SidebarSettingsMenu
           onAction={(action) => {

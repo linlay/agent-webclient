@@ -11,6 +11,8 @@ import styles from "./MobileLayout.module.css";
 import { useMobileViewport } from "./hooks/useMobileViewport";
 import { useMobileSwipeGestures } from "@/shared/ui/hooks/useMobileSwipeGestures";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
+import { useCommandOverlayOpen } from "@/features/command-center/components/CommandOverlayProvider";
+import { useMemoryOverlayState } from "@/features/memory/components/MemoryOverlayProvider";
 import {
   MobilePageHeaderActionProvider,
   MobilePageHeaderActionSlot,
@@ -31,6 +33,13 @@ export function MobileLayout({ children, conversationSearch, overlays }: { child
   // 从设置菜单进入页面时记下离开的会话地址；页面抽屉关闭并回到这个地址时，
   // 就把导航抽屉和设置菜单恢复原样。
   const settingsPageReturnPathRef = useRef("");
+  // 快捷入口（自动化/知识库/记忆）打开的全屏面板同理由导航抽屉发起，
+  // 面板收起后同样回到导航抽屉。
+  const quickActionReturnPathRef = useRef("");
+  const commandOverlayOpen = useCommandOverlayOpen();
+  const { isMemoryOpen } = useMemoryOverlayState();
+  const overlayOpen = commandOverlayOpen || isMemoryOpen;
+  const previousOverlayOpenRef = useRef(overlayOpen);
   useMobileViewport(root);
   const pageOpen = location.pathname !== "/mobile";
 
@@ -88,6 +97,19 @@ export function MobileLayout({ children, conversationSearch, overlays }: { child
     setNavigationOpen(true);
     setSettingsMenuReopenToken(token => token + 1);
   }, [location.pathname, location.search]);
+  const markQuickActionOpened = useCallback(() => {
+    quickActionReturnPathRef.current = `${location.pathname}${location.search}`;
+  }, [location.pathname, location.search]);
+  // 全屏面板收起后回到导航抽屉；若面板里跳到了别的会话则不打扰。
+  useEffect(() => {
+    const wasOpen = previousOverlayOpenRef.current;
+    previousOverlayOpenRef.current = overlayOpen;
+    if (overlayOpen || !wasOpen || !quickActionReturnPathRef.current) return;
+    const returnPath = quickActionReturnPathRef.current;
+    quickActionReturnPathRef.current = "";
+    if (`${location.pathname}${location.search}` !== returnPath) return;
+    setNavigationOpen(true);
+  }, [overlayOpen, location.pathname, location.search]);
   return <div ref={root} id="app" className={`${styles.root} layout-mobile`}>
     <div ref={conversation} className={styles.conversation} data-new-chat={!state.chatId || undefined}>
       <TopNav mobile onOpenNavigation={openNavigation} />
@@ -97,6 +119,7 @@ export function MobileLayout({ children, conversationSearch, overlays }: { child
       onClose={closeNavigation} ariaLabel={t("mobile.navigation")} className={styles.navigation}>
       <LeftSidebar mobile onClose={closeNavigation}
         onSettingsPageOpen={markSettingsPageOpened}
+        onQuickActionOpen={markQuickActionOpened}
         settingsMenuReopenToken={settingsMenuReopenToken} />
     </MobileSwipeDrawer>
     <MobileSwipeDrawer ref={contentDrawer} side="right" open={state.rightSidebarOpen}
