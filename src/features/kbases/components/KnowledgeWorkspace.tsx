@@ -4,6 +4,7 @@ import { t } from "@/shared/i18n";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { SearchFilterBar } from "@/shared/ui/SearchFilterBar";
 import { UiButton } from "@/shared/ui/UiButton";
+import { BottomSheet } from "@/shared/ui/BottomSheet";
 import { deleteKBase, filesKBase, readKBase, refreshKBase, searchKBase, statusKBase } from "@/shared/data/api/requests/kbases";
 import type { KnowledgeBase, KnowledgeBaseStatus, KnowledgeDocument, KnowledgeRead, KnowledgeSearch, RetrievalMethod } from "@/shared/data/api/dto/kbases";
 import { documentSource, libraryCollections } from "../lib/documentSource";
@@ -12,11 +13,12 @@ import styles from "./KBasesConsole.module.css";
 
 const errorMessage = (error: unknown) => error instanceof Error ? error.message : String(error);
 
-export function KnowledgeWorkspace({ library, onEdit, onChanged, onDeleted }: {
+export function KnowledgeWorkspace({ library, onEdit, onChanged, onDeleted, mobile = false }: {
   library: KnowledgeBase;
   onEdit: () => void;
   onChanged: () => Promise<void>;
   onDeleted: () => void;
+  mobile?: boolean;
 }) {
   const indexed = Boolean(library.indexedAt);
   const sources = libraryCollections(library);
@@ -45,6 +47,7 @@ export function KnowledgeWorkspace({ library, onEdit, onChanged, onDeleted }: {
   const [reading, setReading] = useState(false);
   const [readError, setReadError] = useState("");
   const [open, setOpen] = useState(false);
+  const [actionsOpen, setActionsOpen] = useState(false);
   const searchAbort = useRef<AbortController>();
   const readAbort = useRef<AbortController>();
 
@@ -102,11 +105,27 @@ export function KnowledgeWorkspace({ library, onEdit, onChanged, onDeleted }: {
     {library.state === "indexing" && <Alert type="info" showIcon message={t("kbases.indexingHint")} />}
   </div>;
   const actions = <div className={styles.actions}>
-    <UiButton size="sm" variant="ghost" iconOnly aria-label={t("kbases.edit")} title={t("kbases.edit")} disabled={library.invalidId || busy || library.state === "indexing"} onClick={onEdit}><MaterialIcon name="edit" /></UiButton>
-    <UiButton size="sm" loading={library.state === "indexing" || busy} disabled={library.invalidId || busy} onClick={() => void perform(() => refreshKBase(library.id))}><MaterialIcon name="refresh" />{t("kbases.update")}</UiButton>
-    <Popconfirm disabled={library.invalidId || busy || library.state === "indexing"} title={t("kbases.deleteConfirm")} description={t("kbases.deleteHint")} onOpenChange={open => { if (open) setDeleteRevision(library.baseRevision || ""); }} onConfirm={() => perform(async () => { await deleteKBase(library.id, deleteRevision); onDeleted(); })}>
-      <UiButton size="sm" variant="ghost" iconOnly className={styles.deleteButton} aria-label={t("kbases.delete")} title={t("kbases.delete")} disabled={library.invalidId || busy || library.state === "indexing"}><MaterialIcon name="delete" /></UiButton>
-    </Popconfirm>
+    {mobile ? (
+      <UiButton
+        size="sm"
+        variant="ghost"
+        iconOnly
+        className="ui-icon-hover-24"
+        aria-label={t("kbases.mobile.moreActions")}
+        title={t("kbases.mobile.moreActions")}
+        onClick={() => setActionsOpen(true)}
+      >
+        <MaterialIcon name="more_horiz" />
+      </UiButton>
+    ) : (
+      <>
+        <UiButton size="sm" variant="ghost" iconOnly aria-label={t("kbases.edit")} title={t("kbases.edit")} disabled={library.invalidId || busy || library.state === "indexing"} onClick={onEdit}><MaterialIcon name="edit" /></UiButton>
+        <UiButton size="sm" loading={library.state === "indexing" || busy} disabled={library.invalidId || busy} onClick={() => void perform(() => refreshKBase(library.id))}><MaterialIcon name="refresh" />{t("kbases.update")}</UiButton>
+        <Popconfirm disabled={library.invalidId || busy || library.state === "indexing"} title={t("kbases.deleteConfirm")} description={t("kbases.deleteHint")} onOpenChange={open => { if (open) setDeleteRevision(library.baseRevision || ""); }} onConfirm={() => perform(async () => { await deleteKBase(library.id, deleteRevision); onDeleted(); })}>
+          <UiButton size="sm" variant="ghost" iconOnly className={styles.deleteButton} aria-label={t("kbases.delete")} title={t("kbases.delete")} disabled={library.invalidId || busy || library.state === "indexing"}><MaterialIcon name="delete" /></UiButton>
+        </Popconfirm>
+      </>
+    )}
   </div>;
 
   return <>
@@ -163,5 +182,60 @@ export function KnowledgeWorkspace({ library, onEdit, onChanged, onDeleted }: {
     <Drawer title={document?.file || t("kbases.preview")} open={open} width="min(720px, 100vw)" onClose={() => { readAbort.current?.abort(); setOpen(false); }}>
       <Spin spinning={reading}>{readError ? <Alert type="error" showIcon message={readError} /> : <pre className={styles.content}>{document?.evidence?.text || document?.body}</pre>}{document?.readRange?.hasMore && <Alert type="info" showIcon message={t("kbases.previewLimit")} />}</Spin>
     </Drawer>
+    {mobile ? (
+      <BottomSheet
+        open={actionsOpen}
+        onClose={() => setActionsOpen(false)}
+        ariaLabel={t("kbases.mobile.moreActions")}
+        getContainer=".layout-mobile"
+      >
+        <div className="kbases-actions-list">
+          <div className="kbases-actions-title">{library.name}</div>
+          <button
+            type="button"
+            className="kbases-actions-row"
+            disabled={library.invalidId || busy || library.state === "indexing"}
+            onClick={() => {
+              setActionsOpen(false);
+              onEdit();
+            }}
+          >
+            <MaterialIcon name="edit" />
+            <span>{t("kbases.edit")}</span>
+          </button>
+          <button
+            type="button"
+            className="kbases-actions-row"
+            disabled={library.invalidId || busy || library.state === "indexing"}
+            onClick={() => {
+              setActionsOpen(false);
+              void perform(() => refreshKBase(library.id));
+            }}
+          >
+            <MaterialIcon name="refresh" />
+            <span>{t("kbases.update")}</span>
+          </button>
+          <Popconfirm
+            disabled={library.invalidId || busy || library.state === "indexing"}
+            title={t("kbases.deleteConfirm")}
+            description={t("kbases.deleteHint")}
+            onOpenChange={open => { if (open) setDeleteRevision(library.baseRevision || ""); }}
+            onConfirm={() => {
+              setActionsOpen(false);
+              return perform(async () => { await deleteKBase(library.id, deleteRevision); onDeleted(); });
+            }}
+          >
+            <button
+              type="button"
+              className="kbases-actions-row is-danger"
+              disabled={library.invalidId || busy || library.state === "indexing"}
+            >
+              <MaterialIcon name="delete" />
+              <span>{t("kbases.delete")}</span>
+            </button>
+          </Popconfirm>
+        </div>
+      </BottomSheet>
+    ) : null}
   </>;
 }

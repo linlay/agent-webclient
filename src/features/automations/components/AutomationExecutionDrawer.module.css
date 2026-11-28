@@ -422,3 +422,8 @@
     width: 12px;
   }
 }
+
+/* 移动端右滑关闭的手势承载面；不改变内部滚动/横向内容。 */
+.swipeCloseSurface {
+  min-height: 100%;
+}

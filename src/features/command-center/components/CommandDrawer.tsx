@@ -143,6 +143,7 @@ export const CommandDrawer: React.FC<CommandDrawerProps> = ({
       destroyOnHidden
       placement="right"
       width="100%"
+      push={false}
       className={`copilot-drawer ${isConsoleModal ? "is-automation-console" : ""}`.trim()}
       styles={{
         header: {
@@ -260,6 +261,7 @@ export const CommandDrawer: React.FC<CommandDrawerProps> = ({
             agents={state.agents}
 
             embedded
+            mobile={mobile}
             onClose={() => closeDrawer()}
             titleBarVariant="drawer"
           />
@@ -268,6 +270,7 @@ export const CommandDrawer: React.FC<CommandDrawerProps> = ({
         {modal.type === "kbases" && (
           <KBasesConsole
             embedded
+            mobile={mobile}
             onClose={() => closeDrawer()}
             titleBarVariant="drawer"
           />

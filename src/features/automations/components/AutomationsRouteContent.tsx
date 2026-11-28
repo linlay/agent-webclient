@@ -3,14 +3,14 @@ import { useAppState } from "@/app/state/AppContext";
 import { AutomationHistoryConsole } from "@/features/automations/components/AutomationHistoryConsole";
 import { resolveCurrentWorkerSummary } from "@/features/workers/lib/currentWorker";
 
-export const AutomationsRouteContent: React.FC = () => {
+export const AutomationsRouteContent: React.FC<{ mobile?: boolean }> = ({ mobile = false }) => {
   const state = useAppState();
   const currentWorker = React.useMemo(() => resolveCurrentWorkerSummary(state), [state]);
   return (
     <AutomationHistoryConsole
       currentWorker={currentWorker}
       agents={state.agents}
-
+      mobile={mobile}
     />
   );
 };

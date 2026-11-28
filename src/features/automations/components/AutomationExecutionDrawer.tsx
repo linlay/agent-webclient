@@ -71,6 +71,8 @@ export interface AutomationExecutionDrawerProps {
   refreshRevision?: number;
   returnFocusRef?: React.RefObject<HTMLElement | null>;
   onClose: () => void;
+  /** 移动端：支持右滑关闭。 */
+  mobile?: boolean;
 }
 
 export const AutomationExecutionDrawer: React.FC<
@@ -82,6 +84,7 @@ export const AutomationExecutionDrawer: React.FC<
   refreshRevision = 0,
   returnFocusRef,
   onClose,
+  mobile = false,
 }) => {
   const { locale, t } = useI18n();
   const message = useAppMessage();
@@ -93,6 +96,7 @@ export const AutomationExecutionDrawer: React.FC<
   const [chatState, setChatState] = useState<PanelState<ChatSnapshot>>(
     initialPanelState,
   );
+  const swipeStartRef = useRef<{ x: number; y: number; tracking: boolean } | null>(null);
   const viewerEpochRef = useRef(0);
   const detailRequestRef = useRef(0);
   const chatRequestRef = useRef(0);
@@ -469,6 +473,38 @@ export const AutomationExecutionDrawer: React.FC<
     </div>
   ) : null;
 
+  const handleSwipePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (!mobile || event.pointerType === "mouse") return;
+    const target = event.target as HTMLElement | null;
+    if (
+      target?.closest(
+        "input, textarea, select, [contenteditable='true'], [data-swipe-ignore]",
+      )
+    ) {
+      swipeStartRef.current = null;
+      return;
+    }
+    swipeStartRef.current = { x: event.clientX, y: event.clientY, tracking: true };
+  };
+  const handleSwipePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+    const start = swipeStartRef.current;
+    if (!start?.tracking) return;
+    const dx = event.clientX - start.x;
+    const dy = event.clientY - start.y;
+    if (Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 14) {
+      start.tracking = false;
+      return;
+    }
+    if (dx >= 64 && dx > Math.abs(dy) * 1.2) {
+      start.tracking = false;
+      swipeStartRef.current = null;
+      onClose();
+    }
+  };
+  const clearSwipe = () => {
+    swipeStartRef.current = null;
+  };
+
   return (
     <Drawer
       open={Boolean(execution)}
@@ -486,6 +522,13 @@ export const AutomationExecutionDrawer: React.FC<
         }
       }}
     >
+      <div
+        className={styles.swipeCloseSurface}
+        onPointerDown={mobile ? handleSwipePointerDown : undefined}
+        onPointerMove={mobile ? handleSwipePointerMove : undefined}
+        onPointerUp={mobile ? clearSwipe : undefined}
+        onPointerCancel={mobile ? clearSwipe : undefined}
+      >
       <Tabs
         className={styles.tabs}
         activeKey={activeTab}
@@ -539,6 +582,7 @@ export const AutomationExecutionDrawer: React.FC<
           },
         ]}
       />
+      </div>
     </Drawer>
   );
 };

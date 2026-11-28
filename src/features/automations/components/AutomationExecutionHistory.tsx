@@ -1,5 +1,5 @@
 import { EditMenuButton } from "@/shared/ui/EditMenuButton";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Dropdown, Spin, Tooltip } from "antd";
 import {
   automationExecutionDurationLabel,
@@ -16,6 +16,7 @@ import type {
 import { useI18n } from "@/shared/i18n";
 import { MaterialIcon, type MaterialIconName } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
+import { BottomSheet } from "@/shared/ui/BottomSheet";
 import styles from "./AutomationExecutionHistory.module.css";
 
 const STATUS_ICON: Record<AutomationExecutionStatus, MaterialIconName> = {
@@ -46,6 +47,8 @@ export interface AutomationExecutionHistoryProps {
   onToggle: () => void;
   onTrigger: () => void;
   onView: (execution: AutomationExecutionResponse, trigger: HTMLElement) => void;
+  /** 移动端：mainHeader 动作收进底部面板。 */
+  mobile?: boolean;
 }
 
 export function AutomationExecutionHistory({
@@ -69,8 +72,10 @@ export function AutomationExecutionHistory({
   onToggle,
   onTrigger,
   onView,
+  mobile = false,
 }: AutomationExecutionHistoryProps) {
   const { locale, t } = useI18n();
+  const [actionsOpen, setActionsOpen] = useState(false);
   const groupedExecutions = useMemo(
     () =>
       groupAutomationExecutions(executions, {
@@ -153,6 +158,19 @@ export function AutomationExecutionHistory({
           </div>
         </div>
         <div className={styles.headerActions}>
+          {mobile ? (
+            <UiButton
+              size="sm"
+              variant="ghost"
+              iconOnly
+              className="ui-icon-hover-24"
+              aria-label={t("automationHistory.action.moreSettings")}
+              onClick={() => setActionsOpen(true)}
+            >
+              <MaterialIcon name="more_horiz" />
+            </UiButton>
+          ) : (
+            <>
           <EditMenuButton label={t("resourceAssistant.editAutomation")} disabled={actionBusy} onManual={onEdit} onConversation={onEditConversation} />
           <Tooltip
             title={
@@ -205,6 +223,8 @@ export function AutomationExecutionHistory({
               </UiButton>
             </Dropdown>
           </Tooltip>
+            </>
+          )}
         </div>
       </header>
 
@@ -318,6 +338,100 @@ export function AutomationExecutionHistory({
           )}
         </Spin>
       </div>
+      {mobile ? (
+        <BottomSheet
+          open={actionsOpen}
+          onClose={() => setActionsOpen(false)}
+          ariaLabel={t("automationHistory.action.moreSettings")}
+          getContainer=".layout-mobile"
+        >
+          <div className="automation-history-actions-list">
+            <div className="automation-history-actions-title">
+              {selected.name || selected.id}
+            </div>
+            <button
+              type="button"
+              className="automation-history-actions-row"
+              disabled={actionBusy}
+              onClick={() => {
+                setActionsOpen(false);
+                onEdit();
+              }}
+            >
+              <MaterialIcon name="edit" />
+              <span>{t("resourceAssistant.directEdit")}</span>
+            </button>
+            {onEditConversation ? (
+              <button
+                type="button"
+                className="automation-history-actions-row"
+                disabled={actionBusy}
+                onClick={() => {
+                  setActionsOpen(false);
+                  onEditConversation();
+                }}
+              >
+                <MaterialIcon name="question_answer" />
+                <span>{t("resourceAssistant.conversationEdit")}</span>
+              </button>
+            ) : null}
+            <button
+              type="button"
+              className="automation-history-actions-row"
+              disabled={actionBusy}
+              onClick={() => {
+                setActionsOpen(false);
+                onToggle();
+              }}
+            >
+              <MaterialIcon name={selected.enabled ? "pause_circle" : "play_circle"} />
+              <span>
+                {t(
+                  selected.enabled
+                    ? "automationConsole.action.disable"
+                    : "automationConsole.action.enable",
+                )}
+              </span>
+            </button>
+            <button
+              type="button"
+              className="automation-history-actions-row"
+              disabled={actionBusy || selectedTriggering}
+              onClick={() => {
+                setActionsOpen(false);
+                onTrigger();
+              }}
+            >
+              <MaterialIcon name="play_circle" />
+              <span>{t("automationConsole.action.triggerNow")}</span>
+            </button>
+            <button
+              type="button"
+              className="automation-history-actions-row"
+              disabled={actionBusy}
+              onClick={() => {
+                setActionsOpen(false);
+                onDuplicate();
+              }}
+            >
+              <MaterialIcon name="content_copy" />
+              <span>{t("automationConsole.action.copy")}</span>
+            </button>
+            <button
+              type="button"
+              className="automation-history-actions-row is-danger"
+              disabled={actionBusy}
+              onClick={() => {
+                setActionsOpen(false);
+                onDelete();
+              }}
+            >
+              <MaterialIcon name="delete" />
+              <span>{t("automationConsole.action.delete")}</span>
+            </button>
+          </div>
+        </BottomSheet>
+      ) : null}
     </section>
   );
 }
