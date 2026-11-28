@@ -1,5 +1,5 @@
 import { useResourceAssistant } from "@/features/resource-assistant/hooks/useResourceAssistant";
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useOptionalAppContext } from "@/app/state/AppContext";
 import { RegistryDetailPane } from "@/features/registries/components/RegistryDetailPane";
 import {
@@ -7,12 +7,22 @@ import {
   RegistryListPane,
 } from "@/features/registries/components/RegistryListPane";
 import { useRegistryConsoleRuntime } from "@/features/registries/hooks/useRegistryConsoleRuntime";
-import type { RegistryEditableCategory } from "@/features/registries/lib/registryConsole";
+import {
+  registryItemIcon,
+  registryItemKey,
+  registryListTitle,
+  translateWithFallback,
+  type RegistryEditableCategory,
+} from "@/features/registries/lib/registryConsole";
 import { useI18n } from "@/shared/i18n";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
 import { usePanelResize } from "@/shared/ui/usePanelResize";
-import "./RegistryConsole.module.css";
+import { BottomSheet } from "@/shared/ui/BottomSheet";
+import { MobileSwipeDrawer, type MobileSwipeDrawerHandle } from "@/shared/ui/MobileSwipeDrawer";
+import { useMobileSwipeGestures } from "@/shared/ui/hooks/useMobileSwipeGestures";
+import { useMobilePageHeaderAction } from "@/shared/ui/MobilePageHeaderAction";
+import styles from "./RegistryConsole.module.css";
 
 const CONSOLE_CLASS_NAME =
   "management-page-console automation-console registry-console tw:overflow-hidden";
@@ -26,12 +36,24 @@ const LIST_PANE_CLASS_NAME =
   "registry-console-list-pane tw:relative tw:flex tw:min-h-0 tw:min-w-0 tw:flex-col tw:overflow-hidden tw:max-[860px]:max-h-[260px] tw:border-r-1 tw:border-[var(--line-soft)]";
 const RESIZE_HANDLE_CLASS_NAME = "registry-console-resize-handle";
 
-export function RegistryConsole() {
+export interface RegistryConsoleProps {
+  /** 移动端：列表收进左侧抽屉，详情独占整屏。 */
+  mobile?: boolean;
+}
+
+export function RegistryConsole({ mobile = false }: RegistryConsoleProps) {
   const { t } = useI18n();
   const appContext = useOptionalAppContext();
   const runtime = useRegistryConsoleRuntime();
   const assistant = useResourceAssistant();
   const [listWidth, setListWidth] = useState(280);
+  const consoleRootRef = useRef<HTMLDivElement>(null);
+  const detailRegionRef = useRef<HTMLDivElement>(null);
+  const listDrawerRef = useRef<MobileSwipeDrawerHandle>(null);
+  const emptyPanelRef = useRef<MobileSwipeDrawerHandle>(null);
+  const [mobileListOpen, setMobileListOpen] = useState(false);
+  const [categoryActionsOpen, setCategoryActionsOpen] = useState(false);
+  const mobileListLayout = Boolean(mobile);
   const listStartWidthRef = useRef(280);
   const { handlePointerDown: handleListResize } = usePanelResize({
     axis: "horizontal",
@@ -68,7 +90,117 @@ export function RegistryConsole() {
     }
   };
 
-  const categoryActions = (
+  const categoryLabel = translateWithFallback(
+    t,
+    `registryConsole.category.${runtime.activeCategory}`,
+    runtime.activeCategory,
+  );
+  const selectedItem =
+    runtime.currentCategoryItems.find(
+      (item) => registryItemKey(item) === runtime.selectedKey,
+    ) ||
+    runtime.filteredItems.find(
+      (item) => registryItemKey(item) === runtime.selectedKey,
+    );
+  const detailName = runtime.detail
+    ? runtime.detail.name || runtime.detail.key || runtime.detail.file
+    : "";
+  const currentName =
+    (runtime.isToolsTab ? runtime.selectedTool?.name || "" : detailName) ||
+    (selectedItem ? registryListTitle(selectedItem) : "") ||
+    categoryLabel;
+  const selectedIcon = selectedItem ? registryItemIcon(selectedItem) : null;
+  const headerIcon = runtime.isToolsTab
+    ? "build"
+    : runtime.activeCategory === "providers"
+      ? "hub"
+      : "smart_toy";
+
+  useEffect(() => {
+    if (!mobileListLayout) setMobileListOpen(false);
+  }, [mobileListLayout]);
+  useEffect(() => {
+    const element = detailRegionRef.current;
+    if (!element) return;
+    element.inert = mobileListOpen;
+    return () => { element.inert = false; };
+  }, [mobileListOpen]);
+
+  const openMobileList = () => setMobileListOpen(true);
+  const closeMobileList = () => setMobileListOpen(false);
+  const toggleMobileList = () => setMobileListOpen((open) => !open);
+  useMobileSwipeGestures({
+    rootRef: consoleRootRef,
+    left: {
+      ref: listDrawerRef,
+      open: mobileListOpen,
+      onOpen: openMobileList,
+      onClose: closeMobileList,
+    },
+    right: {
+      ref: emptyPanelRef,
+      open: false,
+      onOpen: () => {},
+      onClose: () => {},
+    },
+    disabled: !mobileListLayout,
+  });
+  useMobilePageHeaderAction(
+    mobileListLayout
+      ? {
+          label: currentName,
+          ariaLabel: t("registryConsole.mobile.switcherAriaLabel", {
+            name: currentName,
+          }),
+          avatar: selectedIcon ? (
+            <img
+              className={styles.registryIcon}
+              src={selectedIcon.icon}
+              width={20}
+              height={20}
+              alt=""
+              aria-hidden="true"
+              data-monochrome={selectedIcon.isMonochrome}
+            />
+          ) : (
+            <MaterialIcon
+              name={headerIcon}
+              style={{ width: 20, height: 20, fontSize: 20 }}
+            />
+          ),
+          icon: "swap_horiz",
+          expanded: mobileListOpen,
+          onActivate: toggleMobileList,
+        }
+      : null,
+  );
+
+  const categoryActions = mobileListLayout ? (
+    <>
+      <UiButton
+        size="sm"
+        variant="ghost"
+        iconOnly
+        aria-label={t("registryConsole.mobile.tabsMore")}
+        onClick={() => setCategoryActionsOpen(true)}
+      >
+        <MaterialIcon name="more_horiz" />
+      </UiButton>
+      {!runtime.isToolsTab && runtime.detail ? (
+        <UiButton
+          size="sm"
+          variant="primary"
+          iconOnly
+          aria-label={t("registryConsole.action.save")}
+          loading={runtime.saving}
+          disabled={runtime.saving || !runtime.dirty}
+          onClick={() => void runtime.saveDraft()}
+        >
+          <MaterialIcon name="save" />
+        </UiButton>
+      ) : null}
+    </>
+  ) : (
     <>
       {runtime.isToolsTab ? (
         <UiButton
@@ -155,8 +287,60 @@ export function RegistryConsole() {
     </>
   );
 
+  const listPane = (
+    <div className={LIST_PANE_CLASS_NAME}>
+      <RegistryListPane
+        currentCategoryItems={runtime.currentCategoryItems}
+        filteredItems={runtime.filteredItems}
+        isToolsTab={runtime.isToolsTab}
+        loading={runtime.loading}
+        refreshDisabled={
+          runtime.loading || runtime.saving || runtime.toolsLoading
+        }
+        searchText={runtime.searchText}
+        selectedKey={runtime.selectedKey}
+        statusDropdownOpen={runtime.statusDropdownOpen}
+        statusFilter={runtime.statusFilter}
+        toolsLoading={runtime.toolsLoading}
+        onCreate={() => {
+          if (mobileListLayout) setMobileListOpen(false);
+          runtime.startNew();
+        }}
+        onCreateConversation={() => {
+          if (!runtime.saving && !assistant.opening && canLeaveDraft()) {
+            if (mobileListLayout) setMobileListOpen(false);
+            void assistant.open({
+              kind: "registry",
+              category: runtime.activeCategory,
+            });
+          }
+        }}
+        onRefresh={refresh}
+        onSearchChange={runtime.setSearchText}
+        onSelect={(item) => {
+          if (mobileListLayout) setMobileListOpen(false);
+          runtime.selectItem(item);
+        }}
+        onStatusDropdownOpenChange={runtime.setStatusDropdownOpen}
+        onStatusFilterChange={runtime.setStatusFilter}
+      />
+      {mobileListLayout ? null : (
+        <button
+          type="button"
+          role="separator"
+          aria-orientation="vertical"
+          className={RESIZE_HANDLE_CLASS_NAME}
+          onPointerDown={handleListResize}
+        />
+      )}
+    </div>
+  );
+
   return (
-    <div className={CONSOLE_CLASS_NAME}>
+    <div
+      ref={consoleRootRef}
+      className={`${CONSOLE_CLASS_NAME} ${mobileListLayout ? "is-mobile" : ""}`}
+    >
       <RegistryCategoryTabs
         activeCategory={runtime.activeCategory}
         categoryCounts={runtime.categoryCounts}
@@ -180,60 +364,106 @@ export function RegistryConsole() {
           { "--registry-list-col": `${listWidth}px` } as React.CSSProperties
         }
       >
-        <div className={LIST_PANE_CLASS_NAME}>
-          <RegistryListPane
-            currentCategoryItems={runtime.currentCategoryItems}
-            filteredItems={runtime.filteredItems}
+        {mobileListLayout ? null : listPane}
+        <div ref={detailRegionRef} className="registry-console-detail-region">
+          <RegistryDetailPane
+            detail={runtime.detail}
+            detailLoading={runtime.detailLoading}
+            dirty={runtime.dirty}
+            draft={runtime.draft}
             isToolsTab={runtime.isToolsTab}
-            loading={runtime.loading}
-            refreshDisabled={
-              runtime.loading || runtime.saving || runtime.toolsLoading
-            }
-            searchText={runtime.searchText}
-            selectedKey={runtime.selectedKey}
-            statusDropdownOpen={runtime.statusDropdownOpen}
-            statusFilter={runtime.statusFilter}
-            toolsLoading={runtime.toolsLoading}
-            onCreate={runtime.startNew}
-            onCreateConversation={() => {
-              if (!runtime.saving && !assistant.opening && canLeaveDraft())
-                void assistant.open({
-                  kind: "registry",
-                  category: runtime.activeCategory,
-                });
-            }}
-            onRefresh={refresh}
-            onSearchChange={runtime.setSearchText}
-            onSelect={runtime.selectItem}
-            onStatusDropdownOpenChange={runtime.setStatusDropdownOpen}
-            onStatusFilterChange={runtime.setStatusFilter}
-          />
-          <button
-            type="button"
-            role="separator"
-            aria-orientation="vertical"
-            className={RESIZE_HANDLE_CLASS_NAME}
-            onPointerDown={handleListResize}
+            newDraft={runtime.newDraft}
+            saving={runtime.saving}
+            selectedTool={runtime.selectedTool}
+            theme={appContext?.state.themeMode ?? "light"}
+            validating={runtime.validating}
+            onEditConversation={handleEditConversation}
+            onDraftChange={runtime.updateDraft}
+            onRefresh={runtime.refreshCurrent}
+            onSave={() => void runtime.saveDraft()}
+            onValidate={() => void runtime.validateDraft()}
           />
         </div>
-        <RegistryDetailPane
-          detail={runtime.detail}
-          detailLoading={runtime.detailLoading}
-          dirty={runtime.dirty}
-          draft={runtime.draft}
-          isToolsTab={runtime.isToolsTab}
-          newDraft={runtime.newDraft}
-          saving={runtime.saving}
-          selectedTool={runtime.selectedTool}
-          theme={appContext?.state.themeMode ?? "light"}
-          validating={runtime.validating}
-          onEditConversation={handleEditConversation}
-          onDraftChange={runtime.updateDraft}
-          onRefresh={runtime.refreshCurrent}
-          onSave={() => void runtime.saveDraft()}
-          onValidate={() => void runtime.validateDraft()}
-        />
       </div>
+      {mobileListLayout ? (
+        <MobileSwipeDrawer
+          ref={listDrawerRef}
+          side="left"
+          open={mobileListOpen}
+          onClose={closeMobileList}
+          ariaLabel={t("registryConsole.mobile.listTitle")}
+          className="registry-mobile-list-drawer"
+          fullWidth
+        >
+          {listPane}
+        </MobileSwipeDrawer>
+      ) : null}
+      {mobileListLayout ? (
+        <BottomSheet
+          open={categoryActionsOpen}
+          onClose={() => setCategoryActionsOpen(false)}
+          ariaLabel={t("registryConsole.mobile.tabsMore")}
+          getContainer=".layout-mobile"
+        >
+          <div className="registry-actions-list">
+            <div className="registry-actions-sheet-title">
+              {t("registryConsole.mobile.tabsMore")}
+            </div>
+            {!runtime.isToolsTab && runtime.detail && !runtime.newDraft ? (
+              <button
+                type="button"
+                className="registry-actions-row"
+                disabled={runtime.saving || runtime.detailLoading || assistant.opening}
+                onClick={() => {
+                  setCategoryActionsOpen(false);
+                  handleEditConversation();
+                }}
+              >
+                <MaterialIcon name="question_answer" />
+                <span>{t("resourceAssistant.conversationEdit")}</span>
+              </button>
+            ) : null}
+            {!runtime.isToolsTab && runtime.detail ? (
+              <button
+                type="button"
+                className="registry-actions-row"
+                disabled={runtime.validating || runtime.saving}
+                onClick={() => {
+                  setCategoryActionsOpen(false);
+                  void runtime.validateDraft();
+                }}
+              >
+                <MaterialIcon name="rule" />
+                <span>{t("registryConsole.action.validate")}</span>
+              </button>
+            ) : null}
+            <button
+              type="button"
+              className="registry-actions-row"
+              disabled={
+                runtime.isToolsTab
+                  ? runtime.loading || runtime.toolsLoading
+                  : runtime.detail
+                    ? runtime.newDraft || runtime.detailLoading
+                    : runtime.loading
+              }
+              onClick={() => {
+                setCategoryActionsOpen(false);
+                refresh();
+              }}
+            >
+              <MaterialIcon name="refresh" />
+              <span>
+                {t(
+                  runtime.isToolsTab
+                    ? "registryConsole.action.refresh"
+                    : "registryConsole.action.refreshFile",
+                )}
+              </span>
+            </button>
+          </div>
+        </BottomSheet>
+      ) : null}
     </div>
   );
 }

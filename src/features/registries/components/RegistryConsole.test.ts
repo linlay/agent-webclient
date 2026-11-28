@@ -40,6 +40,10 @@ jest.mock("antd", () => {
     );
   Input.TextArea = (props: any) => React.createElement("textarea", props);
   return {
+    Drawer: ({ open, children, rootClassName }: any) =>
+      open
+        ? React.createElement("section", { className: rootClassName }, children)
+        : null,
     Dropdown: ({ children }: any) => React.createElement(React.Fragment, null, children),
     Input,
     Spin: ({ children }: any) => React.createElement(React.Fragment, null, children),
@@ -92,12 +96,12 @@ const registryItems: AdminRegistryListItem[] = [
   },
 ];
 
-function renderRegistryConsole(locale: Locale) {
+function renderRegistryConsole(locale: Locale, mobile = false) {
   return renderToStaticMarkup(
     React.createElement(
       I18nProvider,
       { locale, persistLocale: false },
-      React.createElement(RegistryConsole),
+      React.createElement(RegistryConsole, { mobile }),
     ),
   );
 }
@@ -111,6 +115,16 @@ describe("RegistryConsole", () => {
     expect(html).toContain("registry-category-tabs-actions");
     expect(html).toContain("is-icon-only");
     expect(html).not.toContain("command-modal-section");
+  });
+
+  it("moves the registry list into a left drawer on mobile", () => {
+    const html = renderRegistryConsole("zh-CN", true);
+
+    expect(html).toContain("registry-mobile-list-drawer");
+    expect(html).toContain("registry-console-list-pane");
+    expect(html).toContain("registry-console-detail-region");
+    expect(html).toContain('aria-label="更多操作"');
+    expect(html).not.toContain("registry-console-resize-handle");
   });
 
   it("renders provider/model/tool management in Chinese", () => {
