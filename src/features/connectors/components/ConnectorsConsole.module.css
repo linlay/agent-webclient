@@ -514,7 +514,6 @@
   .detail {
     flex: 0 0 auto;
     overflow: visible;
-    padding: 12px;
   }
 
   .bodySkills {
@@ -789,3 +788,114 @@
 
 .importIconChoice img { display: block; width: 32px; height: 32px; border-radius: 9px; }
 .importIconChoice:hover { background: var(--bg-hover); }
+
+/* ---- 移动端：左侧连接器列表抽屉 + 长按动作面板 ---- */
+.console.isMobile {
+  position: relative;
+}
+
+.console.isMobile .body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+  gap: 0;
+  overflow: hidden;
+}
+
+.console.isMobile .detail {
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+}
+
+:global(.connectors-mobile-list-drawer) {
+  z-index: 1010;
+}
+
+:global(.connectors-mobile-list-drawer) .list {
+  width: 100%;
+  flex: 1 1 auto;
+  min-height: 0;
+  border-right: 0;
+  border-bottom: 0;
+  padding-top: 8px;
+}
+
+:global(.connectors-mobile-list-drawer) .listScroll {
+  max-height: none;
+}
+
+/* 触屏没有 hover，行尾「更多」常驻；给行留出按钮宽度，避免遮住版本号和标签。 */
+@media (hover: none) {
+  .itemWrap .listItem {
+    padding-right: 36px;
+    -webkit-touch-callout: none;
+    user-select: none;
+    touch-action: pan-y;
+  }
+}
+
+:global(.connectors-actions-list) {
+  display: flex;
+  flex-direction: column;
+}
+
+:global(.connectors-actions-sheet-title) {
+  padding: 4px 18px 12px;
+  color: var(--ink-muted);
+  font-size: 13px;
+  border-bottom: 1px solid color-mix(in srgb, var(--line-soft) 72%, transparent);
+}
+
+:global(.connectors-actions-row) {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 52px;
+  padding: 0 18px;
+  border: 0;
+  background: transparent;
+  color: var(--ink-1);
+  font-size: 16px;
+  text-align: left;
+  cursor: pointer;
+}
+
+:global(.connectors-actions-row):active {
+  background: var(--bg-hover);
+}
+
+:global(.connectors-actions-row):disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+:global(.connectors-actions-row) :global(.material-icon) {
+  width: 20px;
+  height: 20px;
+  font-size: 20px;
+  color: var(--ink-muted);
+}
+
+:global(.connectors-actions-row) + :global(.connectors-actions-row) {
+  border-top: 1px solid color-mix(in srgb, var(--line-soft) 72%, transparent);
+}
+
+:global(.connectors-actions-row):global(.is-danger) {
+  color: var(--accent-danger);
+}
+
+:global(.connectors-actions-row):global(.is-danger) :global(.material-icon) {
+  color: inherit;
+}
+
+/* 移动端页签栏：功能按钮只留图标，压缩间距保证页签与动作同排。 */
+.console.isMobile .tabs {
+  gap: 12px;
+  padding: 0 12px;
+}
+
+.console.isMobile .tabActions {
+  gap: 6px;
+}

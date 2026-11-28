@@ -42,9 +42,9 @@ const moreButton = (name: string) => container.querySelector<HTMLButtonElement>(
 const openMore = async (name: string) => { expect(moreButton(name)).toBeDefined(); await act(async () => moreButton(name).click()); };
 const menuItem = (text: string) => Array.from(document.querySelectorAll<HTMLElement>('[role="menuitem"]')).find(node => node.textContent?.includes(text))!;
 const clickMenu = async (text: string) => { expect(menuItem(text)).toBeDefined(); await act(async () => menuItem(text).click()); };
-function Harness({ locale = "zh-CN" }: { locale?: "zh-CN" | "en-US" }) {
+function Harness({ locale = "zh-CN", mobile = false }: { locale?: "zh-CN" | "en-US"; mobile?: boolean }) {
   const [id, setId] = useState("demo");
-  return React.createElement(I18nProvider, { locale, persistLocale: false }, React.createElement(ConnectorsConsole, { routeId: id, onRouteIdChange: setId }));
+  return React.createElement(I18nProvider, { locale, persistLocale: false }, React.createElement(ConnectorsConsole, { routeId: id, onRouteIdChange: setId, mobile }));
 }
 beforeEach(() => {
   (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
@@ -69,7 +69,7 @@ beforeEach(() => {
   root = createRoot(container);
 });
 afterEach(async () => { await act(async () => root.unmount()); container.remove(); jest.restoreAllMocks(); });
-const mount = async (locale: "zh-CN" | "en-US" = "zh-CN") => { await act(async () => root.render(React.createElement(Harness, { locale }))); };
+const mount = async (locale: "zh-CN" | "en-US" = "zh-CN", mobile = false) => { await act(async () => root.render(React.createElement(Harness, { locale, mobile }))); };
 
 it("shows invalid package diagnostics without authorization checks and allows deletion", async () => {
   // Invalid admin entries have no validated manifest or capability metadata.
@@ -89,6 +89,32 @@ it("shows invalid package diagnostics without authorization checks and allows de
   await clickMenu("删除");
   expect(deleteConnector).toHaveBeenCalledWith("demo");
   expect(container.querySelectorAll("aside strong")).toHaveLength(0);
+});
+
+it("keeps only save and a more action in the mobile tab bar", async () => {
+  await mount("zh-CN", true);
+  const save = container.querySelector<HTMLButtonElement>(
+    'button[aria-label="保存配置"]',
+  );
+  const more = container.querySelector<HTMLButtonElement>(
+    'button[aria-label="更多操作"]',
+  );
+  expect(save).not.toBeNull();
+  expect(more).not.toBeNull();
+  expect(save?.className).toContain("is-icon-only");
+  expect(more?.className).toContain("is-icon-only");
+  expect(save?.textContent?.trim()).toBe("");
+  expect(more?.textContent?.trim()).toBe("");
+  expect(container.querySelector('button[aria-label="去对话"]')).toBeNull();
+  expect(container.querySelector('button[aria-label="重新加载配置"]')).toBeNull();
+});
+
+it("moves the connector list into a left drawer on mobile", async () => {
+  await mount("zh-CN", true);
+  const drawer = container.querySelector(".connectors-mobile-list-drawer");
+  expect(drawer).not.toBeNull();
+  expect(drawer?.querySelector("aside")).not.toBeNull();
+  expect(drawer?.textContent).toContain("Demo connector");
 });
 
 it("loads the definition and authorization when an invalid package is repaired", async () => {

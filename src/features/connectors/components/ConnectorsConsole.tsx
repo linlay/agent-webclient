@@ -1,15 +1,20 @@
 import { useClientNavigate } from "@/shared/ui/useClientNavigate";
 import { CreateMenuButton } from "@/shared/ui/CreateMenuButton";
 import { useResourceAssistant } from "@/features/resource-assistant/hooks/useResourceAssistant";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { message, Spin, Flex, Tooltip } from "antd";
 import type { MenuProps } from "antd";
 import { useOptionalAppContext } from "@/app/state/AppContext";
-import { getAdminAgentConnectors, setAdminAgentConnector, type ConnectorType } from "@/shared/data";
+import { getAdminAgentConnectors, setAdminAgentConnector, type ConnectorSummary, type ConnectorType } from "@/shared/data";
 import { useI18n } from "@/shared/i18n";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { RowMoreMenu } from "@/shared/ui/RowMoreMenu";
+import { BottomSheet } from "@/shared/ui/BottomSheet";
+import { LongPressable } from "@/shared/ui/LongPressable";
+import { MobileSwipeDrawer, type MobileSwipeDrawerHandle } from "@/shared/ui/MobileSwipeDrawer";
+import { useMobileSwipeGestures } from "@/shared/ui/hooks/useMobileSwipeGestures";
+import { useMobilePageHeaderAction } from "@/shared/ui/MobilePageHeaderAction";
 import { UiButton } from "@/shared/ui/UiButton";
 import { isDesktopAppMode } from "@/shared/utils/routing";
 import { useCatalogOrder } from "@/features/catalog-order/hooks/useCatalogOrder";
@@ -43,16 +48,28 @@ import styles from "./ConnectorsConsole.module.css";
 export interface ConnectorsConsoleProps {
   routeId: string;
   onRouteIdChange: (id: string) => void;
+  /** 移动端：列表收进左侧抽屉，详情独占整屏。 */
+  mobile?: boolean;
 }
 
 export function ConnectorsConsole({
   routeId,
   onRouteIdChange,
+  mobile = false,
 }: ConnectorsConsoleProps) {
   const { t } = useI18n();
   const navigate = useClientNavigate();
   const assistant = useResourceAssistant({ navigate });
   const editorRegion = useRef<HTMLDivElement>(null);
+  const consoleRootRef = useRef<HTMLDivElement>(null);
+  const detailSectionRef = useRef<HTMLElement>(null);
+  const mobileListDrawerRef = useRef<MobileSwipeDrawerHandle>(null);
+  const mobileEmptyPanelRef = useRef<MobileSwipeDrawerHandle>(null);
+  const [mobileListOpen, setMobileListOpen] = useState(false);
+  const [actionsItem, setActionsItem] = useState<ConnectorSummary | null>(null);
+  const [actionsOpen, setActionsOpen] = useState(false);
+  const [tabsActionsOpen, setTabsActionsOpen] = useState(false);
+  const mobileListLayout = Boolean(mobile);
   const [messageApi, messageContextHolder] = message.useMessage();
   const appContext = useOptionalAppContext();
   const runtime = useConnectorsRuntime(routeId, onRouteIdChange);
@@ -188,22 +205,70 @@ export function ConnectorsConsole({
     });
   };
 
-  const renderItem = (item: (typeof items)[number]) => {
-    const auth = authRuntimes[connectorAuthIdentity(item)];
-    const authStatus = auth?.operation === "start" ? "preparing" : auth?.status;
-    const knownStatus =
-      authStatus && authStatus !== "unknown"
-        ? t(`connectors.auth.status.${authStatus}`)
-        : "";
-    const authLabel = item.status === "invalid" ? t("connectors.status.invalid")
-        : item.authMode === "none" ? t("connectors.auth.status.no_auth")
-        : auth?.error
-            ? knownStatus
-              ? t("connectors.auth.checkFailedWithStatus", {
-                  status: knownStatus,
-                })
-              : t("connectors.auth.checkFailed")
-            : knownStatus || t("connectors.auth.checking");
+  useEffect(() => {
+    if (!mobileListLayout) setMobileListOpen(false);
+  }, [mobileListLayout]);
+  useEffect(() => {
+    const element = detailSectionRef.current;
+    if (!element) return;
+    element.inert = mobileListOpen || actionsOpen;
+    return () => { element.inert = false; };
+  }, [mobileListOpen, actionsOpen]);
+
+  const openMobileList = useCallback(() => setMobileListOpen(true), []);
+  const closeMobileList = useCallback(() => setMobileListOpen(false), []);
+  const toggleMobileList = useCallback(() => setMobileListOpen((open) => !open), []);
+  useMobileSwipeGestures({
+    rootRef: consoleRootRef,
+    left: {
+      ref: mobileListDrawerRef,
+      open: mobileListOpen,
+      onOpen: openMobileList,
+      onClose: closeMobileList,
+    },
+    right: {
+      ref: mobileEmptyPanelRef,
+      open: false,
+      onOpen: () => {},
+      onClose: () => {},
+    },
+    disabled: !mobileListLayout,
+  });
+  const mobileHeaderName = showUnassigned
+    ? t("connectors.tools.unassigned", { count: unassigned.length })
+    : selected?.name || t("connectors.mobile.noSelection");
+  const mobileHeaderAvatar = useMemo(
+    () =>
+      selected ? (
+        <ConnectorIcon item={selected} size={22} />
+      ) : (
+        <MaterialIcon
+          name={showUnassigned ? "build" : "power_2"}
+          style={{ width: 20, height: 20, fontSize: 20 }}
+        />
+      ),
+    [selected?.id, selected?.iconUrl, showUnassigned],
+  );
+  useMobilePageHeaderAction(
+    mobileListLayout
+      ? {
+          label: mobileHeaderName,
+          ariaLabel: t("connectors.mobile.switcherAriaLabel", {
+            name: mobileHeaderName,
+          }),
+          avatar: mobileHeaderAvatar,
+          icon: "swap_horiz",
+          expanded: mobileListOpen,
+          onActivate: toggleMobileList,
+        }
+      : null,
+  );
+
+  const openConnectorActions = (item: ConnectorSummary) => {
+    setActionsItem(item);
+    setActionsOpen(true);
+  };
+  const buildConnectorMenu = (item: ConnectorSummary) => {
     const itemPinned = pinnedKeys.includes(item.id.trim().toLowerCase());
     const itemDeletable =
       item.canDelete !== false &&
@@ -211,7 +276,7 @@ export function ConnectorsConsole({
       item.builtin !== true;
     const itemEditable = item.readOnly !== true && item.builtin !== true;
     const moreLabel = t("connectors.action.more", { name: item.name });
-    const menuItems: MenuProps["items"] = [
+    const items: MenuProps["items"] = [
       {
         key: "pin",
         icon: <MaterialIcon name="push_pin" />,
@@ -230,10 +295,11 @@ export function ConnectorsConsole({
         icon: <MaterialIcon name="delete" />,
         label: t("connectors.delete.action"),
         danger: true,
-        disabled: busy || !!runtime.pendingDeletion || !itemDeletable || deletingId === item.id,
+        disabled:
+          busy || !!runtime.pendingDeletion || !itemDeletable || deletingId === item.id,
       },
     ];
-    const onMenuClick: MenuProps["onClick"] = ({ domEvent, key }) => {
+    const onClick: MenuProps["onClick"] = ({ domEvent, key }) => {
       domEvent.stopPropagation();
       if (key === "pin") {
         void togglePin(item.id);
@@ -257,83 +323,236 @@ export function ConnectorsConsole({
         })();
       }
     };
+    return { itemPinned, moreLabel, items, onClick };
+  };
+  const actionsMenu = actionsItem ? buildConnectorMenu(actionsItem) : null;
+
+  const renderItem = (item: (typeof items)[number]) => {
+    const auth = authRuntimes[connectorAuthIdentity(item)];
+    const authStatus = auth?.operation === "start" ? "preparing" : auth?.status;
+    const knownStatus =
+      authStatus && authStatus !== "unknown"
+        ? t(`connectors.auth.status.${authStatus}`)
+        : "";
+    const authLabel = item.status === "invalid" ? t("connectors.status.invalid")
+        : item.authMode === "none" ? t("connectors.auth.status.no_auth")
+        : auth?.error
+            ? knownStatus
+              ? t("connectors.auth.checkFailedWithStatus", {
+                  status: knownStatus,
+                })
+              : t("connectors.auth.checkFailed")
+            : knownStatus || t("connectors.auth.checking");
+    const menu = buildConnectorMenu(item);
+    const itemPinned = menu.itemPinned;
     const isItemSelected = !showUnassigned && selected?.id === item.id;
     return (
-      <RowMoreMenu
+      <LongPressable
         key={item.id}
-        className={styles.itemWrap}
-        items={menuItems}
-        onSelect={onMenuClick}
-        label={moreLabel}
+        onLongPress={
+          mobileListLayout && !busy ? () => openConnectorActions(item) : undefined
+        }
       >
-        <button
-          type="button"
-          className={styles.listItem}
-          aria-current={isItemSelected ? "true" : undefined}
-          disabled={busy}
-          onClick={() => {
-            if (isItemSelected) return;
-            authChecks.prioritize(item.id);
-            void auth?.refresh();
-            setShowUnassigned(false);
-            setSkillsConnectorId(null);
-            runtime.selectConnector(item.id);
-          }}
-        >
-          <span className={styles.itemHeading}>
-            <ConnectorIcon item={item} size={28} className={styles.catalogIcon} />
-            <strong>{item.name}</strong>
-            {itemPinned && (
-              <MaterialIcon
-                name="push_pin"
-                className={styles.pinBadge}
-                title={t("connectors.pin")}
-                aria-label={t("connectors.pin")}
-              />
-            )}
-            <span className={styles.version}>
-              {t("connectors.version", { version: item.version })}
-            </span>
-          </span>
-          <span className={styles.itemFooter}>
-            <span className={styles.itemStatus}>
-              {(item.mcp || []).some(
-                (server) => server.status === "unavailable",
-              ) ? (
-                <UiTag tone="danger" title={t("connectors.sync.unavailable")}>
-                  {t("connectors.sync.unavailable")}
-                </UiTag>
-              ) : (
-                <UiTag
-                  title={authLabel}
-                  tone={
-                    item.status === "invalid" || auth?.error
-                      ? "danger"
-                      : authStatus === "authorized"
-                        ? "accent"
-                        : "muted"
-                  }
-                >
-                  {authLabel}
-                </UiTag>
-              )}
-            </span>
-            <span className={styles.badges}>
-              {item.hasView && <UiTag tone="accent">VIEW</UiTag>}
-              {item.hasNative && <UiTag>{t("connectors.type.native")}</UiTag>}
-              {item.hasCli && <UiTag>{t("connectors.type.cli")}</UiTag>}
-              {item.hasMcp && (
-                <UiTag tone="accent">{t("connectors.type.mcp")}</UiTag>
-              )}
-            </span>
-          </span>
-        </button>
-      </RowMoreMenu>
+        {(gesture) => (
+          <RowMoreMenu
+            className={styles.itemWrap}
+            items={menu.items}
+            onSelect={menu.onClick}
+            label={menu.moreLabel}
+            disabled={busy}
+            onMoreClick={
+              mobileListLayout && !busy ? () => openConnectorActions(item) : undefined
+            }
+          >
+            <button
+              type="button"
+              className={styles.listItem}
+              aria-current={isItemSelected ? "true" : undefined}
+              disabled={busy}
+              onClick={() => {
+                if (gesture.consumeClick()) return;
+                if (mobileListLayout) setMobileListOpen(false);
+                if (isItemSelected) return;
+                authChecks.prioritize(item.id);
+                void auth?.refresh();
+                setShowUnassigned(false);
+                setSkillsConnectorId(null);
+                runtime.selectConnector(item.id);
+              }}
+              {...gesture.longPressProps}
+            >
+              <span className={styles.itemHeading}>
+                <ConnectorIcon item={item} size={28} className={styles.catalogIcon} />
+                <strong>{item.name}</strong>
+                {itemPinned && (
+                  <MaterialIcon
+                    name="push_pin"
+                    className={styles.pinBadge}
+                    title={t("connectors.pin")}
+                    aria-label={t("connectors.pin")}
+                  />
+                )}
+                <span className={styles.version}>
+                  {t("connectors.version", { version: item.version })}
+                </span>
+              </span>
+              <span className={styles.itemFooter}>
+                <span className={styles.itemStatus}>
+                  {(item.mcp || []).some(
+                    (server) => server.status === "unavailable",
+                  ) ? (
+                    <UiTag tone="danger" title={t("connectors.sync.unavailable")}>
+                      {t("connectors.sync.unavailable")}
+                    </UiTag>
+                  ) : (
+                    <UiTag
+                      title={authLabel}
+                      tone={
+                        item.status === "invalid" || auth?.error
+                          ? "danger"
+                          : authStatus === "authorized"
+                            ? "accent"
+                            : "muted"
+                      }
+                    >
+                      {authLabel}
+                    </UiTag>
+                  )}
+                </span>
+                <span className={styles.badges}>
+                  {item.hasView && <UiTag tone="accent">VIEW</UiTag>}
+                  {item.hasNative && <UiTag>{t("connectors.type.native")}</UiTag>}
+                  {item.hasCli && <UiTag>{t("connectors.type.cli")}</UiTag>}
+                  {item.hasMcp && (
+                    <UiTag tone="accent">{t("connectors.type.mcp")}</UiTag>
+                  )}
+                </span>
+              </span>
+            </button>
+          </RowMoreMenu>
+        )}
+      </LongPressable>
     );
   };
 
+  const listPane = (
+          <aside className={styles.list} aria-label={t("connectors.list.label")}>
+            <div className={styles.listToolbar}>
+              <SearchFilterBar
+                searchText={search}
+                onSearchChange={setSearch}
+                searchPlaceholder={t("connectors.search")}
+                filters={[
+                  {
+                    key: "type",
+                    label: t("connectors.filter.label"),
+                    active: filter !== "all",
+                    menu: {
+                      selectedKeys: [filter],
+                      onClick: ({ key }) =>
+                        setFilter(key as ConnectorType | "all"),
+                      items: (["all", "mcp", "cli", "view", "native"] as const).map(
+                        (type) => ({
+                          key: type,
+                          label:
+                            type === "all"
+                              ? t("connectors.filter.all")
+                              : type.toUpperCase(),
+                        }),
+                      ),
+                    },
+                  },
+                ]}
+              />
+              <UiButton
+                size="sm"
+                variant="ghost"
+                iconOnly
+                aria-label={t("connectors.action.refresh")}
+                disabled={runtime.loading || busy}
+                onClick={() => {
+                  void runtime.refreshCatalog();
+                  refreshStatuses();
+                  void refreshPins().catch(() => undefined);
+                }}
+              >
+                <MaterialIcon name="refresh" />
+              </UiButton>
+              <CreateMenuButton
+                label={t("resourceAssistant.new")}
+                manualLabel={t("connectors.import.title")}
+                disabled={busy || runtime.detailLoading || assistant.opening}
+                onManual={importer.show}
+                onConversation={() => {
+                  if (
+                    !runtime.dirty || !isDesktopAppMode() ||
+                    window.confirm(t("connectors.confirm.discard"))
+                  )
+                    void assistant.open({ kind: "connector" });
+                }}
+              />
+            </div>
+            <p className={`${styles.hint} tw:px-[10px]`}>
+              {runtime.catalogError && !runtime.items.length
+                ? t("connectors.list.unavailable")
+                : items.length > 0
+                  ? t("connectors.list.count", { count: items.length })
+                  : null}
+            </p>
+            {pinError && (
+              <div role="alert" className={styles.error}>
+                {t("connectors.pinFailed")}
+                <UiButton
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => {
+                    void refreshPins().catch(() => undefined);
+                  }}
+                >
+                  {t("connectors.action.retry")}
+                </UiButton>
+              </div>
+            )}
+            <div className={styles.listScroll}>
+              <Spin spinning={runtime.loading}>
+                <div className={styles.listItems}>{items.map(renderItem)}</div>
+                {!items.length && !runtime.loading && !runtime.catalogError && (
+                  <p className={styles.empty}>{t("connectors.list.empty")}</p>
+                )}
+              </Spin>
+            </div>
+            {unassigned.length > 0 && (
+              <button
+                type="button"
+                className={styles.listItem}
+                aria-current={showUnassigned ? "true" : undefined}
+                onClick={() => {
+                if (mobileListLayout) setMobileListOpen(false);
+                setShowUnassigned(true);
+              }}
+              >
+                {t("connectors.tools.unassigned", { count: unassigned.length })}
+              </button>
+            )}
+            {mobileListLayout ? null : (
+              <button
+                type="button"
+                role="separator"
+                aria-orientation="vertical"
+                aria-label={t("connectors.resize.listAriaLabel")}
+                title={t("connectors.resize.listTitle")}
+                className={styles.resizeHandle}
+                onPointerDown={handleListResize}
+              />
+            )}
+          </aside>
+  );
+
   return (
-    <div className={`management-page-console ${styles.console}`}>
+    <div
+      ref={consoleRootRef}
+      className={`management-page-console ${styles.console} ${mobileListLayout ? styles.isMobile : ""}`}
+    >
       {runtime.pendingDeletion && (
         <div className={styles.error} role="alert">
           <p>{t("connectors.delete.cleanupPending", runtime.pendingDeletion)}</p>
@@ -380,112 +599,8 @@ export function ConnectorsConsole({
           { "--connector-list-col": `${listWidth}px` } as React.CSSProperties
         }
       >
-        <aside className={styles.list} aria-label={t("connectors.list.label")}>
-          <div className={styles.listToolbar}>
-            <SearchFilterBar
-              searchText={search}
-              onSearchChange={setSearch}
-              searchPlaceholder={t("connectors.search")}
-              filters={[
-                {
-                  key: "type",
-                  label: t("connectors.filter.label"),
-                  active: filter !== "all",
-                  menu: {
-                    selectedKeys: [filter],
-                    onClick: ({ key }) =>
-                      setFilter(key as ConnectorType | "all"),
-                    items: (["all", "mcp", "cli", "view", "native"] as const).map(
-                      (type) => ({
-                        key: type,
-                        label:
-                          type === "all"
-                            ? t("connectors.filter.all")
-                            : type.toUpperCase(),
-                      }),
-                    ),
-                  },
-                },
-              ]}
-            />
-            <UiButton
-              size="sm"
-              variant="ghost"
-              iconOnly
-              aria-label={t("connectors.action.refresh")}
-              disabled={runtime.loading || busy}
-              onClick={() => {
-                void runtime.refreshCatalog();
-                refreshStatuses();
-                void refreshPins().catch(() => undefined);
-              }}
-            >
-              <MaterialIcon name="refresh" />
-            </UiButton>
-            <CreateMenuButton
-              label={t("resourceAssistant.new")}
-              manualLabel={t("connectors.import.title")}
-              disabled={busy || runtime.detailLoading || assistant.opening}
-              onManual={importer.show}
-              onConversation={() => {
-                if (
-                  !runtime.dirty || !isDesktopAppMode() ||
-                  window.confirm(t("connectors.confirm.discard"))
-                )
-                  void assistant.open({ kind: "connector" });
-              }}
-            />
-          </div>
-          <p className={`${styles.hint} tw:px-[10px]`}>
-            {runtime.catalogError && !runtime.items.length
-              ? t("connectors.list.unavailable")
-              : items.length > 0
-                ? t("connectors.list.count", { count: items.length })
-                : null}
-          </p>
-          {pinError && (
-            <div role="alert" className={styles.error}>
-              {t("connectors.pinFailed")}
-              <UiButton
-                size="sm"
-                variant="ghost"
-                onClick={() => {
-                  void refreshPins().catch(() => undefined);
-                }}
-              >
-                {t("connectors.action.retry")}
-              </UiButton>
-            </div>
-          )}
-          <div className={styles.listScroll}>
-            <Spin spinning={runtime.loading}>
-              <div className={styles.listItems}>{items.map(renderItem)}</div>
-              {!items.length && !runtime.loading && !runtime.catalogError && (
-                <p className={styles.empty}>{t("connectors.list.empty")}</p>
-              )}
-            </Spin>
-          </div>
-          {unassigned.length > 0 && (
-            <button
-              type="button"
-              className={styles.listItem}
-              aria-current={showUnassigned ? "true" : undefined}
-              onClick={() => setShowUnassigned(true)}
-            >
-              {t("connectors.tools.unassigned", { count: unassigned.length })}
-            </button>
-          )}
-          <button
-            type="button"
-            role="separator"
-            aria-orientation="vertical"
-            aria-label={t("connectors.resize.listAriaLabel")}
-            title={t("connectors.resize.listTitle")}
-            className={styles.resizeHandle}
-            onPointerDown={handleListResize}
-          />
-        </aside>
-        <section className={styles.detail}>
+        {mobileListLayout ? null : listPane}
+        <section ref={detailSectionRef} className={styles.detail}>
           {showUnassigned ? (
             <>
               <h2>
@@ -552,30 +667,64 @@ export function ConnectorsConsole({
                   </span>
                 </button>
                 <div className={styles.tabActions}>
-                  <Tooltip title={t("connectors.action.reload")}>
+                  {!mobileListLayout && (
+                    <>
+                      <Tooltip title={t("connectors.action.reload")}>
+                        <UiButton
+                          variant="ghost"
+                          size="sm"
+                          aria-label={t("connectors.action.reload")}
+                          disabled={busy || runtime.detailLoading}
+                          onClick={runtime.reload}
+                        >
+                          <MaterialIcon name="refresh" />
+                        </UiButton>
+                      </Tooltip>
+                      <UiButton
+                        size="sm"
+                        variant="primary"
+                        aria-label={t("connectors.chat.open")}
+                        loading={connectorChat.opening}
+                        disabled={busy || runtime.detailLoading || connectorChat.opening}
+                        onClick={() => void connectorChat.open()}
+                      >
+                        <MaterialIcon name="question_answer" />{t("connectors.chat.open")}
+                      </UiButton>
+                      {connectorChat.opening && (
+                        <UiButton
+                          size="sm"
+                          variant="ghost"
+                          aria-label={t("connectors.chat.cancel")}
+                          onClick={connectorChat.cancel}
+                        >
+                          {t("connectors.chat.cancel")}
+                        </UiButton>
+                      )}
+                      {runtime.dirty && (
+                        <span className={styles.hint}>
+                          {t("connectors.config.dirty")}
+                        </span>
+                      )}
+                    </>
+                  )}
+                  {mobileListLayout && (
                     <UiButton
                       variant="ghost"
                       size="sm"
-                      disabled={busy || runtime.detailLoading}
-                      onClick={runtime.reload}
+                      iconOnly
+                      aria-label={t("connectors.mobile.tabsMore")}
+                      disabled={busy}
+                      onClick={() => setTabsActionsOpen(true)}
                     >
-                      <MaterialIcon name="refresh" />
+                      <MaterialIcon name="more_horiz" />
                     </UiButton>
-                  </Tooltip>
-                  <UiButton size="sm" variant="primary" loading={connectorChat.opening} disabled={busy || runtime.detailLoading || connectorChat.opening}
-                    onClick={() => void connectorChat.open()}>
-                    <MaterialIcon name="question_answer" />{t("connectors.chat.open")}
-                  </UiButton>
-                  {connectorChat.opening && <UiButton size="sm" variant="ghost" onClick={connectorChat.cancel}>{t("connectors.chat.cancel")}</UiButton>}
-                  {runtime.dirty && (
-                    <span className={styles.hint}>
-                      {t("connectors.config.dirty")}
-                    </span>
                   )}
                   {!runtime.readOnly && (
                     <UiButton
                       variant="primary"
                       size="sm"
+                      iconOnly={mobileListLayout}
+                      aria-label={t("connectors.action.save")}
                       loading={runtime.saving}
                       disabled={
                         busy ||
@@ -587,7 +736,9 @@ export function ConnectorsConsole({
                     >
                       <Flex gap={4}>
                         <MaterialIcon name="save" />
-                        <span>{t("connectors.action.save")}</span>
+                        {!mobileListLayout && (
+                          <span>{t("connectors.action.save")}</span>
+                        )}
                       </Flex>
                     </UiButton>
                   )}
@@ -693,6 +844,122 @@ export function ConnectorsConsole({
           )}
         </section>
       </div>
+      {mobileListLayout ? (
+        <MobileSwipeDrawer
+          ref={mobileListDrawerRef}
+          side="left"
+          open={mobileListOpen}
+          onClose={closeMobileList}
+          ariaLabel={t("connectors.list.label")}
+          className="connectors-mobile-list-drawer"
+          fullWidth
+        >
+          {listPane}
+        </MobileSwipeDrawer>
+      ) : null}
+      {mobileListLayout ? (
+        <BottomSheet
+          open={tabsActionsOpen}
+          onClose={() => setTabsActionsOpen(false)}
+          ariaLabel={t("connectors.mobile.tabsMore")}
+          getContainer=".layout-mobile"
+        >
+          <div className="connectors-actions-list">
+            <div className="connectors-actions-sheet-title">
+              {t("connectors.mobile.tabsMore")}
+            </div>
+            <button
+              type="button"
+              className="connectors-actions-row"
+              disabled={busy || runtime.detailLoading}
+              onClick={() => {
+                setTabsActionsOpen(false);
+                runtime.reload();
+              }}
+            >
+              <MaterialIcon name="refresh" />
+              <span>{t("connectors.action.reload")}</span>
+            </button>
+            <button
+              type="button"
+              className="connectors-actions-row"
+              disabled={busy || runtime.detailLoading || connectorChat.opening}
+              onClick={() => {
+                setTabsActionsOpen(false);
+                void connectorChat.open();
+              }}
+            >
+              <MaterialIcon name="question_answer" />
+              <span>{t("connectors.chat.open")}</span>
+            </button>
+            {connectorChat.opening && (
+              <button
+                type="button"
+                className="connectors-actions-row"
+                onClick={() => {
+                  setTabsActionsOpen(false);
+                  connectorChat.cancel();
+                }}
+              >
+                <MaterialIcon name="close" />
+                <span>{t("connectors.chat.cancel")}</span>
+              </button>
+            )}
+          </div>
+        </BottomSheet>
+      ) : null}
+      {mobileListLayout ? (
+        <BottomSheet
+          open={actionsOpen}
+          onClose={() => setActionsOpen(false)}
+          ariaLabel={t("connectors.action.more", {
+            name: actionsItem?.name || "",
+          })}
+          getContainer=".layout-mobile"
+        >
+          <div className="connectors-actions-list">
+            <div className="connectors-actions-sheet-title">
+              {actionsItem?.name || ""}
+            </div>
+            {(actionsMenu?.items || [])
+              .filter(Boolean)
+              .filter((entry) => (entry as { type?: string }).type !== "divider")
+              .map((entry) => {
+                const row = entry as {
+                  key?: React.Key;
+                  icon?: React.ReactNode;
+                  label?: React.ReactNode;
+                  disabled?: boolean;
+                  danger?: boolean;
+                };
+                const key = String(row.key ?? "");
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    className={`connectors-actions-row${row.danger ? " is-danger" : ""}`}
+                    disabled={row.disabled}
+                    onClick={(event) => {
+                      setActionsOpen(false);
+                      if (key === "conversation-edit" || key === "delete") {
+                        setMobileListOpen(false);
+                      }
+                      const info = {
+                        key,
+                        keyPath: [key],
+                        domEvent: event,
+                      } as unknown as Parameters<NonNullable<MenuProps["onClick"]>>[0];
+                      actionsMenu?.onClick?.(info);
+                    }}
+                  >
+                    {row.icon}
+                    <span>{row.label}</span>
+                  </button>
+                );
+              })}
+          </div>
+        </BottomSheet>
+      ) : null}
     </div>
   );
 }
