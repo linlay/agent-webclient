@@ -61,6 +61,11 @@ import { orderSkillCatalogItems, type SkillKindFilter } from "@/features/skills/
 import { requestSkillDeletion } from "@/features/skills/lib/skillDeletion";
 import { useOptionalAppContext } from "@/app/state/AppContext";
 import { usePanelResize } from "@/shared/ui/usePanelResize";
+import { BottomSheet } from "@/shared/ui/BottomSheet";
+import { MobileSwipeDrawer, type MobileSwipeDrawerHandle } from "@/shared/ui/MobileSwipeDrawer";
+import { useMobileSwipeGestures } from "@/shared/ui/hooks/useMobileSwipeGestures";
+import { useMobilePageHeaderAction } from "@/shared/ui/MobilePageHeaderAction";
+import { useLongPress } from "@/shared/ui/hooks/useLongPress";
 import "./SkillConsole.module.css";
 
 type SkillCatalogRow =
@@ -1060,6 +1065,8 @@ interface SkillFileWorkspaceProps {
   downloadingFile?: boolean;
   fileTreeOpen?: boolean;
   onToggleFileTree?: () => void;
+  mobile?: boolean;
+  fileTreeDrawerRef?: React.RefObject<MobileSwipeDrawerHandle>;
   t: SkillConsoleTranslate;
   onCreateFile: () => void;
   onCreateDir: () => void;
@@ -1089,6 +1096,8 @@ export const SkillFileWorkspace: React.FC<SkillFileWorkspaceProps> = ({
   downloadingFile = false,
   fileTreeOpen = true,
   onToggleFileTree = () => {},
+  mobile = false,
+  fileTreeDrawerRef,
   t,
   onCreateFile,
   onCreateDir,
@@ -1106,7 +1115,14 @@ export const SkillFileWorkspace: React.FC<SkillFileWorkspaceProps> = ({
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const uploadInputRef = useRef<HTMLInputElement | null>(null);
   const replaceTargetRef = useRef<AdminSkillFileEntry | null>(null);
+  const editorPanelRef = useRef<HTMLDivElement | null>(null);
   const appContext = useOptionalAppContext();
+  useEffect(() => {
+    const element = editorPanelRef.current;
+    if (!element) return;
+    element.inert = mobile && fileTreeOpen;
+    return () => { element.inert = false; };
+  }, [mobile, fileTreeOpen]);
 
   // 右侧文件树列宽；拖拽手柄在面板左缘，向左拖变宽
   const [fileTreeWidth, setFileTreeWidth] = useState(280);
@@ -1177,170 +1193,27 @@ export const SkillFileWorkspace: React.FC<SkillFileWorkspaceProps> = ({
     ],
   };
 
-  return (
-    <div className={SKILL_FILE_PANELS_CLASS_NAME}>
-      <div className={SKILL_FILE_EDITOR_CLASS_NAME}>
-        {selectedEntry ? (
-          <>
-            <div className={SKILL_FILE_EDITOR_HEAD_CLASS_NAME}>
-              <div className={SKILL_FILE_EDITOR_META_CLASS_NAME}>
-                <SkillFileEntryIcon
-                  entry={selectedEntry}
-                  expanded={expandedDirs.has(selectedEntry.path)}
-                />
-                <span className={SKILL_FILE_EDITOR_HEAD_PATH_CLASS_NAME}>
-                  {selectedEntry.path}
-                </span>
-                <span>
-                  {isDirSelected
-                    ? t("skillConsole.fileTree.directory")
-                    : isTextSelected
-                      ? languageLabel(selectedEntry)
-                      : selectedEntry.mimeType || "Binary"}
-                </span>
-                {fileSize !== undefined && <span>{formatSize(fileSize)}</span>}
-              </div>
-              <div className={SKILL_DETAIL_ACTIONS_CLASS_NAME}>
-                {isFileDirty && (
-                  <span className={SKILL_DIRTY_CLASS_NAME}>
-                    {t("skillConsole.message.unsaved")}
-                  </span>
-                )}
-                <UiButton
-                  size="sm"
-                  variant="ghost"
-                  className="ui-icon-hover-24"
-                  iconOnly
-                  onClick={onRefreshFile}
-                  disabled={saving || interactionLocked}
-                  aria-label={t("skillConsole.action.refresh")}
-                >
-                  <MaterialIcon name="refresh" />
-                </UiButton>
-                {isTextSelected && isFileDirty && (
-                  <UiButton
-                    size="sm"
-                    variant="ghost"
-                    className="ui-icon-hover-24 tw:!text-accent"
-                    iconOnly
-                    onClick={onSave}
-                    disabled={saving || !isFileDirty || interactionLocked}
-                    aria-label={t("skillConsole.action.save")}
-                  >
-                    <MaterialIcon name="save" />
-                  </UiButton>
-                )}
-                {!fileTreeOpen && (
-                  <UiButton
-                    size="sm"
-                    variant="ghost"
-                    className="ui-icon-hover-24"
-                    iconOnly
-                    onClick={onToggleFileTree}
-                    aria-label={t("skillConsole.action.expandFileTree")}
-                  >
-                    <MaterialIcon name="dock_to_left" />
-                  </UiButton>
-                )}
-              </div>
-            </div>
-
-            {isDirSelected ? (
-              <div className={SKILL_BINARY_PANEL_CLASS_NAME}>
-                <strong>{selectedEntry.name}</strong>
-                <div className={SKILL_BINARY_GRID_CLASS_NAME}>
-                  <span>{t("skillConsole.field.path")}</span>
-                  <span>{selectedEntry.path}</span>
-                  <span>{t("skillConsole.field.children")}</span>
-                  <span>
-                    {
-                      entries.filter(
-                        (entry) => entry.parentPath === selectedEntry.path,
-                      ).length
-                    }
-                  </span>
-                </div>
-                <div className="tw:text-xs tw:text-ink-muted">
-                  {t("skillConsole.fileTree.dirHint")}
-                </div>
-              </div>
-            ) : isTextSelected ? (
-              <CodeEditor
-                className={SKILL_EDITOR_CLASS_NAME}
-                value={fileContent}
-                path={selectedFilePath || "untitled"}
-                language={monacoLanguage(selectedEntry, selectedFilePath)}
-                theme={
-                  appContext?.state.themeMode === "dark" ? "dark" : "light"
-                }
-                disabled={interactionLocked}
-                onChange={onFileChange}
-              />
-            ) : (
-              <div className={SKILL_BINARY_PANEL_CLASS_NAME}>
-                {isSkillImageEntry(selectedEntry) && (
-                  <SkillBinaryImagePreview
-                    skillId={detail.skill.id}
-                    entry={selectedEntry}
-                    t={t}
-                  />
-                )}
-                <strong>{selectedEntry.name}</strong>
-                <div className={SKILL_BINARY_GRID_CLASS_NAME}>
-                  <span>{t("skillConsole.field.path")}</span>
-                  <span>{selectedEntry.path}</span>
-                  <span>{t("skillConsole.field.size")}</span>
-                  <span>{formatSize(selectedEntry.size)}</span>
-                  <span>{t("skillConsole.field.mime")}</span>
-                  <span>{selectedEntry.mimeType || "--"}</span>
-                  <span>{t("skillConsole.field.sha256")}</span>
-                  <span>{fileSha256 || selectedEntry.sha256 || "--"}</span>
-                </div>
-              </div>
-            )}
-          </>
-        ) : (
-          <>
-            <div className={SKILL_FILE_EDITOR_HEAD_CLASS_NAME}>
-              {!fileTreeOpen && (
-                <UiButton
-                  size="sm"
-                  variant="ghost"
-                  className="ui-icon-hover-24"
-                  iconOnly
-                  onClick={onToggleFileTree}
-                  aria-label={t("skillConsole.action.expandFileTree")}
-                >
-                  <MaterialIcon name="dock_to_left" />
-                </UiButton>
-              )}
-            </div>
-            <div className="command-empty-state">
-              {t("skillConsole.fileTree.empty")}
-            </div>
-          </>
-        )}
-      </div>
-
-      {fileTreeOpen ? (
+  const skillFileTreePanel = (
         <div
           className={SKILL_FILE_TREE_PANEL_CLASS_NAME}
           style={
             {
-              "--skill-file-tree-col": `${fileTreeWidth}px`,
+              "--skill-file-tree-col": mobile ? "100%" : `${fileTreeWidth}px`,
             } as React.CSSProperties
           }
         >
-          <button
-            type="button"
-            role="separator"
-            aria-orientation="vertical"
-            aria-label={t("skillConsole.resize.fileTreeAriaLabel")}
-            title={t("skillConsole.resize.fileTreeTitle")}
-            className={SKILL_RESIZE_HANDLE_CLASS_NAME}
-            style={{ left: -4 }}
-            onPointerDown={handleFileTreeResize}
-          />
+          {mobile ? null : (
+            <button
+              type="button"
+              role="separator"
+              aria-orientation="vertical"
+              aria-label={t("skillConsole.resize.fileTreeAriaLabel")}
+              title={t("skillConsole.resize.fileTreeTitle")}
+              className={SKILL_RESIZE_HANDLE_CLASS_NAME}
+              style={{ left: -4 }}
+              onPointerDown={handleFileTreeResize}
+            />
+          )}
           <div className={SKILL_FILE_TREE_TOOLBAR_CLASS_NAME}>
             <span className="tw:min-w-0 tw:flex-1 tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:text-xs tw:font-medium tw:text-ink-muted">
               {t("skillConsole.fileTree.root")}
@@ -1504,6 +1377,8 @@ export const SkillFileWorkspace: React.FC<SkillFileWorkspaceProps> = ({
                       disabled={interactionLocked}
                       onClick={() => {
                         void onSelectFileEntry(entry);
+                        // 移动端文件树是右侧抽屉：选中文件后自动收起，目录保持展开继续浏览。
+                        if (mobile && entry.contentKind !== "directory") onToggleFileTree();
                       }}
                     >
                       <SkillFileEntryIcon
@@ -1569,6 +1444,166 @@ export const SkillFileWorkspace: React.FC<SkillFileWorkspaceProps> = ({
             )}
           </div>
         </div>
+  );
+
+  return (
+    <div className={`${SKILL_FILE_PANELS_CLASS_NAME} ${mobile ? "is-mobile" : ""}`}>
+      <div ref={editorPanelRef} className={SKILL_FILE_EDITOR_CLASS_NAME}>
+        {selectedEntry ? (
+          <>
+            <div className={SKILL_FILE_EDITOR_HEAD_CLASS_NAME}>
+              <div className={SKILL_FILE_EDITOR_META_CLASS_NAME}>
+                <SkillFileEntryIcon
+                  entry={selectedEntry}
+                  expanded={expandedDirs.has(selectedEntry.path)}
+                />
+                <span className={SKILL_FILE_EDITOR_HEAD_PATH_CLASS_NAME}>
+                  {selectedEntry.path}
+                </span>
+                <span>
+                  {isDirSelected
+                    ? t("skillConsole.fileTree.directory")
+                    : isTextSelected
+                      ? languageLabel(selectedEntry)
+                      : selectedEntry.mimeType || "Binary"}
+                </span>
+                {fileSize !== undefined && <span>{formatSize(fileSize)}</span>}
+              </div>
+              <div className={SKILL_DETAIL_ACTIONS_CLASS_NAME}>
+                {isFileDirty && (
+                  <span className={SKILL_DIRTY_CLASS_NAME}>
+                    {t("skillConsole.message.unsaved")}
+                  </span>
+                )}
+                <UiButton
+                  size="sm"
+                  variant="ghost"
+                  className="ui-icon-hover-24"
+                  iconOnly
+                  onClick={onRefreshFile}
+                  disabled={saving || interactionLocked}
+                  aria-label={t("skillConsole.action.refresh")}
+                >
+                  <MaterialIcon name="refresh" />
+                </UiButton>
+                {isTextSelected && isFileDirty && (
+                  <UiButton
+                    size="sm"
+                    variant="ghost"
+                    className="ui-icon-hover-24 tw:!text-accent"
+                    iconOnly
+                    onClick={onSave}
+                    disabled={saving || !isFileDirty || interactionLocked}
+                    aria-label={t("skillConsole.action.save")}
+                  >
+                    <MaterialIcon name="save" />
+                  </UiButton>
+                )}
+                {!fileTreeOpen && (
+                  <UiButton
+                    size="sm"
+                    variant="ghost"
+                    className="ui-icon-hover-24"
+                    iconOnly
+                    onClick={onToggleFileTree}
+                    aria-label={t("skillConsole.action.expandFileTree")}
+                  >
+                    <MaterialIcon name="dock_to_left" />
+                  </UiButton>
+                )}
+              </div>
+            </div>
+
+            {isDirSelected ? (
+              <div className={SKILL_BINARY_PANEL_CLASS_NAME}>
+                <strong>{selectedEntry.name}</strong>
+                <div className={SKILL_BINARY_GRID_CLASS_NAME}>
+                  <span>{t("skillConsole.field.path")}</span>
+                  <span>{selectedEntry.path}</span>
+                  <span>{t("skillConsole.field.children")}</span>
+                  <span>
+                    {
+                      entries.filter(
+                        (entry) => entry.parentPath === selectedEntry.path,
+                      ).length
+                    }
+                  </span>
+                </div>
+                <div className="tw:text-xs tw:text-ink-muted">
+                  {t("skillConsole.fileTree.dirHint")}
+                </div>
+              </div>
+            ) : isTextSelected ? (
+              <CodeEditor
+                className={SKILL_EDITOR_CLASS_NAME}
+                value={fileContent}
+                path={selectedFilePath || "untitled"}
+                language={monacoLanguage(selectedEntry, selectedFilePath)}
+                theme={
+                  appContext?.state.themeMode === "dark" ? "dark" : "light"
+                }
+                disabled={interactionLocked}
+                onChange={onFileChange}
+              />
+            ) : (
+              <div className={SKILL_BINARY_PANEL_CLASS_NAME}>
+                {isSkillImageEntry(selectedEntry) && (
+                  <SkillBinaryImagePreview
+                    skillId={detail.skill.id}
+                    entry={selectedEntry}
+                    t={t}
+                  />
+                )}
+                <strong>{selectedEntry.name}</strong>
+                <div className={SKILL_BINARY_GRID_CLASS_NAME}>
+                  <span>{t("skillConsole.field.path")}</span>
+                  <span>{selectedEntry.path}</span>
+                  <span>{t("skillConsole.field.size")}</span>
+                  <span>{formatSize(selectedEntry.size)}</span>
+                  <span>{t("skillConsole.field.mime")}</span>
+                  <span>{selectedEntry.mimeType || "--"}</span>
+                  <span>{t("skillConsole.field.sha256")}</span>
+                  <span>{fileSha256 || selectedEntry.sha256 || "--"}</span>
+                </div>
+              </div>
+            )}
+          </>
+        ) : (
+          <>
+            <div className={SKILL_FILE_EDITOR_HEAD_CLASS_NAME}>
+              {!fileTreeOpen && (
+                <UiButton
+                  size="sm"
+                  variant="ghost"
+                  className="ui-icon-hover-24"
+                  iconOnly
+                  onClick={onToggleFileTree}
+                  aria-label={t("skillConsole.action.expandFileTree")}
+                >
+                  <MaterialIcon name="dock_to_left" />
+                </UiButton>
+              )}
+            </div>
+            <div className="command-empty-state">
+              {t("skillConsole.fileTree.empty")}
+            </div>
+          </>
+        )}
+      </div>
+
+      {!mobile && fileTreeOpen ? skillFileTreePanel : null}
+      {mobile ? (
+        <MobileSwipeDrawer
+          ref={fileTreeDrawerRef}
+          side="right"
+          open={fileTreeOpen}
+          onClose={onToggleFileTree}
+          ariaLabel={t("skillConsole.fileTree.panelAriaLabel")}
+          className="skill-console-file-tree-drawer"
+          panelWidth="min(340px, 92vw)"
+        >
+          {skillFileTreePanel}
+        </MobileSwipeDrawer>
       ) : null}
     </div>
   );
@@ -1580,24 +1615,55 @@ export interface SkillConsoleProps {
   selectedSkillId: string;
   onSelectSkillId: (skillId: string) => void;
   onClearSelection: () => void;
+  /** 移动端：列表收进左侧抽屉，详情独占整屏。 */
+  mobile?: boolean;
 }
+
+/** 让技能列表行也能调用 hook 做长按手势。 */
+const SkillRowLongPress: React.FC<{
+  onLongPress?: () => void;
+  children: (gesture: ReturnType<typeof useLongPress>) => React.ReactNode;
+}> = ({ onLongPress, children }) => {
+  const gesture = useLongPress(onLongPress);
+  return <>{children(gesture)}</>;
+};
 
 export const SkillConsole: React.FC<SkillConsoleProps> = ({
   selectedSkillId,
   onSelectSkillId,
   onClearSelection,
+  mobile = false,
 }) => {
   const { t, locale } = useI18n();
   const { modal } = AntdApp.useApp();
   const assistant = useResourceAssistant();
   const editorRegion = useRef<HTMLDivElement>(null);
+  const consoleRootRef = useRef<HTMLDivElement>(null);
+  const mobileListDrawerRef = useRef<MobileSwipeDrawerHandle>(null);
+  const fileTreeDrawerRef = useRef<MobileSwipeDrawerHandle>(null);
+  const [mobileListOpen, setMobileListOpen] = useState(false);
+  const [actionsSkill, setActionsSkill] = useState<AdminSkillSummary | null>(null);
+  const [actionsOpen, setActionsOpen] = useState(false);
+  const mobileListLayout = Boolean(mobile);
   const {
     skills, setSkills, packages, pinnedSkillIds, toggleSkillPin, pinsDisabled,
     pinError, listError, listLoading, refresh: loadSkills,
   } = useAdminSkillCatalog();
+  useEffect(() => {
+    if (!mobileListLayout) setMobileListOpen(false);
+  }, [mobileListLayout]);
+  // 抽屉或行内动作面板打开时，详情区不参与交互和无障碍树。
+  useEffect(() => {
+    const element = editorRegion.current;
+    if (!element) return;
+    element.inert = mobileListOpen || actionsOpen;
+    return () => { element.inert = false; };
+  }, [mobileListOpen, actionsOpen]);
   const [selectedPackageId, setSelectedPackageId] = useState("");
   const [expandedPackages, setExpandedPackages] = useState<Set<string>>(new Set());
   const [fileTreeOpen, setFileTreeOpen] = useState(() => {
+    // /mobile 上文件树是右侧抽屉，默认收起；桌面沿用宽屏展开的偏好。
+    if (mobile) return false;
     if (
       typeof window === "undefined" ||
       typeof window.matchMedia !== "function"
@@ -2449,10 +2515,10 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
     );
   };
 
-  const renderSkillItem = (item: AdminSkillSummary) => {
+  const buildSkillMenu = (item: AdminSkillSummary) => {
     const itemPinned = pinnedSkillIds.includes(item.id.toLowerCase());
     const itemBusy = validating || downloadingSkill || deletingSkill || assistant.opening;
-    const skillMenu = buildSkillListItemMenu({
+    return buildSkillListItemMenu({
       item,
       pinned: itemPinned,
       busy: itemBusy,
@@ -2476,87 +2542,172 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
         if (await confirmDiscardBeforeAdding()) void assistant.open({ kind: "skill", target: { id: target.id, name: skillDisplayName(target) } });
       },
     });
+  };
+
+  const openSkillActions = (item: AdminSkillSummary) => {
+    setActionsSkill(item);
+    setActionsOpen(true);
+  };
+  const actionsMenu = actionsSkill ? buildSkillMenu(actionsSkill) : null;
+
+  const openMobileList = useCallback(() => {
+    setFileTreeOpen(false);
+    setMobileListOpen(true);
+  }, []);
+  const closeMobileList = useCallback(() => setMobileListOpen(false), []);
+  const toggleMobileList = useCallback(() => {
+    setFileTreeOpen(false);
+    setMobileListOpen((open) => !open);
+  }, []);
+  const openFileTree = useCallback(() => {
+    setMobileListOpen(false);
+    setFileTreeOpen(true);
+  }, []);
+  const closeFileTree = useCallback(() => setFileTreeOpen(false), []);
+  const toggleFileTree = useCallback(() => {
+    setMobileListOpen(false);
+    setFileTreeOpen((open) => !open);
+  }, []);
+  useMobileSwipeGestures({
+    rootRef: consoleRootRef,
+    left: {
+      ref: mobileListDrawerRef,
+      open: mobileListOpen,
+      onOpen: openMobileList,
+      onClose: closeMobileList,
+    },
+    right: {
+      ref: fileTreeDrawerRef,
+      open: fileTreeOpen,
+      onOpen: openFileTree,
+      onClose: closeFileTree,
+    },
+    disabled: !mobileListLayout,
+  });
+  const mobileHeaderSkill = skills.find((item) => item.id === selectedSkillId);
+  const mobileHeaderName = selectedPackage
+    ? skillPackageDisplayName(selectedPackage)
+    : mobileHeaderSkill
+      ? skillDisplayName(mobileHeaderSkill)
+      : t("route.title.skills");
+  const mobileHeaderIcon = selectedPackage?.icon || mobileHeaderSkill?.icon || "";
+  const mobileHeaderAvatar = useMemo(
+    () => (
+      <SkillIcon
+        icon={mobileHeaderIcon}
+        fallback={selectedPackage ? "folder" : "skills"}
+        size={22}
+      />
+    ),
+    [mobileHeaderIcon, selectedPackage?.id],
+  );
+  useMobilePageHeaderAction(
+    mobileListLayout
+      ? {
+          label: mobileHeaderName,
+          ariaLabel: t("skillConsole.mobile.switcherAriaLabel", {
+            name: mobileHeaderName,
+          }),
+          avatar: mobileHeaderAvatar,
+          icon: "swap_horiz",
+          expanded: mobileListOpen,
+          onActivate: toggleMobileList,
+        }
+      : null,
+  );
+
+  const renderSkillItem = (item: AdminSkillSummary) => {
+    const itemPinned = pinnedSkillIds.includes(item.id.toLowerCase());
+    const skillMenu = buildSkillMenu(item);
     return (
-      <RowMoreMenu
+      <SkillRowLongPress
         key={`skill:${item.id}`}
-        className={SKILL_LIST_ITEM_WRAP_CLASS_NAME}
-        items={skillMenu.items}
-        onSelect={skillMenu.onClick}
-        label={t("skillConsole.action.more")}
-        ariaLabel={`${skillDisplayName(item)}: ${t("skillConsole.action.more")}`}
+        onLongPress={
+          mobileListLayout && !deletingSkill
+            ? () => openSkillActions(item)
+            : undefined
+        }
       >
-        <button
-          type="button"
-          className={`${SKILL_LIST_ITEM_CLASS_NAME} ${
-            !selectedPackageId && item.id === selectedSkillId ? "is-active" : ""
-          }`}
-          disabled={deletingSkill}
-          onClick={() => handleSelectSkill(item)}
-        >
-          <span className={SKILL_LIST_ITEM_HEAD_CLASS_NAME}>
-            <SkillListIcon icon={item.icon} />
-            <span className={SKILL_LIST_ITEM_TITLE_CLASS_NAME}>
-              <Flex
-                gap={6}
-                align="center"
-                className="tw:w-full"
-              >
-                <SkillListOverflowText
-                  className={[libraryPresentation.typography, "tw:flex-1"].filter(Boolean).join(" ")}
-                  text={skillDisplayName(item)}
-                  strong
-                />
-                {itemPinned && (
-                  <MaterialIcon
-                    name="push_pin"
-                    className="tw:h-[14px] tw:w-[14px] tw:flex-none tw:text-[14px] tw:text-ink-muted tw:transition-opacity tw:group-hover:opacity-0 tw:group-has-[:focus-visible]:opacity-0 tw:group-data-[menu-open]:opacity-0"
-                    title={t("skillConsole.action.pin")}
-                    aria-label={t("skillConsole.action.pin")}
-                  />
-                )}
-                <SkillListItemStatus
-                  status={item.status}
-                  statusLabel={translateWithFallback(
-                    t,
-                    `skillConsole.status.${item.status}`,
-                    item.status,
-                  )}
-                />
-              </Flex>
-              <Flex
-                justify="space-between"
-                align="center"
-                className="tw:w-full"
-                gap={10}
-              >
-                <SkillListOverflowText
-                  className={[libraryPresentation.typography, SKILL_LIST_ITEM_META_CLASS_NAME].filter(Boolean).join(" ")}
-                  text={item.id}
-                />
-                <SkillListItemVersion version={item.version} />
-              </Flex>
-            </span>
-          </span>
-        </button>
-      </RowMoreMenu>
+        {(gesture) => (
+          <RowMoreMenu
+            className={SKILL_LIST_ITEM_WRAP_CLASS_NAME}
+            items={skillMenu.items}
+            onSelect={skillMenu.onClick}
+            label={t("skillConsole.action.more")}
+            ariaLabel={`${skillDisplayName(item)}: ${t("skillConsole.action.more")}`}
+            disabled={deletingSkill}
+            onMoreClick={
+              mobileListLayout && !deletingSkill
+                ? () => openSkillActions(item)
+                : undefined
+            }
+          >
+            <button
+              type="button"
+              className={`${SKILL_LIST_ITEM_CLASS_NAME} ${
+                !selectedPackageId && item.id === selectedSkillId ? "is-active" : ""
+              }`}
+              disabled={deletingSkill}
+              onClick={() => {
+                if (gesture.consumeClick()) return;
+                // 选中技能后立即收起抽屉，直接回到详情。
+                if (mobileListLayout) setMobileListOpen(false);
+                handleSelectSkill(item);
+              }}
+              {...gesture.longPressProps}
+            >
+              <span className={SKILL_LIST_ITEM_HEAD_CLASS_NAME}>
+                <SkillListIcon icon={item.icon} />
+                <span className={SKILL_LIST_ITEM_TITLE_CLASS_NAME}>
+                  <Flex
+                    gap={6}
+                    align="center"
+                    className="tw:w-full"
+                  >
+                    <SkillListOverflowText
+                      className={[libraryPresentation.typography, "tw:flex-1"].filter(Boolean).join(" ")}
+                      text={skillDisplayName(item)}
+                      strong
+                    />
+                    {itemPinned && (
+                      <MaterialIcon
+                        name="push_pin"
+                        className="tw:h-[14px] tw:w-[14px] tw:flex-none tw:text-[14px] tw:text-ink-muted tw:transition-opacity tw:group-hover:opacity-0 tw:group-has-[:focus-visible]:opacity-0 tw:group-data-[menu-open]:opacity-0"
+                        title={t("skillConsole.action.pin")}
+                        aria-label={t("skillConsole.action.pin")}
+                      />
+                    )}
+                    <SkillListItemStatus
+                      status={item.status}
+                      statusLabel={translateWithFallback(
+                        t,
+                        `skillConsole.status.${item.status}`,
+                        item.status,
+                      )}
+                    />
+                  </Flex>
+                  <Flex
+                    justify="space-between"
+                    align="center"
+                    className="tw:w-full"
+                    gap={10}
+                  >
+                    <SkillListOverflowText
+                      className={[libraryPresentation.typography, SKILL_LIST_ITEM_META_CLASS_NAME].filter(Boolean).join(" ")}
+                      text={item.id}
+                    />
+                    <SkillListItemVersion version={item.version} />
+                  </Flex>
+                </span>
+              </span>
+            </button>
+          </RowMoreMenu>
+        )}
+      </SkillRowLongPress>
     );
   };
 
-  return (
-    <div className={SKILL_CONSOLE_CLASS_NAME}>
-      <SkillCreateModal
-        open={createModalOpen}
-        existingIds={skills.map((item) => item.id)}
-        t={t}
-        onCancel={() => setCreateModalOpen(false)}
-        onDirectCreate={handleDirectCreate}
-        onZipImport={handleZipImport}
-      />
-
-      <div
-        className={SKILL_BODY_CLASS_NAME}
-        style={{ "--skill-list-col": `${listWidth}px` } as React.CSSProperties}
-      >
+  const skillListPane = (
         <div className={SKILL_LIST_CLASS_NAME}>
           <div className={SKILL_TOOLBAR_CLASS_NAME}>
             <Input
@@ -2658,17 +2809,41 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
               </div>
             </Spin>
           </div>
-          <button
-            type="button"
-            role="separator"
-            aria-orientation="vertical"
-            aria-label={t("skillConsole.resize.listAriaLabel")}
-            title={t("skillConsole.resize.listTitle")}
-            className={SKILL_RESIZE_HANDLE_CLASS_NAME}
-            style={{ right: -6 }}
-            onPointerDown={handleListResize}
-          />
+          {mobileListLayout ? null : (
+            <button
+              type="button"
+              role="separator"
+              aria-orientation="vertical"
+              aria-label={t("skillConsole.resize.listAriaLabel")}
+              title={t("skillConsole.resize.listTitle")}
+              className={SKILL_RESIZE_HANDLE_CLASS_NAME}
+              style={{ right: -6 }}
+              onPointerDown={handleListResize}
+            />
+          )}
         </div>
+
+  );
+
+  return (
+    <div
+      ref={consoleRootRef}
+      className={`${SKILL_CONSOLE_CLASS_NAME} ${mobileListLayout ? "is-mobile" : ""}`}
+    >
+      <SkillCreateModal
+        open={createModalOpen}
+        existingIds={skills.map((item) => item.id)}
+        t={t}
+        onCancel={() => setCreateModalOpen(false)}
+        onDirectCreate={handleDirectCreate}
+        onZipImport={handleZipImport}
+      />
+
+      <div
+        className={SKILL_BODY_CLASS_NAME}
+        style={{ "--skill-list-col": `${listWidth}px` } as React.CSSProperties}
+      >
+        {mobileListLayout ? null : skillListPane}
 
         <div ref={editorRegion} className={SKILL_DETAIL_CLASS_NAME}>
 
@@ -2716,7 +2891,9 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
                 deletingSkill={deletingSkill}
                 downloadingFile={downloadingFile}
                 fileTreeOpen={fileTreeOpen}
-                onToggleFileTree={() => setFileTreeOpen((open) => !open)}
+                mobile={mobileListLayout}
+                fileTreeDrawerRef={fileTreeDrawerRef}
+                onToggleFileTree={toggleFileTree}
                 t={t}
                 onCreateFile={handleCreateFile}
                 onCreateDir={handleCreateDir}
@@ -2736,6 +2913,71 @@ export const SkillConsole: React.FC<SkillConsoleProps> = ({
           </Spin>
         </div>
       </div>
+      {mobileListLayout ? (
+        <MobileSwipeDrawer
+          ref={mobileListDrawerRef}
+          side="left"
+          open={mobileListOpen}
+          onClose={closeMobileList}
+          ariaLabel={t("skillConsole.mobile.listTitle")}
+          className="skill-console-mobile-list-drawer"
+          fullWidth
+        >
+          {skillListPane}
+        </MobileSwipeDrawer>
+      ) : null}
+      {mobileListLayout ? (
+        <BottomSheet
+          open={actionsOpen}
+          onClose={() => setActionsOpen(false)}
+          ariaLabel={t("skillConsole.action.more")}
+          getContainer=".layout-mobile"
+        >
+          <div className="skill-console-actions-sheet">
+            <div className="skill-console-actions-sheet-title">
+              {actionsSkill ? skillDisplayName(actionsSkill) : ""}
+            </div>
+            {(actionsMenu?.items || []).map((item) => {
+              if (!item || item.type === "divider") return null;
+              const menuItem = item as {
+                key?: React.Key;
+                label?: React.ReactNode;
+                icon?: React.ReactNode;
+                danger?: boolean;
+                disabled?: boolean;
+              };
+              const key = String(menuItem.key ?? "");
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  className={`skill-console-actions-row ${menuItem.danger ? "is-danger" : ""}`}
+                  disabled={menuItem.disabled}
+                  onClick={(event) => {
+                    setActionsOpen(false);
+                    // 打开详情、资源对话或确认框前先收起列表，避免遮住目标界面。
+                    if (
+                      mobileListLayout &&
+                      (key === "edit" || key === "edit-conversation" || key === "delete")
+                    ) {
+                      setMobileListOpen(false);
+                    }
+                    const info = {
+                      key,
+                      keyPath: [key],
+                      domEvent: event,
+                    } as unknown as Parameters<NonNullable<MenuProps["onClick"]>>[0];
+                    actionsMenu?.onClick?.(info);
+                  }}
+                >
+                  {menuItem.icon}
+                  <span>{menuItem.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </BottomSheet>
+      ) : null}
     </div>
   );
 };

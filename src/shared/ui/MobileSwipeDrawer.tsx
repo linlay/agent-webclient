@@ -43,6 +43,8 @@ export interface MobileSwipeDrawerProps {
   className?: string;
   /** 面板占满整宽（默认左右抽屉保留 16px 遮罩，给壳层导航留出手势边界）。 */
   fullWidth?: boolean;
+  /** 自定义面板宽度；用于页内的窄抽屉（例如技能文件树）。 */
+  panelWidth?: string;
   children: React.ReactNode;
 }
 
@@ -57,7 +59,7 @@ export const MobileSwipeDrawer = forwardRef<
   MobileSwipeDrawerHandle,
   MobileSwipeDrawerProps
 >(function MobileSwipeDrawer(
-  { side, open, onClose, ariaLabel, className, fullWidth = false, children },
+  { side, open, onClose, ariaLabel, className, fullWidth = false, panelWidth, children },
   ref,
 ) {
   const layerRef = useRef<HTMLDivElement>(null);
@@ -352,6 +354,7 @@ export const MobileSwipeDrawer = forwardRef<
       <div
         ref={panelRef}
         className={styles.panel}
+        style={panelWidth ? { width: panelWidth } : undefined}
         role="dialog"
         aria-modal={engaged ? true : undefined}
         aria-label={ariaLabel}

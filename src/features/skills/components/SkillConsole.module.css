@@ -84,10 +84,123 @@
     mask-image: linear-gradient(to right, #000 calc(100% - 36px), transparent calc(100% - 18px));
 }
 
+/* 触屏没有 hover，行尾「更多」常驻；给行留出按钮宽度，并按需保留标题完整显示。 */
 @media (hover: none) {
-
-    :global(.skill-console-list-item-wrap)[data-has-actions] :global(.skill-console-list-item-title) {
-        -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 36px), transparent calc(100% - 18px));
-        mask-image: linear-gradient(to right, #000 calc(100% - 36px), transparent calc(100% - 18px));
+    :global(.skill-console-list-item-wrap) :global(.skill-console-list-item) {
+        padding-right: 36px;
     }
+}
+
+/* ---- 移动端：技能列表收进左侧抽屉，详情独占整屏 ---- */
+:global(.skill-console.is-mobile) {
+    position: relative;
+}
+
+:global(.skill-console.is-mobile) :global(.skill-console-body) {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
+    overflow: hidden;
+}
+
+:global(.skill-console-mobile-list-drawer) {
+    z-index: 1010;
+}
+
+:global(.skill-console-mobile-list-drawer) :global(.skill-console-list) {
+    width: 100%;
+    flex: 1 1 auto;
+    max-height: none;
+    border-right: 0;
+    padding-top: 8px;
+    padding-bottom: max(8px, env(safe-area-inset-bottom, 0px));
+}
+
+/* 长按列表项打开动作面板，避免系统文本选择/callout 抢占手势。 */
+:global(.skill-console-list-item) {
+    -webkit-touch-callout: none;
+    user-select: none;
+}
+
+/* 行内更多动作面板与 Agent 管理台保持同一套视觉：标题 + 图标行 + 危险色。 */
+:global(.skill-console-actions-sheet) {
+    display: flex;
+    flex-direction: column;
+    padding-bottom: max(8px, env(safe-area-inset-bottom, 0px));
+}
+
+:global(.skill-console-actions-sheet-title) {
+    padding: 2px 18px 10px;
+    border-bottom: 1px solid color-mix(in srgb, var(--line-soft) 72%, transparent);
+    overflow: hidden;
+    color: var(--ink-muted);
+    font-size: 13px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+:global(.skill-console-actions-row) {
+    /* 菜单项图标带 ui-icon-hover-24-target，行内补变量，避免尺寸退化为 SVG 原始大小。 */
+    --ui-icon-hover-icon-size: 20px;
+    --ui-icon-hover-bg-size: 32px;
+    --ui-icon-hover-bg-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    min-height: 52px;
+    padding: 0 18px;
+    border: 0;
+    background: transparent;
+    color: var(--ink-1);
+    font-size: 16px;
+    text-align: left;
+    cursor: pointer;
+}
+
+:global(.skill-console-actions-row):active {
+    background: var(--bg-hover);
+}
+
+:global(.skill-console-actions-row):disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+:global(.skill-console-actions-row) :global(.material-icon) {
+    width: 20px;
+    height: 20px;
+    font-size: 20px;
+    color: var(--ink-muted);
+}
+
+:global(.skill-console-actions-row) + :global(.skill-console-actions-row) {
+    border-top: 1px solid color-mix(in srgb, var(--line-soft) 72%, transparent);
+}
+
+:global(.skill-console-actions-row):global(.is-danger) {
+    color: var(--accent-danger);
+}
+
+:global(.skill-console-actions-row):global(.is-danger) :global(.material-icon) {
+    color: inherit;
+}
+
+/* ---- 移动端文件树：右侧抽屉，和左侧技能列表共用控制台手势 ---- */
+:global(.skill-console-file-panels.is-mobile) {
+    position: relative;
+}
+
+:global(.skill-console-file-tree-drawer) {
+    z-index: 1010;
+}
+
+:global(.skill-console-file-tree-drawer) :global(.skill-console-file-tree-panel) {
+    width: 100%;
+    height: 100%;
+    max-height: none;
+    border-left: 0;
+}
+
+:global(.skill-console-file-tree-drawer) :global(.skill-console-file-tree) {
+    flex: 1 1 auto;
 }

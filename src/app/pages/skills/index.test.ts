@@ -3,14 +3,16 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { SkillsPage } from "@/app/pages/skills";
 
 const navigateMock = jest.fn();
+let locationMock = { pathname: "/skills", search: "?lang=en" };
 let skillConsoleProps: {
+  mobile?: boolean;
   selectedSkillId?: string;
   onSelectSkillId?: (skillId: string) => void;
   onClearSelection?: () => void;
 } = {};
 
 jest.mock("react-router-dom", () => ({
-  useLocation: () => ({ search: "?lang=en" }),
+  useLocation: () => locationMock,
   useNavigate: () => navigateMock,
   useParams: () => ({ skillId: "" }),
 }));
@@ -25,12 +27,24 @@ jest.mock("@/features/skills/components/SkillConsole", () => ({
 describe("SkillsPage", () => {
   beforeEach(() => {
     navigateMock.mockClear();
+    locationMock = { pathname: "/skills", search: "?lang=en" };
     skillConsoleProps = {};
   });
 
   it("renders the skill console", () => {
     const html = renderToStaticMarkup(React.createElement(SkillsPage));
     expect(html).toContain("skill console");
+  });
+
+  it("passes the mobile presentation without a second page", () => {
+    const desktopHtml = renderToStaticMarkup(React.createElement(SkillsPage));
+    expect(skillConsoleProps.mobile).toBe(false);
+    expect(desktopHtml).toContain('class="skills-page"');
+
+    locationMock = { pathname: "/mobile/skills", search: "?lang=en" };
+    const mobileHtml = renderToStaticMarkup(React.createElement(SkillsPage));
+    expect(skillConsoleProps.mobile).toBe(true);
+    expect(mobileHtml).toContain('class="skills-page"');
   });
 
   it("preserves the route query when selecting a skill", () => {

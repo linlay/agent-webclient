@@ -118,12 +118,11 @@
 .page :global(.ant-drawer-body) > :is(main, section, div) { height: 100%; min-height: 0; max-width: 100%; }
 .page :global(.agents-page), .page :global(.archives-page), .page :global(.skills-page),
 .page :global(.registries-page), .page :global(.connectors-page), .page :global(.automations-console-page) { height: 100%; min-height: 0; }
-/* /agents 自带移动端布局：列表收进抽屉，详情独占整屏，这里不再强制上下分栏。 */
-.root :global(.skill-console-body), .root :global(.archive-console),
+/* /agents 与 /skills 自带移动端布局：列表收进抽屉，详情独占整屏，这里不再强制上下分栏。 */
+.root :global(.archive-console),
 .root :global(.automation-console-body) { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(130px, 28%) minmax(0, 1fr); overflow: hidden; }
-.root :global(.skill-console-list), .root :global(.archive-console-list-pane),
+.root :global(.archive-console-list-pane),
 .root :global(.registry-console-list-pane), .root :global(.automation-console-list) { max-height: none; min-width: 0; overflow: hidden; }
-.root :global(.skill-console-resize-handle),
 .root :global(.archive-console-resize-handle), .root :global(.registry-console-resize-handle) { display: none; }
 .root :global(.settings-grid), .root :global(.settings-preferences-grid), .root :global(.settings-numeric-grid),
 .root :global(.automation-form-grid), .root :global(.automation-basic-form-grid) { grid-template-columns: minmax(0, 1fr); }

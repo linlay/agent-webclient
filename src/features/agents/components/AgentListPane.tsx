@@ -1,5 +1,5 @@
 import { CreateMenuButton } from "@/shared/ui/CreateMenuButton";
-import React, { useMemo, useRef, useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
   closestCenter,
   DndContext,
@@ -23,26 +23,7 @@ import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
 import { RowMoreMenu } from "@/shared/ui/RowMoreMenu";
 import { BottomSheet } from "@/shared/ui/BottomSheet";
-
-/** 长按识别后吞掉紧随其后的 click，避免面板刚打开就被松手点击关掉。 */
-function swallowNextClick() {
-  if (typeof window === "undefined") return;
-  let timer = 0;
-  const cleanup = () => {
-    window.removeEventListener("click", swallow, true);
-    window.clearTimeout(timer);
-  };
-  const swallow = (event: Event) => {
-    event.preventDefault();
-    event.stopPropagation();
-    cleanup();
-  };
-  window.addEventListener("click", swallow, true);
-  timer = window.setTimeout(cleanup, 400);
-}
-
-const LONG_PRESS_MS = 500;
-const LONG_PRESS_MOVE_TOLERANCE = 10;
+import { useLongPress } from "@/shared/ui/hooks/useLongPress";
 
 export interface AgentListSummary {
   mode: string;
@@ -143,37 +124,9 @@ const SortableAgentListItem: React.FC<{
     id: sortableId,
     disabled: disabled || !agentKey,
   });
-  const longPressTimerRef = useRef<number | null>(null);
-  const longPressStartRef = useRef({ x: 0, y: 0 });
-  const suppressSelectRef = useRef(false);
-  const clearLongPress = () => {
-    if (longPressTimerRef.current !== null) {
-      window.clearTimeout(longPressTimerRef.current);
-      longPressTimerRef.current = null;
-    }
-  };
-  const startLongPress = (event: React.PointerEvent<HTMLDivElement>) => {
-    if (!onRequestActions || disabled) return;
-    if (event.pointerType === "mouse" && event.button !== 0) return;
-    const target = event.target as Element | null;
-    if (target?.closest("button, .is-drag-handle")) return;
-    longPressStartRef.current = { x: event.clientX, y: event.clientY };
-    clearLongPress();
-    longPressTimerRef.current = window.setTimeout(() => {
-      longPressTimerRef.current = null;
-      suppressSelectRef.current = true;
-      swallowNextClick();
-      window.setTimeout(() => { suppressSelectRef.current = false; }, 600);
-      onRequestActions();
-    }, LONG_PRESS_MS);
-  };
-  const trackLongPress = (event: React.PointerEvent<HTMLDivElement>) => {
-    if (longPressTimerRef.current === null) return;
-    const { x, y } = longPressStartRef.current;
-    if (Math.hypot(event.clientX - x, event.clientY - y) > LONG_PRESS_MOVE_TOLERANCE) {
-      clearLongPress();
-    }
-  };
+  const { longPressProps, consumeClick } = useLongPress(onRequestActions, {
+    ignoreTarget: (target) => Boolean(target.closest(".is-drag-handle")),
+  });
   const moreLabel = t("leftSidebar.moreActions");
   const menuItems: MenuProps["items"] = [
     ...(onEditConversation
@@ -225,18 +178,10 @@ const SortableAgentListItem: React.FC<{
         tabIndex={0}
         className={`agent-console-list-item ${active ? "is-active" : ""} ${dragging ? "is-dragging" : ""} ${invalid ? "is-invalid" : ""}`}
         onClick={() => {
-          if (suppressSelectRef.current) {
-            suppressSelectRef.current = false;
-            return;
-          }
+          if (consumeClick()) return;
           onSelect(agentKey);
         }}
-        onPointerDown={startLongPress}
-        onPointerMove={trackLongPress}
-        onPointerUp={clearLongPress}
-        onPointerCancel={clearLongPress}
-        onPointerLeave={clearLongPress}
-        onContextMenu={onRequestActions ? (event) => event.preventDefault() : undefined}
+        {...longPressProps}
         onKeyDown={(event) => {
           if (event.target !== event.currentTarget) return;
           if (event.key === "Enter" || event.key === " ") {

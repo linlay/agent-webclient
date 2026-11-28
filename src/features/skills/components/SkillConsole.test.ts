@@ -125,6 +125,10 @@ jest.mock("antd", () => {
   Modal.confirm = jest.fn();
   return {
     App: { useApp: () => ({ modal: jest.requireMock("antd").Modal }) },
+    Drawer: ({ open, children, rootClassName }: Record<string, unknown>) =>
+      open
+        ? ReactMod.createElement("section", { className: rootClassName }, children as React.ReactNode)
+        : null,
     Input,
     Spin: ({ children }: { children: React.ReactNode }) =>
       ReactMod.createElement(React.Fragment, null, children),
@@ -280,6 +284,63 @@ describe("SkillConsole", () => {
     expect(html).toContain("skill-console-resize-handle");
     expect(html).not.toContain("minmax(220px,0.252fr)");
     expect(html).not.toContain("minmax(280px,0.52fr)");
+  });
+
+  it("moves the skill list into a left drawer on the mobile shell", () => {
+    const renderConsole = (mobile?: boolean) => renderToStaticMarkup(
+      React.createElement(SkillConsole, {
+        mobile,
+        selectedSkillId: "",
+        onSelectSkillId: onSelectSkillIdMock,
+        onClearSelection: onClearSelectionMock,
+      }),
+    );
+
+    const desktopHtml = renderConsole();
+    const mobileHtml = renderConsole(true);
+
+    expect(desktopHtml).toContain("skill-console-list");
+    expect(desktopHtml).toContain("skill-console-resize-handle");
+    expect(desktopHtml).not.toContain("skill-console-mobile-list-drawer");
+    expect(mobileHtml).toContain("skill-console-mobile-list-drawer");
+    expect(mobileHtml).toContain('data-mobile-drawer="left"');
+    expect(mobileHtml).not.toContain("skill-console-resize-handle");
+  });
+
+  it("moves the file tree into a right drawer on the mobile shell", () => {
+    const noop = jest.fn();
+    const detail = {
+      skill: { id: "demo", name: "Demo" },
+      fileManifest: { entries: [] },
+    } as unknown as AdminSkillDetailResponse;
+    const html = renderToStaticMarkup(
+      React.createElement(SkillFileWorkspace, {
+        detail,
+        selectedFilePath: "",
+        fileContent: "",
+        fileSize: undefined,
+        fileSha256: null,
+        dirtyFiles: new Set<string>(),
+        expandedDirs: new Set<string>(),
+        isFileDirty: false,
+        saving: false,
+        mobile: true,
+        fileTreeOpen: true,
+        onToggleFileTree: noop,
+        t: (key: string) => key,
+        onCreateFile: noop,
+        onCreateDir: noop,
+        onCreateSubdir: noop,
+        onUploadFile: noop,
+        onRefreshFile: noop,
+        onSave: noop,
+        onFileChange: noop,
+        onSelectFileEntry: noop,
+      }),
+    );
+    expect(html).toContain("skill-console-file-tree-drawer");
+    expect(html).toContain('data-mobile-drawer="right"');
+    expect(html).toContain("skill-console-file-tree-panel");
   });
 
   it("formats skill versions with a v prefix and drops empty values", () => {
