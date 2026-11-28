@@ -228,3 +228,119 @@
         mask-image: linear-gradient(to right, #000 calc(100% - 36px), transparent calc(100% - 18px));
     }
 }
+
+/* ---- 移动端：左侧归档列表抽屉，详情独占整屏 ---- */
+:global(.layout-mobile) :global(.archive-console.is-mobile) {
+    position: relative;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
+    overflow: hidden;
+}
+
+:global(.archive-detail-region) {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden;
+}
+
+:global(.archive-detail-region) > :global(.archive-detail-pane),
+:global(.archive-detail-region) > :global(.archive-detail-empty) {
+    flex: 1 1 auto;
+    min-height: 0;
+}
+
+:global(.archive-mobile-list-drawer) {
+    z-index: 1010;
+}
+
+:global(.archive-mobile-list-drawer) :global(.archive-console-list-pane) {
+    width: 100%;
+    flex: 1 1 auto;
+    max-height: none;
+    border-right: 0;
+    padding-top: 8px;
+}
+
+:global(.archive-mobile-list-drawer) :global(.archive-list-pane) {
+    height: 100%;
+}
+
+/* ---- 移动端行操作面板 ---- */
+:global(.archive-actions-list) {
+    display: flex;
+    flex-direction: column;
+}
+
+:global(.archive-actions-sheet-title) {
+    padding: 4px 18px 12px;
+    color: var(--ink-muted);
+    font-size: 13px;
+    border-bottom: 1px solid color-mix(in srgb, var(--line-soft) 72%, transparent);
+}
+
+:global(.archive-actions-row) {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    min-height: 52px;
+    padding: 0 18px;
+    border: 0;
+    background: transparent;
+    color: var(--ink-1);
+    font-size: 16px;
+    text-align: left;
+    cursor: pointer;
+}
+
+:global(.archive-actions-row):active {
+    background: var(--bg-hover);
+}
+
+:global(.archive-actions-row):disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+:global(.archive-actions-row) :global(.material-icon) {
+    width: 20px;
+    height: 20px;
+    font-size: 20px;
+    color: var(--ink-muted);
+}
+
+:global(.archive-actions-row) + :global(.archive-actions-row) {
+    border-top: 1px solid color-mix(in srgb, var(--line-soft) 72%, transparent);
+}
+
+:global(.archive-actions-row):global(.is-danger) {
+    color: var(--accent-danger);
+}
+
+:global(.archive-actions-row):global(.is-danger) :global(.material-icon) {
+    color: inherit;
+}
+
+/* 移动端分组「更多」与行尾「更多」右对齐、同色（行尾按钮为 RowMoreMenu 的 mini 图标按钮）。 */
+@media (hover: none) {
+    :global(.archive-group-head.archive-group-head) {
+        position: relative;
+        padding-right: 4px;
+    }
+
+    /* 给绝对定位的「更多」让位，数量仍靠右显示。 */
+    :global(.archive-group-actions) {
+        padding-right: 24px;
+    }
+
+    :global(.archive-group-more.archive-group-more) {
+        position: absolute;
+        top: 50%;
+        right: 4px;
+        transform: translateY(-50%);
+        color: var(--ink-muted);
+        opacity: 1;
+    }
+}

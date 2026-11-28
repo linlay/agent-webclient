@@ -83,6 +83,15 @@ test("keeps the same split once a chat is selected", () => {
   expect(markup).not.toContain("archive-detail-empty");
 });
 
+test("moves the archive list into a left drawer on mobile", () => {
+  const markup = renderToStaticMarkup(<ArchiveConsole mobile />);
+
+  expect(markup).toContain("archive-mobile-list-drawer");
+  expect(markup).toContain('data-testid="list-pane"');
+  expect(markup).toContain("archive-detail-region");
+  expect(markup).not.toContain("archive-console-resize-handle");
+});
+
 test("passes the agent scope switch to the list toolbar", () => {
   const markup = renderToStaticMarkup(<ArchiveConsole showAgentFilter />);
   expect(markup).toContain('data-agent-scope="true"');

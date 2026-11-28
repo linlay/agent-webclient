@@ -1905,6 +1905,8 @@ export const zhCNMessages = {
   "archive.group.restoreResult": "已还原 {success} 条。",
   "archive.group.restoreResultWithFailures": "已还原 {success} 条，失败 {failed} 条。",
   "archive.group.unknown": "未关联智能体",
+  "archive.mobile.switcherAriaLabel": "切换归档对话，当前为 {name}",
+  "archive.mobile.noSelection": "选择归档对话",
   "archive.list.ariaLabel": "归档对话",
   "archive.resize.listAriaLabel": "调整归档列表宽度",
   "archive.resize.listTitle": "拖拽调整归档列表宽度",

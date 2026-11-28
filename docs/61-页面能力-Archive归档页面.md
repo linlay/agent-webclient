@@ -65,3 +65,7 @@ Archive 是独立 `features/archive` 领域，不归 Settings。现有组件/run
 - `../src/shared/data/api/routedClient.ts`
 - `../src/shared/data/api/endpoints.ts`
 - `../src/shared/data/api/client.test.ts`
+
+## 移动端列表抽屉
+
+`/mobile/archives` 复用同一归档页，但列表收进左侧全宽抽屉：页面标题栏右侧显示当前归档对话的名称与归档图标，点它或从详情区右滑打开抽屉，左滑关闭；选中归档对话后抽屉自动收起。列表按 Agent 分组，行尾「更多」与 500ms 长按都打开底部动作面板（恢复、恢复并打开、删除）；分组标题的「更多」也改为底部动作面板（恢复全部、删除全部），并与行尾「更多」保持同一右对齐位置和颜色。选择动作后关闭面板，列表抽屉保持。抽屉列表撑满高度，搜索、筛选、刷新保留在抽屉内；桌面端保持内嵌可调宽列表和 hover 才显现的行尾按钮。

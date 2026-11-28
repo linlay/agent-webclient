@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { ArchiveDetailPane } from "@/features/archive/components/ArchiveDetailPane";
 import { ArchiveListPane } from "@/features/archive/components/ArchiveListPane";
 import {
@@ -6,6 +6,10 @@ import {
   type RestoredArchiveChatSummary,
 } from "@/features/archive/hooks/useArchiveRuntime";
 import { usePanelResize } from "@/shared/ui/usePanelResize";
+import { MaterialIcon } from "@/shared/ui/MaterialIcon";
+import { MobileSwipeDrawer, type MobileSwipeDrawerHandle } from "@/shared/ui/MobileSwipeDrawer";
+import { useMobileSwipeGestures } from "@/shared/ui/hooks/useMobileSwipeGestures";
+import { useMobilePageHeaderAction } from "@/shared/ui/MobilePageHeaderAction";
 import { t } from "@/shared/i18n";
 import "./ArchiveConsole.module.css";
 export type { RestoredArchiveChatSummary } from "@/features/archive/hooks/useArchiveRuntime";
@@ -39,6 +43,8 @@ export interface ArchiveConsoleProps {
   onSelectedChatIdChange?: (chatId: string) => void;
   onOpenRestoredChat?: (summary: RestoredArchiveChatSummary) => void;
   showAgentFilter?: boolean;
+  /** 移动端：列表收进左侧抽屉，详情独占整屏。 */
+  mobile?: boolean;
 }
 
 export const ArchiveConsole: React.FC<ArchiveConsoleProps> = ({
@@ -47,6 +53,7 @@ export const ArchiveConsole: React.FC<ArchiveConsoleProps> = ({
   onSelectedChatIdChange,
   onOpenRestoredChat,
   showAgentFilter = false,
+  mobile = false,
 }) => {
   const runtime = useArchiveRuntime({
     active,
@@ -57,6 +64,12 @@ export const ArchiveConsole: React.FC<ArchiveConsoleProps> = ({
   });
 
   const [listWidth, setListWidth] = useState(ARCHIVE_LIST_DEFAULT_WIDTH);
+  const consoleRootRef = useRef<HTMLDivElement>(null);
+  const detailRegionRef = useRef<HTMLDivElement>(null);
+  const listDrawerRef = useRef<MobileSwipeDrawerHandle>(null);
+  const emptyPanelRef = useRef<MobileSwipeDrawerHandle>(null);
+  const [mobileListOpen, setMobileListOpen] = useState(false);
+  const mobileListLayout = Boolean(mobile);
   const listStartWidthRef = useRef(ARCHIVE_LIST_DEFAULT_WIDTH);
   const { handlePointerDown: handleListResize } = usePanelResize({
     axis: "horizontal",
@@ -72,6 +85,58 @@ export const ArchiveConsole: React.FC<ArchiveConsoleProps> = ({
       );
     },
   });
+
+  const selectedName =
+    runtime.selectedItem?.chatName ||
+    runtime.selected ||
+    t("archive.mobile.noSelection");
+  useEffect(() => {
+    if (!mobileListLayout) setMobileListOpen(false);
+  }, [mobileListLayout]);
+  useEffect(() => {
+    const element = detailRegionRef.current;
+    if (!element) return;
+    element.inert = mobileListOpen;
+    return () => { element.inert = false; };
+  }, [mobileListOpen]);
+  const openMobileList = () => setMobileListOpen(true);
+  const closeMobileList = () => setMobileListOpen(false);
+  const toggleMobileList = () => setMobileListOpen((open) => !open);
+  useMobileSwipeGestures({
+    rootRef: consoleRootRef,
+    left: {
+      ref: listDrawerRef,
+      open: mobileListOpen,
+      onOpen: openMobileList,
+      onClose: closeMobileList,
+    },
+    right: {
+      ref: emptyPanelRef,
+      open: false,
+      onOpen: () => {},
+      onClose: () => {},
+    },
+    disabled: !mobileListLayout,
+  });
+  useMobilePageHeaderAction(
+    mobileListLayout
+      ? {
+          label: selectedName,
+          ariaLabel: t("archive.mobile.switcherAriaLabel", {
+            name: selectedName,
+          }),
+          avatar: (
+            <MaterialIcon
+              name="archive"
+              style={{ width: 20, height: 20, fontSize: 20 }}
+            />
+          ),
+          icon: "swap_horiz",
+          expanded: mobileListOpen,
+          onActivate: toggleMobileList,
+        }
+      : null,
+  );
 
   const listPane = (
     <ArchiveListPane
@@ -95,7 +160,10 @@ export const ArchiveConsole: React.FC<ArchiveConsoleProps> = ({
       loading={runtime.loadingList}
       items={runtime.items}
       selectedChatId={runtime.selected}
-      onSelect={(chatId) => void runtime.loadArchiveDetail(chatId)}
+      onSelect={(chatId) => {
+        if (mobileListLayout) setMobileListOpen(false);
+        void runtime.loadArchiveDetail(chatId);
+      }}
       canRestoreAndOpen={Boolean(onOpenRestoredChat)}
       onRestore={(chatId, openAfterRestore) =>
         runtime.restoreSelected(chatId, openAfterRestore)
@@ -103,16 +171,13 @@ export const ArchiveConsole: React.FC<ArchiveConsoleProps> = ({
       onDelete={(chatId) => runtime.deleteSelected(chatId)}
       onRestoreGroup={(agentKey) => runtime.restoreGroup(agentKey)}
       onDeleteGroup={(agentKey) => runtime.deleteGroup(agentKey)}
+      mobile={mobileListLayout}
     />
   );
-
-  return (
-    <div
-      className={ARCHIVE_CONSOLE_CLASS}
-      style={{ "--archive-list-col": `${listWidth}px` } as React.CSSProperties}
-    >
-      <div className={ARCHIVE_LIST_PANE_CLASS_NAME}>
-        {listPane}
+  const listPaneShell = (
+    <div className={ARCHIVE_LIST_PANE_CLASS_NAME}>
+      {listPane}
+      {mobileListLayout ? null : (
         <button
           type="button"
           role="separator"
@@ -122,22 +187,47 @@ export const ArchiveConsole: React.FC<ArchiveConsoleProps> = ({
           className={ARCHIVE_RESIZE_HANDLE_CLASS_NAME}
           onPointerDown={handleListResize}
         />
-      </div>
-      {runtime.selected ? (
-        <ArchiveDetailPane
-          selectedChatId={runtime.selected}
-          selectedItem={runtime.selectedItem}
-          detail={runtime.detail}
-          loading={runtime.loadingDetail}
-          conversation={runtime.conversation}
-          usageSummary={runtime.usageSummary}
-          agents={runtime.agents}
-        />
-      ) : (
-        <section className="archive-detail-empty">
-          <p className="archive-detail-empty-hint">{t("archive.empty.select")}</p>
-        </section>
       )}
+    </div>
+  );
+
+  return (
+    <div
+      ref={consoleRootRef}
+      className={`${ARCHIVE_CONSOLE_CLASS} ${mobileListLayout ? "is-mobile" : ""}`}
+      style={{ "--archive-list-col": `${listWidth}px` } as React.CSSProperties}
+    >
+      {mobileListLayout ? null : listPaneShell}
+      <div ref={detailRegionRef} className="archive-detail-region">
+        {runtime.selected ? (
+          <ArchiveDetailPane
+            selectedChatId={runtime.selected}
+            selectedItem={runtime.selectedItem}
+            detail={runtime.detail}
+            loading={runtime.loadingDetail}
+            conversation={runtime.conversation}
+            usageSummary={runtime.usageSummary}
+            agents={runtime.agents}
+          />
+        ) : (
+          <section className="archive-detail-empty">
+            <p className="archive-detail-empty-hint">{t("archive.empty.select")}</p>
+          </section>
+        )}
+      </div>
+      {mobileListLayout ? (
+        <MobileSwipeDrawer
+          ref={listDrawerRef}
+          side="left"
+          open={mobileListOpen}
+          onClose={closeMobileList}
+          ariaLabel={t("archive.list.ariaLabel")}
+          className="archive-mobile-list-drawer"
+          fullWidth
+        >
+          {listPaneShell}
+        </MobileSwipeDrawer>
+      ) : null}
     </div>
   );
 };

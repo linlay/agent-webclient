@@ -3,6 +3,7 @@ import { useLocation, useParams } from "react-router-dom";
 import { ArchiveConsole } from "@/features/archive/components/ArchiveConsole";
 import type { RestoredArchiveChatSummary } from "@/features/archive/components/ArchiveConsole";
 import { buildSurfaceRoute, readSurfacePresentationContext } from "@/features/surfaces/lib/surfaceRoutes";
+import { isMobilePath } from "@/shared/utils/mobileRoutes";
 
 export const ArchivesPage = () => {
 	const navigate = useClientNavigate();
@@ -38,6 +39,7 @@ export const ArchivesPage = () => {
 				selectedChatId={selectedChatId}
 				onSelectedChatIdChange={navigateToArchive}
 				onOpenRestoredChat={openRestoredChat}
+				mobile={isMobilePath(location.pathname)}
 			/>
 		</main>
 	);

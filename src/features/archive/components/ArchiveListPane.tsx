@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { Dropdown, Input, Spin, Tooltip } from "antd";
 import type { MenuProps } from "antd";
 import type { ArchivedSummaryResponse } from "@/shared/data";
@@ -13,6 +13,8 @@ import { AgentIcon } from "@/shared/icons/agent";
 import { MaterialIcon } from "@/shared/ui/MaterialIcon";
 import { UiButton } from "@/shared/ui/UiButton";
 import { RowMoreMenu } from "@/shared/ui/RowMoreMenu";
+import { BottomSheet } from "@/shared/ui/BottomSheet";
+import { LongPressable } from "@/shared/ui/LongPressable";
 import { t } from "@/shared/i18n";
 
 export interface ArchiveListPaneProps {
@@ -42,6 +44,8 @@ export interface ArchiveListPaneProps {
   onDelete: (chatId: string) => void;
   onRestoreGroup: (agentKey: string) => void;
   onDeleteGroup: (agentKey: string) => void;
+  /** 移动端：行操作改用底部动作面板。 */
+  mobile?: boolean;
 }
 
 const GROUP_AGENT_ICON_PROPS = {
@@ -78,6 +82,66 @@ export const ArchiveListPane: React.FC<ArchiveListPaneProps> = (props) => {
     const agentName = String(agentByKey.get(groupKey)?.name || "").trim();
     if (agentName) return agentName;
     return groupKey || t("archive.group.unknown");
+  };
+
+  const [actionsItem, setActionsItem] = useState<ArchivedSummaryResponse | null>(null);
+  const [actionsOpen, setActionsOpen] = useState(false);
+  const buildItemMenu = (item: ArchivedSummaryResponse): NonNullable<MenuProps["items"]> => [
+    {
+      key: "restore",
+      icon: <MaterialIcon name="undo" />,
+      label: t("archive.action.restore"),
+    },
+    ...(props.canRestoreAndOpen
+      ? [
+          {
+            key: "restoreAndOpen",
+            icon: <MaterialIcon name="open_in_new" />,
+            label: t("archive.action.restoreAndOpen"),
+          },
+        ]
+      : []),
+    { type: "divider" as const },
+    {
+      key: "delete",
+      icon: <MaterialIcon name="delete" />,
+      label: t("archive.action.delete"),
+      danger: true,
+    },
+  ];
+  const handleItemAction = (key: string, item: ArchivedSummaryResponse) => {
+    if (key === "restore") props.onRestore(item.chatId, false);
+    else if (key === "restoreAndOpen") props.onRestore(item.chatId, true);
+    else if (key === "delete") props.onDelete(item.chatId);
+  };
+  const openItemActions = (item: ArchivedSummaryResponse) => {
+    setActionsItem(item);
+    setActionsOpen(true);
+  };
+
+  const [groupActions, setGroupActions] = useState<{ key: string; name: string } | null>(null);
+  const [groupActionsOpen, setGroupActionsOpen] = useState(false);
+  const buildGroupMenu = (groupKey: string): NonNullable<MenuProps["items"]> => [
+    {
+      key: "restoreAll",
+      label: t("archive.group.restoreAll"),
+      icon: <MaterialIcon name="unarchive" />,
+    },
+    { type: "divider" },
+    {
+      key: "deleteAll",
+      label: t("archive.group.deleteAll"),
+      icon: <MaterialIcon name="delete" />,
+      danger: true,
+    },
+  ];
+  const handleGroupAction = (key: string, groupKey: string) => {
+    if (key === "restoreAll") props.onRestoreGroup(groupKey);
+    else if (key === "deleteAll") props.onDeleteGroup(groupKey);
+  };
+  const openGroupActions = (groupKey: string, groupName: string) => {
+    setGroupActions({ key: groupKey, name: groupName });
+    setGroupActionsOpen(true);
   };
 
   return (
@@ -151,23 +215,9 @@ export const ArchiveListPane: React.FC<ArchiveListPaneProps> = (props) => {
             {groups.map((group) => {
               const agent = agentByKey.get(group.key);
               const groupName = resolveGroupName(group.key);
-              const groupMenuItems: MenuProps["items"] = [
-                {
-                  key: "restoreAll",
-                  label: t("archive.group.restoreAll"),
-                  icon: <MaterialIcon name="unarchive" />,
-                },
-                { type: "divider" },
-                {
-                  key: "deleteAll",
-                  label: t("archive.group.deleteAll"),
-                  icon: <MaterialIcon name="delete" />,
-                  danger: true,
-                },
-              ];
+              const groupMenuItems = buildGroupMenu(group.key);
               const handleGroupMenuClick: MenuProps["onClick"] = ({ key }) => {
-                if (key === "restoreAll") props.onRestoreGroup(group.key);
-                else if (key === "deleteAll") props.onDeleteGroup(group.key);
+                handleGroupAction(String(key), group.key);
               };
               return (
                 <section
@@ -190,23 +240,37 @@ export const ArchiveListPane: React.FC<ArchiveListPaneProps> = (props) => {
                       <span className="archive-group-count tw:flex-none tw:text-[11px] tw:text-ink-muted tw:opacity-60">
                         {t("archive.group.count", { count: group.count })}
                       </span>
-                      <Dropdown
-                        menu={{
-                          items: groupMenuItems,
-                          onClick: handleGroupMenuClick,
-                        }}
-                        trigger={["click"]}
-                        placement="bottomRight"
-                      >
-                        <button
-                          type="button"
-                          className={GROUP_ACTION_CLASS_NAME}
+                      {props.mobile ? (
+                        <UiButton
+                          size="mini"
+                          variant="ghost"
+                          iconOnly
+                          className="archive-group-more"
                           aria-label={t("archive.group.more")}
                           title={t("archive.group.more")}
+                          onClick={() => openGroupActions(group.key, groupName)}
                         >
                           <MaterialIcon name="more_horiz" />
-                        </button>
-                      </Dropdown>
+                        </UiButton>
+                      ) : (
+                        <Dropdown
+                          menu={{
+                            items: groupMenuItems,
+                            onClick: handleGroupMenuClick,
+                          }}
+                          trigger={["click"]}
+                          placement="bottomRight"
+                        >
+                          <button
+                            type="button"
+                            className={GROUP_ACTION_CLASS_NAME}
+                            aria-label={t("archive.group.more")}
+                            title={t("archive.group.more")}
+                          >
+                            <MaterialIcon name="more_horiz" />
+                          </button>
+                        </Dropdown>
+                      )}
                     </div>
                   </header>
                   <div
@@ -215,58 +279,47 @@ export const ArchiveListPane: React.FC<ArchiveListPaneProps> = (props) => {
                     className="archive-list tw:flex tw:flex-col"
                   >
                     {group.items.map((item) => {
-                      const itemMenuItems: MenuProps["items"] = [
-                        {
-                          key: "restore",
-                          icon: <MaterialIcon name="undo" />,
-                          label: t("archive.action.restore"),
-                        },
-                        ...(props.canRestoreAndOpen
-                          ? [
-                              {
-                                key: "restoreAndOpen",
-                                icon: <MaterialIcon name="open_in_new" />,
-                                label: t("archive.action.restoreAndOpen"),
-                              },
-                            ]
-                          : []),
-                        { type: "divider" as const },
-                        {
-                          key: "delete",
-                          icon: <MaterialIcon name="delete" />,
-                          label: t("archive.action.delete"),
-                          danger: true,
-                        },
-                      ];
+                      const itemMenuItems = buildItemMenu(item);
                       const onItemMenuClick: MenuProps["onClick"] = ({
                         key,
                         domEvent,
                       }) => {
                         domEvent.stopPropagation();
-                        if (key === "restore") props.onRestore(item.chatId, false);
-                        else if (key === "restoreAndOpen") props.onRestore(item.chatId, true);
-                        else if (key === "delete") props.onDelete(item.chatId);
+                        handleItemAction(String(key), item);
                       };
                       return (
-                        <RowMoreMenu
+                        <LongPressable
                           key={item.chatId}
+                          onLongPress={
+                            props.mobile ? () => openItemActions(item) : undefined
+                          }
+                        >
+                          {(gesture) => (
+                        <RowMoreMenu
                           className={`archive-list-item tw:flex tw:w-full tw:cursor-pointer tw:flex-col tw:rounded-none tw:border-0 tw:bg-transparent tw:px-2.5 tw:py-2 tw:text-left tw:text-ink-1 tw:hover:bg-bg-hover tw:[&.is-active]:bg-[var(--bg-selected)] tw:[&.is-active]:text-[var(--nav-selected-text)] ${item.chatId === props.selectedChatId ? "is-active" : ""}`}
                           rowProps={{
                             role: "option",
                             "aria-selected": item.chatId === props.selectedChatId,
                             tabIndex: 0,
-                            onClick: () => props.onSelect(item.chatId),
+                            onClick: () => {
+                              if (gesture.consumeClick()) return;
+                              props.onSelect(item.chatId);
+                            },
                             onKeyDown: (event) => {
                               if (event.key === "Enter" || event.key === " ") {
                                 event.preventDefault();
                                 props.onSelect(item.chatId);
                               }
                             },
+                            ...gesture.longPressProps,
                           }}
                           items={itemMenuItems}
                           onSelect={onItemMenuClick}
                           label={t("archive.item.more")}
                           ariaLabel={`${item.chatName || item.chatId}: ${t("archive.item.more")}`}
+                          onMoreClick={
+                            props.mobile ? () => openItemActions(item) : undefined
+                          }
                         >
                           <span className="archive-list-item-head tw:flex tw:min-w-0 tw:items-center">
                             <strong className="tw:min-w-0 tw:flex-1 tw:overflow-hidden tw:text-ellipsis tw:whitespace-nowrap tw:text-[13px]">
@@ -279,6 +332,8 @@ export const ArchiveListPane: React.FC<ArchiveListPaneProps> = (props) => {
                             </span>
                           </span>
                         </RowMoreMenu>
+                          )}
+                        </LongPressable>
                       );
                     })}
                   </div>
@@ -288,6 +343,86 @@ export const ArchiveListPane: React.FC<ArchiveListPaneProps> = (props) => {
           </Spin>
         )}
       </div>
+      {props.mobile ? (
+        <BottomSheet
+          open={groupActionsOpen}
+          onClose={() => setGroupActionsOpen(false)}
+          ariaLabel={t("archive.group.more")}
+          getContainer=".layout-mobile"
+        >
+          <div className="archive-actions-list">
+            <div className="archive-actions-sheet-title">
+              {groupActions?.name || ""}
+            </div>
+            {(groupActions ? buildGroupMenu(groupActions.key) : [])
+              .filter(Boolean)
+              .filter((entry) => (entry as { type?: string }).type !== "divider")
+              .map((entry) => {
+                const row = entry as {
+                  key?: React.Key;
+                  icon?: React.ReactNode;
+                  label?: React.ReactNode;
+                  danger?: boolean;
+                };
+                const key = String(row.key ?? "");
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    className={`archive-actions-row${row.danger ? " is-danger" : ""}`}
+                    onClick={() => {
+                      setGroupActionsOpen(false);
+                      if (groupActions) handleGroupAction(key, groupActions.key);
+                    }}
+                  >
+                    {row.icon}
+                    <span>{row.label}</span>
+                  </button>
+                );
+              })}
+          </div>
+        </BottomSheet>
+      ) : null}
+      {props.mobile ? (
+        <BottomSheet
+          open={actionsOpen}
+          onClose={() => setActionsOpen(false)}
+          ariaLabel={t("archive.item.more")}
+          getContainer=".layout-mobile"
+        >
+          <div className="archive-actions-list">
+            <div className="archive-actions-sheet-title">
+              {actionsItem?.chatName || actionsItem?.chatId || ""}
+            </div>
+            {(actionsItem ? buildItemMenu(actionsItem) : [])
+              .filter(Boolean)
+              .filter((entry) => (entry as { type?: string }).type !== "divider")
+              .map((entry) => {
+                const row = entry as {
+                  key?: React.Key;
+                  icon?: React.ReactNode;
+                  label?: React.ReactNode;
+                  danger?: boolean;
+                };
+                const key = String(row.key ?? "");
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    className={`archive-actions-row${row.danger ? " is-danger" : ""}`}
+                    onClick={() => {
+                      setActionsOpen(false);
+                      if (actionsItem) handleItemAction(key, actionsItem);
+                    }}
+                  >
+                    {row.icon}
+                    <span>{row.label}</span>
+                  </button>
+                );
+              })}
+          </div>
+        </BottomSheet>
+      ) : null}
     </section>
   );
 };

@@ -1807,6 +1807,8 @@ export const enUSMessages = {
   "archive.group.restoreResult": "Restored {success}.",
   "archive.group.restoreResultWithFailures": "Restored {success}, failed {failed}.",
   "archive.group.unknown": "Unassigned agent",
+  "archive.mobile.switcherAriaLabel": "Switch archived chat, current: {name}",
+  "archive.mobile.noSelection": "Select an archived chat",
   "archive.list.ariaLabel": "Archived conversations",
   "archive.resize.listAriaLabel": "Resize archive list",
   "archive.resize.listTitle": "Drag to resize archive list",
