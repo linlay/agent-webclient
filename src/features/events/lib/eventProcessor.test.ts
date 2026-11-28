@@ -1928,16 +1928,37 @@ describe("transient model retry status", () => {
   });
 });
 
-it('projects wait updates and ignores a late wait after its unique result', () => {
- const state=createState();
- processAndApply(state,{type:'tool.wait',runId:'run_1',toolId:'wait_1',toolName:'wait',timestamp:100,startedAt:100,deadlineAt:60100,description:'deployment',conditions:[],match:'any'},'live',true);
- expect(state.timelineNodes.get('tool_0')).toMatchObject({status:'running',toolWait:{deadlineAt:60100,description:'deployment'}});
- processAndApply(state,{type:'tool.wait.update',runId:'run_1',toolId:'wait_1',toolName:'wait',timestamp:101,startedAt:100,deadlineAt:60100,conditions:[{index:0,satisfied:true,status:'completed',condition:{type:'run.terminal',runId:'target'}}]},'live',true);
- expect(state.timelineNodes.get('tool_0')?.toolWait?.conditions[0].satisfied).toBe(true);
- processAndApply(state,{type:'tool.result',runId:'run_1',toolId:'wait_1',toolName:'wait',timestamp:102,result:{reason:'event'}},'live',true);
- expect(state.timelineNodes.get('tool_0')?.toolWait).toBeUndefined();
- processAndApply(state,{type:'tool.wait',runId:'run_1',toolId:'wait_1',toolName:'wait',timestamp:103,startedAt:100,deadlineAt:60100},'live',true);
- expect(state.timelineNodes.get('tool_0')?.status).toBe('success');
+it("projects wait updates and attach snapshots without reviving a completed card", () => {
+  const initial: AgentEvent = {
+    type: "tool.wait", seq: 1, runId: "run_1", toolId: "wait_1", toolName: "wait",
+    timestamp: 100, startedAt: 100, deadlineAt: 60100, description: "deployment", match: "any",
+    conditions: [{ index: 0, satisfied: false, status: "running", condition: { type: "run.terminal", runId: "target" } }],
+  };
+  const update: AgentEvent = {
+    ...initial, seq: 2, timestamp: 101,
+    conditions: [{ index: 0, satisfied: true, status: "completed", condition: { type: "run.terminal", runId: "target" } }],
+  };
+  const snapshot: AgentEvent = { ...update, seq: 0, attachSnapshot: true };
+
+  const state = createState();
+  processAndApply(state, initial, "live", true);
+  expect(state.timelineNodes.get("tool_0")).toMatchObject({
+    status: "running", toolWait: { deadlineAt: 60100, description: "deployment" },
+  });
+  processAndApply(state, update, "live", true);
+  expect(state.timelineNodes.get("tool_0")?.toolWait?.conditions[0].satisfied).toBe(true);
+
+  const restored = createState();
+  processAndApply(restored, snapshot, "live", true);
+  expect(restored.timelineNodes.get("tool_0")).toMatchObject({ status: "running", toolWait: state.timelineNodes.get("tool_0")?.toolWait });
+
+  processAndApply(state, {
+    type: "tool.result", runId: "run_1", toolId: "wait_1", toolName: "wait",
+    timestamp: 102, result: { reason: "event" },
+  }, "live", true);
+  expect(state.timelineNodes.get("tool_0")?.toolWait).toBeUndefined();
+  processAndApply(state, snapshot, "live", true);
+  expect(state.timelineNodes.get("tool_0")?.status).toBe("success");
 });
 
 describe("run progress activity", () => {

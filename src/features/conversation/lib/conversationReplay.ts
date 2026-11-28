@@ -393,7 +393,7 @@ function projectReadOnlyEvent(rs: ReplayState, event: AgentEvent, mode: 'live' |
       rs.currentRunAgentKey = binding.agentKey;
     }
   }
-  if (!["tool.output", "tool.wait", "tool.wait.update"].includes(event.type)) rs.events.push(event);
+  if (!["tool.output", "tool.wait"].includes(event.type)) rs.events.push(event);
   rs.debugEvents = appendVisibleDebugEvent(
     rs.debugEvents,
     event,

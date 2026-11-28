@@ -100,7 +100,7 @@ function routeStreamEvent(
 		type === "tool.snapshot" ||
 		type === "tool.args" ||
 		type === "tool.output" ||
- type === "tool.wait" || type === "tool.wait.update" ||
+		type === "tool.wait" ||
 		type === "tool.result" ||
 		type === "tool.end" ||
 		type.startsWith("action.") ||

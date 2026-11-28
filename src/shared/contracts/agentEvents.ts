@@ -70,7 +70,6 @@ export enum AIToolEventTypeEnum {
   End = "tool.end",
   Output = "tool.output",
   Wait = "tool.wait",
-  WaitUpdate = "tool.wait.update",
   Result = "tool.result",
 }
 

@@ -305,7 +305,7 @@ export function processToolEvent(
     return commands;
   }
 
-  if ((type === "tool.wait" || type === "tool.wait.update") && event.toolId) {
+  if (type === "tool.wait" && event.toolId) {
     const startedAt = Number(event.startedAt), deadlineAt = Number(event.deadlineAt);
     if (!Number.isFinite(startedAt) || !Number.isFinite(deadlineAt) || startedAt <= 0 || deadlineAt <= 0) return commands;
     const toolId = event.toolId;

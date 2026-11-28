@@ -1,5 +1,6 @@
 import type { AgentEvent } from "@/shared/contracts/agentEvents";
 import { dataEndpoints } from "@/shared/data/api/endpoints";
+import { decodePlatformAgentEvent } from "./platformFrameCodec";
 
 const mockEnsureStandaloneWsClient = jest.fn();
 
@@ -290,6 +291,42 @@ describe("PlatformRunTransport", () => {
     expect(abort).not.toHaveBeenCalled();
     expect(request).not.toHaveBeenCalled();
   });
+
+  it.each(["tool.wait", "tool.wait.update"])(
+    "delivers an attach snapshot from %s without moving the resume cursor",
+    async (type) => {
+      const onEvent = jest.fn();
+      const stream = jest.fn((options) => ({ requestId: "stream-1", abort: jest.fn() }));
+      const { PlatformRunTransport } = await import("./platformRunTransport");
+      const transport = new PlatformRunTransport(async () => ({ stream }) as any);
+      const execution = transport.subscribe({
+        chatId: "chat-1",
+        runId: "run-1",
+        owner: { kind: "agent", agentKey: "agent-1" },
+        lastSeq: 7,
+        onEvent,
+      });
+      await execution.identity;
+
+      const { onEvent: deliver, onDone } = stream.mock.calls[0][0];
+      const snapshot = decodePlatformAgentEvent({
+        type,
+        payload: {
+          seq: 0,
+          timestamp: 1710000000000,
+          runId: "run-1",
+          toolId: "wait-1",
+          attachSnapshot: true,
+        },
+      });
+      expect(snapshot).toMatchObject({ type: "tool.wait", seq: 0, attachSnapshot: true });
+      deliver(snapshot);
+      expect(onEvent).toHaveBeenCalledWith(snapshot);
+
+      onDone("done", 0);
+      await expect(execution.completion).resolves.toMatchObject({ reason: "done", lastSeq: 7 });
+    },
+  );
 
   it("releases the old observer while inactive and requires a fresh recovery attach", async () => {
     const streamOptions: any[] = [];

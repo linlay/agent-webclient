@@ -81,13 +81,13 @@ export function decodePlatformAgentEvent(
 ): AgentEvent | null {
   const { payload, ...rest } = frameEvent;
   const payloadRecord = record(payload);
+  const type = String(frameEvent.type || payloadRecord.type || "");
+  const seq = typeof frameEvent.seq === "number" ? frameEvent.seq : payloadRecord.seq;
   const event = {
     ...payloadRecord,
     ...rest,
-    type: String(frameEvent.type || payloadRecord.type || ""),
-    seq: typeof frameEvent.seq === "number"
-      ? frameEvent.seq
-      : Number(payloadRecord.seq ?? 0) || undefined,
+    type: type === "tool.wait.update" ? "tool.wait" : type,
+    seq: typeof seq === "number" ? seq : Number(seq) || undefined,
   } as AgentEvent;
   const timestamp = readEpochMillis(event.timestamp);
   return !hasValidPresentTimeFields(event) || timestamp === undefined
