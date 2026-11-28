@@ -62,7 +62,9 @@
 }
 
 :global(.sidebar-settings-menu) {
-    padding: 10px;
+    /* 左右留白只给行高亮用到 4px，文字缩进统一交给行内内边距，
+       让行高亮贴近面板边缘时，图标仍与分组标题同一条左缘。 */
+    padding: 10px 4px;
     background: var(--bg-elev-2);
 }
 
@@ -73,7 +75,8 @@
 }
 
 :global(.sidebar-settings-section-title) {
-    margin: 0 2px 8px;
+    /* 8px = 菜单项左内边距，标题因此与下方每个菜单项的图标左缘对齐。 */
+    margin: 0 8px 8px;
     color: var(--ink-muted);
     font-size: 11px;
     font-weight: 700;
@@ -86,9 +89,11 @@
     gap: 6px;
 }
 
-:global(.sidebar-settings-item):global(.ui-btn) {
+/* 多一层 .sidebar-settings-menu 是为了压过 .ui-btn.ui-btn-sm 的 padding，
+   这里只接管水平内边距，行高继续沿用按钮自身的 32px。 */
+:global(.sidebar-settings-menu) :global(.sidebar-settings-item):global(.ui-btn) {
     width: 100%;
-    padding: 9px 10px;
+    padding-inline: 8px;
     justify-content: flex-start;
     text-align: left;
     border-radius: 12px;

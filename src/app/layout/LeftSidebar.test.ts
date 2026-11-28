@@ -17,6 +17,7 @@ import type { AppState } from "@/app/state/AppContext";
 import type { Chat } from "@/features/chats/lib/chatState";
 import type { WorkerRow } from "@/features/workers/lib/workerState";
 import { I18nProvider } from "@/shared/i18n";
+import { ClientNavigationContext } from "@/shared/ui/ClientNavigationContext";
 
 const antdButtonProps: Array<Record<string, unknown>> = [];
 const antdDrawerProps: Array<Record<string, unknown>> = [];
@@ -667,6 +668,42 @@ describe("LeftSidebar", () => {
     // 面板没有标题栏：关闭靠遮罩、Esc 和下拉手势。
     expect(sheet?.closable).toBe(false);
     expect(sheet?.title).toBeUndefined();
+  });
+
+  it("records a page opened from the settings menu before navigating", () => {
+    globalWithStorage.__AGENT_WEBCLIENT_RUNTIME_CONFIG__ = {
+      SETTINGS_MENU_ENABLED: "true"
+    };
+    const order: string[] = [];
+    const navigatePage = jest.fn(() => {
+      order.push("navigate");
+    });
+    const onSettingsPageOpen = jest.fn(() => {
+      order.push("mark");
+    });
+
+    renderToStaticMarkup(
+      React.createElement(
+        I18nProvider,
+        { locale: "zh-CN", fallbackLocale: "zh-CN", persistLocale: false },
+        React.createElement(
+          ClientNavigationContext.Provider,
+          { value: navigatePage },
+          React.createElement(LeftSidebar, { onSettingsPageOpen }),
+        ),
+      ),
+    );
+
+    const agentsButton = uiButtonProps.find((props) =>
+      props.text.includes("智能体"),
+    );
+    expect(agentsButton).toBeTruthy();
+    (agentsButton?.onClick as () => void)();
+
+    // 先记下来源页面，再跳转；壳层据此在页面抽屉关闭后恢复设置菜单。
+    expect(order).toEqual(["mark", "navigate"]);
+    expect(navigatePage).toHaveBeenCalledWith("/agents");
+    expect(globalWithWindow.window?.open).not.toHaveBeenCalled();
   });
 
   it("opens registry config in a new page from the settings menu", () => {

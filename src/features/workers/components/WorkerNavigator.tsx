@@ -179,6 +179,8 @@ interface WorkerNavigatorProps {
   onOpenSearch: () => void;
   renderSettingsMenu: (close: () => void) => React.ReactNode;
   settingsSummary?: React.ReactNode;
+  /** 递增这个序号表示移动端壳层要求重新打开设置菜单（例如页面抽屉刚关闭）。 */
+  settingsMenuReopenToken?: number;
 }
 
 export const WorkerNavigator: React.FC<WorkerNavigatorProps> = ({
@@ -190,6 +192,7 @@ export const WorkerNavigator: React.FC<WorkerNavigatorProps> = ({
   onOpenSearch,
   renderSettingsMenu,
   settingsSummary,
+  settingsMenuReopenToken,
 }) => {
   const { modal } = AntdApp.useApp();
   const { state, stateRef, dispatch, querySessionsRef } = useAppContext();
@@ -328,6 +331,15 @@ export const WorkerNavigator: React.FC<WorkerNavigatorProps> = ({
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);
   }, [settingsMenuOpen]);
+
+  // 移动端从设置菜单进过页面后，壳层会用递增的序号要求把菜单原样打开。
+  const settingsMenuReopenTokenRef = useRef(settingsMenuReopenToken ?? 0);
+  useEffect(() => {
+    const token = settingsMenuReopenToken ?? 0;
+    if (token === settingsMenuReopenTokenRef.current) return;
+    settingsMenuReopenTokenRef.current = token;
+    if (mobile && settingsMenuEnabled) setSettingsMenuOpen(true);
+  }, [mobile, settingsMenuEnabled, settingsMenuReopenToken]);
 
   const handleSelectChat = (chatId: string) => {
     window.dispatchEvent(

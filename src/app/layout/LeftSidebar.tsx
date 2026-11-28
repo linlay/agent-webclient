@@ -20,7 +20,21 @@ export {
 } from "@/features/agents/lib/agentCreate";
 export { handleCreateAgentSuccess } from "@/features/workers/lib/agentProjectCreated";
 
-export const LeftSidebar: React.FC<{ mobile?: boolean; onClose?: () => void }> = ({ mobile = false, onClose }) => {
+export interface LeftSidebarProps {
+  mobile?: boolean;
+  onClose?: () => void;
+  /** 移动端：从设置菜单打开了独立页面，壳层据此在页面关闭后恢复设置菜单。 */
+  onSettingsPageOpen?: () => void;
+  /** 移动端：壳层要求重新打开设置菜单时递增这个序号。 */
+  settingsMenuReopenToken?: number;
+}
+
+export const LeftSidebar: React.FC<LeftSidebarProps> = ({
+  mobile = false,
+  onClose,
+  onSettingsPageOpen,
+  settingsMenuReopenToken,
+}) => {
   const navigatePage = useClientPageNavigation();
   const openTarget = useOpenTarget();
   const { state } = useAppContext();
@@ -41,7 +55,13 @@ export const LeftSidebar: React.FC<{ mobile?: boolean; onClose?: () => void }> =
       if (action.type === "open-connectors") standaloneRoute = "/connectors";
       if (action.type === "open-archive") standaloneRoute = "/archives";
       if (standaloneRoute) {
-        if (navigatePage) { onClose?.(); navigatePage(standaloneRoute); return; }
+        if (navigatePage) {
+          // 记下这个页面是从设置菜单打开的，页面抽屉关闭后可以回到菜单。
+          onSettingsPageOpen?.();
+          onClose?.();
+          navigatePage(standaloneRoute);
+          return;
+        }
         window.open(
           `${standaloneRoute}${window.location.search || ""}`,
           "_blank",
@@ -51,12 +71,13 @@ export const LeftSidebar: React.FC<{ mobile?: boolean; onClose?: () => void }> =
       }
       if (action.type === "open-settings") openOverlay("settings");
     },
-    [openOverlay, navigatePage, onClose],
+    [openOverlay, navigatePage, onClose, onSettingsPageOpen],
   );
   return (
     <>
     <WorkerNavigator
       mobile={mobile} onClose={onClose}
+      settingsMenuReopenToken={settingsMenuReopenToken}
       onOpenProject={(agentKey) => { onClose?.(); openTarget({ version: 1, kind: "project", agentKey }); }}
       onOpenSearch={() => { onClose?.(); openGlobalSearch(); }}
       onOpenCommand={(type) => { onClose?.(); openCommandOverlay({ type }); }}

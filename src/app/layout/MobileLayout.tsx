@@ -23,10 +23,14 @@ export function MobileLayout({ children, conversationSearch, overlays }: { child
   const location = useLocation();
   const navigate = useNavigate();
   const [navigationOpen, setNavigationOpen] = useState(false);
+  const [settingsMenuReopenToken, setSettingsMenuReopenToken] = useState(0);
   const root = useRef<HTMLDivElement>(null);
   const conversation = useRef<HTMLDivElement>(null);
   const navigationDrawer = useRef<MobileSwipeDrawerHandle>(null);
   const contentDrawer = useRef<MobileSwipeDrawerHandle>(null);
+  // 从设置菜单进入页面时记下离开的会话地址；页面抽屉关闭并回到这个地址时，
+  // 就把导航抽屉和设置菜单恢复原样。
+  const settingsPageReturnPathRef = useRef("");
   useMobileViewport(root);
   const pageOpen = location.pathname !== "/mobile";
 
@@ -71,6 +75,19 @@ export function MobileLayout({ children, conversationSearch, overlays }: { child
   }, [drawerOpen]);
 
   const returnToConversation = () => void navigate(`/mobile${conversationSearch}`);
+  const markSettingsPageOpened = useCallback(() => {
+    settingsPageReturnPathRef.current = `${location.pathname}${location.search}`;
+  }, [location.pathname, location.search]);
+  // 页面抽屉的关闭动画结束后再恢复菜单，避免导航抽屉和底部菜单盖在还
+  // 在退场的页面上。只有回到当初离开的会话（而不是跳到别的会话）才恢复。
+  const handlePageDrawerOpenChange = useCallback((open: boolean) => {
+    if (open || !settingsPageReturnPathRef.current) return;
+    const returnPath = settingsPageReturnPathRef.current;
+    settingsPageReturnPathRef.current = "";
+    if (`${location.pathname}${location.search}` !== returnPath) return;
+    setNavigationOpen(true);
+    setSettingsMenuReopenToken(token => token + 1);
+  }, [location.pathname, location.search]);
   return <div ref={root} id="app" className={`${styles.root} layout-mobile`}>
     <div ref={conversation} className={styles.conversation} data-new-chat={!state.chatId || undefined}>
       <TopNav mobile onOpenNavigation={openNavigation} />
@@ -78,7 +95,9 @@ export function MobileLayout({ children, conversationSearch, overlays }: { child
     </div>
     <MobileSwipeDrawer ref={navigationDrawer} side="left" open={navigationOpen}
       onClose={closeNavigation} ariaLabel={t("mobile.navigation")} className={styles.navigation}>
-      <LeftSidebar mobile onClose={closeNavigation} />
+      <LeftSidebar mobile onClose={closeNavigation}
+        onSettingsPageOpen={markSettingsPageOpened}
+        settingsMenuReopenToken={settingsMenuReopenToken} />
     </MobileSwipeDrawer>
     <MobileSwipeDrawer ref={contentDrawer} side="right" open={state.rightSidebarOpen}
       onClose={closeContent} ariaLabel={t("mobile.content")} className={styles.panel}>
@@ -87,6 +106,7 @@ export function MobileLayout({ children, conversationSearch, overlays }: { child
     <MobilePageHeaderActionProvider>
       <Drawer rootClassName={`${styles.drawer} ${styles.page}`} title={t("mobile.backToChat")}
         placement="right" width="100%" open={pageOpen} onClose={returnToConversation}
+        afterOpenChange={handlePageDrawerOpenChange}
         getContainer={false} extra={<MobilePageHeaderActionSlot />} push={false}
         closeIcon={<MaterialIcon name="keyboard_arrow_right" style={{ width: 20, height: 20, fontSize: 20 }} />}
         styles={{ body: { padding: 0, overflow: "auto" } }}>

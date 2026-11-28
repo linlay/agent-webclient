@@ -335,7 +335,8 @@
 
 :global(.worker-settings-sheet) :global(.sidebar-settings-item):global(.ui-btn) {
     min-height: 44px;
-    padding: 8px 10px;
+    /* 与分组标题的 8px 缩进一致，标题左缘对齐菜单项图标。 */
+    padding: 8px;
 }
 
 :global(.worker-settings-sheet) :global(.sidebar-settings-item-label) {
@@ -343,7 +344,7 @@
 }
 
 :global(.worker-settings-sheet) :global(.sidebar-settings-section-title) {
-    margin: 0 2px 6px;
+    margin: 0 8px 6px;
 }
 
 :global(.layout-mobile[data-keyboard-open]) :global(.worker-settings-sheet) :global(.sidebar-settings-menu) {
