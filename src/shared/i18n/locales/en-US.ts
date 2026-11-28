@@ -323,6 +323,8 @@ export const enUSMessages = {
 
   "memoryFiles.empty": "No content yet. Switch to Edit to add notes.",
   "memoryFiles.stats": "{lines} lines · {count} characters",
+  "memoryFiles.mobile.listTitle": "Memory files",
+  "memoryFiles.mobile.switcherAriaLabel": "Switch memory file, current: {name}",
   "memoryFiles.title": "Memory Management",
   "memoryFiles.subtitle": "Manage this Platform’s profile, long-term memory and daily notes.",
   "memoryFiles.documents": "Memory documents",

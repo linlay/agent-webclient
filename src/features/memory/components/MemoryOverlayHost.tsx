@@ -5,8 +5,8 @@ import {
   useMemoryOverlayState,
 } from "@/features/memory/components/MemoryOverlayProvider";
 
-export const MemoryOverlayHost: React.FC = () => {
+export const MemoryOverlayHost: React.FC<{ mobile?: boolean }> = ({ mobile = false }) => {
   const { isMemoryOpen } = useMemoryOverlayState();
   const { closeMemory } = useMemoryOverlayActions();
-  return isMemoryOpen ? <MemoryModal open onClose={closeMemory} /> : null;
+  return isMemoryOpen ? <MemoryModal open mobile={mobile} onClose={closeMemory} /> : null;
 };

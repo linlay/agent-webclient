@@ -100,11 +100,59 @@
   .footer { flex-wrap: wrap; }
 }
 @media (max-width: 480px) {
-  .toolbar { flex-wrap: wrap; gap: 0; }
-  .viewTabs .toolbar > :global(.ant-tabs-nav) { flex-basis: 100%; }
-  .actions { flex-basis: 100%; padding-bottom: 8px; }
   .documentHeading { padding: 12px 12px 0; }
   .preview { padding-inline: 12px; }
   .editor textarea { padding: 12px; }
   .rangeDates { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* ---- 移动端记忆管理：右侧全屏抽屉 ---- */
+.drawer :global(.ant-drawer-body) {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+.drawer .console {
+  flex: 1 1 auto;
+  height: auto;
+  min-height: 0;
+}
+
+.drawer .drawerTitle {
+  flex: 0 0 45px;
+  min-width: 0;
+  padding: 0 12px;
+}
+
+/* ---- 移动端：记忆文件列表改为左侧抽屉 ---- */
+.workbench.mobileWorkbench {
+  position: relative;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+}
+
+:global(.memory-editor-region) {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+:global(.memory-editor-region) .editor {
+  flex: 1 1 auto;
+}
+
+:global(.memory-mobile-list-drawer) {
+  z-index: 1010;
+}
+
+:global(.memory-mobile-list-drawer) .sidebar {
+  width: 100%;
+  height: 100%;
+  border-right: 0;
+  border-bottom: 0;
 }

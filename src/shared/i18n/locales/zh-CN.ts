@@ -323,6 +323,8 @@ export const zhCNMessages = {
 
   "memoryFiles.empty": "暂无内容，切换编辑以添加记录。",
   "memoryFiles.stats": "{lines} 行 · {count} 字符",
+  "memoryFiles.mobile.listTitle": "记忆文件",
+  "memoryFiles.mobile.switcherAriaLabel": "切换记忆文件，当前为 {name}",
   "memoryFiles.title": "记忆管理",
   "memoryFiles.subtitle": "维护当前 Platform 的个人资料、长期记忆和每日记录。",
   "memoryFiles.documents": "记忆文档",

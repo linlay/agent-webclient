@@ -1,6 +1,6 @@
 # 记忆管理
 
-Settings 不再提供记忆入口；记忆统一从 Quick Actions 的 Mem 打开，独立 `/memory` 路由保留。Quick Actions 采用紧凑单行布局，提供 Auto、Agent、KBase、Mem（中文为自动化、智能体、知识库、记忆），四个入口均不显示数字。记忆快捷入口经 MemoryOverlayProvider 打开 Memory Modal；弹窗与 Agent、Auto 统一为最大 1320px 宽、min(84dvh, 860px) 内容高度及 28px ModalTitleBar，使用相同内边距与关闭按钮；独立页面与弹窗共用紧凑的文档工作台。Platform 是唯一读写事实源：OWNER.md 保存用户明确的资料与偏好，summary.md 保存长期事实（API 的 kind=memory 为兼容别名），daily/YYYY-MM-DD.md 保存当日记录。页面不依赖当前 Agent，也不依赖已退役的 MEMORY_ENABLED 开关。
+Settings 不再提供记忆入口；记忆统一从 Quick Actions 的 Mem 打开，独立 `/memory` 路由保留。Quick Actions 采用紧凑单行布局，提供 Auto、Agent、KBase、Mem（中文为自动化、智能体、知识库、记忆），四个入口均不显示数字。记忆快捷入口经 MemoryOverlayProvider 打开 Memory Modal；桌面弹窗与 Agent、Auto 统一为最大 1320px 宽、min(84dvh, 860px) 内容高度及 28px ModalTitleBar，使用相同内边距与关闭按钮。移动端从 Quick Actions 的 Mem 或记忆入口打开时改为右侧全屏 Drawer：抽屉标题栏提供收起箭头，行为等同关闭弹窗（未保存草稿仍需确认），遮罩/Esc 可关闭。抽屉标题栏右侧显示当前记忆文件（summary.md/OWNER.md/日期）的图标、名称与切换图标；记忆文件列表收进左侧抽屉，右滑打开、左滑关闭，选择文件/日期/搜索结果后自动收起，编辑器独占剩余空间。桌面仍使用居中 Modal 和并排列表。独立页面与弹窗/抽屉共用紧凑的文档工作台。Platform 是唯一读写事实源：OWNER.md 保存用户明确的资料与偏好，summary.md 保存长期事实（API 的 kind=memory 为兼容别名），daily/YYYY-MM-DD.md 保存当日记录。页面不依赖当前 Agent，也不依赖已退役的 MEMORY_ENABLED 开关。
 
 编辑状态局限在挂载页面；切换文件、关闭弹窗或路由离开时提示未保存修改。HTTP GET/PUT/DELETE `/api/memory/file` 使用固定 kind/date 和 revision；409 保留草稿，重新加载后由用户合并。日期与当天值由 Platform 时区计算；日期列表和文字检索按游标加载。知识索引由 KBX 承担。
 

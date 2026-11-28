@@ -15,7 +15,7 @@ export const ShellOverlays: React.FC<{
 		<>
 			<CommandStatusOverlay />
 			<SettingsOverlayHost variant={settingsOverlayVariant} />
-			<MemoryOverlayHost />
+			<MemoryOverlayHost mobile={commandOverlayVariant === "mobile"} />
 			<CommandOverlayHost variant={commandOverlayVariant} />
 			{commandOverlayVariant !== "copilot" && <GlobalSearchOverlay />}
 			<EventPopover />

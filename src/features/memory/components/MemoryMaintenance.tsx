@@ -6,7 +6,7 @@ import { UiButton } from "@/shared/ui/UiButton";
 import { useMemoryMaintenance } from "@/features/memory/hooks/useMemoryMaintenance";
 import styles from "./MemoryConsole.module.css";
 
-export function MemoryMaintenance({ today, onReload }: { today: string; onReload: () => boolean }) {
+export function MemoryMaintenance({ today, onReload, mobile = false }: { today: string; onReload: () => boolean; mobile?: boolean }) {
   const { t } = useI18n();
   const m = useMemoryMaintenance();
   const formId = useId();
@@ -22,9 +22,16 @@ export function MemoryMaintenance({ today, onReload }: { today: string; onReload
   };
   const stateKey = job ? `memoryMaintenance.state.${job.state}` : "memoryMaintenance.state.running";
   return <>
-    <UiButton size="sm" variant="secondary" onClick={openDialog}>
+    <UiButton
+      size="sm"
+      variant={mobile ? "ghost" : "secondary"}
+      iconOnly={mobile}
+      aria-label={t(m.active ? "memoryMaintenance.runningAction" : "memoryMaintenance.title")}
+      title={t(m.active ? "memoryMaintenance.runningAction" : "memoryMaintenance.title")}
+      onClick={openDialog}
+    >
       <MaterialIcon name={m.error || job?.state === "failed" ? "error" : "refresh"} className={m.active ? styles.spinning : undefined} />
-      {t(m.active ? "memoryMaintenance.runningAction" : "memoryMaintenance.title")}
+      {!mobile && t(m.active ? "memoryMaintenance.runningAction" : "memoryMaintenance.title")}
     </UiButton>
     <Modal title={t("memoryMaintenance.title")} open={open} onCancel={() => setOpen(false)} width={480} className={styles.maintenanceModal} footer={<div className={styles.dialogActions}>
       {m.manualActive && <UiButton size="sm" variant="secondary" disabled={m.submitting || job?.state === "canceling"} onClick={() => void m.cancel()}>{t("memoryMaintenance.cancel")}</UiButton>}
