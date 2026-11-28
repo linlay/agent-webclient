@@ -1,0 +1,34 @@
+.section { min-width: 0; border-top: 1px solid var(--line); }
+.toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 7px 4px;
+  background: transparent;
+  border: 0;
+  color: var(--ink-1);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.toggle:hover { background: var(--bg-hover); }
+.toggle:focus-visible { outline: 2px solid var(--accent-electric); outline-offset: -2px; }
+.count, .head time { margin-inline-start: auto; color: var(--ink-muted); font-weight: 400; }
+.list {
+  list-style: none;
+  padding: 0 8px;
+  margin: 0;
+  max-height: 18rem;
+  overflow: auto;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.list li { padding: 7px 0; }
+.list li + li { border-top: 1px solid var(--line); }
+.head { display: flex; align-items: baseline; gap: 8px; }
+.head strong[data-failed="true"] { color: var(--danger); }

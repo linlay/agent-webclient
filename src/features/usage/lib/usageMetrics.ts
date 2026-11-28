@@ -1,4 +1,5 @@
 import type { AIUsageEstimatedCost, AIUsageSnapshotEvent, AIUsageStats } from "@/shared/contracts/agentEvents";
+import { isChatCompactEvent } from "./compactHistory";
 import type { AppState } from "@/app/state/AppContext";
 
 export interface UsageMetricPercent {
@@ -241,9 +242,13 @@ export function resolveLatestCompactUsage(events: AppState["events"]): AIUsageSt
 export function hasUsageControlContent(input: {
   usageSnapshot?: AIUsageSnapshotEvent | null;
   compactUsage?: AIUsageStats | null;
+  chatId?: string;
+  events?: AppState["events"];
   running?: boolean;
 }): boolean {
-  return Boolean(input.usageSnapshot) || Boolean(input.compactUsage) || Boolean(input.running);
+  const chatId = input.chatId || "";
+  return Boolean(input.usageSnapshot || input.compactUsage || input.running
+    || input.events?.some(event => isChatCompactEvent(event, chatId)));
 }
 
 export function resolveContextPercent(snapshot: AIUsageSnapshotEvent | null): UsageContextPercent | null {

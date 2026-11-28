@@ -6,6 +6,7 @@ import { App as AntdApp, ConfigProvider } from "antd";
 import { I18nProvider } from "@/shared/i18n";
 import { createInitialState } from "@/app/state/state";
 import { useCompactChooser } from "@/features/composer/hooks/useCompactChooser";
+import { AIContextEventTypeEnum as CompactType } from "@/shared/contracts/agentEvents";
 import { UsageContextControl } from "./UsageContextControl";
 
 const mockSubmitCompact = jest.fn();
@@ -83,6 +84,28 @@ describe("shared compaction chooser", () => {
     await render(source);
     await click(source === "usage" ? '[aria-label="Compact"]' : "button");
   };
+
+  it("opens the recorded stages without submitting a compact request or requiring usage", async () => {
+    mockState.usageSnapshot = null;
+    mockState.events = [
+      { type: CompactType.CompactStart, chatId: "chat-1", compactId: "a", cycleId: "one", level: "l1_tools", trigger: "auto" },
+      { type: CompactType.CompactComplete, chatId: "chat-1", compactId: "a", cycleId: "one", estimatedTokens: 72000, currentTokens: 18000 },
+      { type: CompactType.CompactStart, chatId: "chat-1", compactId: "a" },
+      { type: CompactType.CompactFailed, chatId: "chat-1", compactId: "b", cycleId: "one", level: "summary", error: { message: "Summary timeout" } },
+      { type: CompactType.CompactComplete, chatId: "other", compactId: "foreign", currentTokens: 999 },
+    ];
+    await render("usage");
+    const button = [...document.querySelectorAll("button")].find(el => el.textContent?.includes("Compaction history"))!;
+    expect(button.getAttribute("aria-expanded")).toBe("false");
+    await act(async () => button.click());
+    const rows = document.getElementById(button.getAttribute("aria-controls")!)!.querySelectorAll("li");
+    expect(rows).toHaveLength(2);
+    expect(rows[0].textContent).toContain("Summary timeout");
+    expect(rows[1].textContent).toContain("75.00% (54,000 tokens)");
+    expect(rows[1].textContent).toContain("18,000 tokens");
+    expect(rows[1].textContent).toContain("Automatic");
+    expect(mockSubmitCompact).not.toHaveBeenCalled();
+  });
 
   it.each(["usage", "command"] as const)("opens the same two choices from %s without submitting", async (source) => {
     await open(source);

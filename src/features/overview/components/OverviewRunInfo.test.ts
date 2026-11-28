@@ -2,10 +2,14 @@
 import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { OverviewRunInfoSection } from "./OverviewRunInfo";
+import { OverviewContentView } from "./OverviewPanel";
+import { createInitialState } from "@/app/state/state";
+import { AIContextEventTypeEnum as CompactType } from "@/shared/contracts/agentEvents";
 import { I18nProvider } from "@/shared/i18n";
 import { copyText } from "@/shared/utils/copy";
 import type { OverviewRunInfo } from "@/features/overview/lib/overviewRunInfo";
 
+jest.mock("@/features/surfaces/hooks/useOpenTarget", () => ({ useOpenTarget: () => jest.fn() }));
 jest.mock("@/shared/utils/copy", () => ({ copyText: jest.fn().mockResolvedValue(undefined) }));
 
 const START = new Date("2026-09-10T06:32:05Z").getTime();
@@ -76,6 +80,22 @@ describe("overview run disclosure", () => {
     await act(async () => jest.advanceTimersByTime(60000));
     expect(toggle().textContent).toBe(completed);
     expect(completed).toContain("Completed");
+  });
+
+  it("shows chat compression records in Overview without opening Run information", async () => {
+    const state = createInitialState();
+    state.chatId = initialInfo.chatId;
+    state.events = [{ type: CompactType.CompactComplete, chatId: state.chatId, scope: "history",
+      compactId: "c", trigger: "manual", level: "summary", currentTokens: 250 }];
+    await act(async () => root.render(React.createElement(I18nProvider, { locale: "en-US", persistLocale: false },
+      React.createElement(OverviewContentView, { state, runInfo: initialInfo }),
+    )));
+    const button = [...container.querySelectorAll("button")].find(el => el.textContent?.includes("Compaction history"))!;
+    await act(async () => button.click());
+    const list = document.getElementById(button.getAttribute("aria-controls")!)!;
+    expect(list.textContent).toContain("Manual");
+    expect(list.textContent).toContain("250 tokens");
+    expect(list.textContent).not.toContain("%");
   });
 
   it("exposes the actual model, reasoning and context and copies full identifiers", async () => {

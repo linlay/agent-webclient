@@ -43,6 +43,7 @@ export const OverviewViewerSurface: React.FC<{ chatId: string }> = ({ chatId }) 
           runInfo={runInfo}
           state={{
             artifacts: projection.artifacts,
+            events: projection.events,
             chatId,
             currentChatActiveRun,
             fileChanges: projection.fileChanges,

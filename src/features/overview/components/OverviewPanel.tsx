@@ -13,6 +13,7 @@ import { buildPlanSummaryView } from "@/features/plan/lib/planSummary";
 import { Collapse, Flex, Tooltip, Typography } from "antd";
 import { FileIcon } from "@/shared/components/file-icon";
 import { TextCountUp } from "@/shared/components/text-count-up";
+import { CompactHistory } from "@/features/usage/components/CompactHistory";
 import { OverviewRunInfoSection } from "./OverviewRunInfo";
 import {
   buildOverviewRunInfo,
@@ -318,6 +319,7 @@ export interface OverviewContentViewProps {
   runInfo: OverviewRunInfo;
   state: Pick<
     ReturnType<typeof useAppState>,
+    | "events"
     | "artifacts"
     | "chatId"
     | "currentChatActiveRun"
@@ -890,6 +892,7 @@ export const OverviewContentView: React.FC<OverviewContentViewProps> = ({
         info={runInfo}
         hasContent={overviewSections.some((section) => section.hasData)}
       />
+      <CompactHistory key={`compact-${state.chatId}`} chatId={state.chatId} events={state.events} />
       {overviewSections
         .filter((section) => section.hasData)
         .map((section) => (

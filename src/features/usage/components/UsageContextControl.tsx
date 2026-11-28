@@ -45,6 +45,7 @@ import {
   type UsageMetric,
 } from "@/features/usage/lib/usageMetrics";
 import styles from "./UsageContextControl.module.css";
+import { CompactHistory } from "./CompactHistory";
 import { UsageStackedMetrics } from "./UsageStackedMetrics";
 import {
   canSubmitCompact,
@@ -410,6 +411,8 @@ export const UsageContextControl: React.FC<{
   const showUsageControl = hasUsageControlContent({
     usageSnapshot,
     compactUsage,
+    events: state.events,
+    chatId: state.chatId,
     running: isMainChatRunning,
   });
   const usageTotal = resolveDisplayTotal(usageSnapshot);
@@ -618,6 +621,7 @@ export const UsageContextControl: React.FC<{
         </Flex>
       </Flex>
       {mobile && contextWindow}
+      <CompactHistory key={state.chatId} chatId={state.chatId} events={state.events} />
       <UsageSection
         title={t("topNav.usage.section.current")}
         metrics={buildUsageMetrics(t, usageSnapshot?.usage?.current)}

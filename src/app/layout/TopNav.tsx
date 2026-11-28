@@ -275,6 +275,8 @@ export const TopNav: React.FC<{ surface?: "root" | "agent"; mobile?: boolean; on
       hasUsageControlContent({
         usageSnapshot: state.usageSnapshot,
         compactUsage,
+        events: state.events,
+        chatId: state.chatId,
         running: isMainChatRunning,
       }),
   );
